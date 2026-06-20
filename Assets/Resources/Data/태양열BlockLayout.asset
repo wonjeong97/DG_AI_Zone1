@@ -1,0 +1,67 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d27cd7030946e1e498ffaef1101438cf, type: 3}
+  m_Name: "\uD0DC\uC591\uC5F4BlockLayout"
+  m_EditorClassIdentifier: 
+  inventoryBlocks:
+  - category: 0
+    label: "\uC2DC\uC791\uD558\uAE30"
+    valueLabel: 
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+  - category: 1
+    label: "\uD0DC\uC591\uAD11 \uD328\uB110\uC758 \uAC01\uB3C4"
+    valueLabel: 
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+  - category: 1
+    label: "\uD0DC\uC591\uAD11 \uD328\uB110\uC758 \uAC00\uB3D9 \uC218"
+    valueLabel: 
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+  - category: 1
+    label: "\uD0DC\uC591\uAD11 \uD328\uB110\uC758 \uBC29\uD5A5"
+    valueLabel: 
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+  - category: 2
+    label: "\uBA87 \uB3C4"
+    valueLabel: 
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+  - category: 2
+    label: "\uBA87 \uAC1C"
+    valueLabel: 
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+  - category: 2
+    label: "\uC5B4\uB290 \uBC29\uD5A5"
+    valueLabel: 
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+  - category: 0
+    label: "\uC885\uB8CC\uD558\uAE30"
+    valueLabel: 
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+  codingBlocks: []
+  references:
+    version: 2
+    RefIds: []
