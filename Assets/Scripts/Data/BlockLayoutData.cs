@@ -32,5 +32,8 @@ namespace DG.Data
 
         [SerializeReference, Tooltip("Logic(그리고) 수평 체인 블록")]
         public BlockEntry[] chainBlocks;
+
+        [Tooltip("코딩 존 진입 시 ChainSocket의 앵커(하단 중앙) 기준 오프셋")]
+        public Vector2 chainSocketOffset = Vector2.zero;
     }
 }

@@ -6,7 +6,6 @@ namespace DG.Game
     public class BlockSpawner : MonoBehaviour
     {
         [SerializeField] private Transform inventoryContainer;
-        [SerializeField] private Vector2 commandValueOffset = new Vector2(-16f, 0f);
 
         private Canvas _rootCanvas;
 
@@ -22,11 +21,9 @@ namespace DG.Game
 
             if (layout?.inventoryBlocks == null) return;
 
-            BlockFactory.CommandValueOffset = commandValueOffset;
-
             foreach (var entry in layout.inventoryBlocks)
             {
-                var go = BlockFactory.Create(entry, _rootCanvas, draggable: true, withValueSlot: false);
+                var go = BlockFactory.Create(entry, _rootCanvas, draggable: true);
                 go.transform.SetParent(inventoryContainer, false);
             }
         }
