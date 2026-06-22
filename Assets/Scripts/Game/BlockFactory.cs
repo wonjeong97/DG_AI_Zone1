@@ -13,14 +13,14 @@ namespace DG.Game
         {
             string name = cat switch
             {
-                BlockCategory.Control         => label == "시작하기" ? "Start" : "End",
-                BlockCategory.Command         => "Command",
-                BlockCategory.Value           => "Value",
-                BlockCategory.FlowControl     => "FlowControl",
+                BlockCategory.Control => label == "시작하기" ? "Start" : "End",
+                BlockCategory.Command => "Command",
+                BlockCategory.Value => "Value",
+                BlockCategory.FlowControl => "FlowControl",
                 BlockCategory.ConditionAction => "ConditionAction",
-                BlockCategory.Action          => "Action",
-                BlockCategory.Logic           => "Logic",
-                _                             => null
+                BlockCategory.Action => "Action",
+                BlockCategory.Logic => "Logic",
+                _ => null
             };
             return name != null ? Resources.Load<Sprite>(BlockImagePath + name) : null;
         }
@@ -28,22 +28,22 @@ namespace DG.Game
         // 색상은 스프라이트 없을 때 폴백용으로만 사용
         public static Color GetColor(BlockCategory cat) => cat switch
         {
-            BlockCategory.Control         => new Color(0.20f, 0.20f, 0.20f),
-            BlockCategory.Command         => new Color(0.82f, 0.36f, 0.28f),
-            BlockCategory.Value           => new Color(0.27f, 0.60f, 0.85f),
-            BlockCategory.FlowControl     => new Color(0.92f, 0.57f, 0.08f),
+            BlockCategory.Control => new Color(0.20f, 0.20f, 0.20f),
+            BlockCategory.Command => new Color(0.82f, 0.36f, 0.28f),
+            BlockCategory.Value => new Color(0.27f, 0.60f, 0.85f),
+            BlockCategory.FlowControl => new Color(0.92f, 0.57f, 0.08f),
             BlockCategory.ConditionAction => new Color(0.86f, 0.40f, 0.63f),
-            BlockCategory.Action          => new Color(0.28f, 0.72f, 0.66f),
-            BlockCategory.Logic           => new Color(0.33f, 0.73f, 0.36f),
-            _                             => Color.white
+            BlockCategory.Action => new Color(0.28f, 0.72f, 0.66f),
+            BlockCategory.Logic => new Color(0.33f, 0.73f, 0.36f),
+            _ => Color.white
         };
 
         // ── 진입점 ──────────────────────────────────────────────
-        public static GameObject Create(BlockEntry entry, Canvas rootCanvas, bool draggable = true, bool withValueSlot = true)
+        public static GameObject Create(BlockEntry entry, Canvas rootCanvas, bool draggable = true)
         {
             return entry.category switch
             {
-                BlockCategory.Command     => CreateCommandBlock(entry, rootCanvas, draggable, withValueSlot),
+                BlockCategory.Command     => CreateCommandBlock(entry, rootCanvas, draggable),
                 BlockCategory.FlowControl => CreateFlowBlock(entry, rootCanvas, draggable),
                 _                         => CreateSimpleBlock(entry, rootCanvas, draggable)
             };
@@ -57,7 +57,10 @@ namespace DG.Game
             AddImage(go, GetColor(entry.category), sprite);
             go.AddComponent<CanvasGroup>();
             if (draggable)
+            {
                 AddDraggable(go, entry.category, rootCanvas);
+            }
+
             AddLabel(go, entry.label);
 
             // Logic 블록은 수평 체인 슬롯 포함
@@ -67,59 +70,25 @@ namespace DG.Game
             return go;
         }
 
-        // BlockSpawner 인스펙터에서 설정 (X: 수평 오버랩, Y: 수직 오프셋)
-        public static Vector2 CommandValueOffset = new Vector2(-16f, 0f);
-
-        // ── Command 블록 (우측 ValueSlot) ───────────────────────
-        private static GameObject CreateCommandBlock(BlockEntry entry, Canvas rootCanvas, bool draggable, bool withValueSlot = true)
+        // ── Command 블록 ────────────────────────────────────────
+        private static GameObject CreateCommandBlock(BlockEntry entry, Canvas rootCanvas, bool draggable)
         {
             var cmdSprite = LoadSprite(BlockCategory.Command);
-            var valSprite = LoadSprite(BlockCategory.Value);
-
             float cmdW = cmdSprite?.rect.width  ?? 260f;
             float cmdH = cmdSprite?.rect.height ?? 56f;
-            float valW = valSprite?.rect.width  ?? 170f;
-            float valH = valSprite?.rect.height ?? 56f;
 
-            // 컨테이너: 슬롯 유무에 따라 크기 결정
-            float ox = CommandValueOffset.x;
-            float oy = CommandValueOffset.y;
-            float totalW = withValueSlot ? cmdW + valW + ox : cmdW;
-            float totalH = withValueSlot ? Mathf.Max(cmdH, valH + Mathf.Abs(oy)) : cmdH;
-            var go = NewRect(entry.label, totalW, totalH);
+            var go = NewRect(entry.label, cmdW, cmdH);
             go.AddComponent<CanvasGroup>();
             if (draggable)
                 AddDraggable(go, entry.category, rootCanvas);
 
-            // 라벨 파트
             var labelPart = NewRect("Label", cmdW, cmdH);
             labelPart.transform.SetParent(go.transform, false);
-            var labelRT = labelPart.GetComponent<RectTransform>();
+            labelPart.TryGetComponent<RectTransform>(out var labelRT);
             labelRT.anchorMin = labelRT.anchorMax = labelRT.pivot = new Vector2(0f, 1f);
             labelRT.anchoredPosition = Vector2.zero;
             AddImage(labelPart, GetColor(entry.category), cmdSprite);
             AddLabel(labelPart, entry.label, 24);
-
-            if (!withValueSlot) return go;
-
-            // 값 슬롯 파트
-            var slotPart = NewRect("ValueSlot", valW, valH);
-            slotPart.transform.SetParent(go.transform, false);
-            var slotRT = slotPart.GetComponent<RectTransform>();
-            slotRT.anchorMin = slotRT.anchorMax = new Vector2(0.5f, 0.5f);
-            slotRT.pivot = new Vector2(0.5f, 0.5f);
-            slotRT.anchoredPosition = new Vector2(376f, -24f);
-
-            if (!string.IsNullOrEmpty(entry.valueLabel))
-            {
-                AddImage(slotPart, GetColor(BlockCategory.Value), valSprite);
-                AddLabel(slotPart, entry.valueLabel, 24);
-            }
-            else
-            {
-                slotPart.AddComponent<CanvasGroup>();
-                slotPart.AddComponent<ValueSlot>();
-            }
 
             return go;
         }
@@ -145,7 +114,9 @@ namespace DG.Game
             csf.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
 
             if (draggable)
+            {
                 AddDraggable(go, entry.category, rootCanvas);
+            }
 
             // 헤더
             go.transform.SetParent(go.transform, false); // placeholder, set parent externally
@@ -252,24 +223,64 @@ namespace DG.Game
             }
         }
 
-        // ── Command 블록에 ValueSlot 후부착 (코딩 패널 진입 시) ─
-        public static void AttachValueSlot(GameObject commandBlock)
+        // ── 블록에 ChainOutSocket 후부착 — 앵커 (0.5, 0) 하단 중앙
+        public static void AttachOutSocket(GameObject block, Vector2 offset = default)
         {
-            if (commandBlock.transform.Find("ValueSlot") != null) return;
+            if (block.transform.Find("ChainOutSocket") != null) return;
 
-            var valSprite = LoadSprite(BlockCategory.Value);
-            float valW = valSprite?.rect.width  ?? 170f;
-            float valH = valSprite?.rect.height ?? 56f;
+            var go = new GameObject("ChainOutSocket");
+            go.transform.SetParent(block.transform, false);
+            var rt = go.AddComponent<RectTransform>();
+            rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0f);
+            rt.pivot     = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = Vector2.zero;
+            rt.anchoredPosition = offset;
+            go.AddComponent<ChainOutSocket>();
+        }
 
-            var slotPart = NewRect("ValueSlot", valW, valH);
-            slotPart.transform.SetParent(commandBlock.transform, false);
-            var slotRT = slotPart.GetComponent<RectTransform>();
-            slotRT.anchorMin = slotRT.anchorMax = new Vector2(0.5f, 0.5f);
-            slotRT.pivot = new Vector2(0.5f, 0.5f);
-            slotRT.anchoredPosition = new Vector2(376f, -24f);
+        // ── 블록에 ChainInSocket 후부착 — 앵커 (0.5, 1) 상단 중앙
+        public static void AttachInSocket(GameObject block, Vector2 offset = default)
+        {
+            if (block.transform.Find("ChainInSocket") != null) return;
 
-            slotPart.AddComponent<CanvasGroup>();
-            slotPart.AddComponent<ValueSlot>();
+            var go = new GameObject("ChainInSocket");
+            go.transform.SetParent(block.transform, false);
+            var rt = go.AddComponent<RectTransform>();
+            rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 1f);
+            rt.pivot     = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = Vector2.zero;
+            rt.anchoredPosition = offset;
+            go.AddComponent<ChainInSocket>();
+        }
+
+        // ── Command 블록에 ValueOutSocket 후부착 — 앵커 (1, 0.5) 우측 중앙
+        public static void AttachValueOutSocket(GameObject commandBlock, Vector2 offset = default)
+        {
+            if (commandBlock.transform.Find("ValueOutSocket") != null) return;
+
+            var go = new GameObject("ValueOutSocket");
+            go.transform.SetParent(commandBlock.transform, false);
+            var rt = go.AddComponent<RectTransform>();
+            rt.anchorMin = rt.anchorMax = new Vector2(1f, 0.5f);
+            rt.pivot     = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = Vector2.zero;
+            rt.anchoredPosition = offset;
+            go.AddComponent<ValueOutSocket>();
+        }
+
+        // ── Value 블록에 ValueInSocket 후부착 — 앵커 (0, 0.5) 좌측 중앙
+        public static void AttachValueInSocket(GameObject valueBlock, Vector2 offset = default)
+        {
+            if (valueBlock.transform.Find("ValueInSocket") != null) return;
+
+            var go = new GameObject("ValueInSocket");
+            go.transform.SetParent(valueBlock.transform, false);
+            var rt = go.AddComponent<RectTransform>();
+            rt.anchorMin = rt.anchorMax = new Vector2(0f, 0.5f);
+            rt.pivot     = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = Vector2.zero;
+            rt.anchoredPosition = offset;
+            go.AddComponent<ValueInSocket>();
         }
 
         // ── 빈 CodingSlot ───────────────────────────────────────
@@ -304,14 +315,14 @@ namespace DG.Game
                 img.color = Color.white;
 
                 // RectTransform을 소스 이미지 크기에 맞춤
-                var rt = go.GetComponent<RectTransform>();
-                if (rt != null)
+                if (go.TryGetComponent<RectTransform>(out var rt))
                     rt.sizeDelta = new Vector2(sprite.rect.width, sprite.rect.height);
             }
             else
             {
                 img.color = color;
             }
+
             return img;
         }
 
@@ -334,8 +345,11 @@ namespace DG.Game
 
         private static void AddDraggable(GameObject go, BlockCategory cat, Canvas rootCanvas)
         {
+            go.TryGetComponent<RectTransform>(out var brt);
+            brt.pivot = new Vector2(0f, 0.5f);
             var block = go.AddComponent<CodingBlock>();
             block.Init(cat, rootCanvas);
         }
+
     }
 }
