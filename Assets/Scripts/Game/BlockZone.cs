@@ -13,8 +13,7 @@ namespace DG.Game
 
         public void OnDrop(PointerEventData e)
         {
-            var block = e.pointerDrag?.GetComponent<CodingBlock>();
-            if (block == null) return;
+            if (e.pointerDrag == null || !e.pointerDrag.TryGetComponent<CodingBlock>(out var block)) return;
 
             block.transform.SetParent(content);
             block.transform.SetAsLastSibling();

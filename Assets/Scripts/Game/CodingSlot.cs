@@ -15,8 +15,8 @@ namespace DG.Game
 
         private void Awake()
         {
-            _bg = GetComponent<Image>();
-            if (_bg == null) _bg = gameObject.AddComponent<Image>();
+            if (!TryGetComponent(out _bg))
+                _bg = gameObject.AddComponent<Image>();
             _bg.color = EmptyColor;
         }
 
@@ -24,15 +24,16 @@ namespace DG.Game
 
         public void OnDrop(PointerEventData e)
         {
-            var block = e.pointerDrag?.GetComponent<CodingBlock>();
-            if (block == null || !IsEmpty) return;
+            if (e.pointerDrag == null || !e.pointerDrag.TryGetComponent<CodingBlock>(out var block) || !IsEmpty) return;
 
             var cat = block.Category;
             if (cat == BlockCategory.Control || cat == BlockCategory.Value) return;
 
-            // 이전 슬롯에서 꺼내기
+            // 이전 슬롯/소켓에서 꺼내기
             if (block.transform.parent.TryGetComponent<CodingSlot>(out var prev))
                 prev.Release();
+            if (block.transform.parent.TryGetComponent<ChainOutSocket>(out var cs))
+                cs.Release();
 
             Accept(block);
         }
