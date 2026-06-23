@@ -10,10 +10,18 @@ namespace DG.Game
     {
         private CodingBlock _occupant;
         public bool IsEmpty => _occupant == null;
+        public CodingBlock Occupant => _occupant;
 
-        // 새 블록이 OutSocket을 갖고 있으면 기존 자식을 밀어내며 삽입 가능
-        public bool CanAccept(CodingBlock incoming) =>
-            IsEmpty || incoming.GetComponentInChildren<ChainOutSocket>() != null;
+        // cascade 전체가 완료될 수 있는지 재귀 검증
+        public bool CanAccept(CodingBlock incoming) => CanFit(incoming, _occupant);
+
+        private static bool CanFit(CodingBlock incoming, CodingBlock displaced)
+        {
+            if (displaced == null) return true;
+            var nextOut = incoming.GetComponentInChildren<ChainOutSocket>();
+            if (nextOut == null) return false;
+            return CanFit(displaced, nextOut._occupant);
+        }
 
         public void Accept(CodingBlock block)
         {
@@ -23,8 +31,15 @@ namespace DG.Game
 
             if (displaced == null) return;
 
-            // 밀려난 블록을 새 블록의 OutSocket으로 연결
+            // 드래그 시 splice-out으로 소켓이 비워졌으므로 최대 1단만 재귀됨
             var nextOut = block.GetComponentInChildren<ChainOutSocket>();
+            if (nextOut == null)
+            {
+                // 안전망: 소켓 없는 블록(종료하기 등)이 들어온 경우 displaced를 CodingZone으로
+                var zone = FindObjectOfType<CodingZone>();
+                if (zone != null) { displaced.transform.SetParent(zone.transform, true); displaced.SetHome(zone.transform); }
+                return;
+            }
             nextOut.Accept(displaced);
         }
 

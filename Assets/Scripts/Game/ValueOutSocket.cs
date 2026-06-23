@@ -10,6 +10,7 @@ namespace DG.Game
     {
         private CodingBlock _occupant;
         public bool IsEmpty => _occupant == null;
+        public CodingBlock Occupant => _occupant;
 
         public void Accept(CodingBlock block)
         {
