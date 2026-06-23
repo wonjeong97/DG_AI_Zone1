@@ -19,29 +19,7 @@ namespace DG.Game
 
             block.transform.SetParent(transform, true);
             block.SetHome(transform);
-
-            if (block.Category == BlockCategory.Command)
-                BlockFactory.AttachValueOutSocket(block.gameObject, new Vector2(-8f, 11f));
-            else if (block.Category == BlockCategory.Value)
-                BlockFactory.AttachValueInSocket(block.gameObject, new Vector2(8f, 0f));
-
-            var cat = block.Category;
-            if (cat != BlockCategory.Value && cat != BlockCategory.Logic)
-            {
-                bool isStart   = block.gameObject.name == "시작하기";
-                bool isEnd     = block.gameObject.name == "종료하기";
-                bool isCommand = cat == BlockCategory.Command;
-
-                var outOffset = isStart   ? new Vector2(-69f, 8f)  :
-                                isCommand ? new Vector2(-78f, 4f)  : Vector2.zero;
-                var inOffset  = isEnd     ? new Vector2(-73f, -20f) :
-                                isCommand ? new Vector2(-78f, -16f) : Vector2.zero;
-
-                if (!isEnd)
-                    BlockFactory.AttachOutSocket(block.gameObject, outOffset);
-                if (!isStart)
-                    BlockFactory.AttachInSocket(block.gameObject, inOffset);
-            }
+            BlockFactory.AttachSockets(block);
         }
     }
 }

@@ -54,7 +54,7 @@ namespace DG.Game
         {
             var sprite = LoadSprite(entry.category, entry.label);
             var go = NewRect(entry.label, 220f, 56f);
-            AddImage(go, GetColor(entry.category), sprite);
+            AddImage(go, GetColor(entry.category), sprite, isBlockBody: true);
             go.AddComponent<CanvasGroup>();
             if (draggable)
             {
@@ -87,7 +87,7 @@ namespace DG.Game
             labelPart.TryGetComponent<RectTransform>(out var labelRT);
             labelRT.anchorMin = labelRT.anchorMax = labelRT.pivot = new Vector2(0f, 1f);
             labelRT.anchoredPosition = Vector2.zero;
-            AddImage(labelPart, GetColor(entry.category), cmdSprite);
+            AddImage(labelPart, GetColor(entry.category), cmdSprite, isBlockBody: true);
             AddLabel(labelPart, entry.label, 24);
 
             return go;
@@ -145,7 +145,7 @@ namespace DG.Game
             float spriteH = sprite != null ? sprite.rect.height : height;
             var h = NewRect("Header_" + label, 0f, spriteH);
             h.transform.SetParent(parent, false);
-            AddImage(h, color, sprite);
+            AddImage(h, color, sprite, isBlockBody: true);
             AddLabel(h, label, 26);
 
             var le = h.AddComponent<LayoutElement>();
@@ -223,6 +223,31 @@ namespace DG.Game
             }
         }
 
+        // ── 블록 카테고리에 맞는 소켓 전체 부착 (멱등 — 이미 있으면 건너뜀)
+        public static void AttachSockets(CodingBlock block)
+        {
+            if (block.Category == BlockCategory.Command)
+                AttachValueOutSocket(block.gameObject, new Vector2(-8f, 11f));
+            else if (block.Category == BlockCategory.Value)
+                AttachValueInSocket(block.gameObject, new Vector2(8f, 0f));
+
+            var cat = block.Category;
+            if (cat != BlockCategory.Value && cat != BlockCategory.Logic)
+            {
+                bool isStart   = block.gameObject.name == "시작하기";
+                bool isEnd     = block.gameObject.name == "종료하기";
+                bool isCommand = cat == BlockCategory.Command;
+
+                var outOffset = isStart   ? new Vector2(-69f, 8f)   :
+                                isCommand ? new Vector2(-78f, 4f)   : Vector2.zero;
+                var inOffset  = isEnd     ? new Vector2(-73f, -20f) :
+                                isCommand ? new Vector2(-78f, -16f) : Vector2.zero;
+
+                if (!isEnd)   AttachOutSocket(block.gameObject, outOffset);
+                if (!isStart) AttachInSocket(block.gameObject,  inOffset);
+            }
+        }
+
         // ── 블록에 ChainOutSocket 후부착 — 앵커 (0.5, 0) 하단 중앙
         public static void AttachOutSocket(GameObject block, Vector2 offset = default)
         {
@@ -295,6 +320,58 @@ namespace DG.Game
             return go;
         }
 
+        // ── 아웃라인 오버레이 머티리얼 3종 ──────────────────────────
+        // Full: 전체 범위 (에러 표시)
+        // Bottom: 하단 35% (체인 스냅 표시)
+        // Right: 우측 20% (값 스냅 표시)
+        private static Material _spriteFillMaterial;
+        private static Material _spriteFillMaterialBottom;
+        private static Material _spriteFillMaterialRight;
+
+        private static Material SpriteFillMaterial
+        {
+            get
+            {
+                if (_spriteFillMaterial != null) return _spriteFillMaterial;
+                _spriteFillMaterial = MakeSpriteFillMat("BlockOutlineFull", 1.0f, 0.0f);
+                return _spriteFillMaterial;
+            }
+        }
+
+        private static Material SpriteFillMaterialBottom
+        {
+            get
+            {
+                if (_spriteFillMaterialBottom != null) return _spriteFillMaterialBottom;
+                _spriteFillMaterialBottom = MakeSpriteFillMat("BlockOutlineBottom", 0.35f, 0.0f);
+                return _spriteFillMaterialBottom;
+            }
+        }
+
+        private static Material SpriteFillMaterialRight
+        {
+            get
+            {
+                if (_spriteFillMaterialRight != null) return _spriteFillMaterialRight;
+                _spriteFillMaterialRight = MakeSpriteFillMat("BlockOutlineRight", 1.0f, 0.8f);
+                return _spriteFillMaterialRight;
+            }
+        }
+
+        private static Material MakeSpriteFillMat(string matName, float yMax, float xMin)
+        {
+            var shader = Shader.Find("Custom/UI/SpriteFill");
+            if (shader == null)
+            {
+                Debug.LogWarning("[BlockFactory] 'Custom/UI/SpriteFill' 셰이더를 찾을 수 없습니다.");
+                return null;
+            }
+            var mat = new Material(shader) { name = matName };
+            mat.SetFloat("_YMax", yMax);
+            mat.SetFloat("_XMin", xMin);
+            return mat;
+        }
+
         // ── 공통 유틸 ───────────────────────────────────────────
         private static GameObject NewRect(string name, float w, float h)
         {
@@ -304,26 +381,121 @@ namespace DG.Game
             return go;
         }
 
-        private static Image AddImage(GameObject go, Color color, Sprite sprite = null)
+        // isBlockBody=true: go에 Image를 달지 않고 자식 두 개로 분리.
+        // 렌더링 순서 — sibling 0(아웃라인) → sibling 1(주 이미지) → sibling 2+(레이블·소켓)
+        private static Image AddImage(GameObject go, Color color, Sprite sprite = null, bool isBlockBody = false)
         {
-            var img = go.AddComponent<Image>();
+            if (!isBlockBody)
+            {
+                // 내부 구조 이미지 (InnerContainer, Footer 등): go에 직접 Image 추가
+                var img = go.AddComponent<Image>();
+                if (sprite != null)
+                {
+                    img.sprite = sprite;
+                    img.type = Image.Type.Simple;
+                    img.preserveAspect = false;
+                    img.color = Color.white;
+                    if (go.TryGetComponent<RectTransform>(out var rt))
+                        rt.sizeDelta = new Vector2(sprite.rect.width, sprite.rect.height);
+                }
+                else
+                {
+                    img.color = color;
+                }
+                return img;
+            }
+
+            // ── 블록 본체 ─────────────────────────────────────────────────────
+            if (sprite != null && go.TryGetComponent<RectTransform>(out var goRt))
+                goRt.sizeDelta = new Vector2(sprite.rect.width, sprite.rect.height);
+
             if (sprite != null)
             {
-                img.sprite = sprite;
-                img.type = Image.Type.Simple;
-                img.preserveAspect = false;
-                img.color = Color.white;
+                // sibling 0~2: 방향별 하이라이트 오버레이 (기본 투명)
+                AddHighlightOverlays(go, sprite);
 
-                // RectTransform을 소스 이미지 크기에 맞춤
-                if (go.TryGetComponent<RectTransform>(out var rt))
-                    rt.sizeDelta = new Vector2(sprite.rect.width, sprite.rect.height);
+                // sibling 1: 주 스프라이트 (go 전체를 덮음)
+                var spriteGo = new GameObject("Sprite");
+                spriteGo.transform.SetParent(go.transform, false);
+                var srt = spriteGo.AddComponent<RectTransform>();
+                srt.anchorMin = Vector2.zero;
+                srt.anchorMax = Vector2.one;
+                srt.offsetMin = srt.offsetMax = Vector2.zero;
+                var spriteImg = spriteGo.AddComponent<Image>();
+                spriteImg.sprite = sprite;
+                spriteImg.type = Image.Type.Simple;
+                spriteImg.preserveAspect = false;
+                spriteImg.color = Color.white;
+                return spriteImg;
             }
             else
             {
-                img.color = color;
-            }
+                // sibling 0: 흰 테두리 오버레이 (2px 확대 흰 사각형)
+                AddBorderOverlay(go);
 
-            return img;
+                // sibling 1: 주 색상 (go 전체를 덮음)
+                var fillGo = new GameObject("Fill");
+                fillGo.transform.SetParent(go.transform, false);
+                var frt = fillGo.AddComponent<RectTransform>();
+                frt.anchorMin = Vector2.zero;
+                frt.anchorMax = Vector2.one;
+                frt.offsetMin = frt.offsetMax = Vector2.zero;
+                var fillImg = fillGo.AddComponent<Image>();
+                fillImg.color = color;
+                return fillImg;
+            }
+        }
+
+        // 스프라이트 블록용 방향별 하이라이트 오버레이 3종 생성 (기본 투명, 런타임에 색 변경)
+        // sibling 0: SpriteOutline  — 전체 (컴파일 에러 → 빨간색)
+        // sibling 1: ChainHighlight — 셰이더로 하단 35%만 표시 (체인 스냅 → 초록색)
+        // sibling 2: ValueHighlight — 셰이더로 우측 20%만 표시 (값 스냅 → 초록색)
+        private static void AddHighlightOverlays(GameObject blockGo, Sprite sprite)
+        {
+            const float t = 2f;
+            var minOff = new Vector2(-t, -t);
+            var maxOff = new Vector2( t,  t);
+
+            AddOverlay("SpriteOutline",  blockGo, sprite, Vector2.zero, Vector2.one, minOff, maxOff, SpriteFillMaterial);
+            AddOverlay("ChainHighlight", blockGo, sprite, Vector2.zero, Vector2.one, minOff, maxOff, SpriteFillMaterialBottom);
+            AddOverlay("ValueHighlight", blockGo, sprite, Vector2.zero, Vector2.one, minOff, maxOff, SpriteFillMaterialRight);
+        }
+
+        private static void AddOverlay(string name, GameObject parent, Sprite sprite,
+            Vector2 anchorMin, Vector2 anchorMax, Vector2 offsetMin, Vector2 offsetMax,
+            Material mat = null)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent.transform, false);
+            var rt = go.AddComponent<RectTransform>();
+            rt.anchorMin = anchorMin;
+            rt.anchorMax = anchorMax;
+            rt.offsetMin = offsetMin;
+            rt.offsetMax = offsetMax;
+            var img = go.AddComponent<Image>();
+            img.sprite         = sprite;
+            img.type           = Image.Type.Simple;
+            img.preserveAspect = false;
+            img.color          = Color.clear;
+            img.raycastTarget  = false;
+            var useMat = mat ?? SpriteFillMaterial;
+            if (useMat != null) img.material = useMat;
+        }
+
+        // 스프라이트 없는 블록 본체용 테두리 (기본 투명, 런타임에 색 변경)
+        private static void AddBorderOverlay(GameObject go, float thickness = 2f)
+        {
+            var border = new GameObject("SpriteOutline");
+            border.transform.SetParent(go.transform, false);
+            border.transform.SetAsFirstSibling();
+            var rt = border.AddComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = new Vector2(-thickness, -thickness);
+            rt.offsetMax = new Vector2( thickness,  thickness);
+            var img = border.AddComponent<Image>();
+            img.color = Color.clear;
+            img.raycastTarget = false;
         }
 
         private static void AddLabel(GameObject go, string text, int size = 28)

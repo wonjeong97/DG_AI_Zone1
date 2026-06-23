@@ -4,6 +4,7 @@ using Cysharp.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 using VContainer;
 using ZLogger;
 #if UNITY_EDITOR
@@ -31,6 +32,28 @@ namespace DG.Game
         private int _homeIndex;
         private Vector2 _homeAnchoredPos;
 
+        // ── 하이라이트 ─────────────────────────────────────────────
+        private CodingBlock _snapTarget;
+        private Image _chainHighlightImg;
+        private Image _valueHighlightImg;
+        private Image _errorHighlightImg;
+
+        private Image GetOrFindHighlight(ref Image cache, string childName)
+        {
+            if (cache != null) return cache;
+            foreach (var img in GetComponentsInChildren<Image>(true))
+                if (img.gameObject.name == childName) { cache = img; return img; }
+            return null;
+        }
+
+        public void ShowChainHighlight()  => SetHL(GetOrFindHighlight(ref _chainHighlightImg, "ChainHighlight"), new Color(0.1f, 0.9f, 0.3f, 1f));
+        public void ShowValueHighlight()  => SetHL(GetOrFindHighlight(ref _valueHighlightImg, "ValueHighlight"), new Color(0.1f, 0.9f, 0.3f, 1f));
+        public void ClearSnapHighlight()  { SetHL(GetOrFindHighlight(ref _chainHighlightImg, "ChainHighlight"), Color.clear); SetHL(GetOrFindHighlight(ref _valueHighlightImg, "ValueHighlight"), Color.clear); }
+        public void ShowErrorHighlight()  => SetHL(GetOrFindHighlight(ref _errorHighlightImg, "SpriteOutline"),  new Color(1f, 0.15f, 0.1f, 1f));
+        public void ClearErrorHighlight() => SetHL(GetOrFindHighlight(ref _errorHighlightImg, "SpriteOutline"),  Color.clear);
+
+        private static void SetHL(Image img, Color c) { if (img) img.color = c; }
+
         public void Init(BlockCategory category, Canvas rootCanvas)
         {
             Category = category;
@@ -54,6 +77,9 @@ namespace DG.Game
         {
             if (RootCanvas == null) return;
 
+            _snapTarget?.ClearSnapHighlight();
+            _snapTarget = null;
+
             _homeParent = transform.parent;
             _homeIndex = transform.GetSiblingIndex();
             _homeAnchoredPos = _rt.anchoredPosition;
@@ -61,7 +87,17 @@ namespace DG.Game
             if (_homeParent.TryGetComponent<ValueOutSocket>(out var vos))
                 vos.Release();
             else if (_homeParent.TryGetComponent<ChainOutSocket>(out var cs))
+            {
                 cs.Release();
+                // 스플라이스-아웃: 내 아래 블록을 위 소켓으로 당겨 올려 빈 자리를 채움
+                var myOut   = transform.Find("ChainOutSocket")?.GetComponent<ChainOutSocket>();
+                var myChild = myOut?.Occupant;
+                if (myChild != null)
+                {
+                    myOut.Release();
+                    cs.Accept(myChild);
+                }
+            }
 
             transform.SetParent(RootCanvas.transform, true);
             transform.SetAsLastSibling();
@@ -73,14 +109,41 @@ namespace DG.Game
             if (RootCanvas == null) return;
 
             _rt.anchoredPosition += e.delta / RootCanvas.scaleFactor;
+            UpdateSnapHighlight();
         }
 
-        /// <summary>
-        /// Ends drag and attempts magnetic snap to nearest compatible socket.
-        /// Socket snap takes priority over free placement.
-        /// </summary>
+        private void UpdateSnapHighlight()
+        {
+            CodingBlock newTarget = null;
+            bool isValue = Category == BlockCategory.Value;
+
+            if (isValue)
+            {
+                var socket = FindSnapValueOutSocket();
+                if (socket != null)
+                    newTarget = socket.GetComponentInParent<CodingBlock>();
+            }
+            else
+            {
+                var socket = FindSnapOutSocket();
+                if (socket != null)
+                    newTarget = socket.GetComponentInParent<CodingBlock>();
+            }
+
+            if (newTarget == _snapTarget) return;
+
+            _snapTarget?.ClearSnapHighlight();
+            _snapTarget = newTarget;
+
+            if (_snapTarget == null) return;
+            if (isValue) _snapTarget.ShowValueHighlight();
+            else         _snapTarget.ShowChainHighlight();
+        }
+
         public void OnEndDrag(PointerEventData e)
         {
+            _snapTarget?.ClearSnapHighlight();
+            _snapTarget = null;
             _cg.blocksRaycasts = true;
             IsDragHandled = false;
 
@@ -90,6 +153,7 @@ namespace DG.Game
                 if (slot != null)
                 {
                     IsDragHandled = true;
+                    BlockFactory.AttachSockets(this);
                     slot.Accept(this);
                     return;
                 }
@@ -100,26 +164,33 @@ namespace DG.Game
                 if (socket != null)
                 {
                     IsDragHandled = true;
+                    BlockFactory.AttachSockets(this);
                     socket.Accept(this);
                     return;
                 }
             }
 
             if (!RootCanvas || transform.parent == RootCanvas.transform)
-                ReturnHomeOrRelease();
+                ReturnHomeOrRelease(e);
         }
 
-        /// <summary>
-        /// Finds the nearest MonoBehaviour of type T within pixel-space radius.
-        /// World-position comparison stays correct across canvas scales.
-        /// </summary>
         // 이 블록의 ChainInSocket이 후보 ChainOutSocket 반경 안에 있으면 스냅
+        // ChainInSocket이 없는 인벤토리 블록은 블록 상단 중앙을 기준점으로 사용
         private ChainOutSocket FindSnapOutSocket()
         {
+            Vector2 myPos;
             var myInSocket = transform.Find("ChainInSocket")?.GetComponent<ChainInSocket>();
-            if (myInSocket == null) return null;
-
-            var myPos = (Vector2)myInSocket.transform.position;
+            if (myInSocket != null)
+            {
+                myPos = (Vector2)myInSocket.transform.position;
+            }
+            else if (_rt != null)
+            {
+                var corners = new Vector3[4];
+                _rt.GetWorldCorners(corners);
+                myPos = ((Vector2)corners[1] + (Vector2)corners[2]) * 0.5f;
+            }
+            else return null;
             ChainOutSocket best = null;
             float minSqr = _chainSnapRadius * _chainSnapRadius;
 
@@ -127,9 +198,10 @@ namespace DG.Game
             {
                 if (candidate.transform.IsChildOf(transform)) continue;
                 if (!candidate.CanAccept(this)) continue;
+                if (candidate.GetComponentInParent<CodingZone>() == null) continue;
 
                 var delta = myPos - (Vector2)candidate.transform.position;
-                if (delta.y >= 0f) continue; // InSocket이 OutSocket 아래(3·4사분면)에 있어야 함
+                if (delta.y >= 0f) continue;
 
                 float sqr = delta.sqrMagnitude;
                 if (sqr < minSqr) { minSqr = sqr; best = candidate; }
@@ -139,12 +211,22 @@ namespace DG.Game
         }
 
         // ValueInSocket이 후보 ValueOutSocket 반경 안에 있으면 스냅
+        // ValueInSocket이 없는 인벤토리 블록은 블록 좌측 중앙을 기준점으로 사용
         private ValueOutSocket FindSnapValueOutSocket()
         {
+            Vector2 myPos;
             var myInSocket = GetComponentInChildren<ValueInSocket>();
-            if (myInSocket == null) return null;
-
-            var myPos = (Vector2)myInSocket.transform.position;
+            if (myInSocket != null)
+            {
+                myPos = (Vector2)myInSocket.transform.position;
+            }
+            else if (_rt != null)
+            {
+                var corners = new Vector3[4];
+                _rt.GetWorldCorners(corners);
+                myPos = ((Vector2)corners[0] + (Vector2)corners[1]) * 0.5f; // 좌측 중앙
+            }
+            else return null;
             ValueOutSocket best = null;
             float minSqr = _snapRadius * _snapRadius;
 
@@ -152,9 +234,10 @@ namespace DG.Game
             {
                 if (candidate.transform.IsChildOf(transform)) continue;
                 if (!candidate.IsEmpty) continue;
+                if (candidate.GetComponentInParent<CodingZone>() == null) continue;
 
                 var delta = myPos - (Vector2)candidate.transform.position;
-                if (delta.x <= 0f) continue;  // 1·4사분면만 허용 (InSocket이 OutSocket 오른쪽)
+                if (delta.x <= 0f) continue;
 
                 float sqr = delta.sqrMagnitude;
                 if (sqr < minSqr) { minSqr = sqr; best = candidate; }
@@ -162,10 +245,6 @@ namespace DG.Game
             return best;
         }
 
-        /// <summary>
-        /// Reparents block to socket then lerps anchoredPosition to targetOffset (default zero).
-        /// worldPositionStays on reparent prevents visual jump before lerp.
-        /// </summary>
         public async UniTaskVoid SnapInto(Transform socket, Vector2 targetOffset = default)
         {
             transform.SetParent(socket, true);
@@ -177,7 +256,7 @@ namespace DG.Game
             {
                 while (elapsed < _snapSeconds)
                 {
-                    if (!this) return;
+                    if (!this || transform.parent != socket) return;
 
                     elapsed += Time.deltaTime;
                     _rt.anchoredPosition = Vector2.Lerp(
@@ -195,7 +274,7 @@ namespace DG.Game
                 return;
             }
 
-            if (!this) return;
+            if (!this || transform.parent != socket) return;
 
             _rt.anchoredPosition = targetOffset;
         }
@@ -226,7 +305,7 @@ namespace DG.Game
 
         // 슬롯/소켓 출신이거나 CodingZone 소속 블록은 현재 드롭 위치로 CodingZone에 착지
         // 인벤토리 출신 블록만 ReturnHome
-        private void ReturnHomeOrRelease()
+        private void ReturnHomeOrRelease(PointerEventData e)
         {
             bool wasInSlot = _homeParent != null &&
                              (_homeParent.TryGetComponent<ValueOutSocket>(out _) ||
@@ -236,17 +315,30 @@ namespace DG.Game
             bool wasInZone = !wasInSlot && _homeParent != null &&
                              _homeParent.TryGetComponent(out homeZone);
 
-            if (wasInSlot || wasInZone)
+            if (wasInZone)
             {
-                var zone = wasInZone ? homeZone : FindObjectOfType<CodingZone>();
+                IsDragHandled = true;
+                transform.SetParent(homeZone.transform, false);
+                transform.SetSiblingIndex(_homeIndex);
+                _rt.anchoredPosition = _homeAnchoredPos;
+                SetHome(homeZone.transform);
+                return;
+            }
 
-                if (zone != null)
+            if (wasInSlot)
+            {
+                // 커서가 코딩존 위라면 OnDrop이 이후에 발화해 존에 배치 → 소켓 복귀 불필요
+                // e.hovered는 이전 경유 오브젝트를 포함하므로 릴리즈 시점 레이캐스트 결과를 사용
+                var hitGo = e.pointerCurrentRaycast.gameObject;
+                bool overZone = hitGo != null && hitGo.GetComponentInParent<CodingZone>() != null;
+                if (!overZone)
                 {
-                    IsDragHandled = true;
-                    transform.SetParent(zone.transform, true);
-                    SetHome(zone.transform);
-                    return;
+                    if (_homeParent.TryGetComponent<ChainOutSocket>(out var cos))
+                        cos.Accept(this);
+                    else if (_homeParent.TryGetComponent<ValueOutSocket>(out var vos))
+                        vos.Accept(this);
                 }
+                return;
             }
 
             ReturnHome();
@@ -258,7 +350,6 @@ namespace DG.Game
             var rt = _rt != null ? _rt : GetComponent<RectTransform>();
             if (rt == null) return;
 
-            // 스냅 반경
             Gizmos.color = new Color(0.3f, 0.7f, 1f, 0.25f);
             Gizmos.DrawWireSphere(rt.position, _snapRadius);
             Gizmos.color = new Color(0.3f, 0.7f, 1f, 0.6f);
