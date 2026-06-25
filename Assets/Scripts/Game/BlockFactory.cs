@@ -46,9 +46,10 @@ namespace DG.Game
         {
             return entry.category switch
             {
-                BlockCategory.Command => CreateCommandBlock(entry, rootCanvas, draggable),
+                BlockCategory.Command     => CreateCommandBlock(entry, rootCanvas, draggable),
                 BlockCategory.FlowControl => CreateFlowBlock(entry, rootCanvas, draggable),
-                _ => CreateSimpleBlock(entry, rootCanvas, draggable)
+                BlockCategory.Logic       => CreateLogicBlock(entry, rootCanvas, draggable),
+                _                         => CreateSimpleBlock(entry, rootCanvas, draggable)
             };
         }
 
@@ -129,6 +130,21 @@ namespace DG.Game
 
             // 헤더 높이 스페이서 (VLG용, 시각은 Label GO가 담당)
             AppendFlowSpacer(go.transform, "Header_" + entry.label, FlowHeaderHeight);
+
+            // 조건 슬롯: 헤더 스페이서 우측에 고정
+            var headerSpacer = go.transform.Find("Header_" + entry.label);
+            if (headerSpacer)
+            {
+                var socketGo = new GameObject("ValueOutSocket");
+                socketGo.transform.SetParent(headerSpacer, false);
+                var socketRt = socketGo.AddComponent<RectTransform>();
+                socketRt.anchorMin = socketRt.anchorMax = new Vector2(1f, 0.5f);
+                socketRt.pivot     = new Vector2(0.5f, 0.5f);
+                socketRt.sizeDelta = Vector2.zero;
+                socketRt.anchoredPosition = new Vector2(-8f, 0f);
+                socketGo.AddComponent<LayoutElement>().ignoreLayout = true;
+                socketGo.AddComponent<ValueOutSocket>();
+            }
 
             // 내부 컨테이너
             AppendInnerContainer(go.transform, entry.innerBlocks, rootCanvas, draggable);
@@ -280,6 +296,20 @@ namespace DG.Game
             le.flexibleWidth = 1f;
         }
 
+        // ── Logic 블록 (그리고 / 또는) ───────────────────────────────────
+        // 단순 레이블 블록 — ConditionIn/Out 소켓으로 조건 체인에 연결
+        private static GameObject CreateLogicBlock(BlockEntry entry, Canvas rootCanvas, bool draggable)
+        {
+            var sprite = LoadSprite(BlockCategory.Logic);
+            var go = NewRect(entry.label, 120f, 56f);
+            AddBlockBody(go, GetColor(BlockCategory.Logic), sprite);
+            go.AddComponent<CanvasGroup>();
+            if (draggable)
+                AddDraggable(go, entry.category, rootCanvas);
+            AddLabel(go, entry.label);
+            return go;
+        }
+
         // ── Logic 체인 (수평) ───────────────────────────────────
         private static void AppendChain(GameObject baseBlock, BlockEntry[] chain, Canvas rootCanvas, bool draggable)
         {
@@ -310,11 +340,19 @@ namespace DG.Game
         {
             var cat = block.Category;
 
-            if (cat == BlockCategory.Command || cat == BlockCategory.Condition || cat == BlockCategory.Logic || cat == BlockCategory.FlowControl)
+            // Command만 단일 ValueOutSocket — FlowControl은 헤더에 내장, Logic은 두 조건 슬롯 내장
+            if (cat == BlockCategory.Command)
                 AttachValueOutSocket(block.gameObject, new Vector2(-8f, 11f));
 
             if (cat == BlockCategory.Value || cat == BlockCategory.Condition || cat == BlockCategory.Logic)
                 AttachValueInSocket(block.gameObject, new Vector2(8f, 0f));
+
+            // Condition / Logic 블록: 수평 조건 체인 소켓
+            if (cat == BlockCategory.Condition || cat == BlockCategory.Logic)
+            {
+                AttachConditionInSocket(block.gameObject,  new Vector2(8f, 0f));
+                AttachConditionOutSocket(block.gameObject, new Vector2(-8f, 0f));
+            }
 
             if (cat != BlockCategory.Value && cat != BlockCategory.Logic && cat != BlockCategory.Condition)
             {
@@ -397,6 +435,37 @@ namespace DG.Game
             rt.anchoredPosition = offset;
             go.AddComponent<LayoutElement>().ignoreLayout = true;
             go.AddComponent<ValueInSocket>();
+        }
+
+        // ── Condition 체인 소켓 ─────────────────────────────────
+        public static void AttachConditionOutSocket(GameObject block, Vector2 offset = default)
+        {
+            if (block.transform.Find("ConditionOutSocket")) return;
+
+            var go = new GameObject("ConditionOutSocket");
+            go.transform.SetParent(block.transform, false);
+            var rt = go.AddComponent<RectTransform>();
+            rt.anchorMin = rt.anchorMax = new Vector2(1f, 0.5f);
+            rt.pivot     = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = Vector2.zero;
+            rt.anchoredPosition = offset;
+            go.AddComponent<LayoutElement>().ignoreLayout = true;
+            go.AddComponent<ConditionOutSocket>();
+        }
+
+        public static void AttachConditionInSocket(GameObject block, Vector2 offset = default)
+        {
+            if (block.transform.Find("ConditionInSocket")) return;
+
+            var go = new GameObject("ConditionInSocket");
+            go.transform.SetParent(block.transform, false);
+            var rt = go.AddComponent<RectTransform>();
+            rt.anchorMin = rt.anchorMax = new Vector2(0f, 0.5f);
+            rt.pivot     = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = Vector2.zero;
+            rt.anchoredPosition = offset;
+            go.AddComponent<LayoutElement>().ignoreLayout = true;
+            go.AddComponent<ConditionInSocket>();
         }
 
         // ── 빈 CodingSlot ───────────────────────────────────────

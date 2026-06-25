@@ -44,6 +44,10 @@ namespace DG.Game.Runtime
             if (cmdError)
                 return CompileResult.Fail($"'{cmdError.name}' 블록에 값 블록이 없습니다", cmdError);
 
+            var condError = FindIfWithoutCondition(program);
+            if (condError)
+                return CompileResult.Fail($"'{condError.name}' 블록에 조건이 없습니다", condError);
+
             if (!terminal || terminal.name != "종료하기")
             {
                 // 씬 전체(인벤토리 포함)에서 종료하기 블록을 찾아 표시
@@ -128,7 +132,7 @@ namespace DG.Game.Runtime
                 return new IfInstruction
                 {
                     Source    = block,
-                    Condition = block.name,
+                    Condition = BuildConditionExpr(block),
                     Then      = then,
                     Else      = els
                 };
@@ -180,6 +184,70 @@ namespace DG.Game.Runtime
                 {
                     if (ifInstr.Then != null) { var err = FindCommandWithoutValue(ifInstr.Then); if (err) return err; }
                     if (ifInstr.Else != null) { var err = FindCommandWithoutValue(ifInstr.Else); if (err) return err; }
+                }
+            }
+            return null;
+        }
+
+        // FlowControl(만약) 블록의 헤더 조건 슬롯에서 ConditionExpr를 읽음
+        // 체인: [조건1] -ConditionOut→ConditionIn- [그리고/또는] -ConditionOut→ConditionIn- [조건2]
+        private static ConditionExpr BuildConditionExpr(CodingBlock flowBlock)
+        {
+            ValueOutSocket vos = null;
+            foreach (Transform child in flowBlock.transform)
+            {
+                if (!child.name.StartsWith("Header_")) continue;
+                child.Find("ValueOutSocket")?.TryGetComponent(out vos);
+                if (vos) break;
+            }
+
+            if (!vos || !vos.Occupant) return null;
+
+            CodingBlock first = vos.Occupant;
+
+            // 조건1의 ConditionOutSocket에 Logic 블록이 연결됐는지 확인
+            ConditionOutSocket firstCondOut = null;
+            first.transform.Find("ConditionOutSocket")?.TryGetComponent(out firstCondOut);
+
+            if (firstCondOut && firstCondOut.Occupant &&
+                firstCondOut.Occupant.Category == BlockCategory.Logic)
+            {
+                CodingBlock logic = firstCondOut.Occupant;
+                ConditionOutSocket logicCondOut = null;
+                logic.transform.Find("ConditionOutSocket")?.TryGetComponent(out logicCondOut);
+
+                CodingBlock right = logicCondOut?.Occupant;
+                return new LogicConditionExpr
+                {
+                    Source   = logic,
+                    Operator = logic.name,
+                    Left     = new SimpleConditionExpr { Source = first,  Name = first.name },
+                    Right    = right ? new SimpleConditionExpr { Source = right, Name = right.name } : null
+                };
+            }
+
+            // 단순 조건
+            if (first.Category == BlockCategory.Condition)
+                return new SimpleConditionExpr { Source = first, Name = first.name };
+
+            return null;
+        }
+
+        // 만약 블록 중 조건이 연결되지 않은 첫 번째 블록을 재귀 탐색
+        private static CodingBlock FindIfWithoutCondition(List<BlockInstruction> instructions)
+        {
+            foreach (var instr in instructions)
+            {
+                if (instr is IfInstruction ifInstr)
+                {
+                    if (ifInstr.Condition == null) return ifInstr.Source;
+                    if (ifInstr.Then != null) { var err = FindIfWithoutCondition(ifInstr.Then); if (err) return err; }
+                    if (ifInstr.Else != null) { var err = FindIfWithoutCondition(ifInstr.Else); if (err) return err; }
+                }
+                else if (instr is RepeatInstruction rep && rep.Body != null)
+                {
+                    var err = FindIfWithoutCondition(rep.Body);
+                    if (err) return err;
                 }
             }
             return null;

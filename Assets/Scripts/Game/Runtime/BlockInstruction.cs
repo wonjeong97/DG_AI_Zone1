@@ -23,9 +23,26 @@ namespace DG.Game.Runtime
         public string Action;
     }
 
+    // ── 조건식 계층 ─────────────────────────────────────────────────
+    public abstract class ConditionExpr { }
+
+    public sealed class SimpleConditionExpr : ConditionExpr
+    {
+        public CodingBlock Source;
+        public string Name;
+    }
+
+    public sealed class LogicConditionExpr : ConditionExpr
+    {
+        public CodingBlock Source;
+        public string Operator; // "그리고" or "또는"
+        public SimpleConditionExpr Left;
+        public SimpleConditionExpr Right;
+    }
+
     public sealed class IfInstruction : BlockInstruction
     {
-        public string Condition;
+        public ConditionExpr Condition;
         public List<BlockInstruction> Then;
         public List<BlockInstruction> Else;
     }

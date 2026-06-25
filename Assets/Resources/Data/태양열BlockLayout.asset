@@ -78,7 +78,28 @@ MonoBehaviour:
     chainSocketOffset: {x: 0, y: 0}
   - category: 6
     label: "\uADF8\uB9AC\uACE0"
-    valueLabel: 
+    valueLabel:
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
+  - category: 6
+    label: "\uB610\uB294"
+    valueLabel:
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
+  - category: 7
+    label: "\uC870\uAC741"
+    valueLabel:
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
+  - category: 7
+    label: "\uC870\uAC742"
+    valueLabel:
     innerBlocks: []
     elseBlocks: []
     chainBlocks: []

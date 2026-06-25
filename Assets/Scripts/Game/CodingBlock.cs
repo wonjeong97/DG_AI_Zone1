@@ -102,6 +102,8 @@ namespace DG.Game
 
             if (_homeParent.TryGetComponent<ValueOutSocket>(out ValueOutSocket vos))
                 vos.Release();
+            else if (_homeParent.TryGetComponent<ConditionOutSocket>(out ConditionOutSocket condOut))
+                condOut.Release();
             else if (_homeParent.TryGetComponent<ChainOutSocket>(out ChainOutSocket cs))
             {
                 cs.Release();
@@ -144,9 +146,20 @@ namespace DG.Game
 
             if (isValue)
             {
-                ValueOutSocket socket = FindSnapValueOutSocket();
-                if (socket)
-                    newTarget = socket.GetComponentInParent<CodingBlock>();
+                // Condition / Logic: ConditionOut 스냅 우선, 없으면 ValueOut 스냅
+                if (Category == BlockCategory.Condition || Category == BlockCategory.Logic)
+                {
+                    ConditionOutSocket condSocket = FindSnapConditionOutSocket();
+                    if (condSocket)
+                        newTarget = condSocket.GetComponentInParent<CodingBlock>();
+                }
+
+                if (!newTarget)
+                {
+                    ValueOutSocket socket = FindSnapValueOutSocket();
+                    if (socket)
+                        newTarget = socket.GetComponentInParent<CodingBlock>();
+                }
             }
             else
             {
@@ -180,6 +193,19 @@ namespace DG.Game
 
             if (isValue)
             {
+                // Condition / Logic: ConditionOut 스냅 우선
+                if (Category == BlockCategory.Condition || Category == BlockCategory.Logic)
+                {
+                    ConditionOutSocket condSlot = FindSnapConditionOutSocket();
+                    if (condSlot)
+                    {
+                        IsDragHandled = true;
+                        BlockFactory.AttachSockets(this);
+                        condSlot.Accept(this);
+                        return;
+                    }
+                }
+
                 ValueOutSocket slot = FindSnapValueOutSocket();
                 if (slot)
                 {
@@ -335,8 +361,55 @@ namespace DG.Game
                 if (targetBlock)
                 {
                     if (Category == BlockCategory.Value && targetBlock.Category != BlockCategory.Command) continue;
-                    if (Category == BlockCategory.Logic && targetBlock.Category != BlockCategory.Condition && targetBlock.Category != BlockCategory.Logic) continue;
+                    if (Category == BlockCategory.Logic && targetBlock.Category != BlockCategory.FlowControl) continue;
                     if (Category == BlockCategory.Condition && targetBlock.Category != BlockCategory.FlowControl && targetBlock.Category != BlockCategory.Logic) continue;
+                }
+
+                Vector2 delta = myPos - (Vector2)candidate.transform.position;
+                if (delta.x <= 0f) continue;
+
+                float sqr = delta.sqrMagnitude;
+                if (sqr < minSqr)
+                {
+                    minSqr = sqr;
+                    best = candidate;
+                }
+            }
+
+            return best;
+        }
+
+        // ConditionInSocket 기준으로 가장 가까운 ConditionOutSocket 탐색
+        private ConditionOutSocket FindSnapConditionOutSocket()
+        {
+            ConditionInSocket myInSocket = GetComponentInChildren<ConditionInSocket>();
+            Vector2 myPos;
+            if (myInSocket)
+                myPos = (Vector2)myInSocket.transform.position;
+            else if (_rt)
+            {
+                Vector3[] corners = new Vector3[4];
+                _rt.GetWorldCorners(corners);
+                myPos = ((Vector2)corners[0] + (Vector2)corners[1]) * 0.5f;
+            }
+            else return null;
+
+            ConditionOutSocket best = null;
+            float minSqr = _snapRadius * _snapRadius;
+
+            foreach (ConditionOutSocket candidate in Object.FindObjectsOfType<ConditionOutSocket>())
+            {
+                if (candidate.transform.IsChildOf(transform)) continue;
+                if (!candidate.IsEmpty) continue;
+                if (!candidate.GetComponentInParent<CodingZone>()) continue;
+
+                CodingBlock targetBlock = candidate.GetComponentInParent<CodingBlock>();
+                if (targetBlock)
+                {
+                    // Logic(그리고/또는)은 Condition 블록의 ConditionOut에 스냅
+                    if (Category == BlockCategory.Logic && targetBlock.Category != BlockCategory.Condition) continue;
+                    // Condition 블록은 Logic 블록의 ConditionOut에 스냅
+                    if (Category == BlockCategory.Condition && targetBlock.Category != BlockCategory.Logic) continue;
                 }
 
                 Vector2 delta = myPos - (Vector2)candidate.transform.position;
@@ -407,6 +480,8 @@ namespace DG.Game
 
             if (_homeParent.TryGetComponent<ValueOutSocket>(out ValueOutSocket vos))
                 vos.Reoccupy(this);
+            else if (_homeParent.TryGetComponent<ConditionOutSocket>(out ConditionOutSocket condOut))
+                condOut.Reoccupy(this);
             else if (_homeParent.TryGetComponent<ChainOutSocket>(out ChainOutSocket cos))
                 cos.Reoccupy(this);
         }
