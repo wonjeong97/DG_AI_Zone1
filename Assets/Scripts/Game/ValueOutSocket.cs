@@ -9,7 +9,7 @@ namespace DG.Game
     public class ValueOutSocket : MonoBehaviour
     {
         private CodingBlock _occupant;
-        public bool IsEmpty => _occupant == null;
+        public bool IsEmpty => !_occupant;
         public CodingBlock Occupant => _occupant;
 
         public void Accept(CodingBlock block)
@@ -21,7 +21,7 @@ namespace DG.Game
         private static Vector2 ComputeSnapOffset(CodingBlock block)
         {
             var inSocket = block.GetComponentInChildren<ValueInSocket>();
-            if (inSocket == null
+            if (!inSocket
                 || !block.TryGetComponent<RectTransform>(out var blockRt)
                 || !inSocket.TryGetComponent<RectTransform>(out var inRt))
                 return Vector2.zero;
