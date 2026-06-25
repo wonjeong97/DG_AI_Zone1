@@ -14,7 +14,7 @@ namespace DG.Game.Runtime
         { Success = success; Instructions = instr; Error = err; ErrorBlocks = errorBlocks; }
 
         public static CompileResult Ok(List<BlockInstruction> instr)           => new(true,  instr, null, null);
-        public static CompileResult Fail(string err, CodingBlock block = null) => new(false, null,  err,  block != null ? new[] { block } : null);
+        public static CompileResult Fail(string err, CodingBlock block = null) => new(false, null,  err,  block ? new[] { block } : null);
     }
 
     public static class BlockCompiler
@@ -28,22 +28,23 @@ namespace DG.Game.Runtime
                 if (b.Category == BlockCategory.Control && b.name == "시작하기")
                 { start = b; break; }
             }
-            if (start == null)
+            if (!start)
                 return CompileResult.Fail("'시작하기' 블록이 코딩 영역에 없습니다");
 
             // transform.Find: 직접 자식만 탐색 — 하위 체인 소켓과 혼동 방지
-            var socket = start.transform.Find("ChainOutSocket")?.GetComponent<ChainOutSocket>();
-            if (socket?.Occupant == null)
+            ChainOutSocket socket = null;
+            start.transform.Find("ChainOutSocket")?.TryGetComponent(out socket);
+            if (!socket || !socket.Occupant)
                 return CompileResult.Fail("'시작하기'에 연결된 블록이 없습니다", start);
 
             var program  = new List<BlockInstruction>();
             var terminal = WalkChain(socket.Occupant, program);
 
             var cmdError = FindCommandWithoutValue(program);
-            if (cmdError != null)
+            if (cmdError)
                 return CompileResult.Fail($"'{cmdError.name}' 블록에 값 블록이 없습니다", cmdError);
 
-            if (terminal == null || terminal.name != "종료하기")
+            if (!terminal || terminal.name != "종료하기")
             {
                 // 씬 전체(인벤토리 포함)에서 종료하기 블록을 찾아 표시
                 CodingBlock endBlock = null;
@@ -59,14 +60,15 @@ namespace DG.Game.Runtime
         // Control 블록(종료하기)에 도달하면 그 블록을 반환, 체인이 끊기면 null 반환.
         private static CodingBlock WalkChain(CodingBlock current, List<BlockInstruction> output)
         {
-            while (current != null)
+            while (current)
             {
                 if (current.Category == BlockCategory.Control) return current;
 
                 var instr = Build(current);
                 if (instr != null) output.Add(instr);
 
-                var socket = current.transform.Find("ChainOutSocket")?.GetComponent<ChainOutSocket>();
+                ChainOutSocket socket = null;
+                current.transform.Find("ChainOutSocket")?.TryGetComponent(out socket);
                 current = socket?.Occupant;
             }
             return null;
@@ -87,7 +89,8 @@ namespace DG.Game.Runtime
         private static CommandInstruction BuildCommand(CodingBlock block)
         {
             // ValueOutSocket은 CodingZone.OnDrop이 직접 자식으로 붙임
-            var vos = block.transform.Find("ValueOutSocket")?.GetComponent<ValueOutSocket>();
+            ValueOutSocket vos = null;
+            block.transform.Find("ValueOutSocket")?.TryGetComponent(out vos);
             return new CommandInstruction
             {
                 Source  = block,
@@ -143,9 +146,9 @@ namespace DG.Game.Runtime
                 if (child.TryGetComponent<CodingBlock>(out var b) && b.Category != BlockCategory.Control)
                 { first = b; break; }
             }
-            if (first == null) return;
+            if (!first) return;
 
-            if (first.transform.Find("ChainOutSocket") != null)
+            if (first.transform.Find("ChainOutSocket"))
             {
                 _ = WalkChain(first, output);
             }
@@ -171,12 +174,12 @@ namespace DG.Game.Runtime
                 if (instr is RepeatInstruction rep && rep.Body != null)
                 {
                     var err = FindCommandWithoutValue(rep.Body);
-                    if (err != null) return err;
+                    if (err) return err;
                 }
                 if (instr is IfInstruction ifInstr)
                 {
-                    if (ifInstr.Then != null) { var err = FindCommandWithoutValue(ifInstr.Then); if (err != null) return err; }
-                    if (ifInstr.Else != null) { var err = FindCommandWithoutValue(ifInstr.Else); if (err != null) return err; }
+                    if (ifInstr.Then != null) { var err = FindCommandWithoutValue(ifInstr.Then); if (err) return err; }
+                    if (ifInstr.Else != null) { var err = FindCommandWithoutValue(ifInstr.Else); if (err) return err; }
                 }
             }
             return null;
@@ -188,8 +191,9 @@ namespace DG.Game.Runtime
             foreach (Transform child in block.transform)
             {
                 if (!child.name.StartsWith("Header_")) continue;
-                var vos = child.Find("ValueOutSocket")?.GetComponent<ValueOutSocket>();
-                if (vos?.Occupant != null && int.TryParse(vos.Occupant.name, out var n))
+                ValueOutSocket vos = null;
+                child.Find("ValueOutSocket")?.TryGetComponent(out vos);
+                if (vos && vos.Occupant && int.TryParse(vos.Occupant.name, out var n))
                     return n;
             }
             return 1;

@@ -20,11 +20,11 @@ namespace DG.Game
             _bg.color = EmptyColor;
         }
 
-        public bool IsEmpty => _occupant == null;
+        public bool IsEmpty => !_occupant;
 
         public void OnDrop(PointerEventData e)
         {
-            if (e.pointerDrag == null || !e.pointerDrag.TryGetComponent<CodingBlock>(out var block) || !IsEmpty) return;
+            if (!e.pointerDrag || !e.pointerDrag.TryGetComponent<CodingBlock>(out var block) || !IsEmpty) return;
 
             var cat = block.Category;
             if (cat == BlockCategory.Control || cat == BlockCategory.Value) return;
@@ -42,13 +42,13 @@ namespace DG.Game
         {
             _occupant = block;
             block.PlaceIn(transform);
-            if (_bg != null) _bg.color = OccupiedColor;
+            if (_bg) _bg.color = OccupiedColor;
         }
 
         public void Release()
         {
             _occupant = null;
-            if (_bg != null) _bg.color = EmptyColor;
+            if (_bg) _bg.color = EmptyColor;
         }
     }
 }

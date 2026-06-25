@@ -13,7 +13,7 @@ namespace DG.Game
 
         public void OnDrop(PointerEventData e)
         {
-            if (e.pointerDrag == null || !e.pointerDrag.TryGetComponent<CodingBlock>(out var block)) return;
+            if (!e.pointerDrag || !e.pointerDrag.TryGetComponent<CodingBlock>(out var block)) return;
 
             var all = new System.Collections.Generic.List<CodingBlock>();
             CollectAll(block, all);
@@ -31,14 +31,14 @@ namespace DG.Game
             // 체인 자식을 먼저 분리 — 이후 GetComponentsInChildren이 손자 소켓을 잡지 않도록
             var chainOut = block.GetComponentInChildren<ChainOutSocket>();
             var chainChild = chainOut?.Occupant;
-            if (chainOut != null) chainOut.Release();
-            if (chainChild != null) chainChild.transform.SetParent(null, true);
+            if (chainOut) chainOut.Release();
+            if (chainChild) chainChild.transform.SetParent(null, true);
 
             // 이 블록에 붙은 value 블록 분리 후 수집
             foreach (var vos in block.GetComponentsInChildren<ValueOutSocket>())
             {
                 var valueBlock = vos.Occupant;
-                if (valueBlock == null) continue;
+                if (!valueBlock) continue;
                 vos.Release();
                 valueBlock.transform.SetParent(null, true);
                 all.Add(valueBlock);
@@ -46,7 +46,7 @@ namespace DG.Game
 
             all.Add(block);
 
-            if (chainChild != null) CollectAll(chainChild, all);
+            if (chainChild) CollectAll(chainChild, all);
         }
     }
 }

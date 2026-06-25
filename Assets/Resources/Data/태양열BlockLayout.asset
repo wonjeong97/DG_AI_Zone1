@@ -19,48 +19,70 @@ MonoBehaviour:
     innerBlocks: []
     elseBlocks: []
     chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
   - category: 1
     label: "\uD0DC\uC591\uAD11 \uD328\uB110\uC758 \uAC01\uB3C4"
     valueLabel: 
     innerBlocks: []
     elseBlocks: []
     chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
   - category: 1
     label: "\uD0DC\uC591\uAD11 \uD328\uB110\uC758 \uAC00\uB3D9 \uC218"
     valueLabel: 
     innerBlocks: []
     elseBlocks: []
     chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
   - category: 1
     label: "\uD0DC\uC591\uAD11 \uD328\uB110\uC758 \uBC29\uD5A5"
     valueLabel: 
     innerBlocks: []
     elseBlocks: []
     chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
   - category: 2
     label: "\uBA87 \uB3C4"
     valueLabel: 
     innerBlocks: []
     elseBlocks: []
     chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
   - category: 2
     label: "\uBA87 \uAC1C"
     valueLabel: 
     innerBlocks: []
     elseBlocks: []
     chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
   - category: 2
     label: "\uC5B4\uB290 \uBC29\uD5A5"
     valueLabel: 
     innerBlocks: []
     elseBlocks: []
     chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
+  - category: 3
+    label: "\uBC18\uBCF5\uD558\uAE30"
+    valueLabel: 
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
   - category: 0
     label: "\uC885\uB8CC\uD558\uAE30"
     valueLabel: 
     innerBlocks: []
     elseBlocks: []
     chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
+  - category: 6
+    label: "\uADF8\uB9AC\uACE0"
+    valueLabel: 
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
   codingBlocks: []
   references:
     version: 2

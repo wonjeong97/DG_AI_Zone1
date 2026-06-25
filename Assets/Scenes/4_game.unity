@@ -153,7 +153,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   inventoryContainer: {fileID: 806503017}
-  commandValueOffset: {x: -16, y: 0}
 --- !u!114 &34166381
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -168,6 +167,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   blockSpawner: {fileID: 34166380}
   testLayout: {fileID: 11400000, guid: a106de6ab90db7e4dad5ee609a11fba5, type: 2}
+  codingZone: {fileID: 1335305963}
 --- !u!4 &34166382
 Transform:
   m_ObjectHideFlags: 0

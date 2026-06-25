@@ -30,7 +30,7 @@ namespace DG.Game
 
         private static void Clear(Transform t)
         {
-            if (t == null) return;
+            if (!t) return;
             for (int i = t.childCount - 1; i >= 0; i--)
                 Destroy(t.GetChild(i).gameObject);
         }

@@ -9,12 +9,12 @@ namespace DG.Game
     {
         public void OnDrop(PointerEventData e)
         {
-            if (e.pointerDrag == null || !e.pointerDrag.TryGetComponent<CodingBlock>(out var block) || block.IsDragHandled) return;
+            if (!e.pointerDrag || !e.pointerDrag.TryGetComponent<CodingBlock>(out CodingBlock block) || block.IsDragHandled) return;
 
             // ReturnHome이 블록을 임시로 이전 소켓/슬롯에 돌려놨을 수 있으므로 해제
-            if (block.transform.parent.TryGetComponent<ChainOutSocket>(out var cs))
+            if (block.transform.parent.TryGetComponent<ChainOutSocket>(out ChainOutSocket cs))
                 cs.Release();
-            else if (block.transform.parent.TryGetComponent<ValueOutSocket>(out var vos))
+            else if (block.transform.parent.TryGetComponent<ValueOutSocket>(out ValueOutSocket vos))
                 vos.Release();
 
             block.transform.SetParent(transform, true);
