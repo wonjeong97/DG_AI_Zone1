@@ -22,6 +22,7 @@ namespace DG.Game
         [SerializeField] private float _snapSeconds = 0.15f;
 
         public BlockCategory Category { get; private set; }
+        public ValueKind ValueKind { get; private set; }
         public bool IsDragHandled { get; private set; }
 
         [Inject] private ILogger<CodingBlock> _log;
@@ -63,6 +64,7 @@ namespace DG.Game
         }
 
         public void ShowErrorHighlight() => SetHL(GetOrFindHighlight(ref _errorHighlightImg, "SpriteOutline"), new Color(1f, 0.15f, 0.1f, 1f));
+        public void ShowSuccessHighlight() => SetHL(GetOrFindHighlight(ref _errorHighlightImg, "SpriteOutline"), new Color(0.1f, 0.9f, 0.3f, 1f));
         public void ClearErrorHighlight() => SetHL(GetOrFindHighlight(ref _errorHighlightImg, "SpriteOutline"), Color.clear);
 
         private static void SetHL(Image img, Color c)
@@ -70,9 +72,10 @@ namespace DG.Game
             if (img) img.color = c;
         }
 
-        public void Init(BlockCategory category, Canvas rootCanvas)
+        public void Init(BlockCategory category, Canvas rootCanvas, ValueKind valueKind = ValueKind.None)
         {
             Category = category;
+            ValueKind = valueKind;
             _canvas = rootCanvas;
             TryGetComponent<RectTransform>(out _rt);
             TryGetComponent<CanvasGroup>(out _cg);
@@ -360,7 +363,12 @@ namespace DG.Game
                 CodingBlock targetBlock = candidate.GetComponentInParent<CodingBlock>();
                 if (targetBlock)
                 {
-                    if (Category == BlockCategory.Value && targetBlock.Category != BlockCategory.Command) continue;
+                    if (Category == BlockCategory.Value)
+                    {
+                        if (targetBlock.Category != BlockCategory.Command) continue;
+                        // Command가 허용하는 값 타입만 스냅 (None = 모든 타입 허용)
+                        if (targetBlock.ValueKind != ValueKind.None && targetBlock.ValueKind != ValueKind) continue;
+                    }
                     if (Category == BlockCategory.Logic && targetBlock.Category != BlockCategory.FlowControl) continue;
                     if (Category == BlockCategory.Condition && targetBlock.Category != BlockCategory.FlowControl && targetBlock.Category != BlockCategory.Logic) continue;
                 }

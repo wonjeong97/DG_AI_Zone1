@@ -15,6 +15,7 @@ namespace DG.Game.Runtime
 
         public static CompileResult Ok(List<BlockInstruction> instr)           => new(true,  instr, null, null);
         public static CompileResult Fail(string err, CodingBlock block = null) => new(false, null,  err,  block ? new[] { block } : null);
+        public static CompileResult Fail(string err, CodingBlock[] blocks)     => new(false, null,  err,  blocks);
     }
 
     public static class BlockCompiler
@@ -30,6 +31,12 @@ namespace DG.Game.Runtime
             }
             if (!start)
                 return CompileResult.Fail("'시작하기' 블록이 코딩 영역에 없습니다");
+
+            // 시작하기가 다른 블록의 체인/내부 소켓에 연결돼 있으면 첫 블록이 아님
+            Transform startParent = start.transform.parent;
+            if (startParent &&
+                (startParent.TryGetComponent<ChainOutSocket>(out _) || startParent.TryGetComponent<InnerSocket>(out _)))
+                return CompileResult.Fail("'시작하기' 블록이 첫 번째 블록이어야 합니다", start);
 
             // transform.Find: 직접 자식만 탐색 — 하위 체인 소켓과 혼동 방지
             ChainOutSocket socket = null;
@@ -47,6 +54,11 @@ namespace DG.Game.Runtime
             var condError = FindIfWithoutCondition(program);
             if (condError)
                 return CompileResult.Fail($"'{condError.name}' 블록에 조건이 없습니다", condError);
+
+            // 씬의 모든 Command 블록(인벤토리·방치 블록 포함)이 프로그램에 포함돼야 함
+            var unused = FindUnusedCommands(program);
+            if (unused.Length > 0)
+                return CompileResult.Fail($"사용되지 않은 명령 블록이 있습니다 ({unused.Length}개)", unused);
 
             if (!terminal || terminal.name != "종료하기")
             {
@@ -95,11 +107,13 @@ namespace DG.Game.Runtime
             // ValueOutSocket은 CodingZone.OnDrop이 직접 자식으로 붙임
             ValueOutSocket vos = null;
             block.transform.Find("ValueOutSocket")?.TryGetComponent(out vos);
+            CodingBlock occupant = vos ? vos.Occupant : null;
             return new CommandInstruction
             {
-                Source  = block,
-                Command = block.name,
-                Value   = vos?.Occupant?.name
+                Source    = block,
+                Command   = block.name,
+                Value     = occupant ? occupant.name : null,
+                ValueKind = occupant ? occupant.ValueKind : ValueKind.None
             };
         }
 
@@ -187,6 +201,39 @@ namespace DG.Game.Runtime
                 }
             }
             return null;
+        }
+
+        // 프로그램에 포함되지 않은 Command 블록 탐색 — 인벤토리·코딩존 방치 블록 모두 대상
+        private static CodingBlock[] FindUnusedCommands(List<BlockInstruction> program)
+        {
+            var used = new HashSet<CodingBlock>();
+            CollectCommandSources(program, used);
+
+            var unused = new List<CodingBlock>();
+            foreach (var b in Object.FindObjectsOfType<CodingBlock>())
+                if (b.Category == BlockCategory.Command && !used.Contains(b))
+                    unused.Add(b);
+            return unused.ToArray();
+        }
+
+        private static void CollectCommandSources(List<BlockInstruction> instructions, HashSet<CodingBlock> used)
+        {
+            foreach (var instr in instructions)
+            {
+                switch (instr)
+                {
+                    case CommandInstruction cmd:
+                        if (cmd.Source) used.Add(cmd.Source);
+                        break;
+                    case RepeatInstruction rep when rep.Body is not null:
+                        CollectCommandSources(rep.Body, used);
+                        break;
+                    case IfInstruction ifInstr:
+                        if (ifInstr.Then is not null) CollectCommandSources(ifInstr.Then, used);
+                        if (ifInstr.Else is not null) CollectCommandSources(ifInstr.Else, used);
+                        break;
+                }
+            }
         }
 
         // FlowControl(만약) 블록의 헤더 조건 슬롯에서 ConditionExpr를 읽음

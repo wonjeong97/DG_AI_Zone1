@@ -10,8 +10,8 @@ namespace DG.Game
         private CodingBlock _occupant;
         private Image _bg;
 
-        private static readonly Color EmptyColor    = new(1f, 1f, 1f, 0.08f);
-        private static readonly Color OccupiedColor = new(0f, 0f, 0f, 0f);
+        private readonly static Color EmptyColor    = new(1f, 1f, 1f, 0.08f);
+        private readonly static Color OccupiedColor = new(0f, 0f, 0f, 0f);
 
         private void Awake()
         {

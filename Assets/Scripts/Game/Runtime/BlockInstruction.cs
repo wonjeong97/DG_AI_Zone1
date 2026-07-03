@@ -11,6 +11,7 @@ namespace DG.Game.Runtime
     {
         public string Command;
         public string Value; // null = Value 블록 없음
+        public ValueKind ValueKind; // 연결된 Value 블록의 타입
     }
 
     public sealed class ActionInstruction : BlockInstruction

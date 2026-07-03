@@ -62,7 +62,7 @@ namespace DG.Game
             go.AddComponent<CanvasGroup>();
             if (draggable)
             {
-                AddDraggable(go, entry.category, rootCanvas);
+                AddDraggable(go, entry, rootCanvas);
             }
 
             AddLabel(go, entry.label);
@@ -84,7 +84,7 @@ namespace DG.Game
             var go = NewRect(entry.label, cmdW, cmdH);
             go.AddComponent<CanvasGroup>();
             if (draggable)
-                AddDraggable(go, entry.category, rootCanvas);
+                AddDraggable(go, entry, rootCanvas);
 
             var labelPart = NewRect("Label", cmdW, cmdH);
             labelPart.transform.SetParent(go.transform, false);
@@ -126,7 +126,7 @@ namespace DG.Game
             AppendFlowLabel(go.transform, entry.label, sprite);
 
             if (draggable)
-                AddDraggable(go, entry.category, rootCanvas);
+                AddDraggable(go, entry, rootCanvas);
 
             // 헤더 높이 스페이서 (VLG용, 시각은 Label GO가 담당)
             AppendFlowSpacer(go.transform, "Header_" + entry.label, FlowHeaderHeight);
@@ -305,7 +305,7 @@ namespace DG.Game
             AddBlockBody(go, GetColor(BlockCategory.Logic), sprite);
             go.AddComponent<CanvasGroup>();
             if (draggable)
-                AddDraggable(go, entry.category, rootCanvas);
+                AddDraggable(go, entry, rootCanvas);
             AddLabel(go, entry.label);
             return go;
         }
@@ -649,12 +649,12 @@ namespace DG.Game
             txt.alignment = TextAnchor.MiddleCenter;
         }
 
-        private static void AddDraggable(GameObject go, BlockCategory cat, Canvas rootCanvas)
+        private static void AddDraggable(GameObject go, BlockEntry entry, Canvas rootCanvas)
         {
             go.TryGetComponent<RectTransform>(out var brt);
-            brt.pivot = new Vector2(0f, cat == BlockCategory.FlowControl ? 1f : 0.5f);
+            brt.pivot = new Vector2(0f, entry.category == BlockCategory.FlowControl ? 1f : 0.5f);
             var block = go.AddComponent<CodingBlock>();
-            block.Init(cat, rootCanvas);
+            block.Init(entry.category, rootCanvas, entry.valueKind);
         }
     }
 }

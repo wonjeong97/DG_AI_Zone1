@@ -20,7 +20,7 @@ namespace DG.Scenes
 
         private void OnStartButtonClicked()
         {
-            SceneManager.LoadScene("3_LevelSelect");
+            SceneManager.LoadScene("3_Story");
         }
     }
 }
