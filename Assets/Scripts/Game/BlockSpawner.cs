@@ -1,3 +1,4 @@
+using Cysharp.Threading.Tasks;
 using DG.Data;
 using UnityEngine;
 using VContainer;
@@ -30,7 +31,7 @@ namespace DG.Game
             return null;
         }
 
-        public void Spawn(BlockLayoutData layout)
+        public async UniTaskVoid Spawn(BlockLayoutData layout)
         {
             Clear(inventoryContainer);
 
@@ -38,7 +39,7 @@ namespace DG.Game
 
             foreach (var entry in layout.inventoryBlocks)
             {
-                GameObject go = BlockFactory.Create(entry, _rootCanvas, draggable: true);
+                GameObject go = await BlockFactory.Create(entry, _rootCanvas, draggable: true);
                 go.transform.SetParent(inventoryContainer, false);
                 _resolver?.InjectGameObject(go);
             }

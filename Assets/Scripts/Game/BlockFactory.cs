@@ -1,5 +1,8 @@
+using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using DG.Data;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using UnityEngine.UI;
 
 namespace DG.Game
@@ -8,8 +11,11 @@ namespace DG.Game
     {
         private const string BlockImagePath = "Images/Blocks/";
 
+        // 이름별로 1회만 Addressables에서 로드하고 이후에는 캐시에서 반환
+        private readonly static Dictionary<string, Sprite> _spriteCache = new();
+
         // 카테고리 + label(Start/End 구분)로 스프라이트 로드
-        private static Sprite LoadSprite(BlockCategory cat, string label = "")
+        private static async UniTask<Sprite> LoadSpriteAsync(BlockCategory cat, string label = "")
         {
             string name = cat switch
             {
@@ -22,7 +28,24 @@ namespace DG.Game
                 BlockCategory.Logic => "Logic",
                 _ => null
             };
-            return name is not null ? Resources.Load<Sprite>(BlockImagePath + name) : null;
+            if (name is null) return null;
+
+            if (_spriteCache.TryGetValue(name, out Sprite cached)) return cached;
+
+            Sprite sprite = await Addressables.LoadAssetAsync<Sprite>(BlockImagePath + name);
+            _spriteCache[name] = sprite;
+            return sprite;
+        }
+
+        // 한글 라벨용 폰트 — 1회만 로드 후 캐시. 빌트인 LegacyRuntime.ttf는 한글 글리프가 없고,
+        // WebGL은 OS 폰트 폴백도 없어 라벨이 아예 보이지 않음
+        private static Font _labelFont;
+
+        private static async UniTask<Font> LoadLabelFontAsync()
+        {
+            if (_labelFont) return _labelFont;
+            _labelFont = await Addressables.LoadAssetAsync<Font>("Fonts/GamtanRoadTantan");
+            return _labelFont;
         }
 
         /// <summary>
@@ -42,21 +65,21 @@ namespace DG.Game
         };
 
         // ── 진입점 ──────────────────────────────────────────────
-        public static GameObject Create(BlockEntry entry, Canvas rootCanvas, bool draggable = true)
+        public static async UniTask<GameObject> Create(BlockEntry entry, Canvas rootCanvas, bool draggable = true)
         {
             return entry.category switch
             {
-                BlockCategory.Command     => CreateCommandBlock(entry, rootCanvas, draggable),
-                BlockCategory.FlowControl => CreateFlowBlock(entry, rootCanvas, draggable),
-                BlockCategory.Logic       => CreateLogicBlock(entry, rootCanvas, draggable),
-                _                         => CreateSimpleBlock(entry, rootCanvas, draggable)
+                BlockCategory.Command     => await CreateCommandBlock(entry, rootCanvas, draggable),
+                BlockCategory.FlowControl => await CreateFlowBlock(entry, rootCanvas, draggable),
+                BlockCategory.Logic       => await CreateLogicBlock(entry, rootCanvas, draggable),
+                _                         => await CreateSimpleBlock(entry, rootCanvas, draggable)
             };
         }
 
         // ── 단순 블록 ───────────────────────────────────────────
-        private static GameObject CreateSimpleBlock(BlockEntry entry, Canvas rootCanvas, bool draggable)
+        private static async UniTask<GameObject> CreateSimpleBlock(BlockEntry entry, Canvas rootCanvas, bool draggable)
         {
-            Sprite sprite = LoadSprite(entry.category, entry.label);
+            Sprite sprite = await LoadSpriteAsync(entry.category, entry.label);
             GameObject go = NewRect(entry.label, 220f, 56f);
             AddBlockBody(go, GetColor(entry.category), sprite);
             go.AddComponent<CanvasGroup>();
@@ -65,19 +88,19 @@ namespace DG.Game
                 AddDraggable(go, entry, rootCanvas);
             }
 
-            AddLabel(go, entry.label);
+            await AddLabel(go, entry.label);
 
             // Logic 블록은 수평 체인 슬롯 포함
             if (entry.category == BlockCategory.Logic && entry.chainBlocks is not null)
-                AppendChain(go, entry.chainBlocks, rootCanvas, draggable);
+                await AppendChain(go, entry.chainBlocks, rootCanvas, draggable);
 
             return go;
         }
 
         // ── Command 블록 ────────────────────────────────────────
-        private static GameObject CreateCommandBlock(BlockEntry entry, Canvas rootCanvas, bool draggable)
+        private static async UniTask<GameObject> CreateCommandBlock(BlockEntry entry, Canvas rootCanvas, bool draggable)
         {
-            Sprite cmdSprite = LoadSprite(BlockCategory.Command);
+            Sprite cmdSprite = await LoadSpriteAsync(BlockCategory.Command);
             float cmdW = cmdSprite?.rect.width ?? 260f;
             float cmdH = cmdSprite?.rect.height ?? 56f;
 
@@ -92,7 +115,7 @@ namespace DG.Game
             labelRT.anchorMin = labelRT.anchorMax = labelRT.pivot = new Vector2(0f, 1f);
             labelRT.anchoredPosition = Vector2.zero;
             AddBlockBody(labelPart, GetColor(entry.category), cmdSprite);
-            AddLabel(labelPart, entry.label, 24);
+            await AddLabel(labelPart, entry.label, 24);
 
             return go;
         }
@@ -103,9 +126,9 @@ namespace DG.Game
         private const float FlowElseHeight = 44f;
         private const float FlowFooterHeight = 83f;
 
-        private static GameObject CreateFlowBlock(BlockEntry entry, Canvas rootCanvas, bool draggable)
+        private static async UniTask<GameObject> CreateFlowBlock(BlockEntry entry, Canvas rootCanvas, bool draggable)
         {
-            Sprite sprite = LoadSprite(BlockCategory.FlowControl);
+            Sprite sprite = await LoadSpriteAsync(BlockCategory.FlowControl);
 
             GameObject go = NewRect(entry.label, FlowBlockWidth, 0f);
             go.AddComponent<CanvasGroup>();
@@ -123,7 +146,7 @@ namespace DG.Game
             csf.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
 
             // Label GO: 다른 블록과 동일하게 아웃라인·하이라이트·배경·텍스트를 한 곳에 통합
-            AppendFlowLabel(go.transform, entry.label, sprite);
+            await AppendFlowLabel(go.transform, entry.label, sprite);
 
             if (draggable)
                 AddDraggable(go, entry, rootCanvas);
@@ -152,7 +175,7 @@ namespace DG.Game
             // else 분기 (만약 블록) — 구분 텍스트 포함
             if (entry.elseBlocks is not null && entry.elseBlocks.Length > 0)
             {
-                AppendFlowHeader(go.transform, "아니면", FlowElseHeight);
+                await AppendFlowHeader(go.transform, "아니면", FlowElseHeight);
                 AppendInnerContainer(go.transform, entry.elseBlocks, rootCanvas, draggable);
             }
 
@@ -169,7 +192,7 @@ namespace DG.Game
         //   3: Background (9-slice, 블록 전체 커버)
         //   4: Label 텍스트 (헤더 영역 상단에 고정)
         // ignoreLayout=true → VLG 배치에서 제외, 블록 전체를 덮는 시각 레이어로만 동작
-        private static void AppendFlowLabel(Transform parent, string label, Sprite sprite)
+        private static async UniTask AppendFlowLabel(Transform parent, string label, Sprite sprite)
         {
             GameObject go = new GameObject("Label");
             go.transform.SetParent(parent, false);
@@ -197,7 +220,7 @@ namespace DG.Game
             }
 
             // 텍스트: 상단 FlowHeaderHeight 영역에만 표시
-            Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            Font font = await LoadLabelFontAsync();
             GameObject textGo = new GameObject("Label");
             textGo.transform.SetParent(go.transform, false);
             RectTransform textRt = textGo.AddComponent<RectTransform>();
@@ -224,11 +247,11 @@ namespace DG.Game
         }
 
         // else 구분 헤더 — 스페이서 + 텍스트 (시각은 Label GO의 9-slice 배경이 담당)
-        private static void AppendFlowHeader(Transform parent, string label, float height)
+        private static async UniTask AppendFlowHeader(Transform parent, string label, float height)
         {
             GameObject h = NewRect("Header_" + label, 0f, height);
             h.transform.SetParent(parent, false);
-            AddLabel(h, label, 26);
+            await AddLabel(h, label, 26);
             LayoutElement le = h.AddComponent<LayoutElement>();
             le.preferredHeight = height;
             le.flexibleWidth = 1f;
@@ -298,20 +321,20 @@ namespace DG.Game
 
         // ── Logic 블록 (그리고 / 또는) ───────────────────────────────────
         // 단순 레이블 블록 — ConditionIn/Out 소켓으로 조건 체인에 연결
-        private static GameObject CreateLogicBlock(BlockEntry entry, Canvas rootCanvas, bool draggable)
+        private static async UniTask<GameObject> CreateLogicBlock(BlockEntry entry, Canvas rootCanvas, bool draggable)
         {
-            Sprite sprite = LoadSprite(BlockCategory.Logic);
+            Sprite sprite = await LoadSpriteAsync(BlockCategory.Logic);
             GameObject go = NewRect(entry.label, 120f, 56f);
             AddBlockBody(go, GetColor(BlockCategory.Logic), sprite);
             go.AddComponent<CanvasGroup>();
             if (draggable)
                 AddDraggable(go, entry, rootCanvas);
-            AddLabel(go, entry.label);
+            await AddLabel(go, entry.label);
             return go;
         }
 
         // ── Logic 체인 (수평) ───────────────────────────────────
-        private static void AppendChain(GameObject baseBlock, BlockEntry[] chain, Canvas rootCanvas, bool draggable)
+        private static async UniTask AppendChain(GameObject baseBlock, BlockEntry[] chain, Canvas rootCanvas, bool draggable)
         {
             // baseBlock을 HorizontalLayoutGroup 컨테이너로 감싸기
             GameObject container = NewRect(baseBlock.name + "_Chain", 0f, 56f);
@@ -328,7 +351,7 @@ namespace DG.Game
 
             foreach (var c in chain)
             {
-                GameObject child = Create(c, rootCanvas, draggable);
+                GameObject child = await Create(c, rootCanvas, draggable);
                 child.transform.SetParent(container.transform, false);
             }
         }
@@ -632,9 +655,9 @@ namespace DG.Game
             img.raycastTarget = false;
         }
 
-        private static void AddLabel(GameObject go, string text, int size = 28)
+        private static async UniTask AddLabel(GameObject go, string text, int size = 28)
         {
-            Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            Font font = await LoadLabelFontAsync();
             GameObject t = new GameObject("Label");
             t.transform.SetParent(go.transform, false);
             RectTransform rt = t.AddComponent<RectTransform>();

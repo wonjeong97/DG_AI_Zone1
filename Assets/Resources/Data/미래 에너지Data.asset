@@ -14,6 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   storyText: "[\uB808\uBCA8 5 \uC2A4\uD1A0\uB9AC \uD14D\uC2A4\uD2B8]\n\n\uB0B4\uC6A9\uC744
     \uC785\uB825\uD558\uC138\uC694."
-  nextSceneName: 4_game
+  nextSceneName: 3_Game
   blockLayout: {fileID: 11400000, guid: bf7dd25c4e249d94fb8f3b4508ef5b4c, type: 2}
-  afterResultScene: 6_Outro
+  afterResultScene: 5_Outro

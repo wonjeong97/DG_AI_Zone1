@@ -22,6 +22,7 @@ namespace DG.App
 
             // 게임 세션 데이터 — [Inject]로 주입 가능하도록 컨테이너에 등록
             // 앱을 껐다 켜면 항상 처음부터 시작하도록 부팅 시점에 진행도 초기화
+            // VContainer Configure는 동기 실행이라 Addressables.WaitForCompletion(WebGL 미지원)을 쓸 수 없어 Resources.Load 유지
             GameSession session = Resources.Load<GameSession>("Data/GameSession");
             session.ResetProgress();
             builder.RegisterInstance(session);

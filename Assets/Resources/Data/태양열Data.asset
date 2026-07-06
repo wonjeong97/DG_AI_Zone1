@@ -16,5 +16,6 @@ MonoBehaviour:
     \uD328\uB110\uC758 \uAC01\uB3C4, \uD328\uB110\uC758 \uBC29\uD5A5 \uADF8\uB9AC\uACE0
     \uC124\uCE58 \uAC1C\uC218\uB97C \uC798 \uC870\uC808\uD574\uC11C \uAC00\uC7A5
     \uB9CE\uC740 \uD0DC\uC591\uC5F4\uC744 \uB2F4\uC544 \uBCFC\uAE4C\uC694?"
-  nextSceneName: 4_game
+  nextSceneName: 3_Game
   blockLayout: {fileID: 11400000, guid: a106de6ab90db7e4dad5ee609a11fba5, type: 2}
+  afterResultScene: 2_Story

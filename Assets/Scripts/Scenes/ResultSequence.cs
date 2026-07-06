@@ -38,10 +38,10 @@ namespace DG.Scenes
             PlaySequence().Forget();
         }
 
-        // 다음 레벨로 진행 — 방금 플레이한 레벨의 afterResultScene을 따라감 (마지막 레벨은 6_End)
+        // 다음 레벨로 진행 — 방금 플레이한 레벨의 afterResultScene을 따라감 (마지막 레벨은 5_Outro)
         private void OnNextClicked()
         {
-            string nextScene = _session && _session.currentLevel ? _session.currentLevel.afterResultScene : "3_Story";
+            string nextScene = _session && _session.currentLevel ? _session.currentLevel.afterResultScene : "2_Story";
             if (_session) _session.unlockedLevelIndex++;
             SceneManager.LoadScene(nextScene);
         }

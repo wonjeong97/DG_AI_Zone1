@@ -44,7 +44,7 @@ namespace DG.Scenes
                 return;
             }
 
-            blockSpawner.Spawn(layout);
+            blockSpawner.Spawn(layout).Forget();
 
             _questionTime = QuestionTimes[Random.Range(0, QuestionTimes.Length)];
             if (questionText)
@@ -155,7 +155,7 @@ namespace DG.Scenes
             executor.OnComplete += () =>
             {
                 _log?.ZLogInformation($"[실행] 완료 — {score}점");
-                SceneFader.FadeAndLoad("5_Result", logger: _log).Forget();
+                SceneFader.FadeAndLoad("4_Result", logger: _log).Forget();
             };
 
             await executor.RunAsync(result.Instructions, _cts.Token);
@@ -169,7 +169,7 @@ namespace DG.Scenes
                 _session.lastScore = 0;
                 _session.lastDirection = _session.lastAngle = _session.lastCount = null;
             }
-            SceneFader.FadeAndLoad("5_Result", logger: _log).Forget();
+            SceneFader.FadeAndLoad("4_Result", logger: _log).Forget();
         }
 
         // 프로그램에 포함된 모든 블록(반복/조건 내부 포함)에 성공 외곽선 표시
