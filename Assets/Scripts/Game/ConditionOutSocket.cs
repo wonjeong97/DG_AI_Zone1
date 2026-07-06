@@ -21,8 +21,8 @@ namespace DG.Game
         {
             ConditionInSocket inSocket = block.GetComponentInChildren<ConditionInSocket>();
             if (!inSocket
-                || !block.TryGetComponent<RectTransform>(out var blockRt)
-                || !inSocket.TryGetComponent<RectTransform>(out var inRt))
+                || !block.TryGetComponent<RectTransform>(out RectTransform blockRt)
+                || !inSocket.TryGetComponent<RectTransform>(out RectTransform inRt))
                 return Vector2.zero;
 
             var anchor = (inRt.anchorMin + inRt.anchorMax) * 0.5f;
@@ -39,7 +39,7 @@ namespace DG.Game
 
         private void OnDrawGizmos()
         {
-            if (!TryGetComponent<RectTransform>(out var rt)) return;
+            if (!TryGetComponent<RectTransform>(out RectTransform rt)) return;
 
             var markerColor = IsEmpty ? new Color(0.6f, 0.3f, 1f, 0.9f) : new Color(1f, 0.4f, 0.1f, 0.9f);
 

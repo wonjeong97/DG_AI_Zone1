@@ -96,6 +96,10 @@ namespace DG.Game
         {
             if (!RootCanvas) return;
 
+            // 코딩을 다시 건드리기 시작하면 이전 빌드 결과(성공/에러 외곽선)는 더 이상 유효하지 않으므로 정리
+            foreach (CodingBlock b in FindObjectsOfType<CodingBlock>())
+                b.ClearErrorHighlight();
+
             _snapTarget?.ClearSnapHighlight();
             _snapTarget = null;
 
@@ -502,7 +506,7 @@ namespace DG.Game
             CodingZone zone = FindObjectOfType<CodingZone>();
             if (!zone)
             {
-                Debug.LogWarning("[CodingBlock] CodingZone을 찾을 수 없습니다.");
+                _log?.ZLogWarning($"[CodingBlock] CodingZone을 찾을 수 없습니다.");
                 ReturnHome();
                 return;
             }
@@ -510,7 +514,7 @@ namespace DG.Game
             bool hasRect = zone.TryGetComponent<RectTransform>(out RectTransform zoneRect);
             if (!hasRect)
             {
-                Debug.LogWarning("[CodingBlock] CodingZone에 RectTransform이 없습니다.");
+                _log?.ZLogWarning($"[CodingBlock] CodingZone에 RectTransform이 없습니다.");
                 ReturnHome();
                 return;
             }

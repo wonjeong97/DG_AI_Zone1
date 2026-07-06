@@ -24,7 +24,7 @@ namespace DG.Game.Runtime
         {
             // '시작하기' 블록은 소켓 계층 어디에나 있을 수 있으므로 전체 탐색
             CodingBlock start = null;
-            foreach (var b in zone.GetComponentsInChildren<CodingBlock>())
+            foreach (CodingBlock b in zone.GetComponentsInChildren<CodingBlock>())
             {
                 if (b.Category == BlockCategory.Control && b.name == "시작하기")
                 { start = b; break; }
@@ -44,19 +44,19 @@ namespace DG.Game.Runtime
             if (!socket || !socket.Occupant)
                 return CompileResult.Fail("'시작하기'에 연결된 블록이 없습니다", start);
 
-            var program  = new List<BlockInstruction>();
-            var terminal = WalkChain(socket.Occupant, program);
+            var program = new List<BlockInstruction>();
+            CodingBlock terminal = WalkChain(socket.Occupant, program);
 
-            var cmdError = FindCommandWithoutValue(program);
+            CodingBlock cmdError = FindCommandWithoutValue(program);
             if (cmdError)
                 return CompileResult.Fail($"'{cmdError.name}' 블록에 값 블록이 없습니다", cmdError);
 
-            var condError = FindIfWithoutCondition(program);
+            CodingBlock condError = FindIfWithoutCondition(program);
             if (condError)
                 return CompileResult.Fail($"'{condError.name}' 블록에 조건이 없습니다", condError);
 
             // 씬의 모든 Command 블록(인벤토리·방치 블록 포함)이 프로그램에 포함돼야 함
-            var unused = FindUnusedCommands(program);
+            CodingBlock[] unused = FindUnusedCommands(program);
             if (unused.Length > 0)
                 return CompileResult.Fail($"사용되지 않은 명령 블록이 있습니다 ({unused.Length}개)", unused);
 
@@ -64,7 +64,7 @@ namespace DG.Game.Runtime
             {
                 // 씬 전체(인벤토리 포함)에서 종료하기 블록을 찾아 표시
                 CodingBlock endBlock = null;
-                foreach (var b in Object.FindObjectsOfType<CodingBlock>())
+                foreach (CodingBlock b in Object.FindObjectsOfType<CodingBlock>())
                     if (b.name == "종료하기") { endBlock = b; break; }
                 return CompileResult.Fail("마지막 블록이 '종료하기'여야 합니다", endBlock);
             }
@@ -80,8 +80,8 @@ namespace DG.Game.Runtime
             {
                 if (current.Category == BlockCategory.Control) return current;
 
-                var instr = Build(current);
-                if (instr != null) output.Add(instr);
+                BlockInstruction instr = Build(current);
+                if (instr is not null) output.Add(instr);
 
                 ChainOutSocket socket = null;
                 current.transform.Find("ChainOutSocket")?.TryGetComponent(out socket);
@@ -161,7 +161,7 @@ namespace DG.Game.Runtime
             CodingBlock first = null;
             foreach (Transform child in inner)
             {
-                if (child.TryGetComponent<CodingBlock>(out var b) && b.Category != BlockCategory.Control)
+                if (child.TryGetComponent<CodingBlock>(out CodingBlock b) && b.Category != BlockCategory.Control)
                 { first = b; break; }
             }
             if (!first) return;
@@ -174,10 +174,10 @@ namespace DG.Game.Runtime
             {
                 foreach (Transform child in inner)
                 {
-                    if (!child.TryGetComponent<CodingBlock>(out var b)) continue;
+                    if (!child.TryGetComponent<CodingBlock>(out CodingBlock b)) continue;
                     if (b.Category == BlockCategory.Control) continue;
-                    var instr = Build(b);
-                    if (instr != null) output.Add(instr);
+                    BlockInstruction instr = Build(b);
+                    if (instr is not null) output.Add(instr);
                 }
             }
         }
@@ -187,17 +187,17 @@ namespace DG.Game.Runtime
         {
             foreach (var instr in instructions)
             {
-                if (instr is CommandInstruction cmd && cmd.Value == null)
+                if (instr is CommandInstruction cmd && cmd.Value is null)
                     return cmd.Source;
-                if (instr is RepeatInstruction rep && rep.Body != null)
+                if (instr is RepeatInstruction rep && rep.Body is not null)
                 {
-                    var err = FindCommandWithoutValue(rep.Body);
+                    CodingBlock err = FindCommandWithoutValue(rep.Body);
                     if (err) return err;
                 }
                 if (instr is IfInstruction ifInstr)
                 {
-                    if (ifInstr.Then != null) { var err = FindCommandWithoutValue(ifInstr.Then); if (err) return err; }
-                    if (ifInstr.Else != null) { var err = FindCommandWithoutValue(ifInstr.Else); if (err) return err; }
+                    if (ifInstr.Then is not null) { CodingBlock err = FindCommandWithoutValue(ifInstr.Then); if (err) return err; }
+                    if (ifInstr.Else is not null) { CodingBlock err = FindCommandWithoutValue(ifInstr.Else); if (err) return err; }
                 }
             }
             return null;
@@ -210,7 +210,7 @@ namespace DG.Game.Runtime
             CollectCommandSources(program, used);
 
             var unused = new List<CodingBlock>();
-            foreach (var b in Object.FindObjectsOfType<CodingBlock>())
+            foreach (CodingBlock b in Object.FindObjectsOfType<CodingBlock>())
                 if (b.Category == BlockCategory.Command && !used.Contains(b))
                     unused.Add(b);
             return unused.ToArray();
@@ -287,13 +287,13 @@ namespace DG.Game.Runtime
             {
                 if (instr is IfInstruction ifInstr)
                 {
-                    if (ifInstr.Condition == null) return ifInstr.Source;
-                    if (ifInstr.Then != null) { var err = FindIfWithoutCondition(ifInstr.Then); if (err) return err; }
-                    if (ifInstr.Else != null) { var err = FindIfWithoutCondition(ifInstr.Else); if (err) return err; }
+                    if (ifInstr.Condition is null) return ifInstr.Source;
+                    if (ifInstr.Then is not null) { CodingBlock err = FindIfWithoutCondition(ifInstr.Then); if (err) return err; }
+                    if (ifInstr.Else is not null) { CodingBlock err = FindIfWithoutCondition(ifInstr.Else); if (err) return err; }
                 }
-                else if (instr is RepeatInstruction rep && rep.Body != null)
+                else if (instr is RepeatInstruction rep && rep.Body is not null)
                 {
-                    var err = FindIfWithoutCondition(rep.Body);
+                    CodingBlock err = FindIfWithoutCondition(rep.Body);
                     if (err) return err;
                 }
             }
@@ -308,7 +308,7 @@ namespace DG.Game.Runtime
                 if (!child.name.StartsWith("Header_")) continue;
                 ValueOutSocket vos = null;
                 child.Find("ValueOutSocket")?.TryGetComponent(out vos);
-                if (vos && vos.Occupant && int.TryParse(vos.Occupant.name, out var n))
+                if (vos && vos.Occupant && int.TryParse(vos.Occupant.name, out int n))
                     return n;
             }
             return 1;

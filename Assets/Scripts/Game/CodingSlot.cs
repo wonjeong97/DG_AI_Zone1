@@ -24,15 +24,15 @@ namespace DG.Game
 
         public void OnDrop(PointerEventData e)
         {
-            if (!e.pointerDrag || !e.pointerDrag.TryGetComponent<CodingBlock>(out var block) || !IsEmpty) return;
+            if (!e.pointerDrag || !e.pointerDrag.TryGetComponent<CodingBlock>(out CodingBlock block) || !IsEmpty) return;
 
             var cat = block.Category;
             if (cat == BlockCategory.Control || cat == BlockCategory.Value) return;
 
             // 이전 슬롯/소켓에서 꺼내기
-            if (block.transform.parent.TryGetComponent<CodingSlot>(out var prev))
+            if (block.transform.parent.TryGetComponent<CodingSlot>(out CodingSlot prev))
                 prev.Release();
-            if (block.transform.parent.TryGetComponent<ChainOutSocket>(out var cs))
+            if (block.transform.parent.TryGetComponent<ChainOutSocket>(out ChainOutSocket cs))
                 cs.Release();
 
             Accept(block);

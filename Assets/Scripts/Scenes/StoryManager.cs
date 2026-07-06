@@ -2,6 +2,7 @@ using DG.Data;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using VContainer;
 
 namespace DG.Scenes
 {
@@ -13,11 +14,14 @@ namespace DG.Scenes
         [SerializeField] private Text storyText;
         [SerializeField] private Button startButton;
 
+        [Inject] private GameSession _session;
+
         private LevelData _currentLevel;
 
         private void Start()
         {
-            int index = GameSession.Instance?.unlockedLevelIndex ?? 0;
+            // 마지막 레벨 완료 후에도 unlockedLevelIndex가 배열 범위를 넘지 않도록 고정
+            int index = Mathf.Clamp(_session ? _session.unlockedLevelIndex : 0, 0, levelDataList.Length - 1);
             _currentLevel = levelDataList[index];
 
             headerImage.sprite = levelHeaderImages[index];
@@ -28,7 +32,7 @@ namespace DG.Scenes
 
         private void OnStartClicked()
         {
-            GameSession.Instance.currentLevel = _currentLevel;
+            _session.currentLevel = _currentLevel;
             SceneManager.LoadScene(_currentLevel.nextSceneName);
         }
     }

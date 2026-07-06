@@ -11,7 +11,7 @@ namespace DG.Game
 #if UNITY_EDITOR
         private void OnDrawGizmos()
         {
-            if (!TryGetComponent<RectTransform>(out var rt)) return;
+            if (!TryGetComponent<RectTransform>(out RectTransform rt)) return;
 
             Gizmos.color = new Color(0.4f, 0.6f, 1f, 0.9f);
             float arm = 10f;

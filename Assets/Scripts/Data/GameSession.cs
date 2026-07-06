@@ -5,17 +5,6 @@ namespace DG.Data
     [CreateAssetMenu(fileName = "GameSession", menuName = "DG/Game Session")]
     public class GameSession : ScriptableObject
     {
-        private static GameSession _instance;
-        public static GameSession Instance
-        {
-            get
-            {
-                if (_instance == null)
-                    _instance = Resources.Load<GameSession>("Data/GameSession");
-                return _instance;
-            }
-        }
-
         public LevelData currentLevel;
 
         // 마지막 실행 결과 — 결과 씬 표시용 (런타임 전용, 저장 안 함)
@@ -36,6 +25,18 @@ namespace DG.Data
                 PlayerPrefs.SetInt(UnlockedLevelIndexKey, value);
                 PlayerPrefs.Save();
             }
+        }
+
+        // 앱을 껐다 켜면 항상 처음부터 시작하도록 부팅 시점에 진행도 초기화
+        public void ResetProgress()
+        {
+            unlockedLevelIndex = 0;
+            currentLevel = null;
+            lastScore = 0;
+            lastQuestionTime = null;
+            lastDirection = null;
+            lastAngle = null;
+            lastCount = null;
         }
     }
 }

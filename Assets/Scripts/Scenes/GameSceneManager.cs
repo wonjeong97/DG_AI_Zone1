@@ -4,9 +4,11 @@ using Cysharp.Threading.Tasks;
 using DG.Data;
 using DG.Game;
 using DG.Game.Runtime;
+using Microsoft.Extensions.Logging;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using VContainer;
+using ZLogger;
 
 namespace DG.Scenes
 {
@@ -21,6 +23,9 @@ namespace DG.Scenes
         [SerializeField] private StoryPanel      storyPanel;
         [SerializeField] private Text            questionText;
 
+        [Inject] private GameSession _session;
+        [Inject] private ILogger<GameSceneManager> _log;
+
         private readonly static string[] QuestionTimes =
             { "아침 8시", "오전 10시", "정오", "오후 2시", "오후 4시" };
 
@@ -29,13 +34,13 @@ namespace DG.Scenes
 
         private void Start()
         {
-            LevelData level = GameSession.Instance ? GameSession.Instance.currentLevel : null;
+            LevelData level = _session ? _session.currentLevel : null;
             if (!level) level = testLevel;
 
             BlockLayoutData layout = level ? level.blockLayout : null;
-            if (layout == null)
+            if (!layout)
             {
-                Debug.LogWarning("[GameSceneManager] No layout. testLevel을 Inspector에 할당하세요.");
+                _log?.ZLogWarning($"[GameSceneManager] No layout. testLevel을 Inspector에 할당하세요.");
                 return;
             }
 
@@ -46,19 +51,18 @@ namespace DG.Scenes
                 questionText.text = $"<color=yellow>현재 {_questionTime}</color>입니다. 태양광 패널이 어느 방향으로\n향해 있어야 할까요? 알맞은 블록을 사용하여 코딩해봅시다.";
 
             // 코딩 완료 없이 넘어가면 결과 씬에서 '-'로 표시되도록 이전 결과 초기화
-            GameSession startSession = GameSession.Instance;
-            if (startSession)
+            if (_session)
             {
-                startSession.lastQuestionTime = _questionTime;
-                startSession.lastDirection = startSession.lastAngle = startSession.lastCount = null;
-                startSession.lastScore = 0;
+                _session.lastQuestionTime = _questionTime;
+                _session.lastDirection = _session.lastAngle = _session.lastCount = null;
+                _session.lastScore = 0;
             }
 
             if (compileButton)
                 compileButton.onClick.AddListener(() => CompileAndRun().Forget());
 
             if (storyButton)
-                storyButton.onClick.AddListener(() => storyPanel.Show(GameSession.Instance?.unlockedLevelIndex ?? 0, level ? level.storyText : null));
+                storyButton.onClick.AddListener(() => storyPanel.Show(_session ? _session.unlockedLevelIndex : 0, level ? level.storyText : null));
 
             if (skipButton)
                 skipButton.onClick.AddListener(SkipToResult);
@@ -84,30 +88,30 @@ namespace DG.Scenes
             _cts?.Dispose();
             _cts = new CancellationTokenSource();
 
-            if (codingZone == null)
+            if (!codingZone)
                 codingZone = FindObjectOfType<CodingZone>();
 
-            if (codingZone == null)
+            if (!codingZone)
             {
-                Debug.LogWarning("[Compile] CodingZone을 찾을 수 없습니다.");
+                _log?.ZLogWarning($"[Compile] CodingZone을 찾을 수 없습니다.");
                 return;
             }
 
             // 이전 에러 하이라이트 초기화 (인벤토리 포함 씬 전체)
-            foreach (var b in FindObjectsOfType<CodingBlock>())
+            foreach (CodingBlock b in FindObjectsOfType<CodingBlock>())
                 b.ClearErrorHighlight();
 
             var result = BlockCompiler.Compile(codingZone);
             if (!result.Success)
             {
-                Debug.LogWarning($"[Compile] 실패: {result.Error}");
-                if (result.ErrorBlocks != null)
-                    foreach (var b in result.ErrorBlocks)
+                _log?.ZLogWarning($"[Compile] 실패: {result.Error}");
+                if (result.ErrorBlocks is not null)
+                    foreach (CodingBlock b in result.ErrorBlocks)
                         b?.ShowErrorHighlight();
                 return;
             }
 
-            Debug.Log($"[Compile] 성공 — {result.Instructions.Count}개 명령");
+            _log?.ZLogInformation($"[Compile] 성공 — {result.Instructions.Count}개 명령");
 
             // 실행~씬 전환 중 연타 방지 (성공 시 씬을 떠나므로 재활성화 불필요)
             if (compileButton) compileButton.interactable = false;
@@ -119,30 +123,29 @@ namespace DG.Scenes
             HighlightSources(result.Instructions);
 
             int score = BlockScorer.ScoreProgram(result.Instructions, _questionTime);
-            GameSession session = GameSession.Instance;
-            if (session)
+            if (_session)
             {
-                session.lastScore = score;
-                session.lastQuestionTime = _questionTime;
-                (session.lastDirection, session.lastAngle, session.lastCount) =
+                _session.lastScore = score;
+                _session.lastQuestionTime = _questionTime;
+                (_session.lastDirection, _session.lastAngle, _session.lastCount) =
                     BlockScorer.ExtractValues(result.Instructions);
             }
-            Debug.Log($"[점수] {score}점 (기준 시간: {_questionTime})");
+            _log?.ZLogInformation($"[점수] {score}점 (기준 시간: {_questionTime})");
 
             var executor = new BlockExecutor();
-            executor.OnBlockEnter = block => { if (block) Debug.Log($"[실행] {block.name}"); };
+            executor.OnBlockEnter = block => { if (block) _log?.ZLogInformation($"[실행] {block.name}"); };
             executor.OnExecute    = async (instr, ct) =>
             {
                 switch (instr)
                 {
                     case CommandInstruction cmd:
-                        Debug.Log($"  Command: {cmd.Command}  Value: {cmd.Value ?? "(없음)"}");
+                        _log?.ZLogInformation($"  Command: {cmd.Command}  Value: {cmd.Value ?? "(없음)"}");
                         break;
                     case ActionInstruction act:
-                        Debug.Log($"  Action: {act.Action}");
+                        _log?.ZLogInformation($"  Action: {act.Action}");
                         break;
                     case ConditionActionInstruction cond:
-                        Debug.Log($"  ConditionAction: {cond.Action}");
+                        _log?.ZLogInformation($"  ConditionAction: {cond.Action}");
                         break;
                 }
                 await UniTask.Delay(200, cancellationToken: ct);
@@ -151,23 +154,22 @@ namespace DG.Scenes
             executor.OnCondition = _ => false;
             executor.OnComplete += () =>
             {
-                Debug.Log($"[실행] 완료 — {score}점");
-                SceneManager.LoadScene("5_Result");
+                _log?.ZLogInformation($"[실행] 완료 — {score}점");
+                SceneFader.FadeAndLoad("5_Result", logger: _log).Forget();
             };
 
             await executor.RunAsync(result.Instructions, _cts.Token);
         }
 
         // 넘어가기 — 블록 조립 여부와 무관하게 실패로 처리하고 결과 씬으로 이동
-        private static void SkipToResult()
+        private void SkipToResult()
         {
-            GameSession session = GameSession.Instance;
-            if (session)
+            if (_session)
             {
-                session.lastScore = 0;
-                session.lastDirection = session.lastAngle = session.lastCount = null;
+                _session.lastScore = 0;
+                _session.lastDirection = _session.lastAngle = _session.lastCount = null;
             }
-            SceneManager.LoadScene("5_Result");
+            SceneFader.FadeAndLoad("5_Result", logger: _log).Forget();
         }
 
         // 프로그램에 포함된 모든 블록(반복/조건 내부 포함)에 성공 외곽선 표시

@@ -18,25 +18,25 @@ namespace DG.Game
         private static bool CanFit(CodingBlock incoming, CodingBlock displaced)
         {
             if (!displaced) return true;
-            var nextOut = incoming.GetComponentInChildren<ChainOutSocket>();
+            ChainOutSocket nextOut = incoming.GetComponentInChildren<ChainOutSocket>();
             if (!nextOut) return false;
             return CanFit(displaced, nextOut._occupant);
         }
 
         public void Accept(CodingBlock block)
         {
-            var displaced = _occupant;
+            CodingBlock displaced = _occupant;
             _occupant = block;
             block.SnapInto(transform, ComputeSnapOffset(block)).Forget();
 
             if (!displaced) return;
 
             // 드래그 시 splice-out으로 소켓이 비워졌으므로 최대 1단만 재귀됨
-            var nextOut = block.GetComponentInChildren<ChainOutSocket>();
+            ChainOutSocket nextOut = block.GetComponentInChildren<ChainOutSocket>();
             if (!nextOut)
             {
                 // 안전망: 소켓 없는 블록(종료하기 등)이 들어온 경우 displaced를 CodingZone으로
-                var zone = FindObjectOfType<CodingZone>();
+                CodingZone zone = FindObjectOfType<CodingZone>();
                 if (zone) { displaced.transform.SetParent(zone.transform, true); displaced.SetHome(zone.transform); }
                 return;
             }
@@ -49,8 +49,8 @@ namespace DG.Game
             ChainInSocket inSocket = null;
             block.transform.Find("ChainInSocket")?.TryGetComponent(out inSocket);
             if (!inSocket
-                || !block.TryGetComponent<RectTransform>(out var blockRt)
-                || !inSocket.TryGetComponent<RectTransform>(out var inRt))
+                || !block.TryGetComponent<RectTransform>(out RectTransform blockRt)
+                || !inSocket.TryGetComponent<RectTransform>(out RectTransform inRt))
                 return Vector2.zero;
 
             var anchor = (inRt.anchorMin + inRt.anchorMax) * 0.5f;

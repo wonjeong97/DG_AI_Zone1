@@ -20,10 +20,10 @@ namespace DG.Game
 
         private static Vector2 ComputeSnapOffset(CodingBlock block)
         {
-            var inSocket = block.GetComponentInChildren<ValueInSocket>();
+            ValueInSocket inSocket = block.GetComponentInChildren<ValueInSocket>();
             if (!inSocket
-                || !block.TryGetComponent<RectTransform>(out var blockRt)
-                || !inSocket.TryGetComponent<RectTransform>(out var inRt))
+                || !block.TryGetComponent<RectTransform>(out RectTransform blockRt)
+                || !inSocket.TryGetComponent<RectTransform>(out RectTransform inRt))
                 return Vector2.zero;
 
             var anchor = (inRt.anchorMin + inRt.anchorMax) * 0.5f;
@@ -40,7 +40,7 @@ namespace DG.Game
 
         private void OnDrawGizmos()
         {
-            if (!TryGetComponent<RectTransform>(out var rt)) return;
+            if (!TryGetComponent<RectTransform>(out RectTransform rt)) return;
 
             var markerColor = IsEmpty ? new Color(1f, 0.85f, 0f, 0.9f)  : new Color(1f, 0.4f, 0.1f, 0.9f);
             var rangeColor  = IsEmpty ? new Color(1f, 0.85f, 0f, 0.08f) : new Color(1f, 0.4f, 0.1f, 0.08f);

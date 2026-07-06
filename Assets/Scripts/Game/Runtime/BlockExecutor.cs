@@ -47,7 +47,7 @@ namespace DG.Game.Runtime
             {
                 IfInstruction     i => await ExecuteIf(i, ct),
                 RepeatInstruction r => await ExecuteRepeat(r, ct),
-                _                   => OnExecute != null ? await OnExecute(instr, ct) : true
+                _                   => OnExecute is not null ? await OnExecute(instr, ct) : true
             };
         }
 
@@ -55,7 +55,7 @@ namespace DG.Game.Runtime
         {
             bool cond   = OnCondition?.Invoke(instr.Condition) ?? false;
             var  branch = cond ? instr.Then : instr.Else;
-            if (branch == null || branch.Count == 0) return true;
+            if (branch is null || branch.Count == 0) return true;
             return await ExecuteList(branch, ct);
         }
 

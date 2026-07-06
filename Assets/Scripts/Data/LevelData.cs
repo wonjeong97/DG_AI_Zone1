@@ -8,5 +8,8 @@ namespace DG.Data
         [TextArea(5, 15)] public string storyText;
         public string nextSceneName;
         public BlockLayoutData blockLayout;
+
+        [Tooltip("5_Result에서 '다음' 클릭 시 이동할 씬. 마지막 레벨은 6_End로 설정")]
+        public string afterResultScene = "3_Story";
     }
 }
