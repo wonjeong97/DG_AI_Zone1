@@ -32,7 +32,7 @@ namespace DG.Game
 
             if (_spriteCache.TryGetValue(name, out Sprite cached)) return cached;
 
-            Sprite sprite = await Addressables.LoadAssetAsync<Sprite>(BlockImagePath + name);
+            Sprite sprite = await Addressables.LoadAssetAsync<Sprite>(name);
             _spriteCache[name] = sprite;
             return sprite;
         }
@@ -41,10 +41,10 @@ namespace DG.Game
         // WebGL은 OS 폰트 폴백도 없어 라벨이 아예 보이지 않음
         private static Font _labelFont;
 
-        private static async UniTask<Font> LoadLabelFontAsync()
+        public static async UniTask<Font> LoadLabelFontAsync()
         {
             if (_labelFont) return _labelFont;
-            _labelFont = await Addressables.LoadAssetAsync<Font>("Fonts/GamtanRoadTantan");
+            _labelFont = await Addressables.LoadAssetAsync<Font>("GamtanRoadTantan");
             return _labelFont;
         }
 
@@ -54,7 +54,7 @@ namespace DG.Game
         public static Color GetColor(BlockCategory cat) => cat switch
         {
             BlockCategory.Control => new Color(0.20f, 0.20f, 0.20f),
-            BlockCategory.Command => new Color(0.82f, 0.36f, 0.28f),
+            BlockCategory.Command => new Color32(213, 96, 180, 255),
             BlockCategory.Value => new Color(0.27f, 0.60f, 0.85f),
             BlockCategory.FlowControl => new Color(0.92f, 0.57f, 0.08f),
             BlockCategory.ConditionAction => new Color(0.86f, 0.40f, 0.63f),
@@ -62,6 +62,22 @@ namespace DG.Game
             BlockCategory.Logic => new Color(0.33f, 0.73f, 0.36f),
             BlockCategory.Condition => new Color(0.60f, 0.40f, 0.80f),
             _ => Color.white
+        };
+
+        /// <summary>
+        /// 카테고리 선택 버튼에 표시할 한글 이름. (한 곳에서 관리 — 필요 시 이 매핑만 수정)
+        /// </summary>
+        public static string GetCategoryName(BlockCategory cat) => cat switch
+        {
+            BlockCategory.Control => "제어",
+            BlockCategory.Command => "동작",
+            BlockCategory.Value => "변수",
+            BlockCategory.FlowControl => "반복",
+            BlockCategory.ConditionAction => "조건 동작",
+            BlockCategory.Action => "행동",
+            BlockCategory.Logic => "논리",
+            BlockCategory.Condition => "조건",
+            _ => cat.ToString()
         };
 
         // ── 진입점 ──────────────────────────────────────────────
@@ -80,8 +96,35 @@ namespace DG.Game
         private static async UniTask<GameObject> CreateSimpleBlock(BlockEntry entry, Canvas rootCanvas, bool draggable)
         {
             Sprite sprite = await LoadSpriteAsync(entry.category, entry.controlRole);
-            GameObject go = NewRect(entry.label, 220f, 56f);
+            
+            float w = 220f;
+            float h = 56f;
+            if (entry.category == BlockCategory.Control)
+            {
+                // 원래 리소스 블록의 크기를 따라가기 위한 고정 크기 설정
+                if (entry.controlRole == ControlRole.Start)
+                {
+                    w = 353f;
+                    h = 127f;
+                }
+                else
+                {
+                    w = 353f;
+                    h = 104f;
+                }
+            }
+            else if (entry.category == BlockCategory.Value)
+            {
+                // 원래 리소스 블록의 크기를 따라가기 위한 고정 크기 설정
+                w = 287f;
+                h = 89f;
+            }
+
+            GameObject go = NewRect(entry.label, w, h);
             AddBlockBody(go, GetColor(entry.category), sprite);
+            if (go.TryGetComponent<RectTransform>(out RectTransform goRt))
+                goRt.sizeDelta = new Vector2(w, h);
+
             go.AddComponent<CanvasGroup>();
             if (draggable)
             {
@@ -102,8 +145,9 @@ namespace DG.Game
         private static async UniTask<GameObject> CreateCommandBlock(BlockEntry entry, Canvas rootCanvas, bool draggable)
         {
             Sprite cmdSprite = await LoadSpriteAsync(BlockCategory.Command);
-            float cmdW = cmdSprite?.rect.width ?? 260f;
-            float cmdH = cmdSprite?.rect.height ?? 56f;
+            // 원래 리소스 블록의 크기를 따라가기 위한 고정 크기 설정
+            float cmdW = 371f;
+            float cmdH = 119f;
 
             GameObject go = NewRect(entry.label, cmdW, cmdH);
             go.AddComponent<CanvasGroup>();
@@ -116,6 +160,9 @@ namespace DG.Game
             labelRT.anchorMin = labelRT.anchorMax = labelRT.pivot = new Vector2(0f, 1f);
             labelRT.anchoredPosition = Vector2.zero;
             AddBlockBody(labelPart, GetColor(entry.category), cmdSprite);
+            if (labelPart.TryGetComponent<RectTransform>(out RectTransform lpRt))
+                lpRt.sizeDelta = new Vector2(cmdW, cmdH);
+
             await AddLabel(labelPart, entry.label, 24, 10f);
 
             return go;
@@ -368,7 +415,9 @@ namespace DG.Game
             if (cat == BlockCategory.Command)
                 AttachValueOutSocket(block.gameObject, new Vector2(-8f, 11f));
 
-            if (cat == BlockCategory.Value || cat == BlockCategory.Condition || cat == BlockCategory.Logic)
+            if (cat == BlockCategory.Value)
+                AttachValueInSocket(block.gameObject, new Vector2(16f, 3.5f));
+            else if (cat == BlockCategory.Condition || cat == BlockCategory.Logic)
                 AttachValueInSocket(block.gameObject, new Vector2(8f, 0f));
 
             // Condition / Logic 블록: 수평 조건 체인 소켓
@@ -385,12 +434,12 @@ namespace DG.Game
                 bool isCommand = cat == BlockCategory.Command;
                 bool isFlow    = cat == BlockCategory.FlowControl;
 
-                Vector2 outOffset = isStart   ? new Vector2(-69f, 8f)      :
-                    isFlow    ? new Vector2(-60f, 3f)      :
-                    isCommand ? new Vector2(-78f, 4f)      : Vector2.zero;
+                Vector2 outOffset = isStart   ? new Vector2(-68.5f, 16f)   :
+                                    isFlow    ? new Vector2(-60f, 3f)      :
+                                    isCommand ? new Vector2(-78.3f, 11.5f) : Vector2.zero;
                 Vector2 inOffset  = isEnd     ? new Vector2(-73f, -20f)    :
-                    isFlow    ? new Vector2(-55.5f, -17.5f):
-                    isCommand ? new Vector2(-78f, -16f)    : Vector2.zero;
+                                    isFlow    ? new Vector2(-55.5f, -17.5f):
+                                    isCommand ? new Vector2(-78f, -16f)    : Vector2.zero;
 
                 if (!isEnd)   AttachOutSocket(block.gameObject, outOffset);
                 if (!isStart) AttachInSocket(block.gameObject,  inOffset);

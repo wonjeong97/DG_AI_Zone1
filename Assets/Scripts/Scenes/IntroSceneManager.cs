@@ -13,6 +13,7 @@ namespace DG.Scenes
         [SerializeField] private Button introStartButton;
         [SerializeField] private Button tutorialStartButton;
         [SerializeField] private VideoPlayer videoPlayer;
+        [SerializeField] private VideoPlayer robotVideoPlayer;
         [SerializeField] private float crossFadeDuration = 0.2f;
 
         private void Start()
@@ -29,10 +30,19 @@ namespace DG.Scenes
             // 실제 재생은 인트로 시작 버튼 클릭 시점에 시작
             if (videoPlayer)
             {
-                videoPlayer.url = Path.Combine(Application.streamingAssetsPath, "Videos/Tutorial-webm.webm");
+                videoPlayer.url = Path.Combine(Application.streamingAssetsPath, "Videos/Tutorial_260710.webm");
                 videoPlayer.Prepare();
                 // destroyCancellationToken 없이는 씬 전환으로 videoPlayer가 파괴된 뒤에도 폴링이 계속돼 MissingReferenceException 발생
                 SceneFader.RegisterPendingTask(UniTask.WaitUntil(() => videoPlayer.isPrepared, cancellationToken: destroyCancellationToken));
+            }
+
+            // 인트로 패널의 로봇 영상 — 진입과 동시에 루프 재생 (isLooping은 컴포넌트에 설정됨)
+            if (robotVideoPlayer)
+            {
+                robotVideoPlayer.url = Path.Combine(Application.streamingAssetsPath, "Videos/Robot_260710.webm");
+                robotVideoPlayer.Prepare();
+                SceneFader.RegisterPendingTask(UniTask.WaitUntil(() => robotVideoPlayer.isPrepared, cancellationToken: destroyCancellationToken));
+                robotVideoPlayer.Play();
             }
         }
 

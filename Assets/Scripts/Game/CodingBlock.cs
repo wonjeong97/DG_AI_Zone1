@@ -84,6 +84,13 @@ namespace DG.Game
             TryGetComponent<CanvasGroup>(out _cg);
         }
 
+        private void OnDisable()
+        {
+            if (!_cg) TryGetComponent(out _cg);
+            if (_cg) _cg.blocksRaycasts = true;
+            IsDragHandled = false;
+        }
+
         // 드래그 시점에 캔버스를 다시 확인 (Init이 배치 전 호출될 수 있으므로)
         private Canvas RootCanvas
         {

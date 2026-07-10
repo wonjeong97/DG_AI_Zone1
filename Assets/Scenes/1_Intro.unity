@@ -156,6 +156,7 @@ MonoBehaviour:
   introStartButton: {fileID: 1065975278}
   tutorialStartButton: {fileID: 543362593}
   videoPlayer: {fileID: 1410857280}
+  robotVideoPlayer: {fileID: 1356407829}
   crossFadeDuration: 0.2
 --- !u!4 &208277161
 Transform:
@@ -487,7 +488,7 @@ MonoBehaviour:
   m_FontData:
     m_Font: {fileID: 12800000, guid: 54159cbcf377e3b4d9c16f04fa075934, type: 3}
     m_FontSize: 40
-    m_FontStyle: 1
+    m_FontStyle: 0
     m_BestFit: 1
     m_MinSize: 4
     m_MaxSize: 45
@@ -496,7 +497,7 @@ MonoBehaviour:
     m_RichText: 1
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
-    m_LineSpacing: 1
+    m_LineSpacing: 1.3
   m_Text: "'\uCE5C\uD658\uACBD \uD074\uB9B0\uC5D0\uB108\uC9C0 \uB3C4\uC2DC'\uB85C
     \uB9CC\uB4E4\uAE30 \uC704\uD55C \uB300\uADDC\uBAA8 \uD504\uB85C\uC81D\uD2B8\uAC00
     \uC2DC\uC791\uB418\uC5C8\uC2B5\uB2C8\uB2E4.\r\n\r\n\uC774\uC81C\uBD80\uD130 [\uCCB4\uD5D8\uC790]\uC740
@@ -1015,7 +1016,8 @@ GameObject:
   m_Component:
   - component: {fileID: 1356407826}
   - component: {fileID: 1356407828}
-  - component: {fileID: 1356407827}
+  - component: {fileID: 1356407830}
+  - component: {fileID: 1356407829}
   m_Layer: 5
   m_Name: "\uB878\uBC97"
   m_TagString: Untagged
@@ -1042,7 +1044,51 @@ RectTransform:
   m_AnchoredPosition: {x: -644, y: -188}
   m_SizeDelta: {x: 708, y: 712}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &1356407827
+--- !u!222 &1356407828
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1356407825}
+  m_CullTransparentMesh: 1
+--- !u!328 &1356407829
+VideoPlayer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1356407825}
+  m_Enabled: 1
+  m_VideoClip: {fileID: 0}
+  m_TargetCameraAlpha: 1
+  m_TargetCamera3DLayout: 0
+  m_TargetCamera: {fileID: 0}
+  m_TargetTexture: {fileID: 8400000, guid: 3dadfa4d3f1e2c1429558b4a146d9910, type: 2}
+  m_TimeReference: 0
+  m_TargetMaterialRenderer: {fileID: 0}
+  m_TargetMaterialProperty: <noninit>
+  m_RenderMode: 2
+  m_AspectRatio: 5
+  m_DataSource: 1
+  m_TimeUpdateMode: 2
+  m_PlaybackSpeed: 1
+  m_AudioOutputMode: 0
+  m_TargetAudioSources:
+  - {fileID: 0}
+  m_DirectAudioVolumes:
+  - 1
+  m_Url: 
+  m_EnabledAudioTracks: 01
+  m_DirectAudioMutes: 00
+  m_ControlledAudioTrackCount: 1
+  m_PlayOnAwake: 0
+  m_SkipOnDrop: 1
+  m_Looping: 1
+  m_WaitForFirstFrame: 1
+  m_FrameReadyEventEnabled: 0
+  m_VideoShaders: []
+--- !u!114 &1356407830
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1051,7 +1097,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1356407825}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Script: {fileID: 11500000, guid: 1344c3c82d62a2a41a3576d8abb8e3ea, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
@@ -1062,24 +1108,13 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 976bd0a42668d9249959f7ab857cf815, type: 3}
-  m_Type: 0
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
---- !u!222 &1356407828
-CanvasRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1356407825}
-  m_CullTransparentMesh: 1
+  m_Texture: {fileID: 8400000, guid: 3dadfa4d3f1e2c1429558b4a146d9910, type: 2}
+  m_UVRect:
+    serializedVersion: 2
+    x: 0
+    y: 0
+    width: 1
+    height: 1
 --- !u!1 &1410857278
 GameObject:
   m_ObjectHideFlags: 0
@@ -1139,7 +1174,7 @@ VideoPlayer:
   m_DataSource: 1
   m_TimeUpdateMode: 2
   m_PlaybackSpeed: 1
-  m_AudioOutputMode: 2
+  m_AudioOutputMode: 0
   m_TargetAudioSources:
   - {fileID: 0}
   m_DirectAudioVolumes:

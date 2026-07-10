@@ -10,6 +10,7 @@ namespace DG.Game
     {
         [SerializeField] private Transform inventoryContainer;
         [SerializeField] private Transform codingContainer;
+        [SerializeField] private CategoryZone categoryZone;
 
         [Inject] private IObjectResolver _resolver;
 
@@ -57,6 +58,16 @@ namespace DG.Game
                 if (inventoryContainer is RectTransform rt)
                     UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(rt);
             }
+
+            // 인벤토리에 스폰된 블록들의 카테고리를 등장 순으로 수집해 카테고리 버튼 생성 + 첫 카테고리 활성화
+            if (categoryZone)
+            {
+                var categories = new System.Collections.Generic.List<BlockCategory>();
+                foreach (Transform child in inventoryContainer)
+                    if (child.TryGetComponent<CodingBlock>(out CodingBlock block) && !categories.Contains(block.Category))
+                        categories.Add(block.Category);
+                await categoryZone.Build(categories);
+            }
         }
 
         // 시작하기/완성하기는 인벤토리 대신 코딩 패널에 초기 배치 (시작: 좌상단, 완성: 좌하단)
@@ -67,7 +78,7 @@ namespace DG.Game
             if (go.transform is RectTransform rt)
             {
                 rt.anchorMin = rt.anchorMax = new Vector2(0f, isStart ? 1f : 0f);
-                rt.anchoredPosition = new Vector2(40f, isStart ? -60f : 60f);
+                rt.anchoredPosition = new Vector2(80f, isStart ? -120f : 120f);
             }
 
             if (go.TryGetComponent<CodingBlock>(out CodingBlock block))
