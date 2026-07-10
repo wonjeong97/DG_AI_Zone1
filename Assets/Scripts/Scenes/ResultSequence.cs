@@ -12,15 +12,15 @@ namespace DG.Scenes
 {
     public class ResultSequence : MonoBehaviour
     {
-        [SerializeField] private TypewriterText playerText;
+        [SerializeField] private TypewriterTextTMP playerText;
         [SerializeField] private CanvasGroup playerImageGroup;
-        [SerializeField] private TypewriterText aiText;
+        [SerializeField] private TypewriterTextTMP aiText;
         [SerializeField] private CanvasGroup aiImageGroup;
         [SerializeField] private CanvasGroup aiResultGroup;
         [SerializeField] private CanvasGroup playerEffGroup;
-        [SerializeField] private Text playerEffText;
+        [SerializeField] private TextMeshProUGUI playerEffText;
         [SerializeField] private CanvasGroup aiEffGroup;
-        [SerializeField] private Text aiEffText;
+        [SerializeField] private TextMeshProUGUI aiEffText;
         [SerializeField] private SolarPanelPose playerPanelPose;
         [SerializeField] private SolarPanelPose aiPanelPose;
         [SerializeField] private float effCountDuration = 0.8f;
@@ -220,7 +220,7 @@ namespace DG.Scenes
         }
 
         // 에너지 효율 텍스트 — 페이드인 후 0%에서 target%까지 카운트업
-        private async UniTask PlayEfficiencyAsync(CanvasGroup group, Text text, int target, CancellationToken ct)
+        private async UniTask PlayEfficiencyAsync(CanvasGroup group, TextMeshProUGUI text, int target, CancellationToken ct)
         {
             if (!group || !text) return;
 

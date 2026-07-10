@@ -37,14 +37,18 @@ namespace DG.Game
             return sprite;
         }
 
-        // 한글 라벨용 폰트 — 1회만 로드 후 캐시. 빌트인 LegacyRuntime.ttf는 한글 글리프가 없고,
-        // WebGL은 OS 폰트 폴백도 없어 라벨이 아예 보이지 않음
-        private static Font _labelFont;
+        // 한글 라벨용 폰트 — 1회만 로드 후 캐시.
+        private static TMPro.TMP_FontAsset _labelFont;
 
-        public static async UniTask<Font> LoadLabelFontAsync()
+        public static async UniTask<TMPro.TMP_FontAsset> LoadLabelFontAsync()
         {
             if (_labelFont) return _labelFont;
-            _labelFont = await Addressables.LoadAssetAsync<Font>("GamtanRoadTantan");
+            _labelFont = Resources.Load<TMPro.TMP_FontAsset>("Fonts & Materials/GamtanRoadTantan SDF");
+            if (!_labelFont)
+            {
+                // Resources 로드 실패 시 어드레서블로 2차 시도
+                _labelFont = await Addressables.LoadAssetAsync<TMPro.TMP_FontAsset>("GamtanRoadTantan SDF");
+            }
             return _labelFont;
         }
 
@@ -268,7 +272,7 @@ namespace DG.Game
             }
 
             // 텍스트: 상단 FlowHeaderHeight 영역에만 표시
-            Font font = await LoadLabelFontAsync();
+            TMPro.TMP_FontAsset font = await LoadLabelFontAsync();
             GameObject textGo = new GameObject("Label");
             textGo.transform.SetParent(go.transform, false);
             RectTransform textRt = textGo.AddComponent<RectTransform>();
@@ -276,12 +280,12 @@ namespace DG.Game
             textRt.anchorMax = Vector2.one;
             textRt.offsetMin = textRt.offsetMax = Vector2.zero;
             textRt.sizeDelta = new Vector2(0f, FlowHeaderHeight);
-            Text txt = textGo.AddComponent<Text>();
+            TMPro.TextMeshProUGUI txt = textGo.AddComponent<TMPro.TextMeshProUGUI>();
             txt.text = label;
             txt.font = font;
             txt.fontSize = 26;
             txt.color = Color.white;
-            txt.alignment = TextAnchor.MiddleCenter;
+            txt.alignment = TMPro.TextAlignmentOptions.Center;
         }
 
         // VLG 높이 스페이서 — 시각 없음, Label GO가 배경·텍스트를 담당
@@ -707,7 +711,7 @@ namespace DG.Game
 
         private static async UniTask AddLabel(GameObject go, string text, int size = 28, float bottom = 0f)
         {
-            Font font = await LoadLabelFontAsync();
+            TMPro.TMP_FontAsset font = await LoadLabelFontAsync();
             GameObject t = new GameObject("Label");
             t.transform.SetParent(go.transform, false);
             RectTransform rt = t.AddComponent<RectTransform>();
@@ -715,12 +719,12 @@ namespace DG.Game
             rt.anchorMax = Vector2.one;
             rt.offsetMin = new Vector2(0f, bottom);
             rt.offsetMax = Vector2.zero;
-            Text txt = t.AddComponent<Text>();
+            TMPro.TextMeshProUGUI txt = t.AddComponent<TMPro.TextMeshProUGUI>();
             txt.text = text;
             txt.font = font;
             txt.fontSize = size;
             txt.color = Color.white;
-            txt.alignment = TextAnchor.MiddleCenter;
+            txt.alignment = TMPro.TextAlignmentOptions.Center;
         }
 
         private static void AddDraggable(GameObject go, BlockEntry entry, Canvas rootCanvas)
