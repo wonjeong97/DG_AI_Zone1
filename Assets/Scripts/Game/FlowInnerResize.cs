@@ -23,11 +23,11 @@ namespace DG.Game
             if (transform.parent)
                 transform.parent.TryGetComponent<RectTransform>(out _parentRt);
 
-            if (_socket && _socket.TryGetComponent<RectTransform>(out var srt))
+            if (_socket && _socket.TryGetComponent<RectTransform>(out RectTransform srt))
                 _socketOffset = -srt.anchoredPosition.y;
 
-            var bottomGo = transform.Find("InnerBottomSocket");
-            if (bottomGo && bottomGo.TryGetComponent<RectTransform>(out var brt))
+            Transform bottomGo = transform.Find("InnerBottomSocket");
+            if (bottomGo && bottomGo.TryGetComponent<RectTransform>(out RectTransform brt))
                 _bottomSocketOffset = brt.anchoredPosition.y;
         }
 
@@ -57,8 +57,8 @@ namespace DG.Game
             float total = 0f;
             for (int i = 0; i < _parentRt.childCount; i++)
             {
-                var child = _parentRt.GetChild(i);
-                if (!child.TryGetComponent<LayoutElement>(out var le) || le.ignoreLayout) continue;
+                Transform child = _parentRt.GetChild(i);
+                if (!child.TryGetComponent<LayoutElement>(out LayoutElement le) || le.ignoreLayout) continue;
                 total += le.preferredHeight;
             }
             return total;
@@ -74,7 +74,7 @@ namespace DG.Game
 
         private float ChainHeight()
         {
-            var block = _socket.Occupant;
+            CodingBlock block = _socket.Occupant;
             ChainOutSocket lastOut = null;
             while (block)
             {

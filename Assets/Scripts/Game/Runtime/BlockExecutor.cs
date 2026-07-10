@@ -12,7 +12,7 @@ namespace DG.Game.Runtime
         public Func<BlockInstruction, CancellationToken, UniTask<bool>> OnExecute;
 
         // If 조건 평가기. true = Then 분기, false = Else 분기.
-        public Func<string, bool> OnCondition;
+        public Func<ConditionExpr, bool> OnCondition;
 
         // 각 명령이 시작될 때 호출 (시각적 하이라이트 등에 활용).
         public Action<CodingBlock> OnBlockEnter;
@@ -47,7 +47,7 @@ namespace DG.Game.Runtime
             {
                 IfInstruction     i => await ExecuteIf(i, ct),
                 RepeatInstruction r => await ExecuteRepeat(r, ct),
-                _                   => OnExecute != null ? await OnExecute(instr, ct) : true
+                _                   => OnExecute is not null ? await OnExecute(instr, ct) : true
             };
         }
 
@@ -55,7 +55,7 @@ namespace DG.Game.Runtime
         {
             bool cond   = OnCondition?.Invoke(instr.Condition) ?? false;
             var  branch = cond ? instr.Then : instr.Else;
-            if (branch == null || branch.Count == 0) return true;
+            if (branch is null || branch.Count == 0) return true;
             return await ExecuteList(branch, ct);
         }
 

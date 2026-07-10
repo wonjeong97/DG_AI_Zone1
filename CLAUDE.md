@@ -60,17 +60,6 @@ For multi-step tasks, state a brief plan:
 
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
-## 5. Unity C# Coding Guidelines
-
-**Applies ONLY to Unity Objects (Component, GameObject, Sprite, Material, and other UnityEngine.Object derivatives).**
-
-- **Require explicit types** instead of `var`.
-- Use `TryGetComponent<T>(out T x)` instead of `GetComponent<T>()`.
-  - `GetComponentInChildren` / `GetComponentInParent` do not have Try variants — verify results using implicit bool.
-- **No null comparisons** — use implicit bool conversion:
-  - `obj != null` → `obj`
-  - `obj == null` → `!obj`
-- **Exception**: For standard C# classes (string, arrays, custom classes, etc.), keep using `is null` / `is not null`.
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.

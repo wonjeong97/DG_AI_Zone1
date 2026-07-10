@@ -10,8 +10,8 @@ namespace DG.Game
         private CodingBlock _occupant;
         private Image _bg;
 
-        private static readonly Color EmptyColor    = new(1f, 1f, 1f, 0.08f);
-        private static readonly Color OccupiedColor = new(0f, 0f, 0f, 0f);
+        private readonly static Color EmptyColor    = new(1f, 1f, 1f, 0.08f);
+        private readonly static Color OccupiedColor = new(0f, 0f, 0f, 0f);
 
         private void Awake()
         {
@@ -24,15 +24,15 @@ namespace DG.Game
 
         public void OnDrop(PointerEventData e)
         {
-            if (!e.pointerDrag || !e.pointerDrag.TryGetComponent<CodingBlock>(out var block) || !IsEmpty) return;
+            if (!e.pointerDrag || !e.pointerDrag.TryGetComponent<CodingBlock>(out CodingBlock block) || !IsEmpty) return;
 
             var cat = block.Category;
             if (cat == BlockCategory.Control || cat == BlockCategory.Value) return;
 
             // 이전 슬롯/소켓에서 꺼내기
-            if (block.transform.parent.TryGetComponent<CodingSlot>(out var prev))
+            if (block.transform.parent.TryGetComponent<CodingSlot>(out CodingSlot prev))
                 prev.Release();
-            if (block.transform.parent.TryGetComponent<ChainOutSocket>(out var cs))
+            if (block.transform.parent.TryGetComponent<ChainOutSocket>(out ChainOutSocket cs))
                 cs.Release();
 
             Accept(block);

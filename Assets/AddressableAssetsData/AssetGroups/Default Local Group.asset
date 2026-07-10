@@ -1,0 +1,70 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: Default Local Group
+  m_EditorClassIdentifier: 
+  m_GroupName: Default Local Group
+  m_Data:
+    m_SerializedData: []
+  m_GUID: d9cd5ee8edd0a93428e04483c67b4c4d
+  m_SerializeEntries:
+  - m_GUID: 351fdcb60f4416e47a1f316ab405d0c2
+    m_Address: Images/Blocks/Action
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 47ad630c14a833f48b22ea21bd6a4ff6
+    m_Address: Images/Blocks/ConditionAction
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 519bacf251899fa40a1a9b6a46cdeb42
+    m_Address: Images/Blocks/End
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 770b6fbe3240a38439687a23791d070e
+    m_Address: Images/Blocks/Command
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 80033d159cab99f4e90b96f13a7be897
+    m_Address: Images/Blocks/Value
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 9fae74a415518db4f941a00b0d8b78e4
+    m_Address: Fonts/GamtanRoadTantan
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: aa64f71bbd989d342bab618baa29b579
+    m_Address: Images/Blocks/FlowControl
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d43f4a2d5fea0d344a8c5c255b29daae
+    m_Address: Images/Blocks/Start
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: eecb9fc48b6cf924daa708b0038c29cb
+    m_Address: Images/Blocks/Logic
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: 5b528160d9ffca247a3e021bfeb509ba, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: 6791348adafa49649a71fa2af66f204b, type: 2}
+    - {fileID: 11400000, guid: f853233cd05572445884f11fc02c97c3, type: 2}

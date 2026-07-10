@@ -11,7 +11,7 @@ namespace DG.Game
 #if UNITY_EDITOR
         private void OnDrawGizmos()
         {
-            if (!TryGetComponent<RectTransform>(out var rt)) return;
+            if (!TryGetComponent<RectTransform>(out RectTransform rt)) return;
 
             var pos = (Vector2)rt.position;
 

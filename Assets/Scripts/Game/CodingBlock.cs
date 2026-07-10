@@ -22,6 +22,8 @@ namespace DG.Game
         [SerializeField] private float _snapSeconds = 0.15f;
 
         public BlockCategory Category { get; private set; }
+        public ValueKind ValueKind { get; private set; }
+        public DG.Data.ControlRole ControlRole { get; private set; }
         public bool IsDragHandled { get; private set; }
 
         [Inject] private ILogger<CodingBlock> _log;
@@ -63,6 +65,7 @@ namespace DG.Game
         }
 
         public void ShowErrorHighlight() => SetHL(GetOrFindHighlight(ref _errorHighlightImg, "SpriteOutline"), new Color(1f, 0.15f, 0.1f, 1f));
+        public void ShowSuccessHighlight() => SetHL(GetOrFindHighlight(ref _errorHighlightImg, "SpriteOutline"), new Color(0.1f, 0.9f, 0.3f, 1f));
         public void ClearErrorHighlight() => SetHL(GetOrFindHighlight(ref _errorHighlightImg, "SpriteOutline"), Color.clear);
 
         private static void SetHL(Image img, Color c)
@@ -70,9 +73,12 @@ namespace DG.Game
             if (img) img.color = c;
         }
 
-        public void Init(BlockCategory category, Canvas rootCanvas)
+        public void Init(BlockCategory category, Canvas rootCanvas, ValueKind valueKind = ValueKind.None,
+            DG.Data.ControlRole controlRole = DG.Data.ControlRole.None)
         {
             Category = category;
+            ValueKind = valueKind;
+            ControlRole = controlRole;
             _canvas = rootCanvas;
             TryGetComponent<RectTransform>(out _rt);
             TryGetComponent<CanvasGroup>(out _cg);
@@ -93,6 +99,10 @@ namespace DG.Game
         {
             if (!RootCanvas) return;
 
+            // 코딩을 다시 건드리기 시작하면 이전 빌드 결과(성공/에러 외곽선)는 더 이상 유효하지 않으므로 정리
+            foreach (CodingBlock b in FindObjectsOfType<CodingBlock>())
+                b.ClearErrorHighlight();
+
             _snapTarget?.ClearSnapHighlight();
             _snapTarget = null;
 
@@ -102,6 +112,8 @@ namespace DG.Game
 
             if (_homeParent.TryGetComponent<ValueOutSocket>(out ValueOutSocket vos))
                 vos.Release();
+            else if (_homeParent.TryGetComponent<ConditionOutSocket>(out ConditionOutSocket condOut))
+                condOut.Release();
             else if (_homeParent.TryGetComponent<ChainOutSocket>(out ChainOutSocket cs))
             {
                 cs.Release();
@@ -144,9 +156,20 @@ namespace DG.Game
 
             if (isValue)
             {
-                ValueOutSocket socket = FindSnapValueOutSocket();
-                if (socket)
-                    newTarget = socket.GetComponentInParent<CodingBlock>();
+                // Condition / Logic: ConditionOut 스냅 우선, 없으면 ValueOut 스냅
+                if (Category == BlockCategory.Condition || Category == BlockCategory.Logic)
+                {
+                    ConditionOutSocket condSocket = FindSnapConditionOutSocket();
+                    if (condSocket)
+                        newTarget = condSocket.GetComponentInParent<CodingBlock>();
+                }
+
+                if (!newTarget)
+                {
+                    ValueOutSocket socket = FindSnapValueOutSocket();
+                    if (socket)
+                        newTarget = socket.GetComponentInParent<CodingBlock>();
+                }
             }
             else
             {
@@ -180,6 +203,19 @@ namespace DG.Game
 
             if (isValue)
             {
+                // Condition / Logic: ConditionOut 스냅 우선
+                if (Category == BlockCategory.Condition || Category == BlockCategory.Logic)
+                {
+                    ConditionOutSocket condSlot = FindSnapConditionOutSocket();
+                    if (condSlot)
+                    {
+                        IsDragHandled = true;
+                        BlockFactory.AttachSockets(this);
+                        condSlot.Accept(this);
+                        return;
+                    }
+                }
+
                 ValueOutSocket slot = FindSnapValueOutSocket();
                 if (slot)
                 {
@@ -334,9 +370,61 @@ namespace DG.Game
                 CodingBlock targetBlock = candidate.GetComponentInParent<CodingBlock>();
                 if (targetBlock)
                 {
-                    if (Category == BlockCategory.Value && targetBlock.Category != BlockCategory.Command) continue;
-                    if (Category == BlockCategory.Logic && targetBlock.Category != BlockCategory.Condition && targetBlock.Category != BlockCategory.Logic) continue;
+                    if (Category == BlockCategory.Value)
+                    {
+                        if (targetBlock.Category != BlockCategory.Command) continue;
+                        // Command가 허용하는 값 타입만 스냅 (None = 모든 타입 허용)
+                        if (targetBlock.ValueKind != ValueKind.None && targetBlock.ValueKind != ValueKind) continue;
+                    }
+                    if (Category == BlockCategory.Logic && targetBlock.Category != BlockCategory.FlowControl) continue;
                     if (Category == BlockCategory.Condition && targetBlock.Category != BlockCategory.FlowControl && targetBlock.Category != BlockCategory.Logic) continue;
+                }
+
+                Vector2 delta = myPos - (Vector2)candidate.transform.position;
+                if (delta.x <= 0f) continue;
+
+                float sqr = delta.sqrMagnitude;
+                if (sqr < minSqr)
+                {
+                    minSqr = sqr;
+                    best = candidate;
+                }
+            }
+
+            return best;
+        }
+
+        // ConditionInSocket 기준으로 가장 가까운 ConditionOutSocket 탐색
+        private ConditionOutSocket FindSnapConditionOutSocket()
+        {
+            ConditionInSocket myInSocket = GetComponentInChildren<ConditionInSocket>();
+            Vector2 myPos;
+            if (myInSocket)
+                myPos = (Vector2)myInSocket.transform.position;
+            else if (_rt)
+            {
+                Vector3[] corners = new Vector3[4];
+                _rt.GetWorldCorners(corners);
+                myPos = ((Vector2)corners[0] + (Vector2)corners[1]) * 0.5f;
+            }
+            else return null;
+
+            ConditionOutSocket best = null;
+            float minSqr = _snapRadius * _snapRadius;
+
+            foreach (ConditionOutSocket candidate in Object.FindObjectsOfType<ConditionOutSocket>())
+            {
+                if (candidate.transform.IsChildOf(transform)) continue;
+                if (!candidate.IsEmpty) continue;
+                if (!candidate.GetComponentInParent<CodingZone>()) continue;
+
+                CodingBlock targetBlock = candidate.GetComponentInParent<CodingBlock>();
+                if (targetBlock)
+                {
+                    // Logic(그리고/또는)은 Condition 블록의 ConditionOut에 스냅
+                    if (Category == BlockCategory.Logic && targetBlock.Category != BlockCategory.Condition) continue;
+                    // Condition 블록은 Logic 블록의 ConditionOut에 스냅
+                    if (Category == BlockCategory.Condition && targetBlock.Category != BlockCategory.Logic) continue;
                 }
 
                 Vector2 delta = myPos - (Vector2)candidate.transform.position;
@@ -407,6 +495,8 @@ namespace DG.Game
 
             if (_homeParent.TryGetComponent<ValueOutSocket>(out ValueOutSocket vos))
                 vos.Reoccupy(this);
+            else if (_homeParent.TryGetComponent<ConditionOutSocket>(out ConditionOutSocket condOut))
+                condOut.Reoccupy(this);
             else if (_homeParent.TryGetComponent<ChainOutSocket>(out ChainOutSocket cos))
                 cos.Reoccupy(this);
         }
@@ -419,7 +509,7 @@ namespace DG.Game
             CodingZone zone = FindObjectOfType<CodingZone>();
             if (!zone)
             {
-                Debug.LogWarning("[CodingBlock] CodingZone을 찾을 수 없습니다.");
+                _log?.ZLogWarning($"[CodingBlock] CodingZone을 찾을 수 없습니다.");
                 ReturnHome();
                 return;
             }
@@ -427,7 +517,7 @@ namespace DG.Game
             bool hasRect = zone.TryGetComponent<RectTransform>(out RectTransform zoneRect);
             if (!hasRect)
             {
-                Debug.LogWarning("[CodingBlock] CodingZone에 RectTransform이 없습니다.");
+                _log?.ZLogWarning($"[CodingBlock] CodingZone에 RectTransform이 없습니다.");
                 ReturnHome();
                 return;
             }

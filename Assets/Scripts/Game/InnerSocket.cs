@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.UI;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -24,28 +23,28 @@ namespace DG.Game
         private static bool CanFit(CodingBlock incoming, CodingBlock displaced)
         {
             if (!displaced) return true;
-            var nextOut = incoming.GetComponentInChildren<ChainOutSocket>();
+            ChainOutSocket nextOut = incoming.GetComponentInChildren<ChainOutSocket>();
             if (!nextOut) return false;
             return CanFit(displaced, nextOut.Occupant);
         }
 
         public void Accept(CodingBlock block)
         {
-            var displaced = _occupant;
+            CodingBlock displaced = _occupant;
             _occupant = block;
             block.SnapInto(transform, ComputeSnapOffset(block)).Forget();
             if (_emptyIndicator) _emptyIndicator.SetActive(false);
 
             if (!displaced) return;
 
-            var nextOut = block.GetComponentInChildren<ChainOutSocket>();
+            ChainOutSocket nextOut = block.GetComponentInChildren<ChainOutSocket>();
             if (nextOut)
             {
                 nextOut.Accept(displaced);
             }
             else
             {
-                var zone = FindObjectOfType<CodingZone>();
+                CodingZone zone = FindObjectOfType<CodingZone>();
                 if (zone) { displaced.transform.SetParent(zone.transform, true); displaced.SetHome(zone.transform); }
             }
         }
@@ -63,8 +62,8 @@ namespace DG.Game
             ChainInSocket inSocket = null;
             block.transform.Find("ChainInSocket")?.TryGetComponent(out inSocket);
             if (!inSocket
-                || !block.TryGetComponent<RectTransform>(out var blockRt)
-                || !inSocket.TryGetComponent<RectTransform>(out var inRt))
+                || !block.TryGetComponent<RectTransform>(out RectTransform blockRt)
+                || !inSocket.TryGetComponent<RectTransform>(out RectTransform inRt))
                 return Vector2.zero;
 
             var anchor = (inRt.anchorMin + inRt.anchorMax) * 0.5f;
@@ -78,7 +77,7 @@ namespace DG.Game
 
         private void OnDrawGizmos()
         {
-            if (!TryGetComponent<RectTransform>(out var rt)) return;
+            if (!TryGetComponent<RectTransform>(out RectTransform rt)) return;
 
             var markerColor = IsEmpty ? new Color(1f, 0.6f, 0f, 0.9f) : new Color(1f, 0.3f, 0.3f, 0.9f);
             var rangeColor  = IsEmpty ? new Color(1f, 0.6f, 0f, 0.08f) : new Color(1f, 0.3f, 0.3f, 0.08f);

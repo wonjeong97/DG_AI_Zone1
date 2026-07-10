@@ -7,14 +7,15 @@ namespace DG.App
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Initialize()
         {
-            var prefab = Resources.Load<GameObject>("App");
-            if (prefab == null)
+            // 부팅 시점 동기 로드가 반드시 필요 — Addressables.WaitForCompletion은 WebGL에서 지원되지 않음
+            GameObject prefab = Resources.Load<GameObject>("App");
+            if (!prefab)
             {
                 Debug.LogError("[GameBootstrap] App prefab not found in Resources.");
                 return;
             }
 
-            var instance = Object.Instantiate(prefab);
+            GameObject instance = Object.Instantiate(prefab);
             instance.name = "App";
             Object.DontDestroyOnLoad(instance);
         }

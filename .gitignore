@@ -109,3 +109,7 @@ InitTestScene*.unity*
 # IDE and tool directories
 .idea/
 .claude/
+
+# Editor screenshots
+/Assets/Screenshots/
+/Assets/Screenshots.meta
