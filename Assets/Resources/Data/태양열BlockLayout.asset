@@ -15,6 +15,7 @@ MonoBehaviour:
   inventoryBlocks:
   - category: 0
     label: "시작하기"
+    controlRole: 1
     valueLabel:
     valueKind: 0
     innerBlocks: []
@@ -126,7 +127,8 @@ MonoBehaviour:
     chainBlocks: []
     chainSocketOffset: {x: 0, y: 0}
   - category: 0
-    label: "종료하기"
+    label: "완성하기"
+    controlRole: 2
     valueLabel:
     valueKind: 0
     innerBlocks: []

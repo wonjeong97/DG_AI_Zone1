@@ -1,6 +1,6 @@
+using Cysharp.Threading.Tasks;
 using DG.Data;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using VContainer;
 
@@ -10,6 +10,9 @@ namespace DG.Scenes
     {
         [SerializeField] private LevelData[] levelDataList;
         [SerializeField] private Sprite[] levelHeaderImages;
+        [SerializeField] private GameObject levelSelectPanel;
+        [SerializeField] private GameObject storyPanel;
+        [SerializeField] private Button[] levelButtons;
         [SerializeField] private Image headerImage;
         [SerializeField] private Text storyText;
         [SerializeField] private Button startButton;
@@ -20,20 +23,53 @@ namespace DG.Scenes
 
         private void Start()
         {
-            // 마지막 레벨 완료 후에도 unlockedLevelIndex가 배열 범위를 넘지 않도록 고정
-            int index = Mathf.Clamp(_session ? _session.unlockedLevelIndex : 0, 0, levelDataList.Length - 1);
-            _currentLevel = levelDataList[index];
+            if (storyPanel) storyPanel.SetActive(false);
+            if (levelSelectPanel) levelSelectPanel.SetActive(true);
 
-            headerImage.sprite = levelHeaderImages[index];
-            storyText.text = _currentLevel.storyText;
+            int unlockedIndex = Mathf.Clamp(_session ? _session.unlockedLevelIndex : 0, 0, levelDataList.Length - 1);
+
+            for (int i = 0; i < levelButtons.Length; i++)
+            {
+                if (!levelButtons[i]) continue;
+
+                int btnIndex = i;
+                levelButtons[i].onClick.AddListener(() => OnLevelButtonClicked(btnIndex));
+
+                if (i == unlockedIndex)
+                {
+                    levelButtons[i].interactable = true;
+                    if (levelButtons[i].image) levelButtons[i].image.material = null;
+                }
+                else
+                {
+                    levelButtons[i].interactable = false;
+                    if (levelButtons[i].image)
+                        levelButtons[i].image.material = UiEffects.GrayscaleMaterial;
+                }
+            }
 
             startButton.onClick.AddListener(OnStartClicked);
         }
 
+        private void OnLevelButtonClicked(int index)
+        {
+            if (index < 0 || index >= levelDataList.Length) return;
+
+            _currentLevel = levelDataList[index];
+            if (headerImage && index < levelHeaderImages.Length)
+                headerImage.sprite = levelHeaderImages[index];
+            if (storyText && _currentLevel != null)
+                storyText.text = _currentLevel.storyText;
+
+            if (levelSelectPanel) levelSelectPanel.SetActive(false);
+            if (storyPanel) storyPanel.SetActive(true);
+        }
+
         private void OnStartClicked()
         {
-            _session.currentLevel = _currentLevel;
-            SceneManager.LoadScene(_currentLevel.nextSceneName);
+            if (_currentLevel == null) return;
+            if (_session) _session.currentLevel = _currentLevel;
+            SceneFader.FadeAndLoad(_currentLevel.nextSceneName).Forget();
         }
     }
 }

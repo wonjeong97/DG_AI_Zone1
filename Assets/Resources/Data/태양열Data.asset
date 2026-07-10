@@ -18,4 +18,4 @@ MonoBehaviour:
     \uB9CE\uC740 \uD0DC\uC591\uC5F4\uC744 \uB2F4\uC544 \uBCFC\uAE4C\uC694?"
   nextSceneName: 3_Game
   blockLayout: {fileID: 11400000, guid: a106de6ab90db7e4dad5ee609a11fba5, type: 2}
-  afterResultScene: 2_Story
+  afterResultScene: 5_Outro

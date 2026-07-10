@@ -10,8 +10,15 @@ namespace DG.Data
         [Tooltip("좌측 인벤토리에 배치될 블록들")]
         public BlockEntry[] inventoryBlocks;
 
-        [Tooltip("우측 코딩 영역에 초기 배치될 블록들 (시작하기/종료하기 사이)")]
+        [Tooltip("우측 코딩 영역에 초기 배치될 블록들 (시작하기/완성하기 사이)")]
         public BlockEntry[] codingBlocks;
+    }
+
+    public enum ControlRole
+    {
+        None,
+        Start,
+        End
     }
 
     [Serializable]
@@ -19,6 +26,9 @@ namespace DG.Data
     {
         public BlockCategory category;
         public string label;
+
+        [Tooltip("category가 Control일 때만 사용 — 시작/완성 역할 구분 (이름 문자열 대신 판정 기준으로 사용)")]
+        public ControlRole controlRole;
 
         [Tooltip("Command 블록의 우측 값. 비어있으면 빈 ValueSlot")]
         public string valueLabel;

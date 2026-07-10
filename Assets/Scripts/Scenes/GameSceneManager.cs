@@ -44,7 +44,11 @@ namespace DG.Scenes
                 return;
             }
 
-            blockSpawner.Spawn(layout).Forget();
+            // UniTask는 1회만 await 가능 — Preserve 없이는 Forget()과 SceneFader의 대기가
+            // 이중 소비되어 예외로 대기가 무시되고 페이드인이 스폰 완료 전에 시작됨
+            UniTask spawnTask = blockSpawner.Spawn(layout).Preserve();
+            SceneFader.RegisterPendingTask(spawnTask);
+            spawnTask.Forget();
 
             _questionTime = QuestionTimes[Random.Range(0, QuestionTimes.Length)];
             if (questionText)
@@ -116,7 +120,7 @@ namespace DG.Scenes
             // 실행~씬 전환 중 연타 방지 (성공 시 씬을 떠나므로 재활성화 불필요)
             if (compileButton) compileButton.interactable = false;
 
-            // 시작하기 ~ 종료하기 체인 전체에 성공(초록) 외곽선 표시
+            // 시작하기 ~ 완성하기 체인 전체에 성공(초록) 외곽선 표시
             foreach (CodingBlock b in codingZone.GetComponentsInChildren<CodingBlock>())
                 if (b.Category == BlockCategory.Control)
                     b.ShowSuccessHighlight();

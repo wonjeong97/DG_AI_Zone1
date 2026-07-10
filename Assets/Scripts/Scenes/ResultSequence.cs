@@ -1,11 +1,12 @@
 using System;
+using System.IO;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using DG.Data;
 using DG.Game.Runtime;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using UnityEngine.Video;
 using VContainer;
 
 namespace DG.Scenes
@@ -21,18 +22,37 @@ namespace DG.Scenes
         [SerializeField] private CanvasGroup resultPanel;
         [SerializeField] private CanvasGroup completePanel;
         [SerializeField] private Button nextButton;
+        [SerializeField] private CanvasGroup confirmButtonGroup;
+        [SerializeField] private Button confirmButton;
+        [SerializeField] private VideoPlayer videoPlayer;
+        [SerializeField] private CanvasGroup videoPanelGroup;
 
         [Inject] private GameSession _session;
-
-        private const int ResultHoldMillis = 1000;
 
         private void Start()
         {
             // CompletePanel은 크로스페이드 전까지 투명 상태 — 미리 입력을 막아 ResultPanel을 가리지 않도록
-            SetPanelInteractable(completePanel, false);
+            SceneFader.SetGroupInteractable(completePanel, false);
+
+            // 확인 버튼은 시퀀스에서 페이드인 완료 후에만 입력 가능
+            confirmButtonGroup.alpha = 0f;
+            SceneFader.SetGroupInteractable(confirmButtonGroup, false);
+
+            if (videoPanelGroup)
+            {
+                videoPanelGroup.alpha = 0f;
+                SceneFader.SetGroupInteractable(videoPanelGroup, false);
+            }
 
             if (nextButton)
                 nextButton.onClick.AddListener(OnNextClicked);
+
+            if (videoPlayer)
+            {
+                videoPlayer.url = Path.Combine(Application.streamingAssetsPath, "Videos/11.mp4");
+                videoPlayer.Prepare();
+                SceneFader.RegisterPendingTask(UniTask.WaitUntil(() => videoPlayer.isPrepared, cancellationToken: destroyCancellationToken));
+            }
 
             ApplySessionResults();
             PlaySequence().Forget();
@@ -43,7 +63,7 @@ namespace DG.Scenes
         {
             string nextScene = _session && _session.currentLevel ? _session.currentLevel.afterResultScene : "2_Story";
             if (_session) _session.unlockedLevelIndex++;
-            SceneManager.LoadScene(nextScene);
+            SceneFader.FadeAndLoad(nextScene).Forget();
         }
 
         // 4_Game에서 저장한 결과로 텍스트 구성 — 거치지 않고 진입하면 씬 기본 텍스트 유지
@@ -87,9 +107,7 @@ namespace DG.Scenes
         private void ApplyGrayscale()
         {
             if (!playerImageGroup.TryGetComponent<Image>(out Image img)) return;
-
-            Shader shader = Shader.Find("Custom/UI/Grayscale");
-            if (shader) img.material = new Material(shader);
+            if (UiEffects.GrayscaleMaterial) img.material = UiEffects.GrayscaleMaterial;
         }
 
         private static string BuildResultText(string header, string angle, string count, string direction, string status)
@@ -101,56 +119,26 @@ namespace DG.Scenes
             try
             {
                 await playerText.PlayAsync(ct);
-                await FadeIn(playerImageGroup, ct);
+                await SceneFader.FadeCanvasGroupAsync(playerImageGroup, 0f, 1f, fadeDuration, ct);
                 await aiText.PlayAsync(ct);
-                await FadeIn(aiImageGroup, ct);
+                await SceneFader.FadeCanvasGroupAsync(aiImageGroup, 0f, 1f, fadeDuration, ct);
 
-                await UniTask.Delay(ResultHoldMillis, cancellationToken: ct);
-                await CrossFade(resultPanel, completePanel, fadeDuration, ct);
+                if (videoPlayer) videoPlayer.Play();
+                if (videoPanelGroup)
+                    await SceneFader.FadeCanvasGroupAsync(videoPanelGroup, 0f, 1f, fadeDuration, ct);
+
+                await SceneFader.FadeCanvasGroupAsync(confirmButtonGroup, 0f, 1f, fadeDuration, ct);
+                SceneFader.SetGroupInteractable(confirmButtonGroup, true);
+
+                await confirmButton.OnClickAsync(ct);
+                // 크로스페이드 중 재클릭 방지
+                SceneFader.SetGroupInteractable(confirmButtonGroup, false);
+                await SceneFader.CrossFadeGroupsAsync(resultPanel, completePanel, fadeDuration, ct);
             }
             catch (OperationCanceledException)
             {
                 // 시퀀스 도중 씬 전환(다음 버튼 등)으로 오브젝트가 파괴된 경우 — 정상 종료
             }
-        }
-
-        private async UniTask FadeIn(CanvasGroup group, CancellationToken ct)
-        {
-            float t = 0;
-            while (t < fadeDuration)
-            {
-                t += Time.deltaTime;
-                group.alpha = Mathf.Clamp01(t / fadeDuration);
-                await UniTask.Yield(PlayerLoopTiming.Update, ct);
-            }
-            group.alpha = 1;
-        }
-
-        // ResultPanel → CompletePanel 크로스페이드
-        private async UniTask CrossFade(CanvasGroup from, CanvasGroup to, float duration, CancellationToken ct)
-        {
-            SetPanelInteractable(to, true);
-
-            float t = 0;
-            while (t < duration)
-            {
-                t += Time.deltaTime;
-                float p = Mathf.Clamp01(t / duration);
-                if (from) from.alpha = 1f - p;
-                if (to) to.alpha = p;
-                await UniTask.Yield(PlayerLoopTiming.Update, ct);
-            }
-
-            if (from) from.alpha = 0f;
-            if (to) to.alpha = 1f;
-            SetPanelInteractable(from, false);
-        }
-
-        private static void SetPanelInteractable(CanvasGroup group, bool value)
-        {
-            if (!group) return;
-            group.interactable = value;
-            group.blocksRaycasts = value;
         }
     }
 }

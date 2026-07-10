@@ -23,6 +23,7 @@ namespace DG.Game
 
         public BlockCategory Category { get; private set; }
         public ValueKind ValueKind { get; private set; }
+        public DG.Data.ControlRole ControlRole { get; private set; }
         public bool IsDragHandled { get; private set; }
 
         [Inject] private ILogger<CodingBlock> _log;
@@ -72,10 +73,12 @@ namespace DG.Game
             if (img) img.color = c;
         }
 
-        public void Init(BlockCategory category, Canvas rootCanvas, ValueKind valueKind = ValueKind.None)
+        public void Init(BlockCategory category, Canvas rootCanvas, ValueKind valueKind = ValueKind.None,
+            DG.Data.ControlRole controlRole = DG.Data.ControlRole.None)
         {
             Category = category;
             ValueKind = valueKind;
+            ControlRole = controlRole;
             _canvas = rootCanvas;
             TryGetComponent<RectTransform>(out _rt);
             TryGetComponent<CanvasGroup>(out _cg);

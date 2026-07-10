@@ -26,7 +26,7 @@ namespace DG.Game.Runtime
             CodingBlock start = null;
             foreach (CodingBlock b in zone.GetComponentsInChildren<CodingBlock>())
             {
-                if (b.Category == BlockCategory.Control && b.name == "시작하기")
+                if (b.Category == BlockCategory.Control && b.ControlRole == DG.Data.ControlRole.Start)
                 { start = b; break; }
             }
             if (!start)
@@ -60,20 +60,20 @@ namespace DG.Game.Runtime
             if (unused.Length > 0)
                 return CompileResult.Fail($"사용되지 않은 명령 블록이 있습니다 ({unused.Length}개)", unused);
 
-            if (!terminal || terminal.name != "종료하기")
+            if (!terminal || terminal.ControlRole != DG.Data.ControlRole.End)
             {
-                // 씬 전체(인벤토리 포함)에서 종료하기 블록을 찾아 표시
+                // 씬 전체(인벤토리 포함)에서 완성하기 블록을 찾아 표시
                 CodingBlock endBlock = null;
                 foreach (CodingBlock b in Object.FindObjectsOfType<CodingBlock>())
-                    if (b.name == "종료하기") { endBlock = b; break; }
-                return CompileResult.Fail("마지막 블록이 '종료하기'여야 합니다", endBlock);
+                    if (b.ControlRole == DG.Data.ControlRole.End) { endBlock = b; break; }
+                return CompileResult.Fail("마지막 블록이 '완성하기'여야 합니다", endBlock);
             }
 
             return CompileResult.Ok(program);
         }
 
         // ChainOutSocket.Occupant 포인터를 따라 체인을 순회.
-        // Control 블록(종료하기)에 도달하면 그 블록을 반환, 체인이 끊기면 null 반환.
+        // Control 블록(완성하기)에 도달하면 그 블록을 반환, 체인이 끊기면 null 반환.
         private static CodingBlock WalkChain(CodingBlock current, List<BlockInstruction> output)
         {
             while (current)

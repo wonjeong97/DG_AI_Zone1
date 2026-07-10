@@ -15,6 +15,9 @@ namespace DG.Game
         {
             if (!e.pointerDrag || !e.pointerDrag.TryGetComponent<CodingBlock>(out CodingBlock block)) return;
 
+            // 시작하기/완성하기는 코딩 패널 전용 — 인벤토리 반입 금지 (거부 시 원래 자리로 복귀)
+            if (block.Category == BlockCategory.Control) return;
+
             var all = new System.Collections.Generic.List<CodingBlock>();
             CollectAll(block, all);
 

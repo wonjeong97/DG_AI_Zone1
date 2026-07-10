@@ -35,7 +35,7 @@ namespace DG.Game
             ChainOutSocket nextOut = block.GetComponentInChildren<ChainOutSocket>();
             if (!nextOut)
             {
-                // 안전망: 소켓 없는 블록(종료하기 등)이 들어온 경우 displaced를 CodingZone으로
+                // 안전망: 소켓 없는 블록(완성하기 등)이 들어온 경우 displaced를 CodingZone으로
                 CodingZone zone = FindObjectOfType<CodingZone>();
                 if (zone) { displaced.transform.SetParent(zone.transform, true); displaced.SetHome(zone.transform); }
                 return;

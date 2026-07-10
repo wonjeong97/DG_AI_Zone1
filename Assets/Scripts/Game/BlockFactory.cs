@@ -14,12 +14,12 @@ namespace DG.Game
         // 이름별로 1회만 Addressables에서 로드하고 이후에는 캐시에서 반환
         private readonly static Dictionary<string, Sprite> _spriteCache = new();
 
-        // 카테고리 + label(Start/End 구분)로 스프라이트 로드
-        private static async UniTask<Sprite> LoadSpriteAsync(BlockCategory cat, string label = "")
+        // 카테고리 + controlRole(Start/End 구분)로 스프라이트 로드
+        private static async UniTask<Sprite> LoadSpriteAsync(BlockCategory cat, ControlRole controlRole = ControlRole.None)
         {
             string name = cat switch
             {
-                BlockCategory.Control => label == "시작하기" ? "Start" : "End",
+                BlockCategory.Control => controlRole == ControlRole.Start ? "Start" : "End",
                 BlockCategory.Command => "Command",
                 BlockCategory.Value => "Value",
                 BlockCategory.FlowControl => "FlowControl",
@@ -79,7 +79,7 @@ namespace DG.Game
         // ── 단순 블록 ───────────────────────────────────────────
         private static async UniTask<GameObject> CreateSimpleBlock(BlockEntry entry, Canvas rootCanvas, bool draggable)
         {
-            Sprite sprite = await LoadSpriteAsync(entry.category, entry.label);
+            Sprite sprite = await LoadSpriteAsync(entry.category, entry.controlRole);
             GameObject go = NewRect(entry.label, 220f, 56f);
             AddBlockBody(go, GetColor(entry.category), sprite);
             go.AddComponent<CanvasGroup>();
@@ -88,7 +88,8 @@ namespace DG.Game
                 AddDraggable(go, entry, rootCanvas);
             }
 
-            await AddLabel(go, entry.label);
+            // 시작하기 스프라이트는 하단 연결부 탓에 텍스트가 처져 보여 바닥을 20px 올림
+            await AddLabel(go, entry.label, 28, entry.controlRole == ControlRole.Start ? 20f : 0f);
 
             // Logic 블록은 수평 체인 슬롯 포함
             if (entry.category == BlockCategory.Logic && entry.chainBlocks is not null)
@@ -115,7 +116,7 @@ namespace DG.Game
             labelRT.anchorMin = labelRT.anchorMax = labelRT.pivot = new Vector2(0f, 1f);
             labelRT.anchoredPosition = Vector2.zero;
             AddBlockBody(labelPart, GetColor(entry.category), cmdSprite);
-            await AddLabel(labelPart, entry.label, 24);
+            await AddLabel(labelPart, entry.label, 24, 10f);
 
             return go;
         }
@@ -379,8 +380,8 @@ namespace DG.Game
 
             if (cat != BlockCategory.Value && cat != BlockCategory.Logic && cat != BlockCategory.Condition)
             {
-                bool isStart   = block.gameObject.name == "시작하기";
-                bool isEnd     = block.gameObject.name == "종료하기";
+                bool isStart   = block.ControlRole == ControlRole.Start;
+                bool isEnd     = block.ControlRole == ControlRole.End;
                 bool isCommand = cat == BlockCategory.Command;
                 bool isFlow    = cat == BlockCategory.FlowControl;
 
@@ -655,7 +656,7 @@ namespace DG.Game
             img.raycastTarget = false;
         }
 
-        private static async UniTask AddLabel(GameObject go, string text, int size = 28)
+        private static async UniTask AddLabel(GameObject go, string text, int size = 28, float bottom = 0f)
         {
             Font font = await LoadLabelFontAsync();
             GameObject t = new GameObject("Label");
@@ -663,7 +664,8 @@ namespace DG.Game
             RectTransform rt = t.AddComponent<RectTransform>();
             rt.anchorMin = Vector2.zero;
             rt.anchorMax = Vector2.one;
-            rt.offsetMin = rt.offsetMax = Vector2.zero;
+            rt.offsetMin = new Vector2(0f, bottom);
+            rt.offsetMax = Vector2.zero;
             Text txt = t.AddComponent<Text>();
             txt.text = text;
             txt.font = font;
@@ -677,7 +679,7 @@ namespace DG.Game
             go.TryGetComponent<RectTransform>(out RectTransform brt);
             brt.pivot = new Vector2(0f, entry.category == BlockCategory.FlowControl ? 1f : 0.5f);
             CodingBlock block = go.AddComponent<CodingBlock>();
-            block.Init(entry.category, rootCanvas, entry.valueKind);
+            block.Init(entry.category, rootCanvas, entry.valueKind, entry.controlRole);
         }
     }
 }
