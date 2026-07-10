@@ -5,6 +5,7 @@ Shader "Custom/UI/Grayscale"
     Properties
     {
         [PerRendererData] _MainTex ("Sprite Texture", 2D) = "white" {}
+        _GrayscaleAmount ("Grayscale Amount", Range(0,1)) = 1
 
         _StencilComp     ("Stencil Comparison", Float) = 8
         _Stencil         ("Stencil ID",         Float) = 0
@@ -74,6 +75,7 @@ Shader "Custom/UI/Grayscale"
             sampler2D _MainTex;
             fixed4    _TextureSampleAdd;
             float4    _ClipRect;
+            fixed     _GrayscaleAmount;
 
             v2f vert(appdata_t v)
             {
@@ -91,9 +93,9 @@ Shader "Custom/UI/Grayscale"
             {
                 fixed4 color = (tex2D(_MainTex, i.uv) + _TextureSampleAdd) * i.color;
 
-                // 휘도 기반 흑백 변환
+                // 휘도 기반 흑백 변환 — _GrayscaleAmount로 블렌드
                 fixed gray = dot(color.rgb, fixed3(0.299, 0.587, 0.114));
-                color.rgb = gray;
+                color.rgb = lerp(color.rgb, fixed3(gray, gray, gray), _GrayscaleAmount);
 
                 #ifdef UNITY_UI_CLIP_RECT
                 color.a *= UnityGet2DClipping(i.worldPosition.xy, _ClipRect);
