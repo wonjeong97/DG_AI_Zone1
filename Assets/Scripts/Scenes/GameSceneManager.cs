@@ -7,6 +7,7 @@ using DG.Game.Runtime;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 using VContainer;
 using ZLogger;
 
@@ -21,7 +22,7 @@ namespace DG.Scenes
         [SerializeField] private Button          storyButton;
         [SerializeField] private Button          skipButton;
         [SerializeField] private StoryPanel      storyPanel;
-        [SerializeField] private Text            questionText;
+        [SerializeField] private TextMeshProUGUI questionText;
 
         [Inject] private GameSession _session;
         [Inject] private ILogger<GameSceneManager> _log;

@@ -18,7 +18,7 @@ namespace DG.Game
         private const float ButtonWidth = 140f;
         private const float ButtonHeight = 60f;
 
-        private readonly List<(BlockCategory cat, Image fillImg, Text labelText)> _buttons = new();
+        private readonly List<(BlockCategory cat, Image fillImg, TMPro.TextMeshProUGUI labelText)> _buttons = new();
 
         // 인벤토리에 존재하는 카테고리 순서대로 버튼 생성 후 첫 카테고리 활성화
         public async UniTask Build(IReadOnlyList<BlockCategory> categories)
@@ -41,7 +41,7 @@ namespace DG.Game
                 Destroy(buttonContainer.GetChild(i).gameObject);
             _buttons.Clear();
 
-            Font font = await BlockFactory.LoadLabelFontAsync();
+            TMPro.TMP_FontAsset font = await BlockFactory.LoadLabelFontAsync();
 
             foreach (BlockCategory cat in categories)
             {
@@ -60,7 +60,7 @@ namespace DG.Game
                 if (child.TryGetComponent<CodingBlock>(out CodingBlock block))
                     child.gameObject.SetActive(block.Category == cat);
 
-            foreach ((BlockCategory c, Image fillImg, Text labelText) in _buttons)
+            foreach ((BlockCategory c, Image fillImg, TMPro.TextMeshProUGUI labelText) in _buttons)
             {
                 bool selected = (c == cat);
                 if (fillImg != null)
@@ -74,7 +74,7 @@ namespace DG.Game
         private static Color Tint(Color baseColor, bool selected)
             => selected ? baseColor : baseColor * 0.55f;
 
-        private (Image fillImg, Text labelText) CreateButton(BlockCategory cat, Font font)
+        private (Image fillImg, TMPro.TextMeshProUGUI labelText) CreateButton(BlockCategory cat, TMPro.TMP_FontAsset font)
         {
             GameObject go = new GameObject(cat + "Button");
             go.transform.SetParent(buttonContainer, false);
@@ -116,12 +116,12 @@ namespace DG.Game
             GameObject textGo = new GameObject("Label");
             textGo.transform.SetParent(go.transform, false);
             textGo.AddComponent<RectTransform>().sizeDelta = new Vector2(88f, 42f);
-            Text txt = textGo.AddComponent<Text>();
+            TMPro.TextMeshProUGUI txt = textGo.AddComponent<TMPro.TextMeshProUGUI>();
             txt.text = BlockFactory.GetCategoryName(cat);
             txt.font = font;
             txt.fontSize = 24;
             txt.color = Color.white;
-            txt.alignment = TextAnchor.MiddleLeft;
+            txt.alignment = TMPro.TextAlignmentOptions.MidlineLeft;
 
             return (fillImg, txt);
         }

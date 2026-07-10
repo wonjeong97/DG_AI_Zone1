@@ -11,10 +11,10 @@ namespace DG.Scenes
         [SerializeField] private TextMeshProUGUI storyText;
         [SerializeField] private Button closeButton;
 
-        private void Start()
+        private void Awake()
         {
-            closeButton.onClick.AddListener(Hide);
-            gameObject.SetActive(false);
+            if (closeButton)
+                closeButton.onClick.AddListener(Hide);
         }
 
         public void Show(int levelIndex, string text)
