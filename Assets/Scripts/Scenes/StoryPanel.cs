@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 namespace DG.Scenes
 {
@@ -7,7 +8,7 @@ namespace DG.Scenes
     {
         [SerializeField] private Image headerImage;
         [SerializeField] private Sprite[] levelHeaderImages;
-        [SerializeField] private Text storyText;
+        [SerializeField] private TextMeshProUGUI storyText;
         [SerializeField] private Button closeButton;
 
         private void Start()

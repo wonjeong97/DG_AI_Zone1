@@ -1,7 +1,9 @@
+using System.IO;
 using Cysharp.Threading.Tasks;
 using DG.Data;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Video;
 using VContainer;
 
 namespace DG.Scenes
@@ -14,8 +16,9 @@ namespace DG.Scenes
         [SerializeField] private GameObject storyPanel;
         [SerializeField] private Button[] levelButtons;
         [SerializeField] private Image headerImage;
-        [SerializeField] private Text storyText;
+        [SerializeField] private TypewriterTextTMP storyText;
         [SerializeField] private Button startButton;
+        [SerializeField] private VideoPlayer robotVideoPlayer;
 
         [Inject] private GameSession _session;
 
@@ -49,6 +52,15 @@ namespace DG.Scenes
             }
 
             startButton.onClick.AddListener(OnStartClicked);
+
+            // 롸벗 영상 — 진입과 동시에 루프 재생 (isLooping은 컴포넌트에 설정됨)
+            if (robotVideoPlayer)
+            {
+                robotVideoPlayer.url = Path.Combine(Application.streamingAssetsPath, "Videos/Robot_260710.webm");
+                robotVideoPlayer.Prepare();
+                SceneFader.RegisterPendingTask(UniTask.WaitUntil(() => robotVideoPlayer.isPrepared, cancellationToken: destroyCancellationToken));
+                robotVideoPlayer.Play();
+            }
         }
 
         private void OnLevelButtonClicked(int index)
@@ -58,11 +70,16 @@ namespace DG.Scenes
             _currentLevel = levelDataList[index];
             if (headerImage && index < levelHeaderImages.Length)
                 headerImage.sprite = levelHeaderImages[index];
-            if (storyText && _currentLevel != null)
-                storyText.text = _currentLevel.storyText;
 
             if (levelSelectPanel) levelSelectPanel.SetActive(false);
+            // 패널을 먼저 켜야 TypewriterText.Awake가 실행됨 — 이후 SetText로 내용 지정
             if (storyPanel) storyPanel.SetActive(true);
+
+            if (storyText && _currentLevel != null)
+            {
+                storyText.SetText(_currentLevel.storyText);
+                storyText.PlayAsync(destroyCancellationToken).Forget();
+            }
         }
 
         private void OnStartClicked()

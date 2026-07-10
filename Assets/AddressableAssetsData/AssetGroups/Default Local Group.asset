@@ -18,47 +18,47 @@ MonoBehaviour:
   m_GUID: d9cd5ee8edd0a93428e04483c67b4c4d
   m_SerializeEntries:
   - m_GUID: 351fdcb60f4416e47a1f316ab405d0c2
-    m_Address: Images/Blocks/Action
+    m_Address: Action
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 47ad630c14a833f48b22ea21bd6a4ff6
-    m_Address: Images/Blocks/ConditionAction
+    m_Address: ConditionAction
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 519bacf251899fa40a1a9b6a46cdeb42
-    m_Address: Images/Blocks/End
+  - m_GUID: 565f364ee1bb1564ba1deb603e2055b8
+    m_Address: Value
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 770b6fbe3240a38439687a23791d070e
-    m_Address: Images/Blocks/Command
+  - m_GUID: 6e969153be5b2aa49884d0d4f203949b
+    m_Address: End
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 80033d159cab99f4e90b96f13a7be897
-    m_Address: Images/Blocks/Value
+  - m_GUID: 9abc708ad7de6214c96eaead12178e53
+    m_Address: Command
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 9fae74a415518db4f941a00b0d8b78e4
-    m_Address: Fonts/GamtanRoadTantan
+    m_Address: GamtanRoadTantan
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: aa64f71bbd989d342bab618baa29b579
-    m_Address: Images/Blocks/FlowControl
+    m_Address: FlowControl
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: d43f4a2d5fea0d344a8c5c255b29daae
-    m_Address: Images/Blocks/Start
+  - m_GUID: e46f934a3d9f3bc41abab03296b502bf
+    m_Address: Start
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: eecb9fc48b6cf924daa708b0038c29cb
-    m_Address: Images/Blocks/Logic
+    m_Address: Logic
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

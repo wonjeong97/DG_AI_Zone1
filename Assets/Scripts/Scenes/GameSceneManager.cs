@@ -112,6 +112,15 @@ namespace DG.Scenes
                 if (result.ErrorBlocks is not null)
                     foreach (CodingBlock b in result.ErrorBlocks)
                         b?.ShowErrorHighlight();
+
+                if (result.Error != null && result.Error.Contains("사용되지 않은 명령 블록이 있습니다"))
+                {
+                    var categoryZone = FindObjectOfType<CategoryZone>();
+                    if (categoryZone)
+                    {
+                        categoryZone.Select(BlockCategory.Command);
+                    }
+                }
                 return;
             }
 

@@ -64,7 +64,7 @@ namespace DG.Game.Runtime
             {
                 // 씬 전체(인벤토리 포함)에서 완성하기 블록을 찾아 표시
                 CodingBlock endBlock = null;
-                foreach (CodingBlock b in Object.FindObjectsOfType<CodingBlock>())
+                foreach (CodingBlock b in FindAllBlocksInScene())
                     if (b.ControlRole == DG.Data.ControlRole.End) { endBlock = b; break; }
                 return CompileResult.Fail("마지막 블록이 '완성하기'여야 합니다", endBlock);
             }
@@ -210,7 +210,7 @@ namespace DG.Game.Runtime
             CollectCommandSources(program, used);
 
             var unused = new List<CodingBlock>();
-            foreach (CodingBlock b in Object.FindObjectsOfType<CodingBlock>())
+            foreach (CodingBlock b in FindAllBlocksInScene())
                 if (b.Category == BlockCategory.Command && !used.Contains(b))
                     unused.Add(b);
             return unused.ToArray();
@@ -312,6 +312,20 @@ namespace DG.Game.Runtime
                     return n;
             }
             return 1;
+        }
+
+        private static List<CodingBlock> FindAllBlocksInScene()
+        {
+            var result = new List<CodingBlock>();
+            var activeScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+            foreach (CodingBlock b in Resources.FindObjectsOfTypeAll<CodingBlock>())
+            {
+                if (b.gameObject.scene == activeScene)
+                {
+                    result.Add(b);
+                }
+            }
+            return result;
         }
     }
 }
