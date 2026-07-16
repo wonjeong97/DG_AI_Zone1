@@ -1,4 +1,6 @@
+using System;
 using System.IO;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using DG.Data;
 using UnityEngine;
@@ -12,13 +14,14 @@ namespace DG.Scenes
     {
         [SerializeField] private LevelData[] levelDataList;
         [SerializeField] private Sprite[] levelHeaderImages;
-        [SerializeField] private GameObject levelSelectPanel;
-        [SerializeField] private GameObject storyPanel;
+        [SerializeField] private CanvasGroup levelSelectPanel;
+        [SerializeField] private CanvasGroup storyPanel;
         [SerializeField] private Button[] levelButtons;
         [SerializeField] private Image headerImage;
-        [SerializeField] private TypewriterTextTMP storyText;
+        [SerializeField] private GameObject[] levelPanels;
         [SerializeField] private Button startButton;
         [SerializeField] private VideoPlayer robotVideoPlayer;
+        [SerializeField] private float fadeDuration = 0.3f;
 
         [Inject] private GameSession _session;
 
@@ -26,8 +29,17 @@ namespace DG.Scenes
 
         private void Start()
         {
-            if (storyPanel) storyPanel.SetActive(false);
-            if (levelSelectPanel) levelSelectPanel.SetActive(true);
+            if (storyPanel)
+            {
+                storyPanel.alpha = 0f;
+                SceneFader.SetGroupInteractable(storyPanel, false);
+            }
+
+            if (levelSelectPanel)
+            {
+                levelSelectPanel.alpha = 1f;
+                SceneFader.SetGroupInteractable(levelSelectPanel, true);
+            }
 
             int unlockedIndex = Mathf.Clamp(_session ? _session.unlockedLevelIndex : 0, 0, levelDataList.Length - 1);
 
@@ -71,14 +83,30 @@ namespace DG.Scenes
             if (headerImage && index < levelHeaderImages.Length)
                 headerImage.sprite = levelHeaderImages[index];
 
-            if (levelSelectPanel) levelSelectPanel.SetActive(false);
-            // 패널을 먼저 켜야 TypewriterText.Awake가 실행됨 — 이후 SetText로 내용 지정
-            if (storyPanel) storyPanel.SetActive(true);
-
-            if (storyText && _currentLevel != null)
+            for (int i = 0; i < levelPanels.Length; i++)
             {
-                storyText.SetText(_currentLevel.storyText);
-                storyText.PlayAsync(destroyCancellationToken).Forget();
+                if (levelPanels[i]) levelPanels[i].SetActive(i == index);
+            }
+
+            TransitionToStoryPanelAsync().Forget();
+        }
+
+        // levelSelectPanel 페이드아웃 완료 후 storyPanel 페이드인
+        private async UniTaskVoid TransitionToStoryPanelAsync()
+        {
+            try
+            {
+                CancellationToken ct = destroyCancellationToken;
+
+                SceneFader.SetGroupInteractable(levelSelectPanel, false);
+                await SceneFader.FadeCanvasGroupAsync(levelSelectPanel, 1f, 0f, fadeDuration, ct);
+
+                SceneFader.SetGroupInteractable(storyPanel, true);
+                await SceneFader.FadeCanvasGroupAsync(storyPanel, 0f, 1f, fadeDuration, ct);
+            }
+            catch (OperationCanceledException)
+            {
+                // 전환 도중 씬 전환 등으로 오브젝트가 파괴된 경우 — 정상 종료
             }
         }
 
