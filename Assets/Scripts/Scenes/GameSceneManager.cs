@@ -67,7 +67,7 @@ namespace DG.Scenes
                 compileButton.onClick.AddListener(() => CompileAndRun().Forget());
 
             if (storyButton)
-                storyButton.onClick.AddListener(() => storyPanel.Show(_session ? _session.unlockedLevelIndex : 0, level ? level.storyText : null));
+                storyButton.onClick.AddListener(() => storyPanel.Show(_session ? _session.unlockedLevelIndex : 0));
 
             if (skipButton)
                 skipButton.onClick.AddListener(SkipToResult);

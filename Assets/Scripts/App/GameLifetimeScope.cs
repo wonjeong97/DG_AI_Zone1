@@ -10,6 +10,8 @@ namespace DG.App
 {
     public class GameLifetimeScope : RootLifetimeScope
     {
+        private GameSession _session;
+
         protected override void Configure(IContainerBuilder builder)
         {
             base.Configure(builder);
@@ -23,9 +25,9 @@ namespace DG.App
             // 게임 세션 데이터 — [Inject]로 주입 가능하도록 컨테이너에 등록
             // 앱을 껐다 켜면 항상 처음부터 시작하도록 부팅 시점에 진행도 초기화
             // VContainer Configure는 동기 실행이라 Addressables.WaitForCompletion(WebGL 미지원)을 쓸 수 없어 Resources.Load 유지
-            GameSession session = Resources.Load<GameSession>("Data/GameSession");
-            session.ResetProgress();
-            builder.RegisterInstance(session);
+            _session = Resources.Load<GameSession>("Data/GameSession");
+            _session.ResetProgress();
+            builder.RegisterInstance(_session);
         }
 
         protected override void Awake()
@@ -45,6 +47,10 @@ namespace DG.App
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
             if (scene == gameObject.scene) return;
+
+            // 타이틀로 돌아와 플로우를 다시 타는 경우도 부팅 시점과 동일하게 진행도 초기화
+            if (scene.name == "0_Title")
+                _session.ResetProgress();
 
             foreach (GameObject root in scene.GetRootGameObjects())
                 Container.InjectGameObject(root);

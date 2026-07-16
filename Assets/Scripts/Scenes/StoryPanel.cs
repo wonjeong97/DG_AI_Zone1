@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
 
 namespace DG.Scenes
 {
@@ -8,7 +7,7 @@ namespace DG.Scenes
     {
         [SerializeField] private Image headerImage;
         [SerializeField] private Sprite[] levelHeaderImages;
-        [SerializeField] private TextMeshProUGUI storyText;
+        [SerializeField] private GameObject[] levelPanels;
         [SerializeField] private Button closeButton;
 
         private void Awake()
@@ -17,10 +16,15 @@ namespace DG.Scenes
                 closeButton.onClick.AddListener(Hide);
         }
 
-        public void Show(int levelIndex, string text)
+        public void Show(int levelIndex)
         {
             headerImage.sprite = levelHeaderImages[levelIndex];
-            storyText.text = text;
+
+            for (int i = 0; i < levelPanels.Length; i++)
+            {
+                if (levelPanels[i]) levelPanels[i].SetActive(i == levelIndex);
+            }
+
             gameObject.SetActive(true);
         }
 
