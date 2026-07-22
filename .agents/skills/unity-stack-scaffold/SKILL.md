@@ -1,6 +1,6 @@
 ---
 name: unity-stack-scaffold
-description: Scaffold or refactor Unity C# classes (managers, systems, services) using this project's established stack — VContainer for DI, UniTask for async, MessagePipe for pub/sub events, R3 for reactive state, ZLogger.Unity for logging, ZString for string building. Use this whenever the user asks to create a new manager/system/service class, wants to "이 스택으로" build or refactor something, mentions VContainer/UniTask/MessagePipe/R3/ZLogger/ZString by name, or asks to convert a coroutine/event/singleton pattern to the project's DI+async style — even if they just say "매니저 하나 만들어줘" without naming the libraries. The concrete conventions here come from this project's own Packages/com.wonjeong.template code (RootLifetimeScope, GameManagerBase, SoundManager), not generic library docs, so prefer this skill over general Unity/C# knowledge for this stack.
+description: Scaffold or refactor Unity C# classes (managers, systems, services) using this project's established stack — VContainer for DI, UniTask for async, MessagePipe for pub/sub events, R3 for reactive state, ZLogger.Unity for logging, ZString for string building, DOTween for tweening. Use this whenever the user asks to create a new manager/system/service class, wants to "이 스택으로" build or refactor something, mentions VContainer/UniTask/MessagePipe/R3/ZLogger/ZString/DOTween by name, or asks to convert a coroutine/event/singleton pattern to the project's DI+async style — even if they just say "매니저 하나 만들어줘" without naming the libraries. The concrete conventions here come from this project's own Packages/com.wonjeong.template code (RootLifetimeScope, GameManagerBase, SoundManager), not generic library docs, so prefer this skill over general Unity/C# knowledge for this stack.
 ---
 
 # Unity 스택 스캐폴딩 (VContainer / UniTask / MessagePipe / R3 / ZLogger / ZString)
@@ -72,6 +72,18 @@ description: Scaffold or refactor Unity C# classes (managers, systems, services)
   ```
   - `[클래스명]` 태그를 메시지 맨 앞에 붙인다 — 여러 매니저의 로그가 한 콘솔에 섞여도 어디서 난 건지 바로 구분하기 위함.
   - null이 발생할 수 있는 지점(Fallback이 필요한 지점)마다 `_logger != null` 체크 후 경고/에러 로그를 남긴다. 로그 없이 조용히 return하지 않는다.
+- **if로 조건/참조를 검사하는 모든 곳은 실패 분기(else)에 로그를 남긴다.** `if (someRef != null) { ... }`처럼 성공 분기만 작성하고 else를 생략하면, 조건이 실패했을 때 아무 흔적 없이 조용히 아무 일도 안 일어난다 — 원인 파악이 콘솔 로그가 아니라 코드 리딩으로만 가능해진다.
+  ```csharp
+  if (flowController != null)
+  {
+      flowController.ShowCompletePanel();
+  }
+  else if (_logger != null)
+  {
+      _logger.ZLogWarning($"[ResultVideoPanel] flowController is null. CompletePanel will not fade in.");
+  }
+  ```
+  실제로 `ResultVideoPanel`에서 `flowController`가 씬에 연결되지 않았는데 else 로그가 없어서, 영상 재생이 끝나도 CompletePanel이 페이드인되지 않는 원인을 로그 없이 코드까지 뒤져서 찾아야 했던 사례가 있었다. 조건이 맞지 않는 경우가 "정상적으로 자주 발생하는 no-op"이 아니라면 반드시 로그를 남긴다.
 - 로그 레벨: 복구 가능한 이상 상황은 `ZLogWarning`, 기능이 실패한 경우는 `ZLogError`, 정상 흐름 기록은 `ZLogInformation`.
 
 ## 7. ZString — 문자열 조합
@@ -81,14 +93,78 @@ description: Scaffold or refactor Unity C# classes (managers, systems, services)
   string uri = ZString.Concat("file://", path);
   ```
 
-## 8. 메서드 분리 기준
+## 8. DOTween — 트윈/연출
+
+- **템플릿 우선 원칙(1번)이 DOTween보다 앞선다.** 페이드는 `Wonjeong.UI.FadeManager`, 볼륨 페이드는 `SoundManager`가 이미 프레임 단위 보간으로 구현하고 있다. 이미 있는 걸 DOTween으로 갈아엎지 말고, 템플릿에 대응되는 게 없는 새 연출에만 DOTween을 쓴다.
+- 새로 만드는 연출에서 `Update()` 안의 수동 `Lerp` 누적이나 `WaitForSeconds` 코루틴으로 위치/색/알파를 직접 보간하지 않는다. 그런 코드는 DOTween 한 줄로 대체된다:
+  ```csharp
+  await _panel.DOAnchorPosY(0f, 0.3f).SetEase(Ease.OutCubic);
+  ```
+- **UniTask와 연동해서 await 한다** (3번의 취소 토큰 규칙을 그대로 따른다). `UNITASK_DOTWEEN_SUPPORT` define이 켜져 있어 `DOTweenAsyncExtensions`를 쓸 수 있다:
+  ```csharp
+  await transform.DOMove(target, 1f).WithCancellation(this.GetCancellationTokenOnDestroy());
+  ```
+  `yield return tween.WaitForCompletion()` 같은 코루틴 대기는 쓰지 않는다.
+- **생성한 트윈은 반드시 수명을 묶는다.** 4번(MessagePipe 구독 해제), 5번(R3 구독 해제)과 같은 이유로, 해제를 빼먹으면 파괴된 오브젝트를 트윈이 계속 건드리다 예외가 난다.
+  ```csharp
+  transform.DOMove(target, 1f).SetLink(gameObject);
+  ```
+  `SetLink`로 오브젝트 파괴 시 자동 Kill 되게 하는 게 기본이다. 무한 반복(`SetLoops(-1)`) 트윈처럼 도중에 직접 멈춰야 하는 건 `Tween` 참조를 필드로 들고 있다가 `_tween?.Kill()`로 정리한다.
+- 트윈 대상이 없는 순수 수치 보간이나 지연 실행은 빈 GameObject를 만들지 말고 `DOVirtual.Float(...)` / `DOVirtual.DelayedCall(...)`을 쓴다.
+- **무료판이라 TextMeshPro 숏컷이 없다.** `DOText`, TMP `DOColor`/`DOFade`는 Pro 전용이라 이 프로젝트에서 컴파일되지 않는다. TMP 텍스트 연출이 필요하면 `DOVirtual.Float`로 값을 보간해 콜백에서 직접 대입한다.
+
+## 9. 리플렉션 최소화
+
+런타임 코드에서 리플렉션(`System.Reflection`, `Type.GetType`, `GetMethod`/`GetField`/`Invoke`, `Activator.CreateInstance`, `dynamic`)을 쓰지 않는다. 이유는 세 가지다.
+
+- IL2CPP 빌드에서 코드 스트리핑에 걸려 에디터에서는 되는데 빌드에서만 깨진다. 재현이 어려운 종류의 버그다.
+- 컴파일 타임 검증이 사라진다. 문자열로 참조한 멤버는 이름을 바꿔도 컴파일러가 잡아주지 않는다.
+- 매 호출마다 할당과 조회 비용이 든다. ZString(7번)으로 GC를 줄이는 것과 정반대 방향이다.
+
+이 스택에는 리플렉션이 필요할 만한 자리에 이미 대안이 있다.
+
+- 타입으로 구현체를 찾아 생성 → VContainer 주입(2번)
+- 다른 시스템의 메서드를 이름으로 호출 → MessagePipe 이벤트(4번) 또는 인터페이스
+- 상태 변화 감지 → R3 `ReactiveProperty`(5번)
+- JSON 역직렬화 → `Wonjeong.Utils.JsonLoader` 재사용(1번)
+- 인스펙터 노출 → `[SerializeField]`
+
+`SendMessage`, `Invoke("MethodName", ...)`, `StartCoroutine("MethodName")`처럼 문자열로 메서드를 호출하는 Unity API도 같은 이유로 쓰지 않는다.
+
+예외는 `Editor/` 폴더의 에디터 전용 도구와 일회성 디버그 코드다. 빌드에 포함되지 않으므로 스트리핑 문제가 없다. 그래도 공개 API가 있으면 그쪽을 먼저 쓴다.
+
+기존 코드에서 리플렉션을 발견하면 조용히 남겨두지 말고, 위 대안 중 무엇으로 바꿀 수 있는지 사용자에게 알린다. 다만 CLAUDE.md의 "수술적 변경" 원칙에 따라 요청받지 않은 리팩터링을 임의로 수행하지는 않는다.
+
+## 10. 메서드 분리 기준
 
 한 메서드가 여러 책임(캐시 확인 → 다운로드 → 적용 같은)을 한 번에 처리하지 않도록, 단계별로 private 메서드를 쪼갠다. SoundManager의 `LoadAndPlayAsync → DownloadAndCacheClipAsync → ExecuteDownloadAsync` 체인이 예시다. 기준은 "이 메서드 이름만 보고 무슨 일을 하는지 한 문장으로 설명할 수 있는가" — 안 되면 쪼갠다.
 
-## 9. 주석 규칙 (이 스택 코드에 한함)
+## 11. 주석 규칙 (이 스택 코드에 한함)
 
 프로젝트 전역 규칙은 "주석은 최소화"지만, 이 프로젝트의 매니저/서비스 클래스는 이미 모든 메서드에 한국어 summary 주석이 달려 있다 (실측 컨벤션). 이 스킬이 적용되는 코드에서는 그 기존 컨벤션을 따른다:
 
 - public/protected/private 구분 없이 **모든 메서드**에 `/// <summary>...</summary>` 작성. `<param>`, `<returns>` 태그는 쓰지 않는다.
 - Summary는 이 메서드가 **어떤 역할을 하는지**를 한 문장으로 작성한다 (예: "프레임 단위 보간을 통해 볼륨을 줄이는 페이드아웃 핵심 로직").
 - 이모티콘, 특수문자 없이 평서형으로 끝맺는다.
+
+## 12. 상수 중앙 관리 (씬 이름 등)
+
+여러 파일에서 참조하는 문자열 상수 — 특히 **씬 이름**, StreamingAssets 파일 이름처럼 "식별자" 성격의 값 — 은 각 클래스에 `[SerializeField] private string xxxSceneName = "..."` 기본값이나 리터럴로 흩어놓지 않고, `DGAIZone.App.Constants` 같은 **static 클래스 한 곳에 const로 모아** 참조한다.
+
+- 씬을 리네임하면 `Constants.Scenes` 한 줄만 바꾸면 모든 참조가 따라온다.
+- 씬 이름을 SerializeField로 두면 코드 기본값과 씬에 직렬화된 값이 이원화되어, 씬 파일에 낡은 값이 남은 채로 조용히 잘못된 씬을 로드하는 사고가 난다. 실제로 이 프로젝트에서 씬 번호를 다시 매긴 뒤 `resultSceneName = "3_Result"`, `outroSceneName = "4_Outro"`, `gameSceneName = "2_Game"`이 갱신되지 않아 존재하지 않는 씬을 로드하려던 버그가 있었다. 그래서 씬 이름은 SerializeField를 제거하고 코드에서 `Constants.Scenes.Xxx`를 직접 참조한다.
+- 관심사별 중첩 static 클래스로 묶는다:
+  ```csharp
+  public static class Constants
+  {
+      public static class Scenes
+      {
+          public const string Title = "0_Title";
+          public const string Game = "3_Game";
+          // ...
+      }
+
+      public static class Files { public const string RfidMappings = "RfidMappings.json"; }
+  }
+  ```
+- 반대로 씬별로 조정 가능한 튜닝 값(페이드 시간, 타이핑 속도 등)은 그대로 SerializeField로 둔다. 중앙화 대상은 "정체성(식별자)"이지 "인스턴스별 조정 파라미터"가 아니다.
