@@ -3,6 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using DG.Data;
 using DG.Game.Runtime;
+using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -227,14 +228,16 @@ namespace DG.Scenes
             text.text = "에너지 효율:00%";
             await SceneFader.FadeCanvasGroupAsync(group, 0f, 1f, fadeDuration, ct);
 
-            float elapsed = 0f;
-            while (elapsed < effCountDuration)
-            {
-                elapsed += Time.deltaTime;
-                int p = Mathf.Clamp(Mathf.RoundToInt(Mathf.Lerp(0f, target, elapsed / effCountDuration)), 0, target);
-                text.text = $"에너지 효율:{p:D2}%";
-                await UniTask.Yield(ct);
-            }
+            // 빠르게 오르다 끝에서 감속하는 카운터 연출
+            int p = 0;
+            await DOTween.To(() => p, x =>
+                {
+                    p = x;
+                    text.text = $"에너지 효율:{x:D2}%";
+                }, target, effCountDuration)
+                .SetEase(Ease.OutQuad)
+                .SetLink(text.gameObject)
+                .WithCancellation(ct);
             text.text = $"에너지 효율:{target:D2}%";
         }
     }

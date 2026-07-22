@@ -5,6 +5,7 @@ using VContainer;
 using VContainer.Unity;
 using Wonjeong.App;
 using Wonjeong.UI;
+using Wonjeong.Utils;
 
 namespace DG.App
 {
@@ -16,6 +17,16 @@ namespace DG.App
         {
             base.Configure(builder);
             builder.RegisterComponentInHierarchy<GameManager>();
+
+            // 앱 종료 버튼(GameCloser)·SystemCanvas — App/SystemCanvas 하위(스코프와 같은 씬)라 OnSceneLoaded 주입 대상이 아니고,
+            // 아무도 Resolve하지 않으면 지연 등록만으로는 주입되지 않으므로 빌드 시점에 즉시 Resolve
+            builder.RegisterComponentInHierarchy<GameCloser>();
+            builder.RegisterComponentInHierarchy<SystemCanvas>();
+            builder.RegisterBuildCallback(container =>
+            {
+                container.Resolve<GameCloser>();
+                container.Resolve<SystemCanvas>();
+            });
 
             // 전역 페이드 매니저 — App 하위에 생성되어 씬 전환 간 유지
             builder.RegisterComponentOnNewGameObject<FadeManager>(Lifetime.Singleton, "FadeManager")
