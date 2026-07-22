@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using DG.Tweening;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -453,19 +454,18 @@ namespace DG.Game
             transform.SetParent(socket, true);
             _homeParent = socket;
 
-            Vector2 startPos = _rt.anchoredPosition;
-            float elapsed = 0f;
             try
             {
-                while (elapsed < _snapSeconds)
-                {
-                    if (!this || transform.parent != socket) return;
-
-                    elapsed += Time.deltaTime;
-                    _rt.anchoredPosition = Vector2.Lerp(
-                        startPos, targetOffset, Mathf.Clamp01(elapsed / _snapSeconds));
-                    await UniTask.Yield(PlayerLoopTiming.Update, destroyCancellationToken);
-                }
+                // OutBack 이징으로 스냅 손맛 부여, 드래그 등으로 부모가 바뀌면 트윈 중단
+                Tween tween = null;
+                tween = _rt.DOAnchorPos(targetOffset, _snapSeconds)
+                    .SetEase(Ease.OutBack)
+                    .SetLink(gameObject)
+                    .OnUpdate(() =>
+                    {
+                        if (transform.parent != socket) tween.Kill();
+                    });
+                await tween.WithCancellation(destroyCancellationToken);
             }
             catch (OperationCanceledException)
             {

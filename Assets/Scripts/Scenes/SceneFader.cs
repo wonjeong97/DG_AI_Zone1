@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Wonjeong.UI;
@@ -92,14 +93,11 @@ namespace DG.Scenes
         {
             if (!group) return;
 
-            float t = 0f;
-            while (t < duration)
-            {
-                t += Time.deltaTime;
-                group.alpha = Mathf.Lerp(from, to, Mathf.Clamp01(t / duration));
-                await UniTask.Yield(PlayerLoopTiming.Update, ct);
-            }
-            group.alpha = to;
+            group.alpha = from;
+            await group.DOFade(to, duration)
+                .SetEase(Ease.Linear)
+                .SetLink(group.gameObject)
+                .WithCancellation(ct);
         }
 
         // 두 CanvasGroup 간 크로스페이드 — interactable/blocksRaycasts 전환 포함
@@ -107,18 +105,14 @@ namespace DG.Scenes
         {
             SetGroupInteractable(to, true);
 
-            float t = 0f;
-            while (t < duration)
-            {
-                t += Time.deltaTime;
-                float p = Mathf.Clamp01(t / duration);
-                if (from) from.alpha = 1f - p;
-                if (to) to.alpha = p;
-                await UniTask.Yield(PlayerLoopTiming.Update, ct);
-            }
+            UniTask fadeOut = from
+                ? from.DOFade(0f, duration).SetEase(Ease.Linear).SetLink(from.gameObject).WithCancellation(ct)
+                : UniTask.CompletedTask;
+            UniTask fadeIn = to
+                ? to.DOFade(1f, duration).SetEase(Ease.Linear).SetLink(to.gameObject).WithCancellation(ct)
+                : UniTask.CompletedTask;
+            await UniTask.WhenAll(fadeOut, fadeIn);
 
-            if (from) from.alpha = 0f;
-            if (to) to.alpha = 1f;
             SetGroupInteractable(from, false);
         }
 

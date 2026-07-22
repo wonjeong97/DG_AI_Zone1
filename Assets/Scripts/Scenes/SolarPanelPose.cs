@@ -1,5 +1,6 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using DG.Tweening;
 using UnityEngine;
 
 namespace DG.Scenes
@@ -83,28 +84,30 @@ namespace DG.Scenes
             float targetYaw = DirectionToLocalYaw(direction);
             float currentTilt = GetCurrentTilt();
 
-            // 1) 방향(yaw) 먼저
+            // 1) 방향(yaw) 먼저 — DeltaAngle로 최단 경로 회전
             float startYaw = tiltPivot ? tiltPivot.localEulerAngles.y : 0f;
-            float t = 0f;
-            while (t < animDuration)
-            {
-                t += Time.deltaTime;
-                float k = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t / animDuration));
-                SetPivot(currentTilt, Mathf.LerpAngle(startYaw, targetYaw, k));
-                await UniTask.Yield(ct);
-            }
+            float yaw = startYaw;
+            float endYaw = startYaw + Mathf.DeltaAngle(startYaw, targetYaw);
+            await DOTween.To(() => yaw, y =>
+                {
+                    yaw = y;
+                    SetPivot(currentTilt, y);
+                }, endYaw, animDuration)
+                .SetEase(Ease.InOutQuad)
+                .SetLink(gameObject)
+                .WithCancellation(ct);
             SetPivot(currentTilt, targetYaw);
 
             // 2) 각도(tilt)
-            float startTilt = currentTilt;
-            t = 0f;
-            while (t < animDuration)
-            {
-                t += Time.deltaTime;
-                float k = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t / animDuration));
-                SetPivot(Mathf.LerpAngle(startTilt, targetTilt, k), targetYaw);
-                await UniTask.Yield(ct);
-            }
+            float tilt = currentTilt;
+            await DOTween.To(() => tilt, x =>
+                {
+                    tilt = x;
+                    SetPivot(x, targetYaw);
+                }, targetTilt, animDuration)
+                .SetEase(Ease.InOutQuad)
+                .SetLink(gameObject)
+                .WithCancellation(ct);
             SetPivot(targetTilt, targetYaw);
         }
 
