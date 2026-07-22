@@ -113,3 +113,7 @@ InitTestScene*.unity*
 # Editor screenshots
 /Assets/Screenshots/
 /Assets/Screenshots.meta
+
+# Build info generated at build time
+/Assets/StreamingAssets/build_info
+/Assets/StreamingAssets/build_info.meta
