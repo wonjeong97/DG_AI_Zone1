@@ -116,10 +116,12 @@ namespace DG.Scenes
                 ApplyGrayscale();
             }
 
+            string levelName = _session && _session.currentLevel ? _session.currentLevel.name : null;
+
             aiText.SetText(BuildResultText(
                 BlockScorer.GetBestAngle(),
                 BlockScorer.GetBestCount(),
-                BlockScorer.GetBestDirection(_session.lastQuestionTime),
+                BlockScorer.GetBestDirection(_session.lastQuestionTime, levelName),
                 "<color=#0B7A0B>양호</color>"));
         }
 
@@ -170,8 +172,9 @@ namespace DG.Scenes
 
                 await aiText.PlayAsync(ct);
                 await SceneFader.FadeCanvasGroupAsync(aiImageGroup, 0f, 1f, fadeDuration, ct);
+                string levelName = _session && _session.currentLevel ? _session.currentLevel.name : null;
                 if (aiPanelPose)
-                    await aiPanelPose.ApplyAsync(BlockScorer.GetBestAngle(), BlockScorer.GetBestDirection(_session ? _session.lastQuestionTime : null), ct);
+                    await aiPanelPose.ApplyAsync(BlockScorer.GetBestAngle(), BlockScorer.GetBestDirection(_session ? _session.lastQuestionTime : null, levelName), ct);
                 await PlayEfficiencyAsync(aiEffGroup, aiEffText, 100, ct);
 
                 await SceneFader.FadeCanvasGroupAsync(confirmButtonGroup, 0f, 1f, fadeDuration, ct);

@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -20,7 +20,31 @@ namespace DG.Game
 
         public void SetEmptyIndicator(GameObject go) => _emptyIndicator = go;
 
-        public bool CanAccept(CodingBlock incoming) => CanFit(incoming, _occupant);
+        public bool CanAccept(CodingBlock incoming)
+        {
+            if (incoming != null && HasControlBlockInChain(incoming))
+                return false;
+            return CanFit(incoming, _occupant);
+        }
+
+        private static bool HasControlBlockInChain(CodingBlock block)
+        {
+            CodingBlock current = block;
+            while (current)
+            {
+                if (current.Category == BlockCategory.Control) return true;
+
+                foreach (InnerSocket innerSocket in current.GetComponentsInChildren<InnerSocket>(true))
+                {
+                    if (innerSocket.Occupant && HasControlBlockInChain(innerSocket.Occupant))
+                        return true;
+                }
+
+                ChainOutSocket chainOut = current.GetComponentInChildren<ChainOutSocket>();
+                current = chainOut ? chainOut.Occupant : null;
+            }
+            return false;
+        }
 
         private static bool CanFit(CodingBlock incoming, CodingBlock displaced)
         {

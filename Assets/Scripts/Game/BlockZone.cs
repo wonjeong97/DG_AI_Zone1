@@ -39,20 +39,52 @@ namespace DG.Game
 
         private void CollectAll(CodingBlock block, System.Collections.Generic.List<CodingBlock> all)
         {
-            // 체인 자식을 먼저 분리 — 이후 GetComponentsInChildren이 손자 소켓을 잡지 않도록
+            if (block.Category == BlockCategory.Control)
+            {
+                CodingZone codingZone = FindObjectOfType<CodingZone>();
+                if (codingZone)
+                {
+                    CodingBlock.ResetControlBlockPosition(block, codingZone.transform);
+                }
+                return;
+            }
+
+            // 1. InnerSocket (FlowControl 내부 컨테이너에 들어간 블록) 분리 후 수집
+            foreach (InnerSocket ins in block.GetComponentsInChildren<InnerSocket>(true))
+            {
+                CodingBlock innerChild = ins.Occupant;
+                if (innerChild)
+                {
+                    ins.Release();
+                    innerChild.transform.SetParent(null, true);
+                    CollectAll(innerChild, all);
+                }
+            }
+
+            // 2. ChainOutSocket 자식을 먼저 분리 — 이후 GetComponentsInChildren이 손자 소켓을 잡지 않도록
             ChainOutSocket chainOut = block.GetComponentInChildren<ChainOutSocket>();
             CodingBlock chainChild = chainOut?.Occupant;
             if (chainOut) chainOut.Release();
             if (chainChild) chainChild.transform.SetParent(null, true);
 
-            // 이 블록에 붙은 value 블록 분리 후 수집
+            // 3. 이 블록에 붙은 value 블록 분리 후 수집
             foreach (ValueOutSocket vos in block.GetComponentsInChildren<ValueOutSocket>())
             {
                 CodingBlock valueBlock = vos.Occupant;
                 if (!valueBlock) continue;
                 vos.Release();
                 valueBlock.transform.SetParent(null, true);
-                all.Add(valueBlock);
+                CollectAll(valueBlock, all);
+            }
+
+            // 4. 이 블록에 붙은 condition 블록 분리 후 수집
+            foreach (ConditionOutSocket condOut in block.GetComponentsInChildren<ConditionOutSocket>())
+            {
+                CodingBlock condBlock = condOut.Occupant;
+                if (!condBlock) continue;
+                condOut.Release();
+                condBlock.transform.SetParent(null, true);
+                CollectAll(condBlock, all);
             }
 
             all.Add(block);

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
@@ -319,7 +319,7 @@ namespace DG.Game
         // InnerSocket: 방향 제한 없이 반경 안이면 스냅 (FlowControl 내부 진입)
         private InnerSocket FindSnapInnerSocket(out float bestSqr)
         {
-            if (!TryGetChainSnapOrigin(out Vector2 myPos))
+            if (Category == BlockCategory.Control || !TryGetChainSnapOrigin(out Vector2 myPos))
             {
                 bestSqr = float.MaxValue;
                 return null;
@@ -489,16 +489,151 @@ namespace DG.Game
             _homeParent = parent;
         }
 
+        private Transform _inventoryParent;
+
+        public void SetInventoryHome(Transform invParent)
+        {
+            _inventoryParent = invParent;
+        }
+
+        public Transform InventoryParent
+        {
+            get
+            {
+                if (!_inventoryParent)
+                {
+                    var categoryZone = FindObjectOfType<CategoryZone>();
+                    if (categoryZone) _inventoryParent = categoryZone.InventoryContent;
+                }
+                return _inventoryParent;
+            }
+        }
+
         public void SetHome(Transform parent)
         {
             _homeParent = parent;
         }
 
+        public void ReleaseAllAttachedChildren()
+        {
+            foreach (InnerSocket innerSocket in GetComponentsInChildren<InnerSocket>(true))
+            {
+                if (innerSocket.Occupant)
+                {
+                    CodingBlock child = innerSocket.Occupant;
+                    innerSocket.Release();
+                    child.ReleaseAllAttachedChildren();
+                    child.ReturnToInventory();
+                }
+            }
+
+            foreach (ValueOutSocket valSocket in GetComponentsInChildren<ValueOutSocket>(true))
+            {
+                if (valSocket.Occupant)
+                {
+                    CodingBlock child = valSocket.Occupant;
+                    valSocket.Release();
+                    child.ReleaseAllAttachedChildren();
+                    child.ReturnToInventory();
+                }
+            }
+
+            foreach (ConditionOutSocket condSocket in GetComponentsInChildren<ConditionOutSocket>(true))
+            {
+                if (condSocket.Occupant)
+                {
+                    CodingBlock child = condSocket.Occupant;
+                    condSocket.Release();
+                    child.ReleaseAllAttachedChildren();
+                    child.ReturnToInventory();
+                }
+            }
+
+            foreach (ChainOutSocket chainSocket in GetComponentsInChildren<ChainOutSocket>(true))
+            {
+                if (chainSocket.Occupant)
+                {
+                    CodingBlock child = chainSocket.Occupant;
+                    chainSocket.Release();
+                    child.ReleaseAllAttachedChildren();
+                    child.ReturnToInventory();
+                }
+            }
+        }
+
+        public static void ResetControlBlockPosition(CodingBlock block, Transform codingZone)
+        {
+            if (!block || !codingZone) return;
+
+            block.transform.SetParent(codingZone, false);
+            block.SetHome(codingZone);
+
+            if (block.transform is RectTransform rt)
+            {
+                bool isStart = block.ControlRole == DG.Data.ControlRole.Start;
+                rt.anchorMin = rt.anchorMax = new Vector2(0f, isStart ? 1f : 0f);
+                float y = isStart ? -120f : 120f;
+
+                ScrollRect scroll = codingZone.GetComponentInParent<ScrollRect>();
+                if (!isStart && scroll && scroll.viewport && codingZone is RectTransform content)
+                {
+                    float overflow = content.rect.height - scroll.viewport.rect.height;
+                    if (overflow > 0f) y += overflow;
+                }
+
+                rt.anchoredPosition = new Vector2(80f, y);
+            }
+
+            block.gameObject.SetActive(true);
+        }
+
+        public void ReturnToInventory()
+        {
+            if (Category == BlockCategory.Control)
+            {
+                CodingZone codingZone = FindObjectOfType<CodingZone>();
+                if (codingZone)
+                {
+                    ResetControlBlockPosition(this, codingZone.transform);
+                }
+                return;
+            }
+
+            ReleaseAllAttachedChildren();
+
+            Transform targetParent = InventoryParent;
+            if (targetParent)
+            {
+                transform.SetParent(targetParent, false);
+                SetHome(targetParent);
+
+                var categoryZone = FindObjectOfType<CategoryZone>();
+                if (categoryZone)
+                {
+                    gameObject.SetActive(Category == categoryZone.CurrentCategory);
+                }
+            }
+            else if (_homeParent)
+            {
+                transform.SetParent(_homeParent, false);
+            }
+        }
+
         public void ReturnHome()
         {
+            if (!_homeParent) return;
+
+            bool isReturningToInventory = _homeParent.GetComponentInParent<CodingZone>() == null;
+            if (isReturningToInventory)
+            {
+                ReturnToInventory();
+                return;
+            }
+
             transform.SetParent(_homeParent, false);
             transform.SetSiblingIndex(_homeIndex);
-            _rt.anchoredPosition = _homeAnchoredPos;
+            if (!_rt) TryGetComponent(out _rt);
+            if (_rt) _rt.anchoredPosition = _homeAnchoredPos;
 
             if (_homeParent.TryGetComponent<ValueOutSocket>(out ValueOutSocket vos))
                 vos.Reoccupy(this);
@@ -517,15 +652,17 @@ namespace DG.Game
             if (!zone)
             {
                 _log?.ZLogWarning($"[CodingBlock] CodingZone을 찾을 수 없습니다.");
-                ReturnHome();
+                ReturnToInventory();
                 return;
             }
 
-            bool hasRect = zone.TryGetComponent<RectTransform>(out RectTransform zoneRect);
-            if (!hasRect)
+            if (!zone.TryGetComponent(out RectTransform zoneRect))
+                zoneRect = zone.GetComponentInParent<RectTransform>();
+
+            if (!zoneRect)
             {
-                _log?.ZLogWarning($"[CodingBlock] CodingZone에 RectTransform이 없습니다.");
-                ReturnHome();
+                _log?.ZLogWarning($"[CodingBlock] CodingZone 영역에 RectTransform이 없습니다.");
+                ReturnToInventory();
                 return;
             }
 
@@ -543,7 +680,7 @@ namespace DG.Game
             }
             else
             {
-                ReturnHome();
+                ReturnToInventory();
             }
         }
 

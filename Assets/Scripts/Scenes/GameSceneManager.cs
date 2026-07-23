@@ -27,20 +27,17 @@ namespace DG.Scenes
         [Inject] private GameSession _session;
         [Inject] private ILogger<GameSceneManager> _log;
 
-        private readonly static string[] QuestionTimes =
-            { "아침 8시", "오전 10시", "정오", "오후 2시", "오후 4시" };
-
-        private readonly static string[] WindDirections =
-            { "동쪽", "서쪽", "남쪽", "북쪽" };
-
         private CancellationTokenSource _cts;
         private string _questionTime;
         private string _windDirection;
+        private string _currentLevelName;
 
         private void Start()
         {
             LevelData level = _session ? _session.currentLevel : null;
             if (!level) level = testLevel;
+
+            _currentLevelName = level ? level.name : null;
 
             BlockLayoutData layout = level ? level.blockLayout : null;
             if (!layout)
@@ -55,18 +52,10 @@ namespace DG.Scenes
             SceneFader.RegisterPendingTask(spawnTask);
             spawnTask.Forget();
 
-            // 레벨별 문제 출제 — 풍력: 바람 방향 랜덤, 그 외(태양광): 시간대 랜덤
-            string question;
-            if (level && level.name.Contains("풍력"))
-            {
-                _windDirection = WindDirections[Random.Range(0, WindDirections.Length)];
-                question = $"이곳은 바람이 <color=yellow>{_windDirection}에서 불고 있습니다.</color> 풍차의 날개 방향이\n어디로 향해 있어야 할까요? 알맞은 블록을 사용하여 코딩해봅시다.";
-            }
-            else
-            {
-                _questionTime = QuestionTimes[Random.Range(0, QuestionTimes.Length)];
-                question = $"<color=yellow>현재 {_questionTime}</color>입니다. 태양광 패널이 어느 방향으로\n향해 있어야 할까요? 알맞은 블록을 사용하여 코딩해봅시다.";
-            }
+            // 레벨별 문제 출제 — Constants.Questions 센터에서 생성
+            var issue = Constants.Questions.GenerateQuestion(_currentLevelName);
+            _questionTime = issue.ValueKey;
+            string question = issue.QuestionText;
 
             if (questionText)
                 questionText.text = question;
@@ -132,12 +121,12 @@ namespace DG.Scenes
                     foreach (CodingBlock b in result.ErrorBlocks)
                         b?.ShowErrorHighlight();
 
-                if (result.Error != null && result.Error.Contains("사용되지 않은 명령 블록이 있습니다"))
+                if (result.Error != null && result.Error.Contains("사용되지 않은"))
                 {
                     var categoryZone = FindObjectOfType<CategoryZone>();
-                    if (categoryZone)
+                    if (categoryZone && result.ErrorBlocks is not null && result.ErrorBlocks.Length > 0 && result.ErrorBlocks[0] != null)
                     {
-                        categoryZone.Select(BlockCategory.Command);
+                        categoryZone.Select(result.ErrorBlocks[0].Category);
                     }
                 }
                 return;
@@ -154,7 +143,7 @@ namespace DG.Scenes
                     b.ShowSuccessHighlight();
             HighlightSources(result.Instructions);
 
-            int score = BlockScorer.ScoreProgram(result.Instructions, _questionTime);
+            int score = BlockScorer.ScoreProgram(result.Instructions, _questionTime, _currentLevelName);
             if (_session)
             {
                 _session.lastScore = score;

@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -13,7 +13,16 @@ namespace DG.Game
         public CodingBlock Occupant => _occupant;
 
         // cascade 전체가 완료될 수 있는지 재귀 검증
-        public bool CanAccept(CodingBlock incoming) => CanFit(incoming, _occupant);
+        public bool CanAccept(CodingBlock incoming)
+        {
+            if (incoming != null && incoming.Category == BlockCategory.Control)
+            {
+                // Inner 컨테이너(InnerSocket 하위) 내부에 위치한 소켓일 경우 Control 블록(완성하기 등) 수락 불가
+                if (GetComponentInParent<InnerSocket>() != null)
+                    return false;
+            }
+            return CanFit(incoming, _occupant);
+        }
 
         private static bool CanFit(CodingBlock incoming, CodingBlock displaced)
         {
