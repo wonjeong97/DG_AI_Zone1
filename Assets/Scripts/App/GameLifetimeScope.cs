@@ -18,10 +18,8 @@ namespace DG.App
             base.Configure(builder);
             builder.RegisterComponentInHierarchy<GameManager>();
 
-            // 앱 종료 버튼(GameCloser)·SystemCanvas — App/SystemCanvas 하위(스코프와 같은 씬)라 OnSceneLoaded 주입 대상이 아니고,
-            // 아무도 Resolve하지 않으면 지연 등록만으로는 주입되지 않으므로 빌드 시점에 즉시 Resolve
-            builder.RegisterComponentInHierarchy<GameCloser>();
-            builder.RegisterComponentInHierarchy<SystemCanvas>();
+            // GameCloser·SystemCanvas 등록은 base의 ConfigureCoreComponents()에서 수행됨(중복 등록 시 VContainer 충돌).
+            // 다만 아무도 Resolve하지 않으면 지연 등록만으로는 주입되지 않으므로 빌드 시점에 즉시 Resolve
             builder.RegisterBuildCallback(container =>
             {
                 container.Resolve<GameCloser>();
