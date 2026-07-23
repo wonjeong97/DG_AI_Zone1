@@ -95,14 +95,21 @@ description: Scaffold or refactor Unity C# classes (managers, systems, services)
 
 ## 8. DOTween — 트윈/연출
 
-- **템플릿 우선 원칙(1번)이 DOTween보다 앞선다.** 페이드는 `Wonjeong.UI.FadeManager`, 볼륨 페이드는 `SoundManager`가 이미 프레임 단위 보간으로 구현하고 있다. 이미 있는 걸 DOTween으로 갈아엎지 말고, 템플릿에 대응되는 게 없는 새 연출에만 DOTween을 쓴다.
+- 템플릿도 DOTween을 표준으로 쓴다. `Wonjeong.UI.FadeManager`와 `SoundManager`의 페이드가 이미 `DOFade(...).SetUpdate(true)` + UniTask 연동으로 구현되어 있으므로, 새 연출도 같은 패턴으로 작성한다. 화면/볼륨 페이드 자체는 여전히 새로 만들지 않고 해당 매니저를 호출한다(1번 재사용 원칙).
 - 새로 만드는 연출에서 `Update()` 안의 수동 `Lerp` 누적이나 `WaitForSeconds` 코루틴으로 위치/색/알파를 직접 보간하지 않는다. 그런 코드는 DOTween 한 줄로 대체된다:
   ```csharp
   await _panel.DOAnchorPosY(0f, 0.3f).SetEase(Ease.OutCubic);
   ```
-- **UniTask와 연동해서 await 한다** (3번의 취소 토큰 규칙을 그대로 따른다). `UNITASK_DOTWEEN_SUPPORT` define이 켜져 있어 `DOTweenAsyncExtensions`를 쓸 수 있다:
+- **UniTask와 연동해서 await 한다** (3번의 취소 토큰 규칙을 그대로 따른다). `UNITASK_DOTWEEN_SUPPORT` define이 켜져 있어 `DOTweenAsyncExtensions`를 쓸 수 있다. 대기는 `ToUniTask(cancellationToken: ...)`로 통일한다 — 템플릿 표준 패턴이고, `WithCancellation`과 달리 취소 시 동작(`TweenCancelBehaviour`)을 연출별로 지정할 수 있다.
+- **`SetUpdate(true)`는 연출 성격에 따라 구분한다.** `Time.timeScale`을 무시하는 옵션이므로, 페이드/일시정지 메뉴/로딩처럼 timeScale이 0이어도 돌아야 하는 UI·시스템 연출에만 붙이고, 일시정지·슬로모션을 따라야 하는 게임플레이 연출에는 붙이지 않는다:
   ```csharp
-  await transform.DOMove(target, 1f).WithCancellation(this.GetCancellationTokenOnDestroy());
+  // UI/시스템 연출 (timeScale 0에서도 동작해야 함)
+  await _canvasGroup.DOFade(1f, 0.3f).SetUpdate(true)
+      .ToUniTask(cancellationToken: this.GetCancellationTokenOnDestroy());
+
+  // 게임플레이 연출 (일시정지/슬로모션을 따라야 함) — SetUpdate 없이
+  await transform.DOMove(target, 1f)
+      .ToUniTask(cancellationToken: this.GetCancellationTokenOnDestroy());
   ```
   `yield return tween.WaitForCompletion()` 같은 코루틴 대기는 쓰지 않는다.
 - **생성한 트윈은 반드시 수명을 묶는다.** 4번(MessagePipe 구독 해제), 5번(R3 구독 해제)과 같은 이유로, 해제를 빼먹으면 파괴된 오브젝트를 트윈이 계속 건드리다 예외가 난다.

@@ -41,7 +41,7 @@ namespace DG.Game
                 Destroy(buttonContainer.GetChild(i).gameObject);
             _buttons.Clear();
 
-            TMPro.TMP_FontAsset font = await BlockFactory.LoadLabelFontAsync();
+            UnityEngine.TextCore.Text.FontAsset font = await BlockFactory.LoadLabelFontAsync();
 
             foreach (BlockCategory cat in categories)
             {
@@ -60,6 +60,15 @@ namespace DG.Game
                 if (child.TryGetComponent<CodingBlock>(out CodingBlock block))
                     child.gameObject.SetActive(block.Category == cat);
 
+            // 스크롤이 내려간 상태에서 콘텐츠가 짧은 카테고리로 바뀌면 Content가 범위 밖에 남아
+            // 스크롤바 핸들 크기가 0으로 계산되므로, 전환 시 레이아웃 갱신 후 맨 위로 리셋
+            ScrollRect scrollRect = inventoryContent.GetComponentInParent<ScrollRect>();
+            if (scrollRect)
+            {
+                LayoutRebuilder.ForceRebuildLayoutImmediate(scrollRect.content);
+                scrollRect.verticalNormalizedPosition = 1f;
+            }
+
             foreach ((BlockCategory c, Image fillImg, TMPro.TextMeshProUGUI labelText) in _buttons)
             {
                 bool selected = (c == cat);
@@ -74,7 +83,7 @@ namespace DG.Game
         private static Color Tint(Color baseColor, bool selected)
             => selected ? baseColor : baseColor * 0.55f;
 
-        private (Image fillImg, TMPro.TextMeshProUGUI labelText) CreateButton(BlockCategory cat, TMPro.TMP_FontAsset font)
+        private (Image fillImg, TMPro.TextMeshProUGUI labelText) CreateButton(BlockCategory cat, UnityEngine.TextCore.Text.FontAsset font)
         {
             GameObject go = new GameObject(cat + "Button");
             go.transform.SetParent(buttonContainer, false);
