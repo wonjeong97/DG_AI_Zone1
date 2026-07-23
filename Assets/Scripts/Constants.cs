@@ -50,6 +50,16 @@ namespace DG
         // ── 소켓 오프셋 (블록별 연결부 위치 미세 조정 값) ─────────
         public static class Sockets
         {
+            // 소켓 GameObject 이름 — transform.Find 탐색 키로 여러 파일에서 공유
+            public const string ChainOutName     = "ChainOutSocket";
+            public const string ChainInName      = "ChainInSocket";
+            public const string InnerName        = "InnerSocket";
+            public const string InnerBottomName  = "InnerBottomSocket";
+            public const string ValueOutName     = "ValueOutSocket";
+            public const string ValueInName      = "ValueInSocket";
+            public const string ConditionOutName = "ConditionOutSocket";
+            public const string ConditionInName  = "ConditionInSocket";
+
             // 세로 체인 (ChainOut: 하단 중앙 앵커 / ChainIn: 상단 중앙 앵커)
             public readonly static UnityEngine.Vector2 StartChainOut   = new(-68.5f, 16f);
             public readonly static UnityEngine.Vector2 FlowChainOut    = new(-96f, 8f);

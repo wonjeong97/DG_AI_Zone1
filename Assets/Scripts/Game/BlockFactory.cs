@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using DG.Data;
 using UnityEngine;
@@ -212,7 +212,7 @@ namespace DG.Game
             Transform headerSpacer = go.transform.Find("Header_" + entry.label);
             if (headerSpacer)
             {
-                GameObject socketGo = new GameObject("ValueOutSocket");
+                GameObject socketGo = new GameObject(Constants.Sockets.ValueOutName);
                 socketGo.transform.SetParent(headerSpacer, false);
                 RectTransform socketRt = socketGo.AddComponent<RectTransform>();
                 socketRt.anchorMin = socketRt.anchorMax = new Vector2(1f, 0.5f);
@@ -327,7 +327,7 @@ namespace DG.Game
             le.flexibleWidth = 1f;
 
             // 진입 소켓: 내부 영역 상단 중앙
-            GameObject socketGo = new GameObject("InnerSocket");
+            GameObject socketGo = new GameObject(Constants.Sockets.InnerName);
             socketGo.transform.SetParent(inner.transform, false);
             RectTransform socketRt = socketGo.AddComponent<RectTransform>();
             socketRt.anchorMin = socketRt.anchorMax = new Vector2(0.5f, 1f);
@@ -350,7 +350,7 @@ namespace DG.Game
             innerSocket.SetEmptyIndicator(empty);
 
             // 체인 하단 기준점: Inner 바닥 중앙 — FlowInnerResize가 마지막 ChainOutSocket과 이 위치를 맞춰 높이를 계산
-            GameObject bottomSocketGo = new GameObject("InnerBottomSocket");
+            GameObject bottomSocketGo = new GameObject(Constants.Sockets.InnerBottomName);
             bottomSocketGo.transform.SetParent(inner.transform, false);
             RectTransform bottomRt = bottomSocketGo.AddComponent<RectTransform>();
             bottomRt.anchorMin = bottomRt.anchorMax = new Vector2(0.5f, 0f);
@@ -457,9 +457,9 @@ namespace DG.Game
         // ── 블록에 ChainOutSocket 후부착 — 앵커 (0.5, 0) 하단 중앙
         public static void AttachOutSocket(GameObject block, Vector2 offset = default)
         {
-            if (block.transform.Find("ChainOutSocket")) return;
+            if (block.transform.Find(Constants.Sockets.ChainOutName)) return;
 
-            GameObject go = new GameObject("ChainOutSocket");
+            GameObject go = new GameObject(Constants.Sockets.ChainOutName);
             go.transform.SetParent(block.transform, false);
             RectTransform rt = go.AddComponent<RectTransform>();
             rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0f);
@@ -473,9 +473,9 @@ namespace DG.Game
         // ── 블록에 ChainInSocket 후부착 — 앵커 (0.5, 1) 상단 중앙
         public static void AttachInSocket(GameObject block, Vector2 offset = default)
         {
-            if (block.transform.Find("ChainInSocket")) return;
+            if (block.transform.Find(Constants.Sockets.ChainInName)) return;
 
-            GameObject go = new GameObject("ChainInSocket");
+            GameObject go = new GameObject(Constants.Sockets.ChainInName);
             go.transform.SetParent(block.transform, false);
             RectTransform rt = go.AddComponent<RectTransform>();
             rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 1f);
@@ -489,9 +489,9 @@ namespace DG.Game
         // ── Command 블록에 ValueOutSocket 후부착 — 앵커 (1, 0.5) 우측 중앙
         public static void AttachValueOutSocket(GameObject commandBlock, Vector2 offset = default)
         {
-            if (commandBlock.transform.Find("ValueOutSocket")) return;
+            if (commandBlock.transform.Find(Constants.Sockets.ValueOutName)) return;
 
-            GameObject go = new GameObject("ValueOutSocket");
+            GameObject go = new GameObject(Constants.Sockets.ValueOutName);
             go.transform.SetParent(commandBlock.transform, false);
             RectTransform rt = go.AddComponent<RectTransform>();
             rt.anchorMin = rt.anchorMax = new Vector2(1f, 0.5f);
@@ -505,9 +505,9 @@ namespace DG.Game
         // ── Value 블록에 ValueInSocket 후부착 — 앵커 (0, 0.5) 좌측 중앙
         public static void AttachValueInSocket(GameObject valueBlock, Vector2 offset = default)
         {
-            if (valueBlock.transform.Find("ValueInSocket")) return;
+            if (valueBlock.transform.Find(Constants.Sockets.ValueInName)) return;
 
-            GameObject go = new GameObject("ValueInSocket");
+            GameObject go = new GameObject(Constants.Sockets.ValueInName);
             go.transform.SetParent(valueBlock.transform, false);
             RectTransform rt = go.AddComponent<RectTransform>();
             rt.anchorMin = rt.anchorMax = new Vector2(0f, 0.5f);
@@ -521,9 +521,9 @@ namespace DG.Game
         // ── Condition 체인 소켓 ─────────────────────────────────
         public static void AttachConditionOutSocket(GameObject block, Vector2 offset = default)
         {
-            if (block.transform.Find("ConditionOutSocket")) return;
+            if (block.transform.Find(Constants.Sockets.ConditionOutName)) return;
 
-            GameObject go = new GameObject("ConditionOutSocket");
+            GameObject go = new GameObject(Constants.Sockets.ConditionOutName);
             go.transform.SetParent(block.transform, false);
             RectTransform rt = go.AddComponent<RectTransform>();
             rt.anchorMin = rt.anchorMax = new Vector2(1f, 0.5f);
@@ -536,9 +536,9 @@ namespace DG.Game
 
         public static void AttachConditionInSocket(GameObject block, Vector2 offset = default)
         {
-            if (block.transform.Find("ConditionInSocket")) return;
+            if (block.transform.Find(Constants.Sockets.ConditionInName)) return;
 
-            GameObject go = new GameObject("ConditionInSocket");
+            GameObject go = new GameObject(Constants.Sockets.ConditionInName);
             go.transform.SetParent(block.transform, false);
             RectTransform rt = go.AddComponent<RectTransform>();
             rt.anchorMin = rt.anchorMax = new Vector2(0f, 0.5f);

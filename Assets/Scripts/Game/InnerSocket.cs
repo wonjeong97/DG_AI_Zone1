@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -60,7 +60,7 @@ namespace DG.Game
         private static Vector2 ComputeSnapOffset(CodingBlock block)
         {
             ChainInSocket inSocket = null;
-            block.transform.Find("ChainInSocket")?.TryGetComponent(out inSocket);
+            block.transform.Find(Constants.Sockets.ChainInName)?.TryGetComponent(out inSocket);
             if (!inSocket
                 || !block.TryGetComponent<RectTransform>(out RectTransform blockRt)
                 || !inSocket.TryGetComponent<RectTransform>(out RectTransform inRt))

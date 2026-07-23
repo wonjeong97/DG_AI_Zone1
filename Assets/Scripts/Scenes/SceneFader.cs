@@ -96,8 +96,9 @@ namespace DG.Scenes
             group.alpha = from;
             await group.DOFade(to, duration)
                 .SetEase(Ease.Linear)
+                .SetUpdate(true) // 씬 전환 페이드는 timeScale 0에서도 동작해야 하는 시스템 연출
                 .SetLink(group.gameObject)
-                .WithCancellation(ct);
+                .ToUniTask(cancellationToken: ct);
         }
 
         // 두 CanvasGroup 간 크로스페이드 — interactable/blocksRaycasts 전환 포함
@@ -106,10 +107,10 @@ namespace DG.Scenes
             SetGroupInteractable(to, true);
 
             UniTask fadeOut = from
-                ? from.DOFade(0f, duration).SetEase(Ease.Linear).SetLink(from.gameObject).WithCancellation(ct)
+                ? from.DOFade(0f, duration).SetEase(Ease.Linear).SetUpdate(true).SetLink(from.gameObject).ToUniTask(cancellationToken: ct)
                 : UniTask.CompletedTask;
             UniTask fadeIn = to
-                ? to.DOFade(1f, duration).SetEase(Ease.Linear).SetLink(to.gameObject).WithCancellation(ct)
+                ? to.DOFade(1f, duration).SetEase(Ease.Linear).SetUpdate(true).SetLink(to.gameObject).ToUniTask(cancellationToken: ct)
                 : UniTask.CompletedTask;
             await UniTask.WhenAll(fadeOut, fadeIn);
 

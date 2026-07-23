@@ -228,16 +228,15 @@ namespace DG.Scenes
             text.text = "에너지 효율:00%";
             await SceneFader.FadeCanvasGroupAsync(group, 0f, 1f, fadeDuration, ct);
 
-            // 빠르게 오르다 끝에서 감속하는 카운터 연출
-            int p = 0;
-            await DOTween.To(() => p, x =>
+            // 빠르게 오르다 끝에서 감속하는 카운터 연출 (순수 수치 보간이므로 DOVirtual)
+            await DOVirtual.Float(0f, target, effCountDuration, v =>
                 {
-                    p = x;
-                    text.text = $"에너지 효율:{x:D2}%";
-                }, target, effCountDuration)
+                    int p = Mathf.Clamp(Mathf.RoundToInt(v), 0, target);
+                    text.text = $"에너지 효율:{p:D2}%";
+                })
                 .SetEase(Ease.OutQuad)
                 .SetLink(text.gameObject)
-                .WithCancellation(ct);
+                .ToUniTask(cancellationToken: ct);
             text.text = $"에너지 효율:{target:D2}%";
         }
     }

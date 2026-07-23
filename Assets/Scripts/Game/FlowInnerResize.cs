@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 
 namespace DG.Game
@@ -27,7 +27,7 @@ namespace DG.Game
             if (_socket && _socket.TryGetComponent<RectTransform>(out RectTransform srt))
                 _socketOffset = -srt.anchoredPosition.y;
 
-            Transform bottomGo = transform.Find("InnerBottomSocket");
+            Transform bottomGo = transform.Find(Constants.Sockets.InnerBottomName);
             if (bottomGo && bottomGo.TryGetComponent<RectTransform>(out RectTransform brt))
                 _bottomSocketOffset = brt.anchoredPosition.y;
         }
@@ -74,7 +74,7 @@ namespace DG.Game
             while (block)
             {
                 ChainOutSocket outSocket = null;
-                block.transform.Find("ChainOutSocket")?.TryGetComponent(out outSocket);
+                block.transform.Find(Constants.Sockets.ChainOutName)?.TryGetComponent(out outSocket);
                 if (outSocket) lastOut = outSocket;
                 block = outSocket ? outSocket.Occupant : null;
             }

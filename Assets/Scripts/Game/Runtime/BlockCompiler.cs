@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 namespace DG.Game.Runtime
@@ -40,7 +40,7 @@ namespace DG.Game.Runtime
 
             // transform.Find: 직접 자식만 탐색 — 하위 체인 소켓과 혼동 방지
             ChainOutSocket socket = null;
-            start.transform.Find("ChainOutSocket")?.TryGetComponent(out socket);
+            start.transform.Find(Constants.Sockets.ChainOutName)?.TryGetComponent(out socket);
             if (!socket || !socket.Occupant)
                 return CompileResult.Fail("'시작하기'에 연결된 블록이 없습니다", start);
 
@@ -84,7 +84,7 @@ namespace DG.Game.Runtime
                 if (instr is not null) output.Add(instr);
 
                 ChainOutSocket socket = null;
-                current.transform.Find("ChainOutSocket")?.TryGetComponent(out socket);
+                current.transform.Find(Constants.Sockets.ChainOutName)?.TryGetComponent(out socket);
                 current = socket?.Occupant;
             }
             return null;
@@ -106,7 +106,7 @@ namespace DG.Game.Runtime
         {
             // ValueOutSocket은 CodingZone.OnDrop이 직접 자식으로 붙임
             ValueOutSocket vos = null;
-            block.transform.Find("ValueOutSocket")?.TryGetComponent(out vos);
+            block.transform.Find(Constants.Sockets.ValueOutName)?.TryGetComponent(out vos);
             CodingBlock occupant = vos ? vos.Occupant : null;
             return new CommandInstruction
             {
@@ -166,7 +166,7 @@ namespace DG.Game.Runtime
             }
             if (!first) return;
 
-            if (first.transform.Find("ChainOutSocket"))
+            if (first.transform.Find(Constants.Sockets.ChainOutName))
             {
                 _ = WalkChain(first, output);
             }
@@ -244,7 +244,7 @@ namespace DG.Game.Runtime
             foreach (Transform child in flowBlock.transform)
             {
                 if (!child.name.StartsWith("Header_")) continue;
-                child.Find("ValueOutSocket")?.TryGetComponent(out vos);
+                child.Find(Constants.Sockets.ValueOutName)?.TryGetComponent(out vos);
                 if (vos) break;
             }
 
@@ -254,14 +254,14 @@ namespace DG.Game.Runtime
 
             // 조건1의 ConditionOutSocket에 Logic 블록이 연결됐는지 확인
             ConditionOutSocket firstCondOut = null;
-            first.transform.Find("ConditionOutSocket")?.TryGetComponent(out firstCondOut);
+            first.transform.Find(Constants.Sockets.ConditionOutName)?.TryGetComponent(out firstCondOut);
 
             if (firstCondOut && firstCondOut.Occupant &&
                 firstCondOut.Occupant.Category == BlockCategory.Logic)
             {
                 CodingBlock logic = firstCondOut.Occupant;
                 ConditionOutSocket logicCondOut = null;
-                logic.transform.Find("ConditionOutSocket")?.TryGetComponent(out logicCondOut);
+                logic.transform.Find(Constants.Sockets.ConditionOutName)?.TryGetComponent(out logicCondOut);
 
                 CodingBlock right = logicCondOut?.Occupant;
                 return new LogicConditionExpr
@@ -308,7 +308,7 @@ namespace DG.Game.Runtime
             {
                 if (!child.name.StartsWith("Header_")) continue;
                 ValueOutSocket vos = null;
-                child.Find("ValueOutSocket")?.TryGetComponent(out vos);
+                child.Find(Constants.Sockets.ValueOutName)?.TryGetComponent(out vos);
                 if (vos && vos.Occupant && int.TryParse(vos.Occupant.name, out int n))
                     return n;
             }

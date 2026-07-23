@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
@@ -141,7 +141,7 @@ namespace DG.Game
         private void SpliceOutChild(Action<CodingBlock> acceptToParent)
         {
             ChainOutSocket myOut = null;
-            transform.Find("ChainOutSocket")?.TryGetComponent(out myOut);
+            transform.Find(Constants.Sockets.ChainOutName)?.TryGetComponent(out myOut);
             CodingBlock myChild = myOut ? myOut.Occupant : null;
             if (!myChild) return;
 
@@ -263,7 +263,7 @@ namespace DG.Game
         private bool TryGetChainSnapOrigin(out Vector2 pos)
         {
             ChainInSocket inSocket = null;
-            transform.Find("ChainInSocket")?.TryGetComponent(out inSocket);
+            transform.Find(Constants.Sockets.ChainInName)?.TryGetComponent(out inSocket);
             if (inSocket)
             {
                 pos = (Vector2)inSocket.transform.position;
@@ -465,7 +465,7 @@ namespace DG.Game
                     {
                         if (transform.parent != socket) tween.Kill();
                     });
-                await tween.WithCancellation(destroyCancellationToken);
+                await tween.ToUniTask(cancellationToken: destroyCancellationToken);
             }
             catch (OperationCanceledException)
             {

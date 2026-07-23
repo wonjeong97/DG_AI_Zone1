@@ -56,18 +56,22 @@ namespace DG.Scenes
             spawnTask.Forget();
 
             // 레벨별 문제 출제 — 풍력: 바람 방향 랜덤, 그 외(태양광): 시간대 랜덤
+            string question;
             if (level && level.name.Contains("풍력"))
             {
                 _windDirection = WindDirections[Random.Range(0, WindDirections.Length)];
-                if (questionText)
-                    questionText.text = $"이곳은 바람이 <color=yellow>{_windDirection}에서 불고 있습니다.</color> 풍차의 날개 방향이\n어디로 향해 있어야 할까요? 알맞은 블록을 사용하여 코딩해봅시다.";
+                question = $"이곳은 바람이 <color=yellow>{_windDirection}에서 불고 있습니다.</color> 풍차의 날개 방향이\n어디로 향해 있어야 할까요? 알맞은 블록을 사용하여 코딩해봅시다.";
             }
             else
             {
                 _questionTime = QuestionTimes[Random.Range(0, QuestionTimes.Length)];
-                if (questionText)
-                    questionText.text = $"<color=yellow>현재 {_questionTime}</color>입니다. 태양광 패널이 어느 방향으로\n향해 있어야 할까요? 알맞은 블록을 사용하여 코딩해봅시다.";
+                question = $"<color=yellow>현재 {_questionTime}</color>입니다. 태양광 패널이 어느 방향으로\n향해 있어야 할까요? 알맞은 블록을 사용하여 코딩해봅시다.";
             }
+
+            if (questionText)
+                questionText.text = question;
+            else
+                _log?.ZLogWarning($"[GameSceneManager] questionText가 할당되지 않아 문제 텍스트를 표시할 수 없습니다.");
 
             // 코딩 완료 없이 넘어가면 결과 씬에서 '-'로 표시되도록 이전 결과 초기화
             if (_session)
