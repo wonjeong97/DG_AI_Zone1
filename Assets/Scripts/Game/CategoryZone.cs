@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using UnityEngine.UI;
 using VContainer;
 using ZLogger;
@@ -20,9 +21,7 @@ namespace DG.Game
 
         [Inject] private ILogger<CategoryZone> _log;
 
-        private const float ButtonWidth = 140f;
-        private const float ButtonHeight = 60f;
-
+        private static GameObject _buttonPrefab;
         private readonly List<(BlockCategory cat, Image fillImg, TMPro.TextMeshProUGUI labelText)> _buttons = new();
 
         // 인벤토리에 존재하는 카테고리 순서대로 버튼 생성 후 첫 카테고리 활성화
@@ -45,11 +44,14 @@ namespace DG.Game
                 Destroy(buttonContainer.GetChild(i).gameObject);
             _buttons.Clear();
 
-            UnityEngine.TextCore.Text.FontAsset font = await BlockFactory.LoadLabelFontAsync();
+            if (!_buttonPrefab)
+            {
+                _buttonPrefab = await Addressables.LoadAssetAsync<GameObject>("CategoryButton");
+            }
 
             foreach (BlockCategory cat in categories)
             {
-                var (fillImg, txt) = CreateButton(cat, font);
+                var (fillImg, txt) = CreateButton(cat);
                 _buttons.Add((cat, fillImg, txt));
             }
 
@@ -91,56 +93,38 @@ namespace DG.Game
         private static Color Tint(Color baseColor, bool selected)
             => selected ? baseColor : baseColor * 0.55f;
 
-        private (Image fillImg, TMPro.TextMeshProUGUI labelText) CreateButton(BlockCategory cat, UnityEngine.TextCore.Text.FontAsset font)
+        private (Image fillImg, TMPro.TextMeshProUGUI labelText) CreateButton(BlockCategory cat)
         {
-            GameObject go = new GameObject(cat + "Button");
-            go.transform.SetParent(buttonContainer, false);
-            go.AddComponent<RectTransform>();
+            GameObject go = Instantiate(_buttonPrefab, buttonContainer, false);
+            go.name = cat + "Button";
 
-            Image bgImg = go.AddComponent<Image>();
-            bgImg.color = new Color(0f, 0f, 0f, 0.001f); // 터치/클릭 감지용 투명 배경
+            Image fillImg = null;
+            TMPro.TextMeshProUGUI labelText = null;
 
-            HorizontalLayoutGroup hlg = go.AddComponent<HorizontalLayoutGroup>();
-            hlg.padding = new RectOffset(4, 4, 0, 0);
-            hlg.spacing = 8f;
-            hlg.childAlignment = TextAnchor.MiddleLeft;
-            hlg.childControlWidth = false;
-            hlg.childControlHeight = false;
-            hlg.childForceExpandWidth = false;
-            hlg.childForceExpandHeight = false;
+            if (go.TryGetComponent<CategoryButtonUI>(out CategoryButtonUI ui))
+            {
+                fillImg = ui.FillImage;
+                labelText = ui.LabelText;
 
-            BlockCategory captured = cat;
-            go.AddComponent<Button>().onClick.AddListener(() => Select(captured));
+                if (ui.Button)
+                {
+                    BlockCategory captured = cat;
+                    ui.Button.onClick.RemoveAllListeners();
+                    ui.Button.onClick.AddListener(() => Select(captured));
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"[CategoryZone] CategoryButton 프리팹에 CategoryButtonUI 컴포넌트가 없습니다.");
+            }
 
-            // 네모 아이콘 (외곽선 + 내부 색상)
-            GameObject colorBoxGo = new GameObject("ColorBox");
-            colorBoxGo.transform.SetParent(go.transform, false);
-            colorBoxGo.AddComponent<RectTransform>().sizeDelta = new Vector2(31f, 31f);
-            Image borderImg = colorBoxGo.AddComponent<Image>();
-            borderImg.color = new Color(0.25f, 0.25f, 0.28f, 1f);
+            if (labelText)
+                labelText.text = BlockFactory.GetCategoryName(cat);
 
-            GameObject fillGo = new GameObject("Fill");
-            fillGo.transform.SetParent(colorBoxGo.transform, false);
-            RectTransform fillRt = fillGo.AddComponent<RectTransform>();
-            fillRt.anchorMin = Vector2.zero;
-            fillRt.anchorMax = Vector2.one;
-            fillRt.offsetMin = new Vector2(2f, 2f);
-            fillRt.offsetMax = new Vector2(-2f, -2f);
-            Image fillImg = fillGo.AddComponent<Image>();
-            fillImg.color = BlockFactory.GetColor(cat);
+            if (fillImg)
+                fillImg.color = BlockFactory.GetColor(cat);
 
-            // 라벨 텍스트
-            GameObject textGo = new GameObject("Label");
-            textGo.transform.SetParent(go.transform, false);
-            textGo.AddComponent<RectTransform>().sizeDelta = new Vector2(88f, 42f);
-            TMPro.TextMeshProUGUI txt = textGo.AddComponent<TMPro.TextMeshProUGUI>();
-            txt.text = BlockFactory.GetCategoryName(cat);
-            txt.font = font;
-            txt.fontSize = 24;
-            txt.color = Color.white;
-            txt.alignment = TMPro.TextAlignmentOptions.MidlineLeft;
-
-            return (fillImg, txt);
+            return (fillImg, labelText);
         }
     }
 }

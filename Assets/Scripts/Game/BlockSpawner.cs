@@ -46,7 +46,11 @@ namespace DG.Game
                 if (entry.category == BlockCategory.Control)
                     PlaceControlBlock(go, entry.controlRole == ControlRole.Start);
                 else
+                {
                     go.transform.SetParent(inventoryContainer, false);
+                    if (go.TryGetComponent<CodingBlock>(out CodingBlock b))
+                        b.SetInventoryHome(inventoryContainer);
+                }
                 _resolver?.InjectGameObject(go);
             }
 

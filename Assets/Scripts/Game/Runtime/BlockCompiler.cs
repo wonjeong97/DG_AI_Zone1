@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace DG.Game.Runtime
@@ -55,10 +55,18 @@ namespace DG.Game.Runtime
             if (condError)
                 return CompileResult.Fail($"'{condError.name}' 블록에 조건이 없습니다", condError);
 
-            // 씬의 모든 Command 블록(인벤토리·방치 블록 포함)이 프로그램에 포함돼야 함
-            CodingBlock[] unused = FindUnusedCommands(program);
+            CodingBlock emptyFlow = FindFlowControlWithEmptyInner(program);
+            if (emptyFlow)
+                return CompileResult.Fail($"'{emptyFlow.name}' 블록 내부에 최소 1개의 블록이 있어야 합니다", emptyFlow);
+
+            CodingBlock controlInInner = FindControlInInner(program);
+            if (controlInInner)
+                return CompileResult.Fail($"'{controlInInner.name}' 블록은 제어 블록 내부에 넣을 수 없습니다", controlInInner);
+
+            // 씬의 모든 실행 블록(Command, FlowControl 등 — 인벤토리·방치 블록 포함)이 프로그램에 포함돼야 함
+            CodingBlock[] unused = FindUnusedExecutableBlocks(program);
             if (unused.Length > 0)
-                return CompileResult.Fail($"사용되지 않은 명령 블록이 있습니다 ({unused.Length}개)", unused);
+                return CompileResult.Fail($"사용되지 않은 블록이 있습니다 ({unused.Length}개)", unused);
 
             if (!terminal || terminal.ControlRole != DG.Data.ControlRole.End)
             {
@@ -159,10 +167,18 @@ namespace DG.Game.Runtime
         private static void WalkInner(Transform inner, List<BlockInstruction> output)
         {
             CodingBlock first = null;
-            foreach (Transform child in inner)
+            InnerSocket innerSocket = inner.GetComponentInChildren<InnerSocket>();
+            if (innerSocket && innerSocket.Occupant)
             {
-                if (child.TryGetComponent<CodingBlock>(out CodingBlock b) && b.Category != BlockCategory.Control)
-                { first = b; break; }
+                first = innerSocket.Occupant;
+            }
+            else
+            {
+                foreach (Transform child in inner)
+                {
+                    if (child.TryGetComponent<CodingBlock>(out CodingBlock b) && b.Category != BlockCategory.Control)
+                    { first = b; break; }
+                }
             }
             if (!first) return;
 
@@ -203,34 +219,40 @@ namespace DG.Game.Runtime
             return null;
         }
 
-        // 프로그램에 포함되지 않은 Command 블록 탐색 — 인벤토리·코딩존 방치 블록 모두 대상
-        private static CodingBlock[] FindUnusedCommands(List<BlockInstruction> program)
+        // 프로그램에 포함되지 않은 실행 블록(Command, FlowControl 등) 탐색 — 인벤토리·코딩존 방치 블록 모두 대상
+        private static CodingBlock[] FindUnusedExecutableBlocks(List<BlockInstruction> program)
         {
             var used = new HashSet<CodingBlock>();
-            CollectCommandSources(program, used);
+            CollectProgramSources(program, used);
 
             var unused = new List<CodingBlock>();
             foreach (CodingBlock b in FindAllBlocksInScene())
-                if (b.Category == BlockCategory.Command && !used.Contains(b))
+            {
+                bool isExecutable = b.Category == BlockCategory.Command ||
+                                    b.Category == BlockCategory.FlowControl ||
+                                    b.Category == BlockCategory.Action ||
+                                    b.Category == BlockCategory.ConditionAction;
+
+                if (isExecutable && !used.Contains(b))
                     unused.Add(b);
+            }
             return unused.ToArray();
         }
 
-        private static void CollectCommandSources(List<BlockInstruction> instructions, HashSet<CodingBlock> used)
+        private static void CollectProgramSources(List<BlockInstruction> instructions, HashSet<CodingBlock> used)
         {
             foreach (var instr in instructions)
             {
+                if (instr.Source) used.Add(instr.Source);
+
                 switch (instr)
                 {
-                    case CommandInstruction cmd:
-                        if (cmd.Source) used.Add(cmd.Source);
-                        break;
                     case RepeatInstruction rep when rep.Body is not null:
-                        CollectCommandSources(rep.Body, used);
+                        CollectProgramSources(rep.Body, used);
                         break;
                     case IfInstruction ifInstr:
-                        if (ifInstr.Then is not null) CollectCommandSources(ifInstr.Then, used);
-                        if (ifInstr.Else is not null) CollectCommandSources(ifInstr.Else, used);
+                        if (ifInstr.Then is not null) CollectProgramSources(ifInstr.Then, used);
+                        if (ifInstr.Else is not null) CollectProgramSources(ifInstr.Else, used);
                         break;
                 }
             }
@@ -295,6 +317,71 @@ namespace DG.Game.Runtime
                 {
                     CodingBlock err = FindIfWithoutCondition(rep.Body);
                     if (err) return err;
+                }
+            }
+            return null;
+        }
+
+        // 제어 블록(반복하기/만약) 내부에 최소 1개의 블록이 있는지 확인
+        private static CodingBlock FindFlowControlWithEmptyInner(List<BlockInstruction> instructions)
+        {
+            foreach (var instr in instructions)
+            {
+                if (instr is RepeatInstruction rep)
+                {
+                    if (rep.Body is null || rep.Body.Count == 0)
+                        return rep.Source;
+                    CodingBlock err = FindFlowControlWithEmptyInner(rep.Body);
+                    if (err) return err;
+                }
+                else if (instr is IfInstruction ifInstr)
+                {
+                    if (ifInstr.Then is null || ifInstr.Then.Count == 0)
+                        return ifInstr.Source;
+                    if (ifInstr.Then is not null) { CodingBlock err = FindFlowControlWithEmptyInner(ifInstr.Then); if (err) return err; }
+                    if (ifInstr.Else is not null) { CodingBlock err = FindFlowControlWithEmptyInner(ifInstr.Else); if (err) return err; }
+                }
+            }
+            return null;
+        }
+
+        // 제어 블록 내부에 Control 블록(시작하기/완성하기)이 포함되어 있는지 확인
+        private static CodingBlock FindControlInInner(List<BlockInstruction> instructions)
+        {
+            foreach (var instr in instructions)
+            {
+                if (instr is RepeatInstruction rep && rep.Body is not null)
+                {
+                    foreach (var innerInstr in rep.Body)
+                    {
+                        if (innerInstr.Source && innerInstr.Source.Category == BlockCategory.Control)
+                            return innerInstr.Source;
+                    }
+                    CodingBlock err = FindControlInInner(rep.Body);
+                    if (err) return err;
+                }
+                else if (instr is IfInstruction ifInstr)
+                {
+                    if (ifInstr.Then is not null)
+                    {
+                        foreach (var innerInstr in ifInstr.Then)
+                        {
+                            if (innerInstr.Source && innerInstr.Source.Category == BlockCategory.Control)
+                                return innerInstr.Source;
+                        }
+                        CodingBlock err = FindControlInInner(ifInstr.Then);
+                        if (err) return err;
+                    }
+                    if (ifInstr.Else is not null)
+                    {
+                        foreach (var innerInstr in ifInstr.Else)
+                        {
+                            if (innerInstr.Source && innerInstr.Source.Category == BlockCategory.Control)
+                                return innerInstr.Source;
+                        }
+                        CodingBlock err = FindControlInInner(ifInstr.Else);
+                        if (err) return err;
+                    }
                 }
             }
             return null;

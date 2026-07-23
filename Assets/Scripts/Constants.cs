@@ -82,5 +82,67 @@ namespace DG
             public readonly static UnityEngine.Vector2 FlowInnerBottom = new(-44f, -46f);
             public readonly static UnityEngine.Vector2 FlowHeaderValueOut = new(-8f, 0f);
         }
+
+        // ── 레벨별 문제 출제 및 정답 전용 센터 ───────────────────────
+        public static class Questions
+        {
+            public struct QuestionData
+            {
+                public string QuestionText;
+                public string ValueKey;      // 시간대("아침 8시") 또는 바람 방향("동쪽")
+                public string CorrectAnswer;  // 정답 방향("동쪽")
+            }
+
+            // 태양광 레벨 (시간대별 정답 방향)
+            public readonly static string[] SolarTimes = { "아침 8시", "오전 10시", "정오", "오후 2시", "오후 4시" };
+            public readonly static System.Collections.Generic.Dictionary<string, string> SolarAnswers =
+                new System.Collections.Generic.Dictionary<string, string>
+                {
+                    ["아침 8시"]  = "동쪽",
+                    ["오전 10시"] = "동쪽",
+                    ["정오"]      = "남쪽",
+                    ["오후 2시"]  = "서쪽",
+                    ["오후 4시"]  = "서쪽",
+                };
+
+            // 풍력 레벨 (바람 방향별 정답 날개 방향)
+            public readonly static string[] WindDirections = { "동쪽", "서쪽", "남쪽", "북쪽" };
+            public readonly static System.Collections.Generic.Dictionary<string, string> WindAnswers =
+                new System.Collections.Generic.Dictionary<string, string>
+                {
+                    ["동쪽"] = "동쪽",
+                    ["서쪽"] = "서쪽",
+                    ["남쪽"] = "남쪽",
+                    ["북쪽"] = "북쪽",
+                };
+
+            public static QuestionData GenerateQuestion(string levelName)
+            {
+                if (!string.IsNullOrEmpty(levelName) && levelName.Contains("풍력"))
+                {
+                    string dir = WindDirections[UnityEngine.Random.Range(0, WindDirections.Length)];
+                    string text = $"이곳은 바람이 <color=yellow>{dir}에서 불고 있습니다.</color>\n풍차의 날개 방향이 어디로 향해 있어야 할까요?\n알맞은 블록을 사용하여 코딩해봅시다.";
+                    string ans = WindAnswers.TryGetValue(dir, out var a) ? a : dir;
+                    return new QuestionData { QuestionText = text, ValueKey = dir, CorrectAnswer = ans };
+                }
+                else
+                {
+                    string time = SolarTimes[UnityEngine.Random.Range(0, SolarTimes.Length)];
+                    string text = $"<color=yellow>현재 {time}</color>입니다. 태양광 패널이 어느 방향으로\n향해 있어야 할까요? 알맞은 블록을 사용하여 코딩해봅시다.";
+                    string ans = SolarAnswers.TryGetValue(time, out var a) ? a : "동쪽";
+                    return new QuestionData { QuestionText = text, ValueKey = time, CorrectAnswer = ans };
+                }
+            }
+
+            public static string GetCorrectDirection(string levelName, string valueKey)
+            {
+                if (string.IsNullOrEmpty(valueKey)) return null;
+
+                if (!string.IsNullOrEmpty(levelName) && levelName.Contains("풍력"))
+                    return WindAnswers.TryGetValue(valueKey, out var windAns) ? windAns : valueKey;
+
+                return SolarAnswers.TryGetValue(valueKey, out var solarAns) ? solarAns : null;
+            }
+        }
     }
 }

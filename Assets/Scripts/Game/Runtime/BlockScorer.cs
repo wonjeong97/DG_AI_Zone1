@@ -30,7 +30,7 @@ namespace DG.Game.Runtime
             ["60개"] = 5,
         };
 
-        public static int ScoreProgram(List<BlockInstruction> instructions, string questionTime)
+        public static int ScoreProgram(List<BlockInstruction> instructions, string questionValueKey, string levelName = null)
         {
             int total = 0;
             foreach (var instr in instructions)
@@ -38,14 +38,14 @@ namespace DG.Game.Runtime
                 switch (instr)
                 {
                     case CommandInstruction cmd:
-                        total += ScoreCommand(cmd, questionTime);
+                        total += ScoreCommand(cmd, questionValueKey, levelName);
                         break;
                     case RepeatInstruction rep when rep.Body is not null:
-                        total += ScoreProgram(rep.Body, questionTime);
+                        total += ScoreProgram(rep.Body, questionValueKey, levelName);
                         break;
                     case IfInstruction ifInstr:
-                        if (ifInstr.Then is not null) total += ScoreProgram(ifInstr.Then, questionTime);
-                        if (ifInstr.Else is not null) total += ScoreProgram(ifInstr.Else, questionTime);
+                        if (ifInstr.Then is not null) total += ScoreProgram(ifInstr.Then, questionValueKey, levelName);
+                        if (ifInstr.Else is not null) total += ScoreProgram(ifInstr.Else, questionValueKey, levelName);
                         break;
                 }
             }
@@ -60,8 +60,8 @@ namespace DG.Game.Runtime
         public static int GetMaxScore()
             => DirectionCorrectScore + AngleScore[GetBestAngle()] + CountScore[GetBestCount()];
 
-        public static string GetBestDirection(string questionTime)
-            => CorrectDirection.TryGetValue(questionTime ?? "", out var direction) ? direction : null;
+        public static string GetBestDirection(string questionValueKey, string levelName = null)
+            => Constants.Questions.GetCorrectDirection(levelName, questionValueKey);
 
         public static string GetBestAngle() => MaxScoreKey(AngleScore);
         public static string GetBestCount() => MaxScoreKey(CountScore);
@@ -110,15 +110,15 @@ namespace DG.Game.Runtime
             }
         }
 
-        public static int ScoreCommand(CommandInstruction cmd, string questionTime)
+        public static int ScoreCommand(CommandInstruction cmd, string questionValueKey, string levelName = null)
         {
             if (cmd.Value is null) return 0;
 
             switch (cmd.ValueKind)
             {
                 case ValueKind.Direction:
-                    return CorrectDirection.TryGetValue(questionTime ?? "", out var correct) && cmd.Value == correct
-                        ? DirectionCorrectScore : 1;
+                    string correct = Constants.Questions.GetCorrectDirection(levelName, questionValueKey);
+                    return correct != null && cmd.Value == correct ? DirectionCorrectScore : 1;
                 case ValueKind.Angle:
                     return AngleScore.TryGetValue(cmd.Value, out var angle) ? angle : 0;
                 case ValueKind.Count:
