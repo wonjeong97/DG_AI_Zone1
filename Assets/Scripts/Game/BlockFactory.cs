@@ -90,8 +90,9 @@ namespace DG.Game
             return entry.category switch
             {
                 BlockCategory.Value       => await CreateFromPrefab("ValueBlock", entry, rootCanvas, draggable),
-                // 조건 블록 — 전용 아트 확보 전까지 Value 아트 재사용 (스냅/컴파일은 Condition 규칙 적용)
-                BlockCategory.Condition   => await CreateFromPrefab("ValueBlock", entry, rootCanvas, draggable),
+                // 조건 블록 — None: 이벤트형 조건(전용 아트) / kind 지정: 값형 조건(Value 아트 재사용)
+                BlockCategory.Condition   => await CreateFromPrefab(
+                    entry.valueKind == ValueKind.None ? "ConditionBlock" : "ValueBlock", entry, rootCanvas, draggable),
                 // Command + ValueKind.None = 값 슬롯 없는 동작 블록 (전용 아트, ValueOutSocket 미부착)
                 BlockCategory.Command     => await CreateFromPrefab(
                     entry.valueKind == ValueKind.None ? "CommandNoValueBlock" : "CommandBlock", entry, rootCanvas, draggable),
@@ -169,7 +170,7 @@ namespace DG.Game
                 AddDraggable(go, entry, rootCanvas);
             }
 
-            await AddLabel(go, entry.label, 28);
+            await AddLabel(go, entry.label, (int)Constants.Blocks.LabelFontSize);
 
             // Logic 블록은 수평 체인 슬롯 포함
             if (entry.category == BlockCategory.Logic && entry.chainBlocks is not null)
@@ -218,7 +219,7 @@ namespace DG.Game
         {
             GameObject h = NewRect("Header_" + label, 0f, height);
             h.transform.SetParent(parent, false);
-            await AddLabel(h, label, 26);
+            await AddLabel(h, label, (int)Constants.Blocks.LabelFontSize);
             LayoutElement le = h.AddComponent<LayoutElement>();
             le.preferredHeight = height;
             le.flexibleWidth = 1f;
@@ -284,10 +285,15 @@ namespace DG.Game
             Sprite sprite = await LoadSpriteAsync(BlockCategory.Logic);
             GameObject go = NewRect(entry.label, 120f, 56f);
             AddBlockBody(go, GetColor(BlockCategory.Logic), sprite);
+
+            // 스프라이트 원본 크기 기준 확대 — transform 스케일 대신 크기·라벨을 함께 키움
+            if (sprite && go.TryGetComponent<RectTransform>(out RectTransform rt))
+                rt.sizeDelta = new Vector2(sprite.rect.width, sprite.rect.height) * Constants.Blocks.LogicScale;
+
             go.AddComponent<CanvasGroup>();
             if (draggable)
                 AddDraggable(go, entry, rootCanvas);
-            await AddLabel(go, entry.label);
+            await AddLabel(go, entry.label, (int)Constants.Blocks.LabelFontSize);
             return go;
         }
 

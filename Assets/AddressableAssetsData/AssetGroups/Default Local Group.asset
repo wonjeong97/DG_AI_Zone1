@@ -52,6 +52,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6c08c0c84efcdf5408b28bc86c5b2309
+    m_Address: ConditionBlock
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 6e969153be5b2aa49884d0d4f203949b
     m_Address: End
     m_ReadOnly: 0
@@ -82,6 +87,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: dd94066edbf9e0249af317e31cb042a0
+    m_Address: Logic
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: e1bb829d518d8974c8d54bf92cbbfe07
     m_Address: FlowControlBlock
     m_ReadOnly: 0
@@ -89,11 +99,6 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: e46f934a3d9f3bc41abab03296b502bf
     m_Address: Start
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: eecb9fc48b6cf924daa708b0038c29cb
-    m_Address: Logic
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

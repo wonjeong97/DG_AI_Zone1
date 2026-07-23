@@ -7,6 +7,7 @@ namespace DG.Game
         Direction,  // 방향 (동쪽, 서쪽 …)
         Count,      // 개수 (20개, 40개 …)
         Angle,      // 각도 (30도, 45도 …)
-        Height      // 수위 (1m, 3m … 10m 이상)
+        Height,     // 수위 (1m, 3m … 10m 이상)
+        Time        // 시간 조건 (밤 …)
     }
 }
