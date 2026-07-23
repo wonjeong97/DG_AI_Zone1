@@ -17,6 +17,16 @@ MonoBehaviour:
     m_SerializedData: []
   m_GUID: d9cd5ee8edd0a93428e04483c67b4c4d
   m_SerializeEntries:
+  - m_GUID: 117bb0bffff9bc3459035ba2d0442273
+    m_Address: StartBlock
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 1a4d0220bdffff842ab60add4d646d72
+    m_Address: ValueBlock
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 2ba0f8b2f561db449837d0af415cc978
     m_Address: FlowControl
     m_ReadOnly: 0
@@ -24,6 +34,11 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 351fdcb60f4416e47a1f316ab405d0c2
     m_Address: Action
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4430ab3f5ab2ef64c9a16b4a3355e1ed
+    m_Address: EndBlock
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -42,6 +57,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 800472a16057cb643b743c24fc22aa0e
+    m_Address: CommandBlock
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 9abc708ad7de6214c96eaead12178e53
     m_Address: Command
     m_ReadOnly: 0
@@ -49,6 +69,11 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 9fae74a415518db4f941a00b0d8b78e4
     m_Address: GamtanRoadTantan
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e1bb829d518d8974c8d54bf92cbbfe07
+    m_Address: FlowControlBlock
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

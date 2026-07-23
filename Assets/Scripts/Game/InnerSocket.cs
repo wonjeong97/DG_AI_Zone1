@@ -10,8 +10,10 @@ namespace DG.Game
     // CodingBlock의 스냅 탐색이 방향 제한 없이 이 소켓을 찾아 스냅한다.
     public class InnerSocket : MonoBehaviour
     {
+        // 프리팹에서는 직렬화로 연결, 코드 생성 경로에서는 SetEmptyIndicator로 주입
+        [SerializeField] private GameObject _emptyIndicator;
+
         private CodingBlock _occupant;
-        private GameObject _emptyIndicator;
 
         public bool IsEmpty => !_occupant;
         public CodingBlock Occupant => _occupant;

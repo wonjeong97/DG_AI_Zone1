@@ -89,11 +89,61 @@ namespace DG.Game
         {
             return entry.category switch
             {
-                BlockCategory.Command     => await CreateCommandBlock(entry, rootCanvas, draggable),
+                BlockCategory.Value       => await CreateFromPrefab("ValueBlock", entry, rootCanvas, draggable),
+                BlockCategory.Command     => await CreateFromPrefab("CommandBlock", entry, rootCanvas, draggable),
+                BlockCategory.Control     => await CreateFromPrefab(
+                    entry.controlRole == ControlRole.Start ? "StartBlock" : "EndBlock", entry, rootCanvas, draggable),
                 BlockCategory.FlowControl => await CreateFlowBlock(entry, rootCanvas, draggable),
                 BlockCategory.Logic       => await CreateLogicBlock(entry, rootCanvas, draggable),
                 _                         => await CreateSimpleBlock(entry, rootCanvas, draggable)
             };
+        }
+
+        // ── 프리팹 기반 블록 (Value / Command) ──────────────────
+        // 시각 계층(배경·하이라이트·라벨)은 프리팹이 담당하고, 코드에서는 라벨 텍스트와
+        // CodingBlock 메타(카테고리/ValueKind)만 주입한다. 소켓은 기존처럼 AttachSockets가 런타임 부착.
+        private readonly static Dictionary<string, GameObject> _prefabCache = new();
+
+        /// <summary>
+        /// 이름으로 블록 프리팹을 어드레서블에서 1회 로드하고 캐시에서 반환.
+        /// </summary>
+        private static async UniTask<GameObject> LoadPrefabAsync(string name)
+        {
+            if (_prefabCache.TryGetValue(name, out GameObject cached)) return cached;
+
+            GameObject prefab = await Addressables.LoadAssetAsync<GameObject>(name);
+            _prefabCache[name] = prefab;
+            return prefab;
+        }
+
+        /// <summary>
+        /// 프리팹을 인스턴스화하고 라벨 텍스트와 CodingBlock 메타를 주입해 블록을 생성.
+        /// </summary>
+        private static async UniTask<GameObject> CreateFromPrefab(string prefabName, BlockEntry entry, Canvas rootCanvas, bool draggable)
+        {
+            GameObject prefab = await LoadPrefabAsync(prefabName);
+            GameObject go = Object.Instantiate(prefab);
+            go.name = entry.label; // 컴파일러/채점이 블록 이름으로 값을 읽으므로 라벨과 일치시킨다
+
+            TMPro.TextMeshProUGUI label = go.GetComponentInChildren<TMPro.TextMeshProUGUI>(true);
+            if (label)
+                label.text = entry.label;
+            else
+                Debug.LogWarning($"[BlockFactory] {prefabName} 프리팹에 라벨 TMP가 없습니다.");
+
+            if (go.TryGetComponent<CodingBlock>(out CodingBlock block))
+            {
+                if (draggable)
+                    block.Init(entry.category, rootCanvas, entry.valueKind, entry.controlRole);
+                else
+                    block.enabled = false;
+            }
+            else
+            {
+                Debug.LogWarning($"[BlockFactory] {prefabName} 프리팹에 CodingBlock이 없습니다.");
+            }
+
+            return go;
         }
 
         // ── 단순 블록 ───────────────────────────────────────────
@@ -103,26 +153,6 @@ namespace DG.Game
             
             float w = Constants.Blocks.DefaultWidth;
             float h = Constants.Blocks.DefaultHeight;
-            if (entry.category == BlockCategory.Control)
-            {
-                // 원래 리소스 블록의 크기를 따라가기 위한 고정 크기 설정
-                if (entry.controlRole == ControlRole.Start)
-                {
-                    w = Constants.Blocks.StartWidth;
-                    h = Constants.Blocks.StartHeight;
-                }
-                else
-                {
-                    w = Constants.Blocks.EndWidth;
-                    h = Constants.Blocks.EndHeight;
-                }
-            }
-            else if (entry.category == BlockCategory.Value)
-            {
-                // 원래 리소스 블록의 크기를 따라가기 위한 고정 크기 설정
-                w = Constants.Blocks.ValueWidth;
-                h = Constants.Blocks.ValueHeight;
-            }
 
             GameObject go = NewRect(entry.label, w, h);
             AddBlockBody(go, GetColor(entry.category), sprite);
@@ -135,39 +165,11 @@ namespace DG.Game
                 AddDraggable(go, entry, rootCanvas);
             }
 
-            // 시작하기 스프라이트는 하단 연결부 탓에 텍스트가 처져 보여 바닥을 20px 올림
-            await AddLabel(go, entry.label, 28, entry.controlRole == ControlRole.Start ? 20f : 0f);
+            await AddLabel(go, entry.label, 28);
 
             // Logic 블록은 수평 체인 슬롯 포함
             if (entry.category == BlockCategory.Logic && entry.chainBlocks is not null)
                 await AppendChain(go, entry.chainBlocks, rootCanvas, draggable);
-
-            return go;
-        }
-
-        // ── Command 블록 ────────────────────────────────────────
-        private static async UniTask<GameObject> CreateCommandBlock(BlockEntry entry, Canvas rootCanvas, bool draggable)
-        {
-            Sprite cmdSprite = await LoadSpriteAsync(BlockCategory.Command);
-            // 원래 리소스 블록의 크기를 따라가기 위한 고정 크기 설정
-            float cmdW = Constants.Blocks.CommandWidth;
-            float cmdH = Constants.Blocks.CommandHeight;
-
-            GameObject go = NewRect(entry.label, cmdW, cmdH);
-            go.AddComponent<CanvasGroup>();
-            if (draggable)
-                AddDraggable(go, entry, rootCanvas);
-
-            GameObject labelPart = NewRect("Label", cmdW, cmdH);
-            labelPart.transform.SetParent(go.transform, false);
-            labelPart.TryGetComponent<RectTransform>(out RectTransform labelRT);
-            labelRT.anchorMin = labelRT.anchorMax = labelRT.pivot = new Vector2(0f, 1f);
-            labelRT.anchoredPosition = Vector2.zero;
-            AddBlockBody(labelPart, GetColor(entry.category), cmdSprite);
-            if (labelPart.TryGetComponent<RectTransform>(out RectTransform lpRt))
-                lpRt.sizeDelta = new Vector2(cmdW, cmdH);
-
-            await AddLabel(labelPart, entry.label, 24, 10f);
 
             return go;
         }
@@ -182,125 +184,30 @@ namespace DG.Game
 
         private static async UniTask<GameObject> CreateFlowBlock(BlockEntry entry, Canvas rootCanvas, bool draggable)
         {
-            Sprite sprite = await LoadSpriteAsync(BlockCategory.FlowControl);
+            // 기본 구조(라벨·헤더·Inner·푸터)는 프리팹이 담당
+            GameObject go = await CreateFromPrefab("FlowControlBlock", entry, rootCanvas, draggable);
 
-            GameObject go = NewRect(entry.label, FlowBlockWidth, 0f);
-            go.AddComponent<CanvasGroup>();
+            // 사전 배치 블록은 현재 미지원 (런타임 드래그로만 배치)
+            if (entry.innerBlocks is not null && entry.innerBlocks.Length > 0)
+                Debug.LogWarning("[BlockFactory] 사전 배치 innerBlocks는 아직 지원되지 않습니다.");
 
-            VerticalLayoutGroup vlg = go.AddComponent<VerticalLayoutGroup>();
-            vlg.spacing = 0f;
-            vlg.childAlignment = TextAnchor.UpperLeft;
-            vlg.childControlWidth = true;
-            vlg.childForceExpandWidth = true;
-            vlg.childControlHeight = false;
-            vlg.childForceExpandHeight = false;
-
-            ContentSizeFitter csf = go.AddComponent<ContentSizeFitter>();
-            csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-            csf.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
-
-            // Label GO: 다른 블록과 동일하게 아웃라인·하이라이트·배경·텍스트를 한 곳에 통합
-            await AppendFlowLabel(go.transform, entry.label, sprite);
-
-            if (draggable)
-                AddDraggable(go, entry, rootCanvas);
-
-            // 헤더 높이 스페이서 (VLG용, 시각은 Label GO가 담당)
-            AppendFlowSpacer(go.transform, "Header_" + entry.label, FlowHeaderHeight);
-
-            // 조건 슬롯: 헤더 스페이서 우측에 고정
-            Transform headerSpacer = go.transform.Find("Header_" + entry.label);
-            if (headerSpacer)
-            {
-                GameObject socketGo = new GameObject(Constants.Sockets.ValueOutName);
-                socketGo.transform.SetParent(headerSpacer, false);
-                RectTransform socketRt = socketGo.AddComponent<RectTransform>();
-                socketRt.anchorMin = socketRt.anchorMax = new Vector2(1f, 0.5f);
-                socketRt.pivot     = new Vector2(0.5f, 0.5f);
-                socketRt.sizeDelta = Vector2.zero;
-                socketRt.anchoredPosition = Constants.Sockets.FlowHeaderValueOut;
-                socketGo.AddComponent<LayoutElement>().ignoreLayout = true;
-                socketGo.AddComponent<ValueOutSocket>();
-            }
-
-            // 내부 컨테이너
-            AppendInnerContainer(go.transform, entry.innerBlocks, rootCanvas, draggable);
-
-            // else 분기 (만약 블록) — 구분 텍스트 포함
+            // else 분기 (만약 블록) — 프리팹 기본 구조 뒤에 런타임 추가 후 푸터를 맨 아래로
             if (entry.elseBlocks is not null && entry.elseBlocks.Length > 0)
             {
                 await AppendFlowHeader(go.transform, "아니면", FlowElseHeight);
                 AppendInnerContainer(go.transform, entry.elseBlocks, rootCanvas, draggable);
-            }
 
-            // 푸터 높이 스페이서
-            AppendFlowFooter(go.transform);
+                Transform footer = go.transform.Find("Footer");
+                if (footer)
+                    footer.SetAsLastSibling();
+                else
+                    Debug.LogWarning("[BlockFactory] FlowControlBlock 프리팹에 Footer가 없습니다.");
+            }
 
             return go;
         }
 
         // ── FlowControl 헬퍼 ────────────────────────────────────
-
-        // 다른 블록의 Label GO와 동일한 구조:
-        // 0~2: SpriteOutline / ChainHighlight / ValueHighlight
-        //   3: Background (9-slice, 블록 전체 커버)
-        //   4: Label 텍스트 (헤더 영역 상단에 고정)
-        // ignoreLayout=true → VLG 배치에서 제외, 블록 전체를 덮는 시각 레이어로만 동작
-        private static async UniTask AppendFlowLabel(Transform parent, string label, Sprite sprite)
-        {
-            GameObject go = new GameObject("Label");
-            go.transform.SetParent(parent, false);
-            RectTransform rt = go.AddComponent<RectTransform>();
-            rt.anchorMin = Vector2.zero;
-            rt.anchorMax = Vector2.one;
-            rt.offsetMin = rt.offsetMax = Vector2.zero;
-            go.AddComponent<LayoutElement>().ignoreLayout = true;
-
-            if (sprite)
-            {
-                AddHighlightOverlays(go, sprite);
-
-                GameObject bgGo = new GameObject("Background");
-                bgGo.transform.SetParent(go.transform, false);
-                RectTransform bgRt = bgGo.AddComponent<RectTransform>();
-                bgRt.anchorMin = Vector2.zero;
-                bgRt.anchorMax = Vector2.one;
-                bgRt.offsetMin = bgRt.offsetMax = Vector2.zero;
-                Image bgImg = bgGo.AddComponent<Image>();
-                bgImg.sprite = sprite;
-                bgImg.type = Image.Type.Sliced;
-                bgImg.pixelsPerUnitMultiplier = 1f / FlowScale; // 9-slice 팔 두께도 배율만큼 확대
-                bgImg.color = Color.white;
-                bgImg.raycastTarget = false;
-            }
-
-            // 텍스트: 상단 FlowHeaderHeight 영역에만 표시
-            UnityEngine.TextCore.Text.FontAsset font = await LoadLabelFontAsync();
-            GameObject textGo = new GameObject("Label");
-            textGo.transform.SetParent(go.transform, false);
-            RectTransform textRt = textGo.AddComponent<RectTransform>();
-            textRt.anchorMin = new Vector2(0f, 1f);
-            textRt.anchorMax = Vector2.one;
-            textRt.pivot = new Vector2(0.5f, 1f); // 상단 모서리에 걸치지 않고 헤더(위 팔) 안쪽으로
-            textRt.offsetMin = textRt.offsetMax = Vector2.zero;
-            textRt.sizeDelta = new Vector2(0f, FlowHeaderHeight);
-            TMPro.TextMeshProUGUI txt = textGo.AddComponent<TMPro.TextMeshProUGUI>();
-            txt.text = label;
-            txt.font = font;
-            txt.fontSize = 26f * FlowScale;
-            txt.color = Color.white;
-            txt.alignment = TMPro.TextAlignmentOptions.Center;
-        }
-
-        // VLG 높이 스페이서 — 시각 없음, Label GO가 배경·텍스트를 담당
-        private static void AppendFlowSpacer(Transform parent, string name, float height)
-        {
-            GameObject h = NewRect(name, 0f, height);
-            h.transform.SetParent(parent, false);
-            LayoutElement le = h.AddComponent<LayoutElement>();
-            le.preferredHeight = height;
-            le.flexibleWidth = 1f;
-        }
 
         // else 구분 헤더 — 스페이서 + 텍스트 (시각은 Label GO의 9-slice 배경이 담당)
         private static async UniTask AppendFlowHeader(Transform parent, string label, float height)
@@ -364,15 +271,6 @@ namespace DG.Game
                 Debug.LogWarning("[BlockFactory] 사전 배치 innerBlocks는 아직 지원되지 않습니다.");
 
             inner.AddComponent<FlowInnerResize>();
-        }
-
-        private static void AppendFlowFooter(Transform parent)
-        {
-            GameObject f = NewRect("Footer", 0f, FlowFooterHeight);
-            f.transform.SetParent(parent, false);
-            LayoutElement le = f.AddComponent<LayoutElement>();
-            le.preferredHeight = FlowFooterHeight;
-            le.flexibleWidth = 1f;
         }
 
         // ── Logic 블록 (그리고 / 또는) ───────────────────────────────────
