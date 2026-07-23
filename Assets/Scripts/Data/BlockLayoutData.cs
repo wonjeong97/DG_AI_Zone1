@@ -33,7 +33,7 @@ namespace DG.Data
         [Tooltip("Command 블록의 우측 값. 비어있으면 빈 ValueSlot")]
         public string valueLabel;
 
-        [Tooltip("Value 블록: 자신의 값 타입 / Command 블록: 허용할 값 타입 (None = 모든 타입 허용)")]
+        [Tooltip("Value 블록: 자신의 값 타입 / Command 블록: 허용할 값 타입 (None = 값 슬롯 없는 동작 블록)")]
         public ValueKind valueKind;
 
         // SerializeReference: 재귀 타입의 깊이 제한 우회

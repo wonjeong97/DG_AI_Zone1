@@ -90,7 +90,9 @@ namespace DG.Game
             return entry.category switch
             {
                 BlockCategory.Value       => await CreateFromPrefab("ValueBlock", entry, rootCanvas, draggable),
-                BlockCategory.Command     => await CreateFromPrefab("CommandBlock", entry, rootCanvas, draggable),
+                // Command + ValueKind.None = 값 슬롯 없는 동작 블록 (전용 아트, ValueOutSocket 미부착)
+                BlockCategory.Command     => await CreateFromPrefab(
+                    entry.valueKind == ValueKind.None ? "CommandNoValueBlock" : "CommandBlock", entry, rootCanvas, draggable),
                 BlockCategory.Control     => await CreateFromPrefab(
                     entry.controlRole == ControlRole.Start ? "StartBlock" : "EndBlock", entry, rootCanvas, draggable),
                 BlockCategory.FlowControl => await CreateFlowBlock(entry, rootCanvas, draggable),
@@ -318,7 +320,8 @@ namespace DG.Game
             var cat = block.Category;
 
             // Command만 단일 ValueOutSocket — FlowControl은 헤더에 내장, Logic은 두 조건 슬롯 내장
-            if (cat == BlockCategory.Command)
+            // ValueKind.None인 Command는 값 슬롯 없는 블록이므로 소켓을 붙이지 않는다 (Value 스냅 불가)
+            if (cat == BlockCategory.Command && block.ValueKind != ValueKind.None)
                 AttachValueOutSocket(block.gameObject, Constants.Sockets.CommandValueOut);
 
             if (cat == BlockCategory.Value)
