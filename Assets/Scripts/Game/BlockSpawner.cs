@@ -1,6 +1,7 @@
 using Cysharp.Threading.Tasks;
 using DG.Data;
 using UnityEngine;
+using UnityEngine.UI;
 using VContainer;
 using VContainer.Unity;
 
@@ -78,7 +79,20 @@ namespace DG.Game
             if (go.transform is RectTransform rt)
             {
                 rt.anchorMin = rt.anchorMax = new Vector2(0f, isStart ? 1f : 0f);
-                rt.anchoredPosition = new Vector2(80f, isStart ? -120f : 120f);
+                float y = isStart ? -120f : 120f;
+
+                // 스크롤 콘텐츠가 뷰포트보다 클 때, 완성하기가 초기 화면(콘텐츠 좌상단 뷰) 안에 보이도록 보정
+                if (!isStart && codingContainer is RectTransform content)
+                {
+                    ScrollRect scroll = content.GetComponentInParent<ScrollRect>();
+                    if (scroll && scroll.viewport)
+                    {
+                        float overflow = content.rect.height - scroll.viewport.rect.height;
+                        if (overflow > 0f) y += overflow;
+                    }
+                }
+
+                rt.anchoredPosition = new Vector2(80f, y);
             }
 
             if (go.TryGetComponent<CodingBlock>(out CodingBlock block))

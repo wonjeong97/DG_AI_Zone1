@@ -529,6 +529,10 @@ namespace DG.Game
                 return;
             }
 
+            // 스크롤 존이면 확대된 Content가 아니라 화면에 보이는 Viewport 기준으로 내부 판정
+            ScrollRect scroll = zone.GetComponentInParent<ScrollRect>();
+            if (scroll && scroll.viewport) zoneRect = scroll.viewport;
+
             bool isInside = RectTransformUtility.RectangleContainsScreenPoint(zoneRect, e.position, e.pressEventCamera);
 
             if (isInside)
