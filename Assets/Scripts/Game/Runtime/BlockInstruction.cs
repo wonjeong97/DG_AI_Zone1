@@ -50,7 +50,9 @@ namespace DG.Game.Runtime
 
     public sealed class RepeatInstruction : BlockInstruction
     {
-        public int Count;
+        public int Count; // 음수 = 무한 반복 (횟수 Value 미연결)
         public List<BlockInstruction> Body;
+
+        public bool IsInfinite => Count < 0;
     }
 }

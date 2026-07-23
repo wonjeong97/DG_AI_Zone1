@@ -301,6 +301,7 @@ namespace DG.Game.Runtime
         }
 
         // 반복하기 블록의 헤더에 달린 Value 블록에서 횟수를 읽음
+        // 값이 없으면 무한 반복(-1) — 실제 실행은 BlockExecutor가 1회로 제한
         private static int ReadRepeatCount(CodingBlock block)
         {
             foreach (Transform child in block.transform)
@@ -311,7 +312,7 @@ namespace DG.Game.Runtime
                 if (vos && vos.Occupant && int.TryParse(vos.Occupant.name, out int n))
                     return n;
             }
-            return 1;
+            return -1;
         }
 
         private static List<CodingBlock> FindAllBlocksInScene()

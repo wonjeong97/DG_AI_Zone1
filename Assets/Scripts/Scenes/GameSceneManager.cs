@@ -30,8 +30,12 @@ namespace DG.Scenes
         private readonly static string[] QuestionTimes =
             { "아침 8시", "오전 10시", "정오", "오후 2시", "오후 4시" };
 
+        private readonly static string[] WindDirections =
+            { "동쪽", "서쪽", "남쪽", "북쪽" };
+
         private CancellationTokenSource _cts;
         private string _questionTime;
+        private string _windDirection;
 
         private void Start()
         {
@@ -51,9 +55,19 @@ namespace DG.Scenes
             SceneFader.RegisterPendingTask(spawnTask);
             spawnTask.Forget();
 
-            _questionTime = QuestionTimes[Random.Range(0, QuestionTimes.Length)];
-            if (questionText)
-                questionText.text = $"<color=yellow>현재 {_questionTime}</color>입니다. 태양광 패널이 어느 방향으로\n향해 있어야 할까요? 알맞은 블록을 사용하여 코딩해봅시다.";
+            // 레벨별 문제 출제 — 풍력: 바람 방향 랜덤, 그 외(태양광): 시간대 랜덤
+            if (level && level.name.Contains("풍력"))
+            {
+                _windDirection = WindDirections[Random.Range(0, WindDirections.Length)];
+                if (questionText)
+                    questionText.text = $"이곳은 바람이 <color=yellow>{_windDirection}에서 불고 있습니다.</color> 풍차의 날개 방향이\n어디로 향해 있어야 할까요? 알맞은 블록을 사용하여 코딩해봅시다.";
+            }
+            else
+            {
+                _questionTime = QuestionTimes[Random.Range(0, QuestionTimes.Length)];
+                if (questionText)
+                    questionText.text = $"<color=yellow>현재 {_questionTime}</color>입니다. 태양광 패널이 어느 방향으로\n향해 있어야 할까요? 알맞은 블록을 사용하여 코딩해봅시다.";
+            }
 
             // 코딩 완료 없이 넘어가면 결과 씬에서 '-'로 표시되도록 이전 결과 초기화
             if (_session)
@@ -169,7 +183,7 @@ namespace DG.Scenes
             executor.OnComplete += () =>
             {
                 _log?.ZLogInformation($"[실행] 완료 — {score}점");
-                SceneFader.FadeAndLoad("4_Result", logger: _log).Forget();
+                SceneFader.FadeAndLoad(Constants.Scenes.Result, logger: _log).Forget();
             };
 
             await executor.RunAsync(result.Instructions, _cts.Token);
@@ -183,7 +197,7 @@ namespace DG.Scenes
                 _session.lastScore = 0;
                 _session.lastDirection = _session.lastAngle = _session.lastCount = null;
             }
-            SceneFader.FadeAndLoad("4_Result", logger: _log).Forget();
+            SceneFader.FadeAndLoad(Constants.Scenes.Result, logger: _log).Forget();
         }
 
         // 프로그램에 포함된 모든 블록(반복/조건 내부 포함)에 성공 외곽선 표시
