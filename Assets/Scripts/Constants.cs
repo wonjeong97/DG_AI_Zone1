@@ -34,6 +34,10 @@ namespace DG
             public const float CommandWidth  = 371f;
             public const float CommandHeight = 119f;
 
+            // 값 슬롯 없는 Command 블록 (개방하기 …)
+            public const float CommandNoValueWidth  = 315f;
+            public const float CommandNoValueHeight = 119f;
+
             // FlowControl(반복/만약) — 원본 아트 254px 폭 기준 확대 배율.
             // transform 스케일 대신 프레임 크기·9-slice 보더 두께·라벨 크기를 함께 키워
             // 내부 소켓에 연결되는 자식 블록 크기에는 영향을 주지 않는다
@@ -68,6 +72,10 @@ namespace DG
             public readonly static UnityEngine.Vector2 FlowChainIn     = new(-90f, -17.5f);
             public readonly static UnityEngine.Vector2 CommandChainIn  = new(-78f, -16f);
 
+            // 값 슬롯 없는 Command (개방하기 …) — 폭이 좁아 체인 소켓 x를 별도 보정
+            public readonly static UnityEngine.Vector2 CommandNoValueChainOut = new(-62f, 11.5f);
+            public readonly static UnityEngine.Vector2 CommandNoValueChainIn  = new(-62f, -16f);
+
             // 값 연결 (ValueOut: 우측 중앙 앵커 / ValueIn: 좌측 중앙 앵커)
             public readonly static UnityEngine.Vector2 CommandValueOut   = new(-8f, 11f);
             public readonly static UnityEngine.Vector2 ValueValueIn      = new(16f, 3.5f);
@@ -80,7 +88,8 @@ namespace DG
             // FlowControl 내부 (Inner 컨테이너 기준)
             public readonly static UnityEngine.Vector2 FlowInner       = new(-44f, 28f);
             public readonly static UnityEngine.Vector2 FlowInnerBottom = new(-44f, -46f);
-            public readonly static UnityEngine.Vector2 FlowHeaderValueOut = new(-8f, 0f);
+            // 실제 소스는 FlowControlBlock 프리팹의 Header_Flow/ValueOutSocket (여기는 기록용)
+            public readonly static UnityEngine.Vector2 FlowHeaderValueOut = new(-22f, 10f);
         }
 
         // ── 레벨별 문제 출제 및 정답 전용 센터 ───────────────────────

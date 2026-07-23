@@ -6,6 +6,7 @@ namespace DG.Game
         None,       // 미지정 — Command에서는 값 슬롯 없음 (ValueOutSocket 미부착)
         Direction,  // 방향 (동쪽, 서쪽 …)
         Count,      // 개수 (20개, 40개 …)
-        Angle       // 각도 (30도, 45도 …)
+        Angle,      // 각도 (30도, 45도 …)
+        Height      // 수위 (1m, 3m … 10m 이상)
     }
 }
