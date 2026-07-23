@@ -90,7 +90,11 @@ namespace DG.Game
             return entry.category switch
             {
                 BlockCategory.Value       => await CreateFromPrefab("ValueBlock", entry, rootCanvas, draggable),
-                BlockCategory.Command     => await CreateFromPrefab("CommandBlock", entry, rootCanvas, draggable),
+                // 조건 블록 — 전용 아트 확보 전까지 Value 아트 재사용 (스냅/컴파일은 Condition 규칙 적용)
+                BlockCategory.Condition   => await CreateFromPrefab("ValueBlock", entry, rootCanvas, draggable),
+                // Command + ValueKind.None = 값 슬롯 없는 동작 블록 (전용 아트, ValueOutSocket 미부착)
+                BlockCategory.Command     => await CreateFromPrefab(
+                    entry.valueKind == ValueKind.None ? "CommandNoValueBlock" : "CommandBlock", entry, rootCanvas, draggable),
                 BlockCategory.Control     => await CreateFromPrefab(
                     entry.controlRole == ControlRole.Start ? "StartBlock" : "EndBlock", entry, rootCanvas, draggable),
                 BlockCategory.FlowControl => await CreateFlowBlock(entry, rootCanvas, draggable),
@@ -318,7 +322,8 @@ namespace DG.Game
             var cat = block.Category;
 
             // Command만 단일 ValueOutSocket — FlowControl은 헤더에 내장, Logic은 두 조건 슬롯 내장
-            if (cat == BlockCategory.Command)
+            // ValueKind.None인 Command는 값 슬롯 없는 블록이므로 소켓을 붙이지 않는다 (Value 스냅 불가)
+            if (cat == BlockCategory.Command && block.ValueKind != ValueKind.None)
                 AttachValueOutSocket(block.gameObject, Constants.Sockets.CommandValueOut);
 
             if (cat == BlockCategory.Value)
@@ -339,13 +344,17 @@ namespace DG.Game
                 bool isEnd     = block.ControlRole == ControlRole.End;
                 bool isCommand = cat == BlockCategory.Command;
                 bool isFlow    = cat == BlockCategory.FlowControl;
+                // 값 슬롯 없는 Command는 폭이 좁아 체인 소켓 오프셋을 별도 사용
+                bool isNoValueCommand = isCommand && block.ValueKind == ValueKind.None;
 
-                Vector2 outOffset = isStart   ? Constants.Sockets.StartChainOut   :
-                                    isFlow    ? Constants.Sockets.FlowChainOut    :
-                                    isCommand ? Constants.Sockets.CommandChainOut : Vector2.zero;
-                Vector2 inOffset  = isEnd     ? Constants.Sockets.EndChainIn      :
-                                    isFlow    ? Constants.Sockets.FlowChainIn     :
-                                    isCommand ? Constants.Sockets.CommandChainIn  : Vector2.zero;
+                Vector2 outOffset = isStart          ? Constants.Sockets.StartChainOut          :
+                                    isFlow           ? Constants.Sockets.FlowChainOut           :
+                                    isNoValueCommand ? Constants.Sockets.CommandNoValueChainOut :
+                                    isCommand        ? Constants.Sockets.CommandChainOut        : Vector2.zero;
+                Vector2 inOffset  = isEnd            ? Constants.Sockets.EndChainIn             :
+                                    isFlow           ? Constants.Sockets.FlowChainIn            :
+                                    isNoValueCommand ? Constants.Sockets.CommandNoValueChainIn  :
+                                    isCommand        ? Constants.Sockets.CommandChainIn         : Vector2.zero;
 
                 if (!isEnd)   AttachOutSocket(block.gameObject, outOffset);
                 if (!isStart) AttachInSocket(block.gameObject,  inOffset);

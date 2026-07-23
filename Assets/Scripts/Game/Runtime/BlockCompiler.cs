@@ -199,11 +199,13 @@ namespace DG.Game.Runtime
         }
 
         // Command 블록 중 Value가 연결되지 않은 첫 번째 블록을 재귀적으로 탐색
+        // (ValueKind.None = 값 슬롯 없는 동작 블록은 검사 대상에서 제외)
         private static CodingBlock FindCommandWithoutValue(List<BlockInstruction> instructions)
         {
             foreach (var instr in instructions)
             {
-                if (instr is CommandInstruction cmd && cmd.Value is null)
+                if (instr is CommandInstruction cmd && cmd.Value is null
+                    && cmd.Source && cmd.Source.ValueKind != ValueKind.None)
                     return cmd.Source;
                 if (instr is RepeatInstruction rep && rep.Body is not null)
                 {

@@ -72,6 +72,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a3132a8c7ec42544db522f71095dceac
+    m_Address: CommandNoValueBlock
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: c44b76ba86e8fe745972731e6ee6d554
     m_Address: CategoryButton
     m_ReadOnly: 0

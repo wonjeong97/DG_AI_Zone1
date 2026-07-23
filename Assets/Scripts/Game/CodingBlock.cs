@@ -381,7 +381,7 @@ namespace DG.Game
                     if (Category == BlockCategory.Value)
                     {
                         if (targetBlock.Category != BlockCategory.Command) continue;
-                        // Command가 허용하는 값 타입만 스냅 (None = 모든 타입 허용)
+                        // Command가 허용하는 값 타입만 스냅 (None인 Command는 소켓이 없어 대상에서 제외됨)
                         if (targetBlock.ValueKind != ValueKind.None && targetBlock.ValueKind != ValueKind) continue;
                     }
                     if (Category == BlockCategory.Logic && targetBlock.Category != BlockCategory.FlowControl) continue;

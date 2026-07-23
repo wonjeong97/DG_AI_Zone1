@@ -10,6 +10,100 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d27cd7030946e1e498ffaef1101438cf, type: 3}
-  m_Name: "\uC218\uB825BlockLayout"
-  m_EditorClassIdentifier: 
-  blocks: []
+  m_Name: "수력BlockLayout"
+  m_EditorClassIdentifier:
+  inventoryBlocks:
+  - category: 0
+    label: "시작하기"
+    controlRole: 1
+    valueLabel:
+    valueKind: 0
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
+  - category: 3
+    label: "만약"
+    controlRole: 0
+    valueLabel:
+    valueKind: 0
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
+  - category: 1
+    label: "개방하기"
+    controlRole: 0
+    valueLabel:
+    valueKind: 0
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
+  - category: 1
+    label: "폐쇄하기"
+    controlRole: 0
+    valueLabel:
+    valueKind: 0
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
+  - category: 7
+    label: "1m"
+    controlRole: 0
+    valueLabel:
+    valueKind: 4
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
+  - category: 7
+    label: "3m"
+    controlRole: 0
+    valueLabel:
+    valueKind: 4
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
+  - category: 7
+    label: "5m"
+    controlRole: 0
+    valueLabel:
+    valueKind: 4
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
+  - category: 7
+    label: "8m"
+    controlRole: 0
+    valueLabel:
+    valueKind: 4
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
+  - category: 7
+    label: "10m 이상"
+    controlRole: 0
+    valueLabel:
+    valueKind: 4
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
+  - category: 0
+    label: "완성하기"
+    controlRole: 2
+    valueLabel:
+    valueKind: 0
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
+  codingBlocks: []
+  references:
+    version: 2
+    RefIds: []
