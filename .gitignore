@@ -117,3 +117,6 @@ InitTestScene*.unity*
 # Build info generated at build time
 /Assets/StreamingAssets/build_info
 /Assets/StreamingAssets/build_info.meta
+
+# Unity directory monitor sync temp files
+~UnityDirMonSyncFile~*

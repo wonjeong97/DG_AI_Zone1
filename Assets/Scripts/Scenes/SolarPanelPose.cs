@@ -84,30 +84,20 @@ namespace DG.Scenes
             float targetYaw = DirectionToLocalYaw(direction);
             float currentTilt = GetCurrentTilt();
 
-            // 1) 방향(yaw) 먼저 — DeltaAngle로 최단 경로 회전
+            // 1) 방향(yaw) 먼저 — DeltaAngle로 최단 경로 회전 (순수 수치 보간이므로 DOVirtual)
             float startYaw = tiltPivot ? tiltPivot.localEulerAngles.y : 0f;
-            float yaw = startYaw;
             float endYaw = startYaw + Mathf.DeltaAngle(startYaw, targetYaw);
-            await DOTween.To(() => yaw, y =>
-                {
-                    yaw = y;
-                    SetPivot(currentTilt, y);
-                }, endYaw, animDuration)
+            await DOVirtual.Float(startYaw, endYaw, animDuration, y => SetPivot(currentTilt, y))
                 .SetEase(Ease.InOutQuad)
                 .SetLink(gameObject)
-                .WithCancellation(ct);
+                .ToUniTask(cancellationToken: ct);
             SetPivot(currentTilt, targetYaw);
 
             // 2) 각도(tilt)
-            float tilt = currentTilt;
-            await DOTween.To(() => tilt, x =>
-                {
-                    tilt = x;
-                    SetPivot(x, targetYaw);
-                }, targetTilt, animDuration)
+            await DOVirtual.Float(currentTilt, targetTilt, animDuration, x => SetPivot(x, targetYaw))
                 .SetEase(Ease.InOutQuad)
                 .SetLink(gameObject)
-                .WithCancellation(ct);
+                .ToUniTask(cancellationToken: ct);
             SetPivot(targetTilt, targetYaw);
         }
 

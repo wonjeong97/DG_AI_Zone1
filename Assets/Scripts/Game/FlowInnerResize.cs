@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 
 namespace DG.Game
@@ -6,7 +6,8 @@ namespace DG.Game
     [RequireComponent(typeof(LayoutElement))]
     public class FlowInnerResize : MonoBehaviour
     {
-        private const float MinHeight = 50f;
+        // BlockFactory.InnerMinHeight와 같은 값 — Constants에서 단일 관리
+        private const float MinHeight = Constants.Blocks.FlowInnerMinHeight;
 
         private LayoutElement _le;
         private RectTransform _rt;
@@ -26,7 +27,7 @@ namespace DG.Game
             if (_socket && _socket.TryGetComponent<RectTransform>(out RectTransform srt))
                 _socketOffset = -srt.anchoredPosition.y;
 
-            Transform bottomGo = transform.Find("InnerBottomSocket");
+            Transform bottomGo = transform.Find(Constants.Sockets.InnerBottomName);
             if (bottomGo && bottomGo.TryGetComponent<RectTransform>(out RectTransform brt))
                 _bottomSocketOffset = brt.anchoredPosition.y;
         }
@@ -35,7 +36,9 @@ namespace DG.Game
         {
             if (!_le || !_socket) return;
 
-            float innerTarget = HasMultipleBlocks()
+            // 블록이 하나라도 들어오면 마지막 블록의 ChainOutSocket이 InnerBottomSocket 위치에
+            // 오도록 높이를 계산 (ChainHeight − 위쪽 소켓 오프셋 + 아래쪽 소켓 오프셋)
+            float innerTarget = _socket.Occupant
                 ? Mathf.Max(MinHeight, ChainHeight() + _socketOffset + _bottomSocketOffset)
                 : MinHeight;
 
@@ -64,14 +67,6 @@ namespace DG.Game
             return total;
         }
 
-        private bool HasMultipleBlocks()
-        {
-            if (!_socket.Occupant) return false;
-            ChainOutSocket outSocket = null;
-            _socket.Occupant.transform.Find("ChainOutSocket")?.TryGetComponent(out outSocket);
-            return outSocket && outSocket.Occupant;
-        }
-
         private float ChainHeight()
         {
             CodingBlock block = _socket.Occupant;
@@ -79,7 +74,7 @@ namespace DG.Game
             while (block)
             {
                 ChainOutSocket outSocket = null;
-                block.transform.Find("ChainOutSocket")?.TryGetComponent(out outSocket);
+                block.transform.Find(Constants.Sockets.ChainOutName)?.TryGetComponent(out outSocket);
                 if (outSocket) lastOut = outSocket;
                 block = outSocket ? outSocket.Occupant : null;
             }

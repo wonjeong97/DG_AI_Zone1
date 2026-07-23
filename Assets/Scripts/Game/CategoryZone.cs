@@ -1,7 +1,10 @@
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using UnityEngine;
 using UnityEngine.UI;
+using VContainer;
+using ZLogger;
 
 namespace DG.Game
 {
@@ -15,6 +18,8 @@ namespace DG.Game
         public Transform InventoryContent => inventoryContent;
         public BlockCategory CurrentCategory { get; private set; }
 
+        [Inject] private ILogger<CategoryZone> _log;
+
         private const float ButtonWidth = 140f;
         private const float ButtonHeight = 60f;
 
@@ -24,17 +29,16 @@ namespace DG.Game
         public async UniTask Build(IReadOnlyList<BlockCategory> categories)
         {
             // 가로정렬 대신 3x2 그리드 레이아웃 설정
-            var grid = buttonContainer.GetComponent<GridLayoutGroup>();
-            if (grid == null)
+            if (!buttonContainer.TryGetComponent<GridLayoutGroup>(out GridLayoutGroup grid))
             {
-                var hlg = buttonContainer.GetComponent<HorizontalLayoutGroup>();
-                if (hlg != null) DestroyImmediate(hlg);
+                if (buttonContainer.TryGetComponent<HorizontalLayoutGroup>(out HorizontalLayoutGroup hlg))
+                    DestroyImmediate(hlg);
                 grid = buttonContainer.gameObject.AddComponent<GridLayoutGroup>();
             }
             grid.cellSize = new Vector2(138f, 42f);
             grid.spacing = new Vector2(8f, 6f);
             grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-            grid.constraintCount = 3;
+            grid.constraintCount = 2;
             grid.padding = new RectOffset(8, 8, 4, 4);
 
             for (int i = buttonContainer.childCount - 1; i >= 0; i--)
@@ -67,6 +71,10 @@ namespace DG.Game
             {
                 LayoutRebuilder.ForceRebuildLayoutImmediate(scrollRect.content);
                 scrollRect.verticalNormalizedPosition = 1f;
+            }
+            else
+            {
+                _log?.ZLogWarning($"[CategoryZone] 인벤토리 ScrollRect를 찾지 못해 스크롤 리셋을 건너뜁니다.");
             }
 
             foreach ((BlockCategory c, Image fillImg, TMPro.TextMeshProUGUI labelText) in _buttons)

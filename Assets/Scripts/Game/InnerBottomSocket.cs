@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -21,7 +21,7 @@ namespace DG.Game
             Gizmos.DrawLine(pos + Vector2.up    * arm, pos + Vector2.down  * arm);
             Gizmos.DrawWireSphere(rt.position, 5f);
 
-            Handles.Label(rt.position + Vector3.up * 18f, "InnerBottomSocket",
+            Handles.Label(rt.position + Vector3.up * 18f, Constants.Sockets.InnerBottomName,
                 new GUIStyle { normal = { textColor = new Color(0f, 0.8f, 1f) }, fontSize = 9 });
         }
 #endif

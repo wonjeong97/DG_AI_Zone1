@@ -61,7 +61,9 @@ namespace DG.Game.Runtime
 
         private async UniTask<bool> ExecuteRepeat(RepeatInstruction instr, CancellationToken ct)
         {
-            for (int i = 0; i < instr.Count; i++)
+            // 무한 반복은 이론적 의미만 가짐 — 실제 실행은 1회로 제한 (무한 루프 방지)
+            int iterations = instr.IsInfinite ? 1 : instr.Count;
+            for (int i = 0; i < iterations; i++)
             {
                 ct.ThrowIfCancellationRequested();
                 if (!await ExecuteList(instr.Body, ct)) return false;
