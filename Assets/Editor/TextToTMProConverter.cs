@@ -52,7 +52,7 @@ namespace DG.Editor
         public static void ConvertAllInActiveScene()
         {
             // 기본/폴백 폰트 로드
-            TMP_FontAsset defaultFont = Resources.Load<TMP_FontAsset>("Fonts & Materials/GamtanRoadTantan SDF");
+            UnityEngine.TextCore.Text.FontAsset defaultFont = Resources.Load<UnityEngine.TextCore.Text.FontAsset>("Fonts & Materials/GamtanRoadTantan SDF");
             if (defaultFont == null)
             {
                 Debug.LogError("기본 GamtanRoadTantan SDF Font Asset을 찾을 수 없습니다. Resources/Fonts & Materials/ 경로를 확인하세요.");
@@ -83,21 +83,21 @@ namespace DG.Editor
                 GameObject go = textComp.gameObject;
                 
                 // 기존 폰트에 어울리는 TMP 폰트 에셋 결정
-                TMP_FontAsset matchedFont = defaultFont;
+                UnityEngine.TextCore.Text.FontAsset matchedFont = defaultFont;
                 if (textComp.font != null)
                 {
                     string oldFontName = textComp.font.name.ToLower();
                     if (oldFontName.Contains("neodgm"))
                     {
                         // neodgm용 SDF 로드 시도
-                        TMP_FontAsset neoFont = Resources.Load<TMP_FontAsset>("Fonts & Materials/neodgm SDF");
+                        UnityEngine.TextCore.Text.FontAsset neoFont = Resources.Load<UnityEngine.TextCore.Text.FontAsset>("Fonts & Materials/neodgm SDF");
                         if (neoFont != null) matchedFont = neoFont;
                         else Debug.LogWarning($"[Font Fallback] {go.name}의 neodgm 폰트용 'neodgm SDF' 에셋이 없어 기본 폰트로 대체합니다.");
                     }
                     else if (oldFontName.Contains("dunggeunmo"))
                     {
                         // DungGeunMo용 SDF 로드 시도
-                        TMP_FontAsset dgFont = Resources.Load<TMP_FontAsset>("Fonts & Materials/DungGeunMo SDF");
+                        UnityEngine.TextCore.Text.FontAsset dgFont = Resources.Load<UnityEngine.TextCore.Text.FontAsset>("Fonts & Materials/DungGeunMo SDF");
                         if (dgFont != null) matchedFont = dgFont;
                         else Debug.LogWarning($"[Font Fallback] {go.name}의 DungGeunMo 폰트용 'DungGeunMo SDF' 에셋이 없어 기본 폰트로 대체합니다.");
                     }

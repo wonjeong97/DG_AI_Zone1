@@ -38,16 +38,16 @@ namespace DG.Game
         }
 
         // 한글 라벨용 폰트 — 1회만 로드 후 캐시.
-        private static TMPro.TMP_FontAsset _labelFont;
+        private static UnityEngine.TextCore.Text.FontAsset _labelFont;
 
-        public static async UniTask<TMPro.TMP_FontAsset> LoadLabelFontAsync()
+        public static async UniTask<UnityEngine.TextCore.Text.FontAsset> LoadLabelFontAsync()
         {
             if (_labelFont) return _labelFont;
-            _labelFont = Resources.Load<TMPro.TMP_FontAsset>("Fonts & Materials/GamtanRoadTantan SDF");
+            _labelFont = Resources.Load<UnityEngine.TextCore.Text.FontAsset>("Fonts & Materials/GamtanRoadTantan SDF");
             if (!_labelFont)
             {
                 // Resources 로드 실패 시 어드레서블로 2차 시도
-                _labelFont = await Addressables.LoadAssetAsync<TMPro.TMP_FontAsset>("GamtanRoadTantan SDF");
+                _labelFont = await Addressables.LoadAssetAsync<UnityEngine.TextCore.Text.FontAsset>("GamtanRoadTantan SDF");
             }
             return _labelFont;
         }
@@ -272,7 +272,7 @@ namespace DG.Game
             }
 
             // 텍스트: 상단 FlowHeaderHeight 영역에만 표시
-            TMPro.TMP_FontAsset font = await LoadLabelFontAsync();
+            UnityEngine.TextCore.Text.FontAsset font = await LoadLabelFontAsync();
             GameObject textGo = new GameObject("Label");
             textGo.transform.SetParent(go.transform, false);
             RectTransform textRt = textGo.AddComponent<RectTransform>();
@@ -711,7 +711,7 @@ namespace DG.Game
 
         private static async UniTask AddLabel(GameObject go, string text, int size = 28, float bottom = 0f)
         {
-            TMPro.TMP_FontAsset font = await LoadLabelFontAsync();
+            UnityEngine.TextCore.Text.FontAsset font = await LoadLabelFontAsync();
             GameObject t = new GameObject("Label");
             t.transform.SetParent(go.transform, false);
             RectTransform rt = t.AddComponent<RectTransform>();
