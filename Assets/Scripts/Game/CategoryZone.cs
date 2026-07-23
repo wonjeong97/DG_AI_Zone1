@@ -34,7 +34,7 @@ namespace DG.Game
             grid.cellSize = new Vector2(138f, 42f);
             grid.spacing = new Vector2(8f, 6f);
             grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-            grid.constraintCount = 3;
+            grid.constraintCount = 2;
             grid.padding = new RectOffset(8, 8, 4, 4);
 
             for (int i = buttonContainer.childCount - 1; i >= 0; i--)

@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
@@ -26,17 +26,17 @@ namespace DG.Scenes
             introStartButton.onClick.AddListener(OnIntroStartClicked);
             tutorialStartButton.onClick.AddListener(OnTutorialStartClicked);
 
-            // WebGL은 StreamingAssets가 URL이라 VideoClip 소스를 지원하지 않음 — Url 소스로 미리 준비만 해두고
-            // 실제 재생은 인트로 시작 버튼 클릭 시점에 시작
+            // WebGL? StreamingAssets媛 URL?대씪 VideoClip ?뚯뒪瑜?吏?먰븯吏 ?딆쓬 ??Url ?뚯뒪濡?誘몃━ 以鍮꾨쭔 ?대몢怨?
+            // ?ㅼ젣 ?ъ깮? ?명듃濡??쒖옉 踰꾪듉 ?대┃ ?쒖젏???쒖옉
             if (videoPlayer)
             {
                 videoPlayer.url = Path.Combine(Application.streamingAssetsPath, "Videos/Tutorial_260710.webm");
                 videoPlayer.Prepare();
-                // destroyCancellationToken 없이는 씬 전환으로 videoPlayer가 파괴된 뒤에도 폴링이 계속돼 MissingReferenceException 발생
+                // destroyCancellationToken ?놁씠?????꾪솚?쇰줈 videoPlayer媛 ?뚭눼???ㅼ뿉???대쭅??怨꾩냽??MissingReferenceException 諛쒖깮
                 SceneFader.RegisterPendingTask(UniTask.WaitUntil(() => videoPlayer.isPrepared, cancellationToken: destroyCancellationToken));
             }
 
-            // 인트로 패널의 로봇 영상 — 진입과 동시에 루프 재생 (isLooping은 컴포넌트에 설정됨)
+            // ?명듃濡??⑤꼸??濡쒕큸 ?곸긽 ??吏꾩엯怨??숈떆??猷⑦봽 ?ъ깮 (isLooping? 而댄룷?뚰듃???ㅼ젙??
             if (robotVideoPlayer)
             {
                 robotVideoPlayer.url = Path.Combine(Application.streamingAssetsPath, "Videos/Robot_260710.webm");
@@ -60,7 +60,7 @@ namespace DG.Scenes
 
         private void OnTutorialStartClicked()
         {
-            SceneFader.FadeAndLoad("2_Story").Forget();
+            SceneFader.FadeAndLoad(Constants.Scenes.Story).Forget();
         }
     }
 }

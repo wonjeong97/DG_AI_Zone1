@@ -58,7 +58,7 @@ namespace DG.App
             if (scene == gameObject.scene) return;
 
             // 타이틀로 돌아와 플로우를 다시 타는 경우도 부팅 시점과 동일하게 진행도 초기화
-            if (scene.name == "0_Title")
+            if (scene.name == Constants.Scenes.Title)
                 _session.ResetProgress();
 
             foreach (GameObject root in scene.GetRootGameObjects())

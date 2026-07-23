@@ -6,7 +6,8 @@ namespace DG.Game
     [RequireComponent(typeof(LayoutElement))]
     public class FlowInnerResize : MonoBehaviour
     {
-        private const float MinHeight = 50f;
+        // BlockFactory.InnerMinHeight와 같은 값 — Constants에서 단일 관리
+        private const float MinHeight = Constants.Blocks.FlowInnerMinHeight;
 
         private LayoutElement _le;
         private RectTransform _rt;
@@ -35,7 +36,9 @@ namespace DG.Game
         {
             if (!_le || !_socket) return;
 
-            float innerTarget = HasMultipleBlocks()
+            // 블록이 하나라도 들어오면 마지막 블록의 ChainOutSocket이 InnerBottomSocket 위치에
+            // 오도록 높이를 계산 (ChainHeight − 위쪽 소켓 오프셋 + 아래쪽 소켓 오프셋)
+            float innerTarget = _socket.Occupant
                 ? Mathf.Max(MinHeight, ChainHeight() + _socketOffset + _bottomSocketOffset)
                 : MinHeight;
 
@@ -62,14 +65,6 @@ namespace DG.Game
                 total += le.preferredHeight;
             }
             return total;
-        }
-
-        private bool HasMultipleBlocks()
-        {
-            if (!_socket.Occupant) return false;
-            ChainOutSocket outSocket = null;
-            _socket.Occupant.transform.Find("ChainOutSocket")?.TryGetComponent(out outSocket);
-            return outSocket && outSocket.Occupant;
         }
 
         private float ChainHeight()

@@ -9,6 +9,6 @@ namespace DG.Data
         public BlockLayoutData blockLayout;
 
         [Tooltip("4_Result에서 '다음' 클릭 시 이동할 씬. 마지막 레벨은 5_Outro로 설정")]
-        public string afterResultScene = "2_Story";
+        public string afterResultScene = Constants.Scenes.Story;
     }
 }

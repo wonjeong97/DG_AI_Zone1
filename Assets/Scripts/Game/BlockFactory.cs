@@ -76,7 +76,7 @@ namespace DG.Game
             BlockCategory.Control => "제어",
             BlockCategory.Command => "동작",
             BlockCategory.Value => "변수",
-            BlockCategory.FlowControl => "반복",
+            BlockCategory.FlowControl => "제어",
             BlockCategory.ConditionAction => "조건 동작",
             BlockCategory.Action => "행동",
             BlockCategory.Logic => "논리",
@@ -101,27 +101,27 @@ namespace DG.Game
         {
             Sprite sprite = await LoadSpriteAsync(entry.category, entry.controlRole);
             
-            float w = 220f;
-            float h = 56f;
+            float w = Constants.Blocks.DefaultWidth;
+            float h = Constants.Blocks.DefaultHeight;
             if (entry.category == BlockCategory.Control)
             {
                 // 원래 리소스 블록의 크기를 따라가기 위한 고정 크기 설정
                 if (entry.controlRole == ControlRole.Start)
                 {
-                    w = 353f;
-                    h = 127f;
+                    w = Constants.Blocks.StartWidth;
+                    h = Constants.Blocks.StartHeight;
                 }
                 else
                 {
-                    w = 353f;
-                    h = 104f;
+                    w = Constants.Blocks.EndWidth;
+                    h = Constants.Blocks.EndHeight;
                 }
             }
             else if (entry.category == BlockCategory.Value)
             {
                 // 원래 리소스 블록의 크기를 따라가기 위한 고정 크기 설정
-                w = 287f;
-                h = 89f;
+                w = Constants.Blocks.ValueWidth;
+                h = Constants.Blocks.ValueHeight;
             }
 
             GameObject go = NewRect(entry.label, w, h);
@@ -150,8 +150,8 @@ namespace DG.Game
         {
             Sprite cmdSprite = await LoadSpriteAsync(BlockCategory.Command);
             // 원래 리소스 블록의 크기를 따라가기 위한 고정 크기 설정
-            float cmdW = 371f;
-            float cmdH = 119f;
+            float cmdW = Constants.Blocks.CommandWidth;
+            float cmdH = Constants.Blocks.CommandHeight;
 
             GameObject go = NewRect(entry.label, cmdW, cmdH);
             go.AddComponent<CanvasGroup>();
@@ -173,10 +173,12 @@ namespace DG.Game
         }
 
         // ── FlowControl 블록 (C자형) ────────────────────────────
-        private const float FlowBlockWidth = 254f;
-        private const float FlowHeaderHeight = 78f;
-        private const float FlowElseHeight = 44f;
-        private const float FlowFooterHeight = 83f;
+        // 크기·배율 상수는 Constants.Blocks에서 관리
+        private const float FlowScale = Constants.Blocks.FlowScale;
+        private const float FlowBlockWidth = Constants.Blocks.FlowWidth;
+        private const float FlowHeaderHeight = Constants.Blocks.FlowHeaderHeight;
+        private const float FlowElseHeight = Constants.Blocks.FlowElseHeight;
+        private const float FlowFooterHeight = Constants.Blocks.FlowFooterHeight;
 
         private static async UniTask<GameObject> CreateFlowBlock(BlockEntry entry, Canvas rootCanvas, bool draggable)
         {
@@ -216,7 +218,7 @@ namespace DG.Game
                 socketRt.anchorMin = socketRt.anchorMax = new Vector2(1f, 0.5f);
                 socketRt.pivot     = new Vector2(0.5f, 0.5f);
                 socketRt.sizeDelta = Vector2.zero;
-                socketRt.anchoredPosition = new Vector2(-8f, 0f);
+                socketRt.anchoredPosition = Constants.Sockets.FlowHeaderValueOut;
                 socketGo.AddComponent<LayoutElement>().ignoreLayout = true;
                 socketGo.AddComponent<ValueOutSocket>();
             }
@@ -267,6 +269,7 @@ namespace DG.Game
                 Image bgImg = bgGo.AddComponent<Image>();
                 bgImg.sprite = sprite;
                 bgImg.type = Image.Type.Sliced;
+                bgImg.pixelsPerUnitMultiplier = 1f / FlowScale; // 9-slice 팔 두께도 배율만큼 확대
                 bgImg.color = Color.white;
                 bgImg.raycastTarget = false;
             }
@@ -278,12 +281,13 @@ namespace DG.Game
             RectTransform textRt = textGo.AddComponent<RectTransform>();
             textRt.anchorMin = new Vector2(0f, 1f);
             textRt.anchorMax = Vector2.one;
+            textRt.pivot = new Vector2(0.5f, 1f); // 상단 모서리에 걸치지 않고 헤더(위 팔) 안쪽으로
             textRt.offsetMin = textRt.offsetMax = Vector2.zero;
             textRt.sizeDelta = new Vector2(0f, FlowHeaderHeight);
             TMPro.TextMeshProUGUI txt = textGo.AddComponent<TMPro.TextMeshProUGUI>();
             txt.text = label;
             txt.font = font;
-            txt.fontSize = 26;
+            txt.fontSize = 26f * FlowScale;
             txt.color = Color.white;
             txt.alignment = TMPro.TextAlignmentOptions.Center;
         }
@@ -309,7 +313,7 @@ namespace DG.Game
             le.flexibleWidth = 1f;
         }
 
-        private const float InnerMinHeight = 50f;
+        private const float InnerMinHeight = Constants.Blocks.FlowInnerMinHeight;
 
         private static void AppendInnerContainer(Transform parent, BlockEntry[] blocks,
             Canvas rootCanvas, bool draggable)
@@ -329,7 +333,7 @@ namespace DG.Game
             socketRt.anchorMin = socketRt.anchorMax = new Vector2(0.5f, 1f);
             socketRt.pivot = new Vector2(0.5f, 0.5f);
             socketRt.sizeDelta = Vector2.zero;
-            socketRt.anchoredPosition = new Vector2(-25f, 4.5f);
+            socketRt.anchoredPosition = Constants.Sockets.FlowInner;
             InnerSocket innerSocket = socketGo.AddComponent<InnerSocket>();
 
             // 빈 상태 표시 (블록이 들어오면 숨겨짐)
@@ -352,7 +356,7 @@ namespace DG.Game
             bottomRt.anchorMin = bottomRt.anchorMax = new Vector2(0.5f, 0f);
             bottomRt.pivot = new Vector2(0.5f, 0.5f);
             bottomRt.sizeDelta = Vector2.zero;
-            bottomRt.anchoredPosition = new Vector2(-25f, -25f);
+            bottomRt.anchoredPosition = Constants.Sockets.FlowInnerBottom;
             bottomSocketGo.AddComponent<InnerBottomSocket>();
 
             // 사전 배치 블록은 현재 미지원 (런타임 드래그로만 배치)
@@ -417,18 +421,18 @@ namespace DG.Game
 
             // Command만 단일 ValueOutSocket — FlowControl은 헤더에 내장, Logic은 두 조건 슬롯 내장
             if (cat == BlockCategory.Command)
-                AttachValueOutSocket(block.gameObject, new Vector2(-8f, 11f));
+                AttachValueOutSocket(block.gameObject, Constants.Sockets.CommandValueOut);
 
             if (cat == BlockCategory.Value)
-                AttachValueInSocket(block.gameObject, new Vector2(16f, 3.5f));
+                AttachValueInSocket(block.gameObject, Constants.Sockets.ValueValueIn);
             else if (cat == BlockCategory.Condition || cat == BlockCategory.Logic)
-                AttachValueInSocket(block.gameObject, new Vector2(8f, 0f));
+                AttachValueInSocket(block.gameObject, Constants.Sockets.ConditionValueIn);
 
             // Condition / Logic 블록: 수평 조건 체인 소켓
             if (cat == BlockCategory.Condition || cat == BlockCategory.Logic)
             {
-                AttachConditionInSocket(block.gameObject,  new Vector2(8f, 0f));
-                AttachConditionOutSocket(block.gameObject, new Vector2(-8f, 0f));
+                AttachConditionInSocket(block.gameObject,  Constants.Sockets.ConditionIn);
+                AttachConditionOutSocket(block.gameObject, Constants.Sockets.ConditionOut);
             }
 
             if (cat != BlockCategory.Value && cat != BlockCategory.Logic && cat != BlockCategory.Condition)
@@ -438,12 +442,12 @@ namespace DG.Game
                 bool isCommand = cat == BlockCategory.Command;
                 bool isFlow    = cat == BlockCategory.FlowControl;
 
-                Vector2 outOffset = isStart   ? new Vector2(-68.5f, 16f)   :
-                                    isFlow    ? new Vector2(-60f, 3f)      :
-                                    isCommand ? new Vector2(-78.3f, 11.5f) : Vector2.zero;
-                Vector2 inOffset  = isEnd     ? new Vector2(-73f, -20f)    :
-                                    isFlow    ? new Vector2(-55.5f, -17.5f):
-                                    isCommand ? new Vector2(-78f, -16f)    : Vector2.zero;
+                Vector2 outOffset = isStart   ? Constants.Sockets.StartChainOut   :
+                                    isFlow    ? Constants.Sockets.FlowChainOut    :
+                                    isCommand ? Constants.Sockets.CommandChainOut : Vector2.zero;
+                Vector2 inOffset  = isEnd     ? Constants.Sockets.EndChainIn      :
+                                    isFlow    ? Constants.Sockets.FlowChainIn     :
+                                    isCommand ? Constants.Sockets.CommandChainIn  : Vector2.zero;
 
                 if (!isEnd)   AttachOutSocket(block.gameObject, outOffset);
                 if (!isStart) AttachInSocket(block.gameObject,  inOffset);

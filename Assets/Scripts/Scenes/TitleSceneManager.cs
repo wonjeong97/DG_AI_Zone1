@@ -1,4 +1,4 @@
-using Cysharp.Threading.Tasks;
+﻿using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -20,7 +20,7 @@ namespace DG.Scenes
 
         private void OnStartButtonClicked()
         {
-            SceneFader.FadeAndLoad("1_Intro").Forget();
+            SceneFader.FadeAndLoad(Constants.Scenes.Intro).Forget();
         }
     }
 }
