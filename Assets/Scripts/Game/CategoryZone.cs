@@ -34,8 +34,8 @@ namespace DG.Game
                     DestroyImmediate(hlg);
                 grid = buttonContainer.gameObject.AddComponent<GridLayoutGroup>();
             }
-            grid.cellSize = new Vector2(138f, 42f);
-            grid.spacing = new Vector2(8f, 6f);
+            grid.cellSize = new Vector2(150f, 52f);
+            grid.spacing = new Vector2(16f, 12f);
             grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
             grid.constraintCount = 2;
             grid.padding = new RectOffset(8, 8, 4, 4);

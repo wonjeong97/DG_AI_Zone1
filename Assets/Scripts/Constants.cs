@@ -98,6 +98,22 @@ namespace DG
             public readonly static UnityEngine.Vector2 FlowHeaderValueOut = new(-22f, 10f);
         }
 
+        // ── 카테고리(블록) 색상 — 카테고리 버튼 & 스프라이트 미지정 블록 대체색 ──
+        public static class CategoryColors
+        {
+            public readonly static UnityEngine.Color Control         = new UnityEngine.Color32( 51,  51,  51, 255);
+            public readonly static UnityEngine.Color Command         = new UnityEngine.Color32(213,  96, 180, 255);
+            public readonly static UnityEngine.Color Value           = new UnityEngine.Color32( 69, 153, 217, 255);
+            public readonly static UnityEngine.Color FlowControl     = new UnityEngine.Color32(235, 145,  20, 255);
+            public readonly static UnityEngine.Color ConditionAction = new UnityEngine.Color32(219, 102, 161, 255);
+            public readonly static UnityEngine.Color Action          = new UnityEngine.Color32( 71, 184, 168, 255);
+            public readonly static UnityEngine.Color Logic           = new UnityEngine.Color32( 84, 186,  92, 255);
+            public readonly static UnityEngine.Color Condition       = new UnityEngine.Color32( 69, 153, 217, 255);
+            public readonly static UnityEngine.Color Function        = new UnityEngine.Color32(133,  36,  69, 255);
+            public readonly static UnityEngine.Color FunctionDef     = new UnityEngine.Color32(133,  36,  69, 255);
+            public readonly static UnityEngine.Color Default         = new UnityEngine.Color32(255, 255, 255, 255);
+        }
+
         // ── 레벨별 문제 출제 및 정답 전용 센터 ───────────────────────
         public static class Questions
         {
