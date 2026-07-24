@@ -65,6 +65,8 @@ namespace DG.Game
             BlockCategory.Action => new Color(0.28f, 0.72f, 0.66f),
             BlockCategory.Logic => new Color(0.33f, 0.73f, 0.36f),
             BlockCategory.Condition => new Color(0.60f, 0.40f, 0.80f),
+            BlockCategory.Function => new Color(0.85f, 0.65f, 0.13f),
+            BlockCategory.FunctionDef => new Color(0.52f, 0.14f, 0.27f),
             _ => Color.white
         };
 
@@ -81,7 +83,19 @@ namespace DG.Game
             BlockCategory.Action => "행동",
             BlockCategory.Logic => "논리",
             BlockCategory.Condition => "조건",
+            BlockCategory.Function => "함수",
+            BlockCategory.FunctionDef => "함수",
             _ => cat.ToString()
+        };
+
+        /// <summary>
+        /// 인벤토리 선택 탭 그룹. 기능적으로 다른 카테고리를 하나의 탭으로 묶는다.
+        /// (함수 사용/구현은 별도 카테고리지만 '함수' 탭 하나로 표시)
+        /// </summary>
+        public static BlockCategory GetTabCategory(BlockCategory cat) => cat switch
+        {
+            BlockCategory.FunctionDef => BlockCategory.Function,
+            _ => cat
         };
 
         // ── 진입점 ──────────────────────────────────────────────
@@ -98,6 +112,10 @@ namespace DG.Game
                     entry.valueKind == ValueKind.None ? "CommandNoValueBlock" : "CommandBlock", entry, rootCanvas, draggable),
                 BlockCategory.Control     => await CreateFromPrefab(
                     entry.controlRole == ControlRole.Start ? "StartBlock" : "EndBlock", entry, rootCanvas, draggable),
+                // 함수 블록 — CommandNoValue와 동일한 구조(값 슬롯 없음, 체인 소켓만)
+                BlockCategory.Function    => await CreateFromPrefab("FunctionBlock", entry, rootCanvas, draggable),
+                // 함수 구현 블록 — FlowControl과 동일한 C자 컨테이너(헤더 값 슬롯 없음)
+                BlockCategory.FunctionDef => await CreateFromPrefab("FuncDefBlock", entry, rootCanvas, draggable),
                 BlockCategory.FlowControl => await CreateFlowBlock(entry, rootCanvas, draggable),
                 BlockCategory.Logic       => await CreateLogicBlock(entry, rootCanvas, draggable),
                 _                         => await CreateSimpleBlock(entry, rootCanvas, draggable)
@@ -344,22 +362,26 @@ namespace DG.Game
                 AttachConditionOutSocket(block.gameObject, Constants.Sockets.ConditionOut);
             }
 
-            if (cat != BlockCategory.Value && cat != BlockCategory.Logic && cat != BlockCategory.Condition)
+            // FunctionDef(함수 정의)는 체인에 연결되지 않는 독립 컨테이너 — 체인 소켓을 붙이지 않는다
+            if (cat != BlockCategory.Value && cat != BlockCategory.Logic
+                && cat != BlockCategory.Condition && cat != BlockCategory.FunctionDef)
             {
                 bool isStart   = block.ControlRole == ControlRole.Start;
                 bool isEnd     = block.ControlRole == ControlRole.End;
                 bool isCommand = cat == BlockCategory.Command;
                 bool isFlow    = cat == BlockCategory.FlowControl;
-                // 값 슬롯 없는 Command는 폭이 좁아 체인 소켓 오프셋을 별도 사용
+                // 값 슬롯 없는 Command는 폭이 좁아 체인 소켓 오프셋을 별도 사용.
+                // 함수 블록은 CommandNoValue와 동일한 크기이므로 같은 오프셋을 공유한다.
                 bool isNoValueCommand = isCommand && block.ValueKind == ValueKind.None;
+                bool useNoValueOffset = isNoValueCommand || cat == BlockCategory.Function;
 
                 Vector2 outOffset = isStart          ? Constants.Sockets.StartChainOut          :
                                     isFlow           ? Constants.Sockets.FlowChainOut           :
-                                    isNoValueCommand ? Constants.Sockets.CommandNoValueChainOut :
+                                    useNoValueOffset ? Constants.Sockets.CommandNoValueChainOut :
                                     isCommand        ? Constants.Sockets.CommandChainOut        : Vector2.zero;
                 Vector2 inOffset  = isEnd            ? Constants.Sockets.EndChainIn             :
                                     isFlow           ? Constants.Sockets.FlowChainIn            :
-                                    isNoValueCommand ? Constants.Sockets.CommandNoValueChainIn  :
+                                    useNoValueOffset ? Constants.Sockets.CommandNoValueChainIn  :
                                     isCommand        ? Constants.Sockets.CommandChainIn         : Vector2.zero;
 
                 if (!isEnd)   AttachOutSocket(block.gameObject, outOffset);

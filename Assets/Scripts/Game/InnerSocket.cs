@@ -49,7 +49,7 @@ namespace DG.Game
         private static bool CanFit(CodingBlock incoming, CodingBlock displaced)
         {
             if (!displaced) return true;
-            ChainOutSocket nextOut = incoming.GetComponentInChildren<ChainOutSocket>();
+            ChainOutSocket nextOut = ChainOutSocket.OfBlock(incoming);
             if (!nextOut) return false;
             return CanFit(displaced, nextOut.Occupant);
         }
@@ -63,7 +63,8 @@ namespace DG.Game
 
             if (!displaced) return;
 
-            ChainOutSocket nextOut = block.GetComponentInChildren<ChainOutSocket>();
+            // 직속 소켓만 사용 — 컨테이너 내부 하위 소켓을 잡아 치환 블록이 잘못 들어가는 문제 방지
+            ChainOutSocket nextOut = ChainOutSocket.OfBlock(block);
             if (nextOut)
             {
                 nextOut.Accept(displaced);

@@ -22,6 +22,10 @@ namespace DG.Game
         [SerializeField] private float _chainSnapRadius = 120f;
         [SerializeField] private float _snapSeconds = 0.15f;
 
+        // 레벨 5(함수) 한정 — 메인 체인(시작~완성)에는 함수 블록만 연결하도록 제한.
+        // GameSceneManager가 레벨 로드 시 레이아웃에 함수 블록이 있으면 true로 설정.
+        public static bool RestrictMainChainToFunction { get; set; }
+
         public BlockCategory Category { get; private set; }
         public ValueKind ValueKind { get; private set; }
         public DG.Data.ControlRole ControlRole { get; private set; }
@@ -620,7 +624,7 @@ namespace DG.Game
                 var categoryZone = FindObjectOfType<CategoryZone>();
                 if (categoryZone)
                 {
-                    gameObject.SetActive(Category == categoryZone.CurrentCategory);
+                    gameObject.SetActive(BlockFactory.GetTabCategory(Category) == categoryZone.CurrentCategory);
                 }
             }
             else if (_homeParent)

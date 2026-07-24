@@ -82,6 +82,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b1feda19850645b69af03a5cebefb591
+    m_Address: FuncDefBlock
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: c44b76ba86e8fe745972731e6ee6d554
     m_Address: CategoryButton
     m_ReadOnly: 0
@@ -99,6 +104,11 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: e46f934a3d9f3bc41abab03296b502bf
     m_Address: Start
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ef3418244fcc4be0ac8827a50c693455
+    m_Address: FunctionBlock
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

@@ -47,6 +47,18 @@ namespace DG.Game.Runtime
             var program = new List<BlockInstruction>();
             CodingBlock terminal = WalkChain(socket.Occupant, program);
 
+            // 레벨 5(함수) 전용 규칙 — 함수/함수 정의 블록 필수 사용 + 함수 정의는 1개 이상 내부 블록
+            if (CodingBlock.RestrictMainChainToFunction)
+            {
+                if (!FindMainChainFunction(start))
+                    return CompileResult.Fail("'함수' 블록을 시작하기와 완성하기 사이에 연결해야 합니다",
+                        FindSceneBlock(BlockCategory.Function));
+
+                CodingBlock funcDef = FindSceneBlock(BlockCategory.FunctionDef);
+                if (!funcDef || !FunctionDefHasInnerBlock(funcDef))
+                    return CompileResult.Fail("'함수 정의' 블록 안에 블록을 1개 이상 넣어야 합니다", funcDef);
+            }
+
             CodingBlock cmdError = FindCommandWithoutValue(program);
             if (cmdError)
                 return CompileResult.Fail($"'{cmdError.name}' 블록에 값 블록이 없습니다", cmdError);
@@ -88,14 +100,34 @@ namespace DG.Game.Runtime
             {
                 if (current.Category == BlockCategory.Control) return current;
 
-                BlockInstruction instr = Build(current);
-                if (instr is not null) output.Add(instr);
+                // 함수(사용) 블록 — 씬의 함수 정의 블록 내부 블록들을 읽어 이 자리에 펼친다
+                if (current.Category == BlockCategory.Function)
+                    ExpandFunctionCall(output);
+                else
+                {
+                    BlockInstruction instr = Build(current);
+                    if (instr is not null) output.Add(instr);
+                }
 
                 ChainOutSocket socket = null;
                 current.transform.Find(Constants.Sockets.ChainOutName)?.TryGetComponent(out socket);
                 current = socket?.Occupant;
             }
             return null;
+        }
+
+        // 함수 정의(FunctionDef) 블록의 Inner 컨테이너에 배치된 블록들을 순서대로 읽어 프로그램에 펼친다.
+        // (프로토타입 — 함수는 1개 가정: 씬에서 첫 FunctionDef 블록을 사용)
+        private static void ExpandFunctionCall(List<BlockInstruction> output)
+        {
+            CodingBlock funcDef = null;
+            foreach (CodingBlock b in FindAllBlocksInScene())
+                if (b.Category == BlockCategory.FunctionDef) { funcDef = b; break; }
+            if (!funcDef) return;
+
+            foreach (Transform child in funcDef.transform)
+                if (child.name.StartsWith("Inner"))
+                    WalkInner(child, output);
         }
 
         private static BlockInstruction Build(CodingBlock block)
@@ -402,6 +434,43 @@ namespace DG.Game.Runtime
                     return n;
             }
             return -1;
+        }
+
+        // 시작하기 체인을 따라가며 함수(사용) 블록을 찾음 (완성하기 도달 시 중단)
+        private static CodingBlock FindMainChainFunction(CodingBlock start)
+        {
+            ChainOutSocket socket = null;
+            start.transform.Find(Constants.Sockets.ChainOutName)?.TryGetComponent(out socket);
+            CodingBlock current = socket?.Occupant;
+            while (current)
+            {
+                if (current.Category == BlockCategory.Control) break;
+                if (current.Category == BlockCategory.Function) return current;
+                socket = null;
+                current.transform.Find(Constants.Sockets.ChainOutName)?.TryGetComponent(out socket);
+                current = socket?.Occupant;
+            }
+            return null;
+        }
+
+        // 씬(코딩존·인벤토리 포함)에서 지정 카테고리의 첫 블록을 반환
+        private static CodingBlock FindSceneBlock(BlockCategory cat)
+        {
+            foreach (CodingBlock b in FindAllBlocksInScene())
+                if (b.Category == cat) return b;
+            return null;
+        }
+
+        // 함수 정의 블록의 Inner 컨테이너에 블록이 1개 이상 있는지
+        private static bool FunctionDefHasInnerBlock(CodingBlock funcDef)
+        {
+            foreach (Transform child in funcDef.transform)
+            {
+                if (!child.name.StartsWith("Inner")) continue;
+                InnerSocket inner = child.GetComponentInChildren<InnerSocket>();
+                if (inner && inner.Occupant) return true;
+            }
+            return false;
         }
 
         private static List<CodingBlock> FindAllBlocksInScene()
