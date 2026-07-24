@@ -49,6 +49,12 @@ namespace DG
 
             // FlowControl 내부 컨테이너 최소 높이 (내부 블록 0~1개일 때)
             public const float FlowInnerMinHeight = 18f;
+
+            // Logic(그리고) 블록 확대 배율 — 스프라이트 원본 크기 기준
+            public const float LogicScale = 1.5f;
+
+            // 블록 라벨 텍스트 크기 (전 블록 공통 — 프리팹에도 같은 값이 베이크됨)
+            public const float LabelFontSize = 34f;
         }
 
         // ── 소켓 오프셋 (블록별 연결부 위치 미세 조정 값) ─────────

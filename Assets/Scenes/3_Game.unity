@@ -96,7 +96,8 @@ LightmapSettings:
     m_ExportTrainingData: 0
     m_TrainingDataDestination: TrainingData
     m_LightProbeSampleCountMultiplier: 4
-  m_LightingDataAsset: {fileID: 0}
+  m_LightingDataAsset: {fileID: 112000000, guid: cdf6aab1dbeb24643a7f379abee9fef9,
+    type: 2}
   m_LightingSettings: {fileID: 0}
 --- !u!196 &4
 NavMeshSettings:
@@ -343,7 +344,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   blockSpawner: {fileID: 34166380}
-  testLevel: {fileID: 11400000, guid: 3997d65ce9ac0224491f979e6fb9a6c4, type: 2}
+  testLevel: {fileID: 11400000, guid: 47d843e34410ca94babbc17e4160d43f, type: 2}
   codingZone: {fileID: 1925272511}
   compileButton: {fileID: 972074847}
   storyButton: {fileID: 1665160553}

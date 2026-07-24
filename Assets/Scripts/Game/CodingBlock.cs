@@ -114,6 +114,10 @@ namespace DG.Game
             _snapTarget?.ClearSnapHighlight();
             _snapTarget = null;
 
+            // 진행 중인 스냅 트윈을 즉시 완료 — 리페런트 후 잔여 틱이 캔버스 좌표계에 적용되어
+            // 블록이 좌상단으로 날아가는 문제 방지 (홈 위치도 정착 좌표로 기록되도록 드래그 상태 저장 전에 수행)
+            DOTween.Kill(_rt, true);
+
             _homeParent = transform.parent;
             _homeIndex = transform.GetSiblingIndex();
             _homeAnchoredPos = _rt.anchoredPosition;
@@ -384,8 +388,14 @@ namespace DG.Game
                         // Command가 허용하는 값 타입만 스냅 (None인 Command는 소켓이 없어 대상에서 제외됨)
                         if (targetBlock.ValueKind != ValueKind.None && targetBlock.ValueKind != ValueKind) continue;
                     }
-                    if (Category == BlockCategory.Logic && targetBlock.Category != BlockCategory.FlowControl) continue;
+                    // Logic(그리고)은 조건 블록의 ConditionOut에만 연결 — 만약 헤더 슬롯 직접 스냅 금지
+                    if (Category == BlockCategory.Logic) continue;
                     if (Category == BlockCategory.Condition && targetBlock.Category != BlockCategory.FlowControl && targetBlock.Category != BlockCategory.Logic) continue;
+
+                    // 반복하기의 헤더 슬롯은 조건용이 아니므로 조건 블록은 스냅 제외 (만약 전용)
+                    if (Category == BlockCategory.Condition
+                        && targetBlock.Category == BlockCategory.FlowControl && targetBlock.name.Contains("반복"))
+                        continue;
                 }
 
                 Vector2 delta = myPos - (Vector2)candidate.transform.position;
