@@ -10,94 +10,85 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d27cd7030946e1e498ffaef1101438cf, type: 3}
-  m_Name: "수력BlockLayout"
-  m_EditorClassIdentifier:
+  m_Name: "04_\uBC1C\uC804\uC18CBlockLayout"
+  m_EditorClassIdentifier: 
   inventoryBlocks:
   - category: 0
-    label: "시작하기"
+    label: "\uC2DC\uC791\uD558\uAE30"
     controlRole: 1
-    valueLabel:
+    valueLabel: 
     valueKind: 0
     innerBlocks: []
     elseBlocks: []
     chainBlocks: []
     chainSocketOffset: {x: 0, y: 0}
   - category: 3
-    label: "만약"
+    label: "\uB9CC\uC57D"
     controlRole: 0
-    valueLabel:
+    valueLabel: 
+    valueKind: 0
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
+  - category: 3
+    label: "\uBC18\uBCF5\uD558\uAE30"
+    controlRole: 0
+    valueLabel: 
+    valueKind: 0
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
+  - category: 7
+    label: "\uC804\uAE30 \uACFC\uBD80\uD558"
+    controlRole: 0
+    valueLabel: 
+    valueKind: 0
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
+  - category: 7
+    label: "\uBC24"
+    controlRole: 0
+    valueLabel: 
+    valueKind: 5
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
+  - category: 6
+    label: "\uADF8\uB9AC\uACE0"
+    controlRole: 0
+    valueLabel: 
     valueKind: 0
     innerBlocks: []
     elseBlocks: []
     chainBlocks: []
     chainSocketOffset: {x: 0, y: 0}
   - category: 1
-    label: "개방하기"
+    label: "\uB180\uC774\uC2DC\uC124 \uBD88 \uB044\uAE30"
     controlRole: 0
-    valueLabel:
+    valueLabel: 
     valueKind: 0
     innerBlocks: []
     elseBlocks: []
     chainBlocks: []
     chainSocketOffset: {x: 0, y: 0}
   - category: 1
-    label: "폐쇄하기"
+    label: "\uBCD1\uC6D0 \uBD88 \uCF1C\uAE30"
     controlRole: 0
-    valueLabel:
+    valueLabel: 
     valueKind: 0
-    innerBlocks: []
-    elseBlocks: []
-    chainBlocks: []
-    chainSocketOffset: {x: 0, y: 0}
-  - category: 7
-    label: "1m"
-    controlRole: 0
-    valueLabel:
-    valueKind: 4
-    innerBlocks: []
-    elseBlocks: []
-    chainBlocks: []
-    chainSocketOffset: {x: 0, y: 0}
-  - category: 7
-    label: "3m"
-    controlRole: 0
-    valueLabel:
-    valueKind: 4
-    innerBlocks: []
-    elseBlocks: []
-    chainBlocks: []
-    chainSocketOffset: {x: 0, y: 0}
-  - category: 7
-    label: "5m"
-    controlRole: 0
-    valueLabel:
-    valueKind: 4
-    innerBlocks: []
-    elseBlocks: []
-    chainBlocks: []
-    chainSocketOffset: {x: 0, y: 0}
-  - category: 7
-    label: "8m"
-    controlRole: 0
-    valueLabel:
-    valueKind: 4
-    innerBlocks: []
-    elseBlocks: []
-    chainBlocks: []
-    chainSocketOffset: {x: 0, y: 0}
-  - category: 7
-    label: "10m 이상"
-    controlRole: 0
-    valueLabel:
-    valueKind: 4
     innerBlocks: []
     elseBlocks: []
     chainBlocks: []
     chainSocketOffset: {x: 0, y: 0}
   - category: 0
-    label: "완성하기"
+    label: "\uC644\uC131\uD558\uAE30"
     controlRole: 2
-    valueLabel:
+    valueLabel: 
     valueKind: 0
     innerBlocks: []
     elseBlocks: []

@@ -43,6 +43,9 @@ namespace DG.Game.Runtime
                     case RepeatInstruction rep when rep.Body is not null:
                         total += ScoreProgram(rep.Body, questionValueKey, levelName);
                         break;
+                    case FunctionInstruction fn when fn.Body is not null:
+                        total += ScoreProgram(fn.Body, questionValueKey, levelName);
+                        break;
                     case IfInstruction ifInstr:
                         if (ifInstr.Then is not null) total += ScoreProgram(ifInstr.Then, questionValueKey, levelName);
                         if (ifInstr.Else is not null) total += ScoreProgram(ifInstr.Else, questionValueKey, levelName);
@@ -101,6 +104,9 @@ namespace DG.Game.Runtime
                         break;
                     case RepeatInstruction rep when rep.Body is not null:
                         CollectValues(rep.Body, values);
+                        break;
+                    case FunctionInstruction fn when fn.Body is not null:
+                        CollectValues(fn.Body, values);
                         break;
                     case IfInstruction ifInstr:
                         if (ifInstr.Then is not null) CollectValues(ifInstr.Then, values);

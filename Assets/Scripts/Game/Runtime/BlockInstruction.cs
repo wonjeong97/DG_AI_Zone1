@@ -55,4 +55,11 @@ namespace DG.Game.Runtime
 
         public bool IsInfinite => Count < 0;
     }
+
+    public sealed class FunctionInstruction : BlockInstruction
+    {
+        public string Name;    // 함수 호출 블록 이름 (예: "함수")
+        public string DefName; // 함수 정의 블록 이름 (예: "함수 정의")
+        public List<BlockInstruction> Body; // 함수 정의 내부에 들어있는 명령어 목록
+    }
 }

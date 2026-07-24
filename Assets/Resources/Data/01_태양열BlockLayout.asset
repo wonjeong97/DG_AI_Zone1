@@ -10,126 +10,126 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d27cd7030946e1e498ffaef1101438cf, type: 3}
-  m_Name: "태양열BlockLayout"
-  m_EditorClassIdentifier:
+  m_Name: "01_\uD0DC\uC591\uC5F4BlockLayout"
+  m_EditorClassIdentifier: 
   inventoryBlocks:
   - category: 0
-    label: "시작하기"
+    label: "\uC2DC\uC791\uD558\uAE30"
     controlRole: 1
-    valueLabel:
+    valueLabel: 
     valueKind: 0
     innerBlocks: []
     elseBlocks: []
     chainBlocks: []
     chainSocketOffset: {x: 0, y: 0}
   - category: 1
-    label: "태양광 패널의 각도"
-    valueLabel:
+    label: "\uD0DC\uC591\uAD11 \uD328\uB110\uC758 \uAC01\uB3C4"
+    valueLabel: 
     valueKind: 3
     innerBlocks: []
     elseBlocks: []
     chainBlocks: []
     chainSocketOffset: {x: 0, y: 0}
   - category: 1
-    label: "태양광 패널의 가동 수"
-    valueLabel:
+    label: "\uD0DC\uC591\uAD11 \uD328\uB110\uC758 \uAC00\uB3D9 \uC218"
+    valueLabel: 
     valueKind: 2
     innerBlocks: []
     elseBlocks: []
     chainBlocks: []
     chainSocketOffset: {x: 0, y: 0}
   - category: 1
-    label: "태양광 패널의 방향"
-    valueLabel:
+    label: "\uD0DC\uC591\uAD11 \uD328\uB110\uC758 \uBC29\uD5A5"
+    valueLabel: 
     valueKind: 1
     innerBlocks: []
     elseBlocks: []
     chainBlocks: []
     chainSocketOffset: {x: 0, y: 0}
   - category: 2
-    label: "30도"
-    valueLabel:
+    label: "30\uB3C4"
+    valueLabel: 
     valueKind: 3
     innerBlocks: []
     elseBlocks: []
     chainBlocks: []
     chainSocketOffset: {x: 0, y: 0}
   - category: 2
-    label: "45도"
-    valueLabel:
+    label: "45\uB3C4"
+    valueLabel: 
     valueKind: 3
     innerBlocks: []
     elseBlocks: []
     chainBlocks: []
     chainSocketOffset: {x: 0, y: 0}
   - category: 2
-    label: "60도"
-    valueLabel:
+    label: "60\uB3C4"
+    valueLabel: 
     valueKind: 3
     innerBlocks: []
     elseBlocks: []
     chainBlocks: []
     chainSocketOffset: {x: 0, y: 0}
   - category: 2
-    label: "동쪽"
-    valueLabel:
+    label: "\uB3D9\uCABD"
+    valueLabel: 
     valueKind: 1
     innerBlocks: []
     elseBlocks: []
     chainBlocks: []
     chainSocketOffset: {x: 0, y: 0}
   - category: 2
-    label: "서쪽"
-    valueLabel:
+    label: "\uC11C\uCABD"
+    valueLabel: 
     valueKind: 1
     innerBlocks: []
     elseBlocks: []
     chainBlocks: []
     chainSocketOffset: {x: 0, y: 0}
   - category: 2
-    label: "남쪽"
-    valueLabel:
+    label: "\uB0A8\uCABD"
+    valueLabel: 
     valueKind: 1
     innerBlocks: []
     elseBlocks: []
     chainBlocks: []
     chainSocketOffset: {x: 0, y: 0}
   - category: 2
-    label: "북쪽"
-    valueLabel:
+    label: "\uBD81\uCABD"
+    valueLabel: 
     valueKind: 1
     innerBlocks: []
     elseBlocks: []
     chainBlocks: []
     chainSocketOffset: {x: 0, y: 0}
   - category: 2
-    label: "20개"
-    valueLabel:
+    label: "20\uAC1C"
+    valueLabel: 
     valueKind: 2
     innerBlocks: []
     elseBlocks: []
     chainBlocks: []
     chainSocketOffset: {x: 0, y: 0}
   - category: 2
-    label: "40개"
-    valueLabel:
+    label: "40\uAC1C"
+    valueLabel: 
     valueKind: 2
     innerBlocks: []
     elseBlocks: []
     chainBlocks: []
     chainSocketOffset: {x: 0, y: 0}
   - category: 2
-    label: "60개"
-    valueLabel:
+    label: "60\uAC1C"
+    valueLabel: 
     valueKind: 2
     innerBlocks: []
     elseBlocks: []
     chainBlocks: []
     chainSocketOffset: {x: 0, y: 0}
   - category: 0
-    label: "완성하기"
+    label: "\uC644\uC131\uD558\uAE30"
     controlRole: 2
-    valueLabel:
+    valueLabel: 
     valueKind: 0
     innerBlocks: []
     elseBlocks: []

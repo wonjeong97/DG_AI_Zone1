@@ -10,12 +10,26 @@ namespace DG.Game.Runtime
         public readonly string Error;
         public readonly CodingBlock[] ErrorBlocks;
 
-        private CompileResult(bool success, List<BlockInstruction> instr, string err, CodingBlock[] errorBlocks)
-        { Success = success; Instructions = instr; Error = err; ErrorBlocks = errorBlocks; }
+        // 검증 성공/실패와 무관하게 시작하기 이후 순회된 프로그램 (로그·코드 표시용, 순회 전 실패면 null)
+        public readonly List<BlockInstruction> Program;
 
-        public static CompileResult Ok(List<BlockInstruction> instr)           => new(true,  instr, null, null);
-        public static CompileResult Fail(string err, CodingBlock block = null) => new(false, null,  err,  block ? new[] { block } : null);
-        public static CompileResult Fail(string err, CodingBlock[] blocks)     => new(false, null,  err,  blocks);
+        // 체인이 완성하기(End) 블록까지 도달했는지 — 코드 표시 시 END 출력 여부 판단용
+        public readonly bool ReachedEnd;
+
+        private CompileResult(bool success, List<BlockInstruction> instr, string err, CodingBlock[] errorBlocks,
+            List<BlockInstruction> program, bool reachedEnd)
+        { Success = success; Instructions = instr; Error = err; ErrorBlocks = errorBlocks; Program = program; ReachedEnd = reachedEnd; }
+
+        // 성공은 항상 완성하기에 도달한 상태
+        public static CompileResult Ok(List<BlockInstruction> instr) => new(true, instr, null, null, instr, true);
+
+        public static CompileResult Fail(string err, CodingBlock block = null,
+            List<BlockInstruction> program = null, bool reachedEnd = false)
+            => new(false, null, err, block ? new[] { block } : null, program, reachedEnd);
+
+        public static CompileResult Fail(string err, CodingBlock[] blocks,
+            List<BlockInstruction> program = null, bool reachedEnd = false)
+            => new(false, null, err, blocks, program, reachedEnd);
     }
 
     public static class BlockCompiler
@@ -46,47 +60,48 @@ namespace DG.Game.Runtime
 
             var program = new List<BlockInstruction>();
             CodingBlock terminal = WalkChain(socket.Occupant, program);
+            bool reachedEnd = terminal && terminal.ControlRole == DG.Data.ControlRole.End;
 
             // 레벨 5(함수) 전용 규칙 — 함수/함수 정의 블록 필수 사용 + 함수 정의는 1개 이상 내부 블록
             if (CodingBlock.RestrictMainChainToFunction)
             {
                 if (!FindMainChainFunction(start))
                     return CompileResult.Fail("'함수' 블록을 시작하기와 완성하기 사이에 연결해야 합니다",
-                        FindSceneBlock(BlockCategory.Function));
+                        FindSceneBlock(BlockCategory.Function), program, reachedEnd);
 
                 CodingBlock funcDef = FindSceneBlock(BlockCategory.FunctionDef);
                 if (!funcDef || !FunctionDefHasInnerBlock(funcDef))
-                    return CompileResult.Fail("'함수 정의' 블록 안에 블록을 1개 이상 넣어야 합니다", funcDef);
+                    return CompileResult.Fail("'함수 정의' 블록 안에 블록을 1개 이상 넣어야 합니다", funcDef, program, reachedEnd);
             }
 
             CodingBlock cmdError = FindCommandWithoutValue(program);
             if (cmdError)
-                return CompileResult.Fail($"'{cmdError.name}' 블록에 값 블록이 없습니다", cmdError);
+                return CompileResult.Fail($"'{cmdError.name}' 블록에 값 블록이 없습니다", cmdError, program, reachedEnd);
 
             CodingBlock condError = FindIfWithoutCondition(program);
             if (condError)
-                return CompileResult.Fail($"'{condError.name}' 블록에 조건이 없습니다", condError);
+                return CompileResult.Fail($"'{condError.name}' 블록에 조건이 없습니다", condError, program, reachedEnd);
 
             CodingBlock emptyFlow = FindFlowControlWithEmptyInner(program);
             if (emptyFlow)
-                return CompileResult.Fail($"'{emptyFlow.name}' 블록 내부에 최소 1개의 블록이 있어야 합니다", emptyFlow);
+                return CompileResult.Fail($"'{emptyFlow.name}' 블록 내부에 최소 1개의 블록이 있어야 합니다", emptyFlow, program, reachedEnd);
 
             CodingBlock controlInInner = FindControlInInner(program);
             if (controlInInner)
-                return CompileResult.Fail($"'{controlInInner.name}' 블록은 제어 블록 내부에 넣을 수 없습니다", controlInInner);
+                return CompileResult.Fail($"'{controlInInner.name}' 블록은 제어 블록 내부에 넣을 수 없습니다", controlInInner, program, reachedEnd);
 
             // 씬의 모든 실행 블록(Command, FlowControl 등 — 인벤토리·방치 블록 포함)이 프로그램에 포함돼야 함
             CodingBlock[] unused = FindUnusedExecutableBlocks(program);
             if (unused.Length > 0)
-                return CompileResult.Fail($"사용되지 않은 블록이 있습니다 ({unused.Length}개)", unused);
+                return CompileResult.Fail($"사용되지 않은 블록이 있습니다 ({unused.Length}개)", unused, program, reachedEnd);
 
-            if (!terminal || terminal.ControlRole != DG.Data.ControlRole.End)
+            if (!reachedEnd)
             {
                 // 씬 전체(인벤토리 포함)에서 완성하기 블록을 찾아 표시
                 CodingBlock endBlock = null;
                 foreach (CodingBlock b in FindAllBlocksInScene())
                     if (b.ControlRole == DG.Data.ControlRole.End) { endBlock = b; break; }
-                return CompileResult.Fail("마지막 블록이 '완성하기'여야 합니다", endBlock);
+                return CompileResult.Fail("마지막 블록이 '완성하기'여야 합니다", endBlock, program, reachedEnd);
             }
 
             return CompileResult.Ok(program);
@@ -100,9 +115,19 @@ namespace DG.Game.Runtime
             {
                 if (current.Category == BlockCategory.Control) return current;
 
-                // 함수(사용) 블록 — 씬의 함수 정의 블록 내부 블록들을 읽어 이 자리에 펼친다
+                // 함수(사용) 블록 — 씬의 함수 정의 블록 내부 블록들을 읽어 FunctionInstruction으로 포장
                 if (current.Category == BlockCategory.Function)
-                    ExpandFunctionCall(output);
+                {
+                    var body = new List<BlockInstruction>();
+                    string defName = ExpandFunctionCall(body);
+                    output.Add(new FunctionInstruction
+                    {
+                        Source = current,
+                        Name = current.name,
+                        DefName = defName ?? "함수 정의",
+                        Body = body
+                    });
+                }
                 else
                 {
                     BlockInstruction instr = Build(current);
@@ -118,16 +143,18 @@ namespace DG.Game.Runtime
 
         // 함수 정의(FunctionDef) 블록의 Inner 컨테이너에 배치된 블록들을 순서대로 읽어 프로그램에 펼친다.
         // (프로토타입 — 함수는 1개 가정: 씬에서 첫 FunctionDef 블록을 사용)
-        private static void ExpandFunctionCall(List<BlockInstruction> output)
+        private static string ExpandFunctionCall(List<BlockInstruction> output)
         {
             CodingBlock funcDef = null;
             foreach (CodingBlock b in FindAllBlocksInScene())
                 if (b.Category == BlockCategory.FunctionDef) { funcDef = b; break; }
-            if (!funcDef) return;
+            if (!funcDef) return null;
 
             foreach (Transform child in funcDef.transform)
                 if (child.name.StartsWith("Inner"))
                     WalkInner(child, output);
+
+            return funcDef.name;
         }
 
         private static BlockInstruction Build(CodingBlock block)
@@ -244,6 +271,11 @@ namespace DG.Game.Runtime
                     CodingBlock err = FindCommandWithoutValue(rep.Body);
                     if (err) return err;
                 }
+                if (instr is FunctionInstruction fn && fn.Body is not null)
+                {
+                    CodingBlock err = FindCommandWithoutValue(fn.Body);
+                    if (err) return err;
+                }
                 if (instr is IfInstruction ifInstr)
                 {
                     if (ifInstr.Then is not null) { CodingBlock err = FindCommandWithoutValue(ifInstr.Then); if (err) return err; }
@@ -283,6 +315,9 @@ namespace DG.Game.Runtime
                 {
                     case RepeatInstruction rep when rep.Body is not null:
                         CollectProgramSources(rep.Body, used);
+                        break;
+                    case FunctionInstruction fn when fn.Body is not null:
+                        CollectProgramSources(fn.Body, used);
                         break;
                     case IfInstruction ifInstr:
                         if (ifInstr.Then is not null) CollectProgramSources(ifInstr.Then, used);
@@ -352,6 +387,11 @@ namespace DG.Game.Runtime
                     CodingBlock err = FindIfWithoutCondition(rep.Body);
                     if (err) return err;
                 }
+                else if (instr is FunctionInstruction fn && fn.Body is not null)
+                {
+                    CodingBlock err = FindIfWithoutCondition(fn.Body);
+                    if (err) return err;
+                }
             }
             return null;
         }
@@ -374,6 +414,11 @@ namespace DG.Game.Runtime
                         return ifInstr.Source;
                     if (ifInstr.Then is not null) { CodingBlock err = FindFlowControlWithEmptyInner(ifInstr.Then); if (err) return err; }
                     if (ifInstr.Else is not null) { CodingBlock err = FindFlowControlWithEmptyInner(ifInstr.Else); if (err) return err; }
+                }
+                else if (instr is FunctionInstruction fn && fn.Body is not null)
+                {
+                    CodingBlock err = FindFlowControlWithEmptyInner(fn.Body);
+                    if (err) return err;
                 }
             }
             return null;
@@ -416,6 +461,16 @@ namespace DG.Game.Runtime
                         CodingBlock err = FindControlInInner(ifInstr.Else);
                         if (err) return err;
                     }
+                }
+                else if (instr is FunctionInstruction fn && fn.Body is not null)
+                {
+                    foreach (var innerInstr in fn.Body)
+                    {
+                        if (innerInstr.Source && innerInstr.Source.Category == BlockCategory.Control)
+                            return innerInstr.Source;
+                    }
+                    CodingBlock err = FindControlInInner(fn.Body);
+                    if (err) return err;
                 }
             }
             return null;

@@ -117,9 +117,12 @@ namespace DG.Scenes
                 b.ClearErrorHighlight();
 
             var result = BlockCompiler.Compile(codingZone);
+
+            // 컴파일 결과를 코드 형태로 로그 (실패 시에도 순회된 프로그램을 표시)
+            LogCompileResult(result);
+
             if (!result.Success)
             {
-                _log?.ZLogWarning($"[Compile] 실패: {result.Error}");
                 if (result.ErrorBlocks is not null)
                     foreach (CodingBlock b in result.ErrorBlocks)
                         b?.ShowErrorHighlight();
@@ -134,8 +137,6 @@ namespace DG.Scenes
                 }
                 return;
             }
-
-            _log?.ZLogInformation($"[Compile] 성공 — {result.Instructions.Count}개 명령");
 
             // 시작하기 ~ 완성하기 체인 전체에 성공(초록) 외곽선 표시
             foreach (CodingBlock b in codingZone.GetComponentsInChildren<CodingBlock>())
@@ -190,6 +191,19 @@ namespace DG.Scenes
             };
 
             await executor.RunAsync(result.Instructions, _cts.Token);
+        }
+
+        // 컴파일 결과를 코드 형태(START/…/END)로 로그. 순회 전 실패면 결과 라인만 출력.
+        private void LogCompileResult(CompileResult result)
+        {
+            string prefix = result.Program is not null
+                ? $"\n{ProgramFormatter.ToCode(result.Program, result.ReachedEnd)}\n\n결과: "
+                : "결과: ";
+
+            if (result.Success)
+                _log?.ZLogInformation($"{prefix}컴파일 성공");
+            else
+                _log?.ZLogWarning($"{prefix}컴파일 실패 - {result.Error}");
         }
 
         // 레이아웃 인벤토리에 함수/함수 정의 블록이 있는지 (레벨5 판별)

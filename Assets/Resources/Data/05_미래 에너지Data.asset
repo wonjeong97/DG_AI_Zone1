@@ -10,10 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 35b45145103e568498fa13c3afd65638, type: 3}
-  m_Name: "\uBC1C\uC804\uC18CData"
+  m_Name: "05_\uBBF8\uB798 \uC5D0\uB108\uC9C0Data"
   m_EditorClassIdentifier: 
-  storyText: "[\uB808\uBCA8 4 \uC2A4\uD1A0\uB9AC \uD14D\uC2A4\uD2B8]\n\n\uB0B4\uC6A9\uC744
+  storyText: "[\uB808\uBCA8 5 \uC2A4\uD1A0\uB9AC \uD14D\uC2A4\uD2B8]\n\n\uB0B4\uC6A9\uC744
     \uC785\uB825\uD558\uC138\uC694."
   nextSceneName: 3_Game
-  blockLayout: {fileID: 11400000, guid: e5f834571fcf2ef46bd949741b317047, type: 2}
-  afterResultScene: 2_Story
+  blockLayout: {fileID: 11400000, guid: bf7dd25c4e249d94fb8f3b4508ef5b4c, type: 2}
+  afterResultScene: 5_Outro

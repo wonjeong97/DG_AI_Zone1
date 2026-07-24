@@ -10,76 +10,103 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d27cd7030946e1e498ffaef1101438cf, type: 3}
-  m_Name: "풍력BlockLayout"
-  m_EditorClassIdentifier:
+  m_Name: "05_\uBBF8\uB798 \uC5D0\uB108\uC9C0BlockLayout"
+  m_EditorClassIdentifier: 
   inventoryBlocks:
   - category: 0
-    label: "시작하기"
+    label: "\uC2DC\uC791\uD558\uAE30"
     controlRole: 1
-    valueLabel:
+    valueLabel: 
     valueKind: 0
     innerBlocks: []
     elseBlocks: []
     chainBlocks: []
     chainSocketOffset: {x: 0, y: 0}
   - category: 3
-    label: "반복하기"
+    label: "\uB9CC\uC57D"
     controlRole: 0
-    valueLabel:
+    valueLabel: 
+    valueKind: 0
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
+  - category: 3
+    label: "\uBC18\uBCF5\uD558\uAE30"
+    controlRole: 0
+    valueLabel: 
+    valueKind: 0
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
+  - category: 9
+    label: "\uD568\uC218 \uC815\uC758"
+    controlRole: 0
+    valueLabel: 
+    valueKind: 0
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
+  - category: 8
+    label: "\uD568\uC218"
+    controlRole: 0
+    valueLabel: 
+    valueKind: 0
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
+  - category: 7
+    label: "\uC804\uAE30 \uACFC\uBD80\uD558"
+    controlRole: 0
+    valueLabel: 
+    valueKind: 0
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
+  - category: 7
+    label: "\uBC24"
+    controlRole: 0
+    valueLabel: 
+    valueKind: 5
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
+  - category: 6
+    label: "\uADF8\uB9AC\uACE0"
+    controlRole: 0
+    valueLabel: 
     valueKind: 0
     innerBlocks: []
     elseBlocks: []
     chainBlocks: []
     chainSocketOffset: {x: 0, y: 0}
   - category: 1
-    label: "풍차의 날개 방향"
+    label: "\uB180\uC774\uC2DC\uC124 \uBD88 \uB044\uAE30"
     controlRole: 0
-    valueLabel:
-    valueKind: 1
+    valueLabel: 
+    valueKind: 0
     innerBlocks: []
     elseBlocks: []
     chainBlocks: []
     chainSocketOffset: {x: 0, y: 0}
-  - category: 2
-    label: "동쪽"
+  - category: 1
+    label: "\uBCD1\uC6D0 \uBD88 \uCF1C\uAE30"
     controlRole: 0
-    valueLabel:
-    valueKind: 1
-    innerBlocks: []
-    elseBlocks: []
-    chainBlocks: []
-    chainSocketOffset: {x: 0, y: 0}
-  - category: 2
-    label: "서쪽"
-    controlRole: 0
-    valueLabel:
-    valueKind: 1
-    innerBlocks: []
-    elseBlocks: []
-    chainBlocks: []
-    chainSocketOffset: {x: 0, y: 0}
-  - category: 2
-    label: "남쪽"
-    controlRole: 0
-    valueLabel:
-    valueKind: 1
-    innerBlocks: []
-    elseBlocks: []
-    chainBlocks: []
-    chainSocketOffset: {x: 0, y: 0}
-  - category: 2
-    label: "북쪽"
-    controlRole: 0
-    valueLabel:
-    valueKind: 1
+    valueLabel: 
+    valueKind: 0
     innerBlocks: []
     elseBlocks: []
     chainBlocks: []
     chainSocketOffset: {x: 0, y: 0}
   - category: 0
-    label: "완성하기"
+    label: "\uC644\uC131\uD558\uAE30"
     controlRole: 2
-    valueLabel:
+    valueLabel: 
     valueKind: 0
     innerBlocks: []
     elseBlocks: []

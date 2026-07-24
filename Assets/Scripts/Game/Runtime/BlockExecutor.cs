@@ -45,10 +45,17 @@ namespace DG.Game.Runtime
 
             return instr switch
             {
-                IfInstruction     i => await ExecuteIf(i, ct),
-                RepeatInstruction r => await ExecuteRepeat(r, ct),
-                _                   => OnExecute is not null ? await OnExecute(instr, ct) : true
+                IfInstruction       i => await ExecuteIf(i, ct),
+                RepeatInstruction   r => await ExecuteRepeat(r, ct),
+                FunctionInstruction f => await ExecuteFunction(f, ct),
+                _                     => OnExecute is not null ? await OnExecute(instr, ct) : true
             };
+        }
+
+        private async UniTask<bool> ExecuteFunction(FunctionInstruction instr, CancellationToken ct)
+        {
+            if (instr.Body is null || instr.Body.Count == 0) return true;
+            return await ExecuteList(instr.Body, ct);
         }
 
         private async UniTask<bool> ExecuteIf(IfInstruction instr, CancellationToken ct)
