@@ -32,7 +32,7 @@ namespace DG.Game
                 // 인벤토리로 반입될 때 현재 선택된 카테고리와 다른 경우 비활성화 처리
                 if (categoryZone != null && content == categoryZone.InventoryContent)
                 {
-                    b.gameObject.SetActive(b.Category == categoryZone.CurrentCategory);
+                    b.gameObject.SetActive(BlockFactory.GetTabCategory(b.Category) == categoryZone.CurrentCategory);
                 }
             }
         }

@@ -12,6 +12,14 @@ namespace DG.Game
         public bool IsEmpty => !_occupant;
         public CodingBlock Occupant => _occupant;
 
+        // 블록의 '직속' ChainOutSocket — 컨테이너(FlowControl/FuncDef) 내부의 하위 체인 소켓과 혼동 방지
+        public static ChainOutSocket OfBlock(CodingBlock block)
+        {
+            ChainOutSocket socket = null;
+            block.transform.Find(Constants.Sockets.ChainOutName)?.TryGetComponent(out socket);
+            return socket;
+        }
+
         // cascade 전체가 완료될 수 있는지 재귀 검증
         public bool CanAccept(CodingBlock incoming)
         {
@@ -21,13 +29,34 @@ namespace DG.Game
                 if (GetComponentInParent<InnerSocket>() != null)
                     return false;
             }
+
+            // 레벨 5(함수) 한정 — 메인 체인(시작~완성)에는 함수 블록만 연결 가능
+            if (CodingBlock.RestrictMainChainToFunction && incoming != null)
+            {
+                CodingBlock owner = GetComponentInParent<CodingBlock>();
+                if (owner)
+                {
+                    bool ownerIsStart   = owner.Category == BlockCategory.Control
+                                          && owner.ControlRole == DG.Data.ControlRole.Start;
+                    bool ownerIsFunc    = owner.Category == BlockCategory.Function;
+                    bool incomingIsFunc = incoming.Category == BlockCategory.Function;
+                    bool incomingIsEnd  = incoming.Category == BlockCategory.Control
+                                          && incoming.ControlRole == DG.Data.ControlRole.End;
+
+                    // 시작하기 소켓엔 함수만 / 함수 소켓엔 완성하기만(삽입 금지) / 완성하기는 함수 뒤에만
+                    if (ownerIsStart && !incomingIsFunc) return false;
+                    if (ownerIsFunc && !incomingIsEnd) return false;
+                    if (incomingIsEnd && !ownerIsFunc) return false;
+                }
+            }
+
             return CanFit(incoming, _occupant);
         }
 
         private static bool CanFit(CodingBlock incoming, CodingBlock displaced)
         {
             if (!displaced) return true;
-            ChainOutSocket nextOut = incoming.GetComponentInChildren<ChainOutSocket>();
+            ChainOutSocket nextOut = OfBlock(incoming);
             if (!nextOut) return false;
             return CanFit(displaced, nextOut._occupant);
         }
@@ -40,8 +69,9 @@ namespace DG.Game
 
             if (!displaced) return;
 
-            // 드래그 시 splice-out으로 소켓이 비워졌으므로 최대 1단만 재귀됨
-            ChainOutSocket nextOut = block.GetComponentInChildren<ChainOutSocket>();
+            // 드래그 시 splice-out으로 소켓이 비워졌으므로 최대 1단만 재귀됨.
+            // 직속 소켓만 사용 — 컨테이너 내부의 하위 소켓을 잡아 치환 블록이 안으로 들어가는 문제 방지
+            ChainOutSocket nextOut = OfBlock(block);
             if (!nextOut)
             {
                 // 안전망: 소켓 없는 블록(완성하기 등)이 들어온 경우 displaced를 CodingZone으로

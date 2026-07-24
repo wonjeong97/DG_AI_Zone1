@@ -64,7 +64,7 @@ namespace DG.Game
             CurrentCategory = cat;
             foreach (Transform child in inventoryContent)
                 if (child.TryGetComponent<CodingBlock>(out CodingBlock block))
-                    child.gameObject.SetActive(block.Category == cat);
+                    child.gameObject.SetActive(BlockFactory.GetTabCategory(block.Category) == cat);
 
             // 스크롤이 내려간 상태에서 콘텐츠가 짧은 카테고리로 바뀌면 Content가 범위 밖에 남아
             // 스크롤바 핸들 크기가 0으로 계산되므로, 전환 시 레이아웃 갱신 후 맨 위로 리셋

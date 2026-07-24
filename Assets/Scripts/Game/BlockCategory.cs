@@ -9,6 +9,8 @@ namespace DG.Game
         ConditionAction,  // 전기 과부하, 개방하기 — 핑크
         Action,           // 방향 감지기 작동하기 — 청록
         Logic,            // 그리고 — 초록, 수평 체이닝
-        Condition
+        Condition,
+        Function,         // 함수(사용) — Func 아트, CommandNoValue와 동일한 크기·체인 소켓
+        FunctionDef       // 함수(구현) — FuncBody 아트, FlowControl과 동일한 C자 컨테이너(값 슬롯 없음)
     }
 }

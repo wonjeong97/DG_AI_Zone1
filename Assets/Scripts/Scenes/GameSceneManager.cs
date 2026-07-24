@@ -46,6 +46,9 @@ namespace DG.Scenes
                 return;
             }
 
+            // 함수 블록이 포함된 레벨(레벨5)에서는 메인 체인에 함수 블록만 연결하도록 제한
+            CodingBlock.RestrictMainChainToFunction = HasFunctionBlock(layout);
+
             // UniTask는 1회만 await 가능 — Preserve 없이는 Forget()과 SceneFader의 대기가
             // 이중 소비되어 예외로 대기가 무시되고 페이드인이 스폰 완료 전에 시작됨
             UniTask spawnTask = blockSpawner.Spawn(layout).Preserve();
@@ -71,7 +74,7 @@ namespace DG.Scenes
             }
 
             if (compileButton)
-                compileButton.onClick.AddListener(() => CompileAndRun().Forget());
+                compileButton.onClick.AddListener(() => CompileAndRun(advanceScene: true).Forget());
 
             if (storyButton)
                 storyButton.onClick.AddListener(() => storyPanel.Show(_session ? _session.unlockedLevelIndex : 0));
@@ -82,9 +85,9 @@ namespace DG.Scenes
 
         private void Update()
         {
-            // 컴파일 성공 후에는 스페이스 단축키도 차단
+            // 스페이스바: 컴파일 검증만 (채점·실행·씬 전환 없음)
             if (Input.GetKeyDown(KeyCode.Space) && (!compileButton || compileButton.interactable))
-                CompileAndRun().Forget();
+                CompileAndRun(advanceScene: false).Forget();
         }
 
         private void OnDestroy()
@@ -93,7 +96,7 @@ namespace DG.Scenes
             _cts?.Dispose();
         }
 
-        private async UniTaskVoid CompileAndRun()
+        private async UniTaskVoid CompileAndRun(bool advanceScene)
         {
             // 진행 중인 실행 중단
             _cts?.Cancel();
@@ -134,14 +137,21 @@ namespace DG.Scenes
 
             _log?.ZLogInformation($"[Compile] 성공 — {result.Instructions.Count}개 명령");
 
-            // 실행~씬 전환 중 연타 방지 (성공 시 씬을 떠나므로 재활성화 불필요)
-            if (compileButton) compileButton.interactable = false;
-
             // 시작하기 ~ 완성하기 체인 전체에 성공(초록) 외곽선 표시
             foreach (CodingBlock b in codingZone.GetComponentsInChildren<CodingBlock>())
                 if (b.Category == BlockCategory.Control)
                     b.ShowSuccessHighlight();
             HighlightSources(result.Instructions);
+
+            // 스페이스바: 컴파일 검증까지만 — 채점·실행·씬 전환은 완료 버튼 전용
+            if (!advanceScene)
+            {
+                _log?.ZLogInformation($"[Compile] 컴파일만 수행 — 씬 전환 없음");
+                return;
+            }
+
+            // 실행~씬 전환 중 연타 방지 (성공 시 씬을 떠나므로 재활성화 불필요)
+            if (compileButton) compileButton.interactable = false;
 
             int score = BlockScorer.ScoreProgram(result.Instructions, _questionTime, _currentLevelName);
             if (_session)
@@ -180,6 +190,16 @@ namespace DG.Scenes
             };
 
             await executor.RunAsync(result.Instructions, _cts.Token);
+        }
+
+        // 레이아웃 인벤토리에 함수/함수 정의 블록이 있는지 (레벨5 판별)
+        private static bool HasFunctionBlock(BlockLayoutData layout)
+        {
+            if (layout.inventoryBlocks is not null)
+                foreach (BlockEntry e in layout.inventoryBlocks)
+                    if (e.category == BlockCategory.Function || e.category == BlockCategory.FunctionDef)
+                        return true;
+            return false;
         }
 
         // 넘어가기 — 블록 조립 여부와 무관하게 실패로 처리하고 결과 씬으로 이동

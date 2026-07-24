@@ -69,8 +69,11 @@ namespace DG.Game
             {
                 var categories = new System.Collections.Generic.List<BlockCategory>();
                 foreach (Transform child in inventoryContainer)
-                    if (child.TryGetComponent<CodingBlock>(out CodingBlock block) && !categories.Contains(block.Category))
-                        categories.Add(block.Category);
+                    if (child.TryGetComponent<CodingBlock>(out CodingBlock block))
+                    {
+                        BlockCategory tab = BlockFactory.GetTabCategory(block.Category);
+                        if (!categories.Contains(tab)) categories.Add(tab);
+                    }
                 await categoryZone.Build(categories);
             }
         }
