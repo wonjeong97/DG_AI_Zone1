@@ -53,21 +53,21 @@ namespace DG.Game
         }
 
         /// <summary>
-        /// 미구현 스프라이트 대체를 위한 기본 색상 반환.
+        /// 카테고리 버튼 및 스프라이트 미지정 블록의 대체 색상 반환. (색상 값은 Constants.CategoryColors에서 관리)
         /// </summary>
         public static Color GetColor(BlockCategory cat) => cat switch
         {
-            BlockCategory.Control => new Color(0.20f, 0.20f, 0.20f),
-            BlockCategory.Command => new Color32(213, 96, 180, 255),
-            BlockCategory.Value => new Color(0.27f, 0.60f, 0.85f),
-            BlockCategory.FlowControl => new Color(0.92f, 0.57f, 0.08f),
-            BlockCategory.ConditionAction => new Color(0.86f, 0.40f, 0.63f),
-            BlockCategory.Action => new Color(0.28f, 0.72f, 0.66f),
-            BlockCategory.Logic => new Color(0.33f, 0.73f, 0.36f),
-            BlockCategory.Condition => new Color(0.60f, 0.40f, 0.80f),
-            BlockCategory.Function => new Color(0.85f, 0.65f, 0.13f),
-            BlockCategory.FunctionDef => new Color(0.52f, 0.14f, 0.27f),
-            _ => Color.white
+            BlockCategory.Control => Constants.CategoryColors.Control,
+            BlockCategory.Command => Constants.CategoryColors.Command,
+            BlockCategory.Value => Constants.CategoryColors.Value,
+            BlockCategory.FlowControl => Constants.CategoryColors.FlowControl,
+            BlockCategory.ConditionAction => Constants.CategoryColors.ConditionAction,
+            BlockCategory.Action => Constants.CategoryColors.Action,
+            BlockCategory.Logic => Constants.CategoryColors.Logic,
+            BlockCategory.Condition => Constants.CategoryColors.Condition,
+            BlockCategory.Function => Constants.CategoryColors.Function,
+            BlockCategory.FunctionDef => Constants.CategoryColors.FunctionDef,
+            _ => Constants.CategoryColors.Default
         };
 
         /// <summary>
