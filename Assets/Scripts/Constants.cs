@@ -13,6 +13,14 @@ namespace DG
             public const string Result = "4_Result";
         }
 
+        // ── 스토리 텍스트 한 줄씩 올라오는 연출 타이밍 ─────────────
+        public static class StoryLine
+        {
+            public const float StoryLineMoveDuration = 0.7f;
+            public const float StoryLineInterval     = 0.35f;
+            public const float StoryLineYOffset      = 22.0f;
+        }
+
         // ── 블록 크기 ───────────────────────────────────────────
         public static class Blocks
         {
