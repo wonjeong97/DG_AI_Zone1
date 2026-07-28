@@ -22,6 +22,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 1276c1002a9bb514693e3804b6e72578
+    m_Address: Logic
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 1a4d0220bdffff842ab60add4d646d72
     m_Address: ValueBlock
     m_ReadOnly: 0
@@ -47,8 +52,8 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 565f364ee1bb1564ba1deb603e2055b8
-    m_Address: Value
+  - m_GUID: 67fdb630d03f3a44aa2760162b1d1276
+    m_Address: WhileBlock
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -57,18 +62,13 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 6e969153be5b2aa49884d0d4f203949b
-    m_Address: End
+  - m_GUID: 7381b259d754b194da7c333bfa9fb777
+    m_Address: IfBlock
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 800472a16057cb643b743c24fc22aa0e
     m_Address: CommandBlock
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 9abc708ad7de6214c96eaead12178e53
-    m_Address: Command
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -92,18 +92,8 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: dd94066edbf9e0249af317e31cb042a0
-    m_Address: Logic
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: e1bb829d518d8974c8d54bf92cbbfe07
     m_Address: FlowControlBlock
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: e46f934a3d9f3bc41abab03296b502bf
-    m_Address: Start
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

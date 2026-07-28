@@ -13,6 +13,14 @@ namespace DG
             public const string Result = "4_Result";
         }
 
+        // ── 블록 라벨 (아트·프리팹 분기 키) ───────────────────────
+        // FlowControl은 만약/반복하기가 같은 카테고리라 라벨로만 구분된다
+        public static class BlockLabels
+        {
+            public const string While = "반복하기";
+            public const string If    = "만약";
+        }
+
         // ── 스토리 텍스트 한 줄씩 올라오는 연출 타이밍 ─────────────
         public static class StoryLine
         {
@@ -28,23 +36,23 @@ namespace DG
             public const float DefaultWidth  = 220f;
             public const float DefaultHeight = 56f;
 
-            // 시작하기 / 완성하기 (Control)
-            public const float StartWidth  = 353f;
-            public const float StartHeight = 127f;
-            public const float EndWidth    = 353f;
-            public const float EndHeight   = 104f;
+            // 시작하기 / 완성하기 (Control) — Start/End 스프라이트 네이티브 사이즈
+            public const float StartWidth  = 361f;
+            public const float StartHeight = 121f;
+            public const float EndWidth    = 361f;
+            public const float EndHeight   = 101f;
 
-            // Value 블록 (30도, 동쪽 …)
-            public const float ValueWidth  = 287f;
-            public const float ValueHeight = 89f;
+            // Value 블록 (30도, 동쪽 …) — Value 스프라이트 네이티브 사이즈
+            public const float ValueWidth  = 361f;
+            public const float ValueHeight = 101f;
 
-            // Command 블록 (태양광 패널의 각도 …)
-            public const float CommandWidth  = 371f;
-            public const float CommandHeight = 119f;
+            // Command 블록 (태양광 패널의 각도 …) — Command 스프라이트 네이티브 사이즈
+            public const float CommandWidth  = 381f;
+            public const float CommandHeight = 121f;
 
-            // 값 슬롯 없는 Command 블록 (개방하기 …)
-            public const float CommandNoValueWidth  = 315f;
-            public const float CommandNoValueHeight = 119f;
+            // 값 슬롯 없는 Command 블록 (개방하기 …) — CommandNoValue 스프라이트 네이티브 사이즈
+            public const float CommandNoValueWidth  = 361f;
+            public const float CommandNoValueHeight = 121f;
 
             // FlowControl(반복/만약) — 원본 아트 254px 폭 기준 확대 배율.
             // transform 스케일 대신 프레임 크기·9-slice 보더 두께·라벨 크기를 함께 키워
@@ -55,11 +63,35 @@ namespace DG
             public const float FlowElseHeight   = 44f * FlowScale;
             public const float FlowFooterHeight = 83f * FlowScale;
 
-            // FlowControl 내부 컨테이너 최소 높이 (내부 블록 0~1개일 때)
-            public const float FlowInnerMinHeight = 18f;
+            // FlowControl 내부 컨테이너 최소 높이 (내부 블록 0개일 때)
+            public const float FlowInnerMinHeight = 44f;
 
-            // Logic(그리고) 블록 확대 배율 — 스프라이트 원본 크기 기준
-            public const float LogicScale = 1.5f;
+            // 반복하기(while) — while.png 네이티브 사이즈. 헤더/푸터 높이는 9-slice 보더와 일치해야 한다
+            // (아트 361x321: 헤더 0~120, 늘어나는 중단 121~199, 푸터 200~320)
+            public const float WhileWidth        = 361f;
+            public const float WhileHeaderHeight = 121f;
+            public const float WhileFooterHeight = 121f;
+
+            // 만약(if) — if.png 네이티브 사이즈 (아트 381x321: 헤더 0~120, 중단 121~199, 푸터 200~320).
+            // 헤더 우측에 조건 슬롯 탭이 있음. 하단 체인 탭 추가로 while과 동일한 헤더/푸터 높이
+            public const float IfWidth        = 381f;
+            public const float IfHeaderHeight = 121f;
+            public const float IfFooterHeight = 121f;
+
+            // Logic(그리고/또는) 블록 확대 배율 — Logic는 네이티브 사이즈로 쓰므로 1
+            public const float LogicScale = 1f;
+
+            // Condition(전기 과부하 등 ValueKind.None 조건) — Condition 네이티브 사이즈.
+            // Logic와 좌우 노치/탭 위치가 동일해 서로 어긋남 없이 체인된다
+            public const float ConditionWidth  = 381f;
+            public const float ConditionHeight = 101f;
+
+            // 함수 정의(FuncDef) — FuncBody 네이티브 사이즈 (아트 361x301: 헤더 0~120, 중단 121~199,
+            // 푸터 200~300). 체인에 연결되지 않는 독립 컨테이너라 상단 체인 노치·하단 체인 탭이 아트에 없어
+            // while보다 푸터가 20 짧다. 내부 소켓은 while과 동일 위치(중심 x=60, 폭 361)
+            public const float FuncBodyWidth        = 361f;
+            public const float FuncBodyHeaderHeight = 121f;
+            public const float FuncBodyFooterHeight = 101f;
 
             // 블록 라벨 텍스트 크기 (전 블록 공통 — 프리팹에도 같은 값이 베이크됨)
             public const float LabelFontSize = 34f;
@@ -79,25 +111,39 @@ namespace DG
             public const string ConditionInName  = "ConditionInSocket";
 
             // 세로 체인 (ChainOut: 하단 중앙 앵커 / ChainIn: 상단 중앙 앵커)
-            public readonly static UnityEngine.Vector2 StartChainOut   = new(-68.5f, 16f);
+            public readonly static UnityEngine.Vector2 StartChainOut   = new(-120.5f, 10f);
             public readonly static UnityEngine.Vector2 FlowChainOut    = new(-96f, 8f);
-            public readonly static UnityEngine.Vector2 CommandChainOut = new(-78.3f, 11.5f);
-            public readonly static UnityEngine.Vector2 EndChainIn      = new(-72f, -16f);
+            public readonly static UnityEngine.Vector2 CommandChainOut = new(-150f, 10f);
+            public readonly static UnityEngine.Vector2 EndChainIn      = new(-120.5f, -10f);
             public readonly static UnityEngine.Vector2 FlowChainIn     = new(-90f, -17.5f);
-            public readonly static UnityEngine.Vector2 CommandChainIn  = new(-78f, -16f);
+            public readonly static UnityEngine.Vector2 CommandChainIn  = new(-150f, -10f);
 
-            // 값 슬롯 없는 Command (개방하기 …) — 폭이 좁아 체인 소켓 x를 별도 보정
-            public readonly static UnityEngine.Vector2 CommandNoValueChainOut = new(-62f, 11.5f);
-            public readonly static UnityEngine.Vector2 CommandNoValueChainIn  = new(-62f, -16f);
+            // 반복하기(while) — while.png 전용. 노치/탭이 모두 x=60(폭 361) 중심이라 Start/End와 같은 x
+            public readonly static UnityEngine.Vector2 WhileChainOut = new(-120.5f, 10f);
+            public readonly static UnityEngine.Vector2 WhileChainIn  = new(-120.5f, -10f);
+
+            // 만약(if) — if.png 전용. 노치는 x=60이지만 폭이 381이라 x 보정값이 다르다
+            public readonly static UnityEngine.Vector2 IfChainOut = new(-130.5f, 10f);
+            public readonly static UnityEngine.Vector2 IfChainIn  = new(-130.5f, -10f);
+
+            // 값 슬롯 없는 Command (개방하기 …) / Function(함수 사용) 공용 — CommandNoValue와
+            // Func가 노치/탭 위치까지 동일(중심 x=40.5, 폭 361)해서 그대로 공유 가능
+            public readonly static UnityEngine.Vector2 CommandNoValueChainOut = new(-140f, 10f);
+            public readonly static UnityEngine.Vector2 CommandNoValueChainIn  = new(-140f, -10f);
 
             // 값 연결 (ValueOut: 우측 중앙 앵커 / ValueIn: 좌측 중앙 앵커)
-            public readonly static UnityEngine.Vector2 CommandValueOut   = new(-8f, 11f);
-            public readonly static UnityEngine.Vector2 ValueValueIn      = new(16f, 3.5f);
-            public readonly static UnityEngine.Vector2 ConditionValueIn  = new(8f, 0f);
+            public readonly static UnityEngine.Vector2 CommandValueOut   = new(-10.5f, 10f);
+            public readonly static UnityEngine.Vector2 ValueValueIn      = new(9.5f, 0f);
+            // Condition 전용 — Logic와 노치 위치가 같아(x=60, 폭 381) 같은 좌측 오프셋을 공유
+            public readonly static UnityEngine.Vector2 ConditionValueIn  = new(10f, 0f);
 
-            // 조건 체인 (Condition / Logic 블록의 수평 연결)
-            public readonly static UnityEngine.Vector2 ConditionIn  = new(8f, 0f);
-            public readonly static UnityEngine.Vector2 ConditionOut = new(-8f, 0f);
+            // 조건 체인 (Condition 블록의 수평 연결) — Condition 전용, Logic와 동일 노치/탭 위치
+            public readonly static UnityEngine.Vector2 ConditionIn  = new(10f, 0f);
+            public readonly static UnityEngine.Vector2 ConditionOut = new(-10f, 0f);
+
+            // Logic(그리고/또는) — Logic 전용. 좌측 노치/우측 탭 모두 깊이 20, 중심이 세로 정중앙(y=0)
+            public readonly static UnityEngine.Vector2 LogicConditionIn  = new(10f, 0f);
+            public readonly static UnityEngine.Vector2 LogicConditionOut = new(-10f, 0f);
 
             // FlowControl 내부 (Inner 컨테이너 기준)
             public readonly static UnityEngine.Vector2 FlowInner       = new(-44f, 28f);
