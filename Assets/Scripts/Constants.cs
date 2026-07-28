@@ -1,9 +1,9 @@
 namespace DG
 {
-    // 프로젝트 전역 상수 — 씬 이름, 블록 크기 등 튜닝 값을 한곳에서 관리
+    // 프로젝트 전역 상수 — 씬 이름, 비디오/에셋 경로, 방향/점수, 블록 크기, 소켓 등을 한곳에서 관리
     public static class Constants
     {
-        // ── 씬 이름 ─────────────────────────────────────────────
+        // ── 1. 씬 이름 ─────────────────────────────────────────────
         public static class Scenes
         {
             public const string Title  = "0_Title";
@@ -13,7 +13,97 @@ namespace DG
             public const string Result = "4_Result";
         }
 
-        // ── 블록 라벨 (아트·프리팹 분기 키) ───────────────────────
+        // ── 2. 비디오 파일 경로 ──────────────────────────────────────
+        public static class VideoPaths
+        {
+            public const string TutorialRelative = "Videos/Tutorial_260710.webm";
+            public const string RobotRelative    = "Videos/Robot_260728.webm";
+
+            public static string TutorialUrl => System.IO.Path.Combine(UnityEngine.Application.streamingAssetsPath, TutorialRelative);
+            public static string RobotUrl    => System.IO.Path.Combine(UnityEngine.Application.streamingAssetsPath, RobotRelative);
+
+            public static string GetUrl(string relativePath)
+            {
+                return System.IO.Path.Combine(UnityEngine.Application.streamingAssetsPath, relativePath);
+            }
+        }
+
+        // ── 3. 리소스 및 에셋 경로 ──────────────────────────────────
+        public static class ResourcePaths
+        {
+            public const string BlockImagePath   = "Images/Blocks/";
+            public const string LabelFontKey     = "GamtanRoadTantan SDF";
+            public const string SpriteFillShader = "Custom/UI/SpriteFill";
+        }
+
+        // ── 4. 방향 명칭 ───────────────────────────────────────────
+        public static class Directions
+        {
+            public const string North = "북쪽";
+            public const string East  = "동쪽";
+            public const string South = "남쪽";
+            public const string West  = "서쪽";
+        }
+
+        // ── 5. 점수 관리 ───────────────────────────────────────────
+        public static class Scores
+        {
+            public const int DirectionCorrectScore = 5;
+
+            public static readonly System.Collections.Generic.Dictionary<string, int> AngleScore = new()
+            {
+                ["30도"] = 3,
+                ["45도"] = 5,
+                ["60도"] = 1,
+            };
+
+            public static readonly System.Collections.Generic.Dictionary<string, int> CountScore = new()
+            {
+                ["20개"] = 1,
+                ["40개"] = 3,
+                ["60개"] = 5,
+            };
+        }
+
+        // ── 6. 카테고리 명칭 ───────────────────────────────────────
+        public static class CategoryNames
+        {
+            public const string Control         = "제어";
+            public const string Command         = "동작";
+            public const string Value           = "변수";
+            public const string FlowControl     = "제어";
+            public const string ConditionAction = "조건 동작";
+            public const string Action          = "동작";
+            public const string Logic           = "논리";
+            public const string Condition       = "조건";
+            public const string Function        = "함수";
+            public const string FunctionDef     = "함수 정의";
+        }
+
+        // ── 7. 컴파일러 메시지 ─────────────────────────────────────
+        public static class CompilerMessages
+        {
+            public const string MissingStartBlock          = "'시작하기' 블록이 코딩 영역에 없습니다";
+            public const string StartNotFirst              = "'시작하기' 블록이 첫 번째 블록이어야 합니다";
+            public const string MissingConnectedAfterStart = "'시작하기'에 연결된 블록이 없습니다";
+            public const string MissingEndBlock            = "'완성하기' 블록으로 끝나지 않았습니다";
+            public const string FunctionBetweenStartEnd    = "'함수' 블록을 시작하기와 완성하기 사이에 연결해야 합니다";
+            public const string EmptyFunctionDef           = "'함수 정의' 블록 안에 블록을 1개 이상 넣어야 합니다";
+            public const string UnusedBlocksExist          = "사용되지 않은 블록이 남아있습니다";
+        }
+
+        // ── 8. 결과 씬 연출 메시지 및 평가 ─────────────────────────
+        public static class ResultMessages
+        {
+            public const string StatusPoor       = "<color=red>부족</color>";
+            public const string StatusNormal     = "보통";
+            public const string StatusGood       = "<color=#0B7A0B>양호</color>";
+            public const string StatusPoorRaw    = "부족";
+            public const string AiCodingStart   = "AI가 코딩을 시작합니다";
+            public const string EfficiencyFormat = "에너지 효율:{p:D2}%";
+        }
+
+        // ── 9. 블록 라벨 (아트·프리팹 분기 키) ───────────────────────
         // FlowControl은 만약/반복하기가 같은 카테고리라 라벨로만 구분된다
         public static class BlockLabels
         {
@@ -21,15 +111,7 @@ namespace DG
             public const string If    = "만약";
         }
 
-        // ── 스토리 텍스트 한 줄씩 올라오는 연출 타이밍 ─────────────
-        public static class StoryLine
-        {
-            public const float StoryLineMoveDuration = 0.7f;
-            public const float StoryLineInterval     = 0.35f;
-            public const float StoryLineYOffset      = 22.0f;
-        }
-
-        // ── 블록 크기 ───────────────────────────────────────────
+        // ── 10. 블록 크기 ───────────────────────────────────────────
         public static class Blocks
         {
             // 단순 블록 기본 크기
@@ -97,7 +179,7 @@ namespace DG
             public const float LabelFontSize = 34f;
         }
 
-        // ── 소켓 오프셋 (블록별 연결부 위치 미세 조정 값) ─────────
+        // ── 11. 소켓 오프셋 (블록별 연결부 위치 미세 조정 값) ─────────
         public static class Sockets
         {
             // 소켓 GameObject 이름 — transform.Find 탐색 키로 여러 파일에서 공유
@@ -152,7 +234,7 @@ namespace DG
             public readonly static UnityEngine.Vector2 FlowHeaderValueOut = new(-22f, 10f);
         }
 
-        // ── 카테고리(블록) 색상 — 카테고리 버튼 & 스프라이트 미지정 블록 대체색 ──
+        // ── 12. 카테고리(블록) 색상 — 카테고리 버튼 & 스프라이트 미지정 블록 대체색 ──
         public static class CategoryColors
         {
             public readonly static UnityEngine.Color Control         = new UnityEngine.Color32( 51,  51,  51, 255);
@@ -168,7 +250,15 @@ namespace DG
             public readonly static UnityEngine.Color Default         = new UnityEngine.Color32(255, 255, 255, 255);
         }
 
-        // ── 레벨별 문제 출제 및 정답 전용 센터 ───────────────────────
+        // ── 13. 스토리 연출 ─────────────────────────────────────────
+        public static class StoryLine
+        {
+            public const float StoryLineMoveDuration = 0.7f;
+            public const float StoryLineInterval     = 0.35f;
+            public const float StoryLineYOffset      = 22.0f;
+        }
+
+        // ── 14. 레벨별 문제 출제 및 정답 전용 센터 ───────────────────────
         public static class Questions
         {
             public struct QuestionData
@@ -183,22 +273,22 @@ namespace DG
             public readonly static System.Collections.Generic.Dictionary<string, string> SolarAnswers =
                 new System.Collections.Generic.Dictionary<string, string>
                 {
-                    ["아침 8시"]  = "동쪽",
-                    ["오전 10시"] = "동쪽",
-                    ["정오"]      = "남쪽",
-                    ["오후 2시"]  = "서쪽",
-                    ["오후 4시"]  = "서쪽",
+                    ["아침 8시"]  = Directions.East,
+                    ["오전 10시"] = Directions.East,
+                    ["정오"]      = Directions.South,
+                    ["오후 2시"]  = Directions.West,
+                    ["오후 4시"]  = Directions.West,
                 };
 
             // 풍력 레벨 (바람 방향별 정답 날개 방향)
-            public readonly static string[] WindDirections = { "동쪽", "서쪽", "남쪽", "북쪽" };
+            public readonly static string[] WindDirections = { Directions.East, Directions.West, Directions.South, Directions.North };
             public readonly static System.Collections.Generic.Dictionary<string, string> WindAnswers =
                 new System.Collections.Generic.Dictionary<string, string>
                 {
-                    ["동쪽"] = "동쪽",
-                    ["서쪽"] = "서쪽",
-                    ["남쪽"] = "남쪽",
-                    ["북쪽"] = "북쪽",
+                    [Directions.East]  = Directions.East,
+                    [Directions.West]  = Directions.West,
+                    [Directions.South] = Directions.South,
+                    [Directions.North] = Directions.North,
                 };
 
             public static QuestionData GenerateQuestion(string levelName)
@@ -214,7 +304,7 @@ namespace DG
                 {
                     string time = SolarTimes[UnityEngine.Random.Range(0, SolarTimes.Length)];
                     string text = $"<color=yellow>현재 {time}</color>입니다. 태양광 패널이 어느 방향으로\n향해 있어야 할까요? 알맞은 블록을 사용하여 코딩해봅시다.";
-                    string ans = SolarAnswers.TryGetValue(time, out var a) ? a : "동쪽";
+                    string ans = SolarAnswers.TryGetValue(time, out var a) ? a : Directions.East;
                     return new QuestionData { QuestionText = text, ValueKey = time, CorrectAnswer = ans };
                 }
             }

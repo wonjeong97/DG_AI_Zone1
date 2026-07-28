@@ -41,10 +41,10 @@ namespace DG.Scenes
         {
             float worldYaw = direction switch
             {
-                "북쪽" => 0f,
-                "동쪽" => 90f,
-                "남쪽" => 180f,
-                "서쪽" => 270f,
+                Constants.Directions.North => 0f,
+                Constants.Directions.East  => 90f,
+                Constants.Directions.South => 180f,
+                Constants.Directions.West  => 270f,
                 _ => FrontYaw,
             };
             return worldYaw - FrontYaw;
@@ -79,7 +79,7 @@ namespace DG.Scenes
         // 값에 맞춰 애니메이션으로 자세 변경 — 방향 → 각도 순차 재생.
         public async UniTask ApplyAsync(string angle, string direction, CancellationToken ct)
         {
-            _isNorth = (direction == "북쪽");
+            _isNorth = (direction == Constants.Directions.North);
             float targetTilt = AngleToTilt(angle);
             float targetYaw = DirectionToLocalYaw(direction);
             float currentTilt = GetCurrentTilt();

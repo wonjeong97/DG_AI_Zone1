@@ -99,13 +99,13 @@ namespace DG.Scenes
                 // 최고 점수 대비 비율로 전력 수급 상태 판정
                 int maxScore = BlockScorer.GetMaxScore();
                 float percent = maxScore > 0 ? _session.lastScore * 100f / maxScore : 0f;
-                string status = percent < 50f ? "<color=red>부족</color>" : percent < 80f ? "보통" : "<color=#0B7A0B>양호</color>";
+                string status = percent < 50f ? Constants.ResultMessages.StatusPoor : percent < 80f ? Constants.ResultMessages.StatusNormal : Constants.ResultMessages.StatusGood;
                 _playerPercent = Mathf.Clamp(Mathf.FloorToInt(percent), 0, 100);
 
                 playerText.SetText(BuildResultText(
                     _session.lastAngle, _session.lastCount, _session.lastDirection, status));
 
-                if (status == "부족")
+                if (status == Constants.ResultMessages.StatusPoor)
                     ApplyGrayscale();
             }
             else
@@ -122,7 +122,7 @@ namespace DG.Scenes
                 BlockScorer.GetBestAngle(),
                 BlockScorer.GetBestCount(),
                 BlockScorer.GetBestDirection(_session.lastQuestionTime, levelName),
-                "<color=#0B7A0B>양호</color>"));
+                Constants.ResultMessages.StatusGood));
         }
 
         // 전력 부족 판정 — 머티리얼만 할당 (amount=0, 컬러 유지). 서서히 흑백 전환은 시퀀스에서.
@@ -209,7 +209,7 @@ namespace DG.Scenes
         // 'AI가 코딩을 시작합니다' 뒤 점 개수를 0→3 반복 (취소될 때까지)
         private async UniTaskVoid AnimateDotsAsync(CancellationToken ct)
         {
-            const string baseText = "AI가 코딩을 시작합니다";
+            string baseText = Constants.ResultMessages.AiCodingStart;
             int n = 0;
             try
             {

@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
@@ -25,21 +25,17 @@ namespace DG.Scenes
 
             introStartButton.onClick.AddListener(OnIntroStartClicked);
             tutorialStartButton.onClick.AddListener(OnTutorialStartClicked);
-
-            // WebGL? StreamingAssets媛 URL?대씪 VideoClip ?뚯뒪瑜?吏?먰븯吏 ?딆쓬 ??Url ?뚯뒪濡?誘몃━ 以鍮꾨쭔 ?대몢怨?
-            // ?ㅼ젣 ?ъ깮? ?명듃濡??쒖옉 踰꾪듉 ?대┃ ?쒖젏???쒖옉
+            
             if (videoPlayer)
             {
-                videoPlayer.url = Path.Combine(Application.streamingAssetsPath, "Videos/Tutorial_260710.webm");
+                videoPlayer.url = Constants.VideoPaths.TutorialUrl;
                 videoPlayer.Prepare();
-                // destroyCancellationToken ?놁씠?????꾪솚?쇰줈 videoPlayer媛 ?뚭눼???ㅼ뿉???대쭅??怨꾩냽??MissingReferenceException 諛쒖깮
                 SceneFader.RegisterPendingTask(UniTask.WaitUntil(() => videoPlayer.isPrepared, cancellationToken: destroyCancellationToken));
             }
-
-            // ?명듃濡??⑤꼸??濡쒕큸 ?곸긽 ??吏꾩엯怨??숈떆??猷⑦봽 ?ъ깮 (isLooping? 而댄룷?뚰듃???ㅼ젙??
+            
             if (robotVideoPlayer)
             {
-                robotVideoPlayer.url = Path.Combine(Application.streamingAssetsPath, "Videos/Robot_260710.webm");
+                robotVideoPlayer.url = Constants.VideoPaths.RobotUrl;
                 robotVideoPlayer.Prepare();
                 SceneFader.RegisterPendingTask(UniTask.WaitUntil(() => robotVideoPlayer.isPrepared, cancellationToken: destroyCancellationToken));
                 robotVideoPlayer.Play();

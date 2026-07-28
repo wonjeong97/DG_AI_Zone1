@@ -6,30 +6,6 @@ namespace DG.Game.Runtime
     // 각 Command 블록당 1회 채점 — 반복/조건 내부 블록도 배치 기준으로 1회.
     public static class BlockScorer
     {
-        // 질문 시간대별 정답 방향 (정답 5점, 나머지 방향 1점)
-        private readonly static Dictionary<string, string> CorrectDirection = new Dictionary<string, string>
-        {
-            ["아침 8시"]  = "동쪽",
-            ["오전 10시"] = "동쪽",
-            ["정오"]      = "남쪽",
-            ["오후 2시"]  = "서쪽",
-            ["오후 4시"]  = "서쪽",
-        };
-
-        private readonly static Dictionary<string, int> AngleScore = new Dictionary<string, int>
-        {
-            ["30도"] = 3,
-            ["45도"] = 5,
-            ["60도"] = 1,
-        };
-
-        private readonly static Dictionary<string, int> CountScore = new Dictionary<string, int>
-        {
-            ["20개"] = 1,
-            ["40개"] = 3,
-            ["60개"] = 5,
-        };
-
         public static int ScoreProgram(List<BlockInstruction> instructions, string questionValueKey, string levelName = null)
         {
             int total = 0;
@@ -55,19 +31,16 @@ namespace DG.Game.Runtime
             return total;
         }
 
-        // 방향 정답 점수 (오답은 1점)
-        private const int DirectionCorrectScore = 5;
-
         // ── 최고 점수 값 조회 (AI 코딩 결과 표시용) ─────────────────
         // 프로그램 최고 점수 — 방향 정답 + 각도/개수 최고점 합
         public static int GetMaxScore()
-            => DirectionCorrectScore + AngleScore[GetBestAngle()] + CountScore[GetBestCount()];
+            => Constants.Scores.DirectionCorrectScore + Constants.Scores.AngleScore[GetBestAngle()] + Constants.Scores.CountScore[GetBestCount()];
 
         public static string GetBestDirection(string questionValueKey, string levelName = null)
             => Constants.Questions.GetCorrectDirection(levelName, questionValueKey);
 
-        public static string GetBestAngle() => MaxScoreKey(AngleScore);
-        public static string GetBestCount() => MaxScoreKey(CountScore);
+        public static string GetBestAngle() => MaxScoreKey(Constants.Scores.AngleScore);
+        public static string GetBestCount() => MaxScoreKey(Constants.Scores.CountScore);
 
         private static string MaxScoreKey(Dictionary<string, int> table)
         {
@@ -124,11 +97,11 @@ namespace DG.Game.Runtime
             {
                 case ValueKind.Direction:
                     string correct = Constants.Questions.GetCorrectDirection(levelName, questionValueKey);
-                    return correct != null && cmd.Value == correct ? DirectionCorrectScore : 1;
+                    return correct != null && cmd.Value == correct ? Constants.Scores.DirectionCorrectScore : 1;
                 case ValueKind.Angle:
-                    return AngleScore.TryGetValue(cmd.Value, out var angle) ? angle : 0;
+                    return Constants.Scores.AngleScore.TryGetValue(cmd.Value, out var angle) ? angle : 0;
                 case ValueKind.Count:
-                    return CountScore.TryGetValue(cmd.Value, out var count) ? count : 0;
+                    return Constants.Scores.CountScore.TryGetValue(cmd.Value, out var count) ? count : 0;
                 default:
                     return 0;
             }

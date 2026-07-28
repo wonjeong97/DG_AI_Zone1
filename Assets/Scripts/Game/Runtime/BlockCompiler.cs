@@ -44,19 +44,19 @@ namespace DG.Game.Runtime
                 { start = b; break; }
             }
             if (!start)
-                return CompileResult.Fail("'시작하기' 블록이 코딩 영역에 없습니다");
+                return CompileResult.Fail(Constants.CompilerMessages.MissingStartBlock);
 
             // 시작하기가 다른 블록의 체인/내부 소켓에 연결돼 있으면 첫 블록이 아님
             Transform startParent = start.transform.parent;
             if (startParent &&
                 (startParent.TryGetComponent<ChainOutSocket>(out _) || startParent.TryGetComponent<InnerSocket>(out _)))
-                return CompileResult.Fail("'시작하기' 블록이 첫 번째 블록이어야 합니다", start);
+                return CompileResult.Fail(Constants.CompilerMessages.StartNotFirst, start);
 
             // transform.Find: 직접 자식만 탐색 — 하위 체인 소켓과 혼동 방지
             ChainOutSocket socket = null;
             start.transform.Find(Constants.Sockets.ChainOutName)?.TryGetComponent(out socket);
             if (!socket || !socket.Occupant)
-                return CompileResult.Fail("'시작하기'에 연결된 블록이 없습니다", start);
+                return CompileResult.Fail(Constants.CompilerMessages.MissingConnectedAfterStart, start);
 
             var program = new List<BlockInstruction>();
             CodingBlock terminal = WalkChain(socket.Occupant, program);
@@ -66,12 +66,12 @@ namespace DG.Game.Runtime
             if (CodingBlock.RestrictMainChainToFunction)
             {
                 if (!FindMainChainFunction(start))
-                    return CompileResult.Fail("'함수' 블록을 시작하기와 완성하기 사이에 연결해야 합니다",
+                    return CompileResult.Fail(Constants.CompilerMessages.FunctionBetweenStartEnd,
                         FindSceneBlock(BlockCategory.Function), program, reachedEnd);
 
                 CodingBlock funcDef = FindSceneBlock(BlockCategory.FunctionDef);
                 if (!funcDef || !FunctionDefHasInnerBlock(funcDef))
-                    return CompileResult.Fail("'함수 정의' 블록 안에 블록을 1개 이상 넣어야 합니다", funcDef, program, reachedEnd);
+                    return CompileResult.Fail(Constants.CompilerMessages.EmptyFunctionDef, funcDef, program, reachedEnd);
             }
 
             CodingBlock cmdError = FindCommandWithoutValue(program);
@@ -101,7 +101,7 @@ namespace DG.Game.Runtime
                 CodingBlock endBlock = null;
                 foreach (CodingBlock b in FindAllBlocksInScene())
                     if (b.ControlRole == DG.Data.ControlRole.End) { endBlock = b; break; }
-                return CompileResult.Fail("마지막 블록이 '완성하기'여야 합니다", endBlock, program, reachedEnd);
+                return CompileResult.Fail(Constants.CompilerMessages.MissingEndBlock, endBlock, program, reachedEnd);
             }
 
             return CompileResult.Ok(program);
