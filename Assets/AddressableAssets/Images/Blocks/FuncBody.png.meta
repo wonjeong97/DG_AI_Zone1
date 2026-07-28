@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 2a775ae665c84794915498533b3d2d93
+guid: 8fd07075abe4cb94da6af349c8c60e40
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -49,7 +49,7 @@ TextureImporter:
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
   spritePixelsToUnits: 100
-  spriteBorder: {x: 31, y: 66, z: 0, w: 62}
+  spriteBorder: {x: 20, y: 101, z: 0, w: 121}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
   alphaIsTransparency: 1
@@ -138,16 +138,16 @@ TextureImporter:
     outline: []
     physicsShape: []
     bones: []
-    spriteID: 3f8c1d92a6b74e5f8c2d0a4b7e91f63c
-    internalID: 1537655665
+    spriteID: 5e97eb03825dee720800000000000000
+    internalID: 0
     vertices: []
-    indices:
+    indices: 
     edges: []
     weights: []
     secondaryTextures: []
     nameFileIdTable: {}
-  mipmapLimitGroupName:
+  mipmapLimitGroupName: 
   pSDRemoveMatte: 0
-  userData:
-  assetBundleName:
-  assetBundleVariant:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

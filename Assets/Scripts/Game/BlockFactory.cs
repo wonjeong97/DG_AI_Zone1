@@ -205,10 +205,15 @@ namespace DG.Game
         private const float FlowElseHeight = Constants.Blocks.FlowElseHeight;
         private const float FlowFooterHeight = Constants.Blocks.FlowFooterHeight;
 
+        // 만약/반복하기는 같은 카테고리라 라벨로 아트를 구분한다 (각각 전용 프리팹)
+        private static string FlowPrefabName(string label) =>
+            label == Constants.BlockLabels.While ? "WhileBlock" :
+            label == Constants.BlockLabels.If    ? "IfBlock"    : "FlowControlBlock";
+
         private static async UniTask<GameObject> CreateFlowBlock(BlockEntry entry, Canvas rootCanvas, bool draggable)
         {
             // 기본 구조(라벨·헤더·Inner·푸터)는 프리팹이 담당
-            GameObject go = await CreateFromPrefab("FlowControlBlock", entry, rootCanvas, draggable);
+            GameObject go = await CreateFromPrefab(FlowPrefabName(entry.label), entry, rootCanvas, draggable);
 
             // 사전 배치 블록은 현재 미지원 (런타임 드래그로만 배치)
             if (entry.innerBlocks is not null && entry.innerBlocks.Length > 0)
@@ -350,13 +355,21 @@ namespace DG.Game
             if (cat == BlockCategory.Command && block.ValueKind != ValueKind.None)
                 AttachValueOutSocket(block.gameObject, Constants.Sockets.CommandValueOut);
 
+            // Logic은 전용 아트(Logic)라 좌측 노치 오프셋이 Condition과 다르다
             if (cat == BlockCategory.Value)
                 AttachValueInSocket(block.gameObject, Constants.Sockets.ValueValueIn);
-            else if (cat == BlockCategory.Condition || cat == BlockCategory.Logic)
+            else if (cat == BlockCategory.Logic)
+                AttachValueInSocket(block.gameObject, Constants.Sockets.LogicConditionIn);
+            else if (cat == BlockCategory.Condition)
                 AttachValueInSocket(block.gameObject, Constants.Sockets.ConditionValueIn);
 
             // Condition / Logic 블록: 수평 조건 체인 소켓
-            if (cat == BlockCategory.Condition || cat == BlockCategory.Logic)
+            if (cat == BlockCategory.Logic)
+            {
+                AttachConditionInSocket(block.gameObject,  Constants.Sockets.LogicConditionIn);
+                AttachConditionOutSocket(block.gameObject, Constants.Sockets.LogicConditionOut);
+            }
+            else if (cat == BlockCategory.Condition)
             {
                 AttachConditionInSocket(block.gameObject,  Constants.Sockets.ConditionIn);
                 AttachConditionOutSocket(block.gameObject, Constants.Sockets.ConditionOut);
@@ -375,11 +388,19 @@ namespace DG.Game
                 bool isNoValueCommand = isCommand && block.ValueKind == ValueKind.None;
                 bool useNoValueOffset = isNoValueCommand || cat == BlockCategory.Function;
 
+                // 만약/반복하기는 전용 아트라 체인 소켓 오프셋도 각각 별도
+                bool isWhile = isFlow && block.name == Constants.BlockLabels.While;
+                bool isIf    = isFlow && block.name == Constants.BlockLabels.If;
+
                 Vector2 outOffset = isStart          ? Constants.Sockets.StartChainOut          :
+                                    isWhile          ? Constants.Sockets.WhileChainOut          :
+                                    isIf             ? Constants.Sockets.IfChainOut             :
                                     isFlow           ? Constants.Sockets.FlowChainOut           :
                                     useNoValueOffset ? Constants.Sockets.CommandNoValueChainOut :
                                     isCommand        ? Constants.Sockets.CommandChainOut        : Vector2.zero;
                 Vector2 inOffset  = isEnd            ? Constants.Sockets.EndChainIn             :
+                                    isWhile          ? Constants.Sockets.WhileChainIn           :
+                                    isIf             ? Constants.Sockets.IfChainIn              :
                                     isFlow           ? Constants.Sockets.FlowChainIn            :
                                     useNoValueOffset ? Constants.Sockets.CommandNoValueChainIn  :
                                     isCommand        ? Constants.Sockets.CommandChainIn         : Vector2.zero;
