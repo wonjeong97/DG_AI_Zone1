@@ -205,10 +205,21 @@ namespace DG.Game
         private const float FlowElseHeight = Constants.Blocks.FlowElseHeight;
         private const float FlowFooterHeight = Constants.Blocks.FlowFooterHeight;
 
-        // 만약/반복하기는 같은 카테고리라 라벨로 아트를 구분한다 (각각 전용 프리팹)
-        private static string FlowPrefabName(string label) =>
-            label == Constants.BlockLabels.While ? "WhileBlock" :
-            label == Constants.BlockLabels.If    ? "IfBlock"    : "FlowControlBlock";
+        // 만약/반복하기는 같은 카테고리라 라벨로 아트를 구분한다 (각각 전용 프리팹).
+        // 분류 기준(라벨 문자열 비교)은 여기 한 곳에만 있고, 생성 시점(FlowPrefabName)과
+        // 부착 시점(AttachSockets)이 같은 함수를 호출해 서로 다른 결과를 낼 수 없게 한다.
+        private enum FlowKind { Other, While, If }
+
+        private static FlowKind GetFlowKind(string label) =>
+            label == Constants.BlockLabels.While ? FlowKind.While :
+            label == Constants.BlockLabels.If    ? FlowKind.If    : FlowKind.Other;
+
+        private static string FlowPrefabName(string label) => GetFlowKind(label) switch
+        {
+            FlowKind.While => "WhileBlock",
+            FlowKind.If    => "IfBlock",
+            _              => "FlowControlBlock"
+        };
 
         private static async UniTask<GameObject> CreateFlowBlock(BlockEntry entry, Canvas rootCanvas, bool draggable)
         {
@@ -388,9 +399,11 @@ namespace DG.Game
                 bool isNoValueCommand = isCommand && block.ValueKind == ValueKind.None;
                 bool useNoValueOffset = isNoValueCommand || cat == BlockCategory.Function;
 
-                // 만약/반복하기는 전용 아트라 체인 소켓 오프셋도 각각 별도
-                bool isWhile = isFlow && block.name == Constants.BlockLabels.While;
-                bool isIf    = isFlow && block.name == Constants.BlockLabels.If;
+                // 만약/반복하기는 전용 아트라 체인 소켓 오프셋도 각각 별도.
+                // 분류는 GetFlowKind 하나만 사용 — FlowPrefabName(생성 시점)과 같은 기준을 공유한다
+                FlowKind flowKind = isFlow ? GetFlowKind(block.name) : FlowKind.Other;
+                bool isWhile = flowKind == FlowKind.While;
+                bool isIf    = flowKind == FlowKind.If;
 
                 Vector2 outOffset = isStart          ? Constants.Sockets.StartChainOut          :
                                     isWhile          ? Constants.Sockets.WhileChainOut          :
