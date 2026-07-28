@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
@@ -16,10 +16,10 @@ namespace DG.Scenes
             if (endButton)
                 endButton.onClick.AddListener(OnEndButtonClicked);
 
-            // 濡쒕큸 ?곸긽 ??吏꾩엯怨??숈떆??猷⑦봽 ?ъ깮 (isLooping? 而댄룷?뚰듃???ㅼ젙??
+            // 로봇 영상 — 진입과 동시에 루프 재생 (isLooping은 컴포넌트에 설정됨)
             if (robotVideoPlayer)
             {
-                robotVideoPlayer.url = Path.Combine(Application.streamingAssetsPath, "Videos/Robot_260710.webm");
+                robotVideoPlayer.url = Constants.VideoPaths.RobotUrl;
                 robotVideoPlayer.Prepare();
                 SceneFader.RegisterPendingTask(UniTask.WaitUntil(() => robotVideoPlayer.isPrepared, cancellationToken: destroyCancellationToken));
                 robotVideoPlayer.Play();

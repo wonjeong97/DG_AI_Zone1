@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using DG.Data;
 using UnityEngine;
@@ -9,7 +9,7 @@ namespace DG.Game
 {
     public static class BlockFactory
     {
-        private const string BlockImagePath = "Images/Blocks/";
+        private const string BlockImagePath = Constants.ResourcePaths.BlockImagePath;
 
         // 이름별로 1회만 Addressables에서 로드하고 이후에는 캐시에서 반환
         private readonly static Dictionary<string, Sprite> _spriteCache = new();
@@ -37,18 +37,13 @@ namespace DG.Game
             return sprite;
         }
 
-        // 한글 라벨용 폰트 — 1회만 로드 후 캐시.
+        // 한글 라벨용 폰트 — Addressables로 로드 후 캐시.
         private static UnityEngine.TextCore.Text.FontAsset _labelFont;
 
         public static async UniTask<UnityEngine.TextCore.Text.FontAsset> LoadLabelFontAsync()
         {
             if (_labelFont) return _labelFont;
-            _labelFont = Resources.Load<UnityEngine.TextCore.Text.FontAsset>("Fonts & Materials/GamtanRoadTantan SDF");
-            if (!_labelFont)
-            {
-                // Resources 로드 실패 시 어드레서블로 2차 시도
-                _labelFont = await Addressables.LoadAssetAsync<UnityEngine.TextCore.Text.FontAsset>("GamtanRoadTantan SDF");
-            }
+            _labelFont = await Addressables.LoadAssetAsync<UnityEngine.TextCore.Text.FontAsset>(Constants.ResourcePaths.LabelFontKey);
             return _labelFont;
         }
 
@@ -75,16 +70,16 @@ namespace DG.Game
         /// </summary>
         public static string GetCategoryName(BlockCategory cat) => cat switch
         {
-            BlockCategory.Control => "제어",
-            BlockCategory.Command => "동작",
-            BlockCategory.Value => "변수",
-            BlockCategory.FlowControl => "제어",
-            BlockCategory.ConditionAction => "조건 동작",
-            BlockCategory.Action => "행동",
-            BlockCategory.Logic => "논리",
-            BlockCategory.Condition => "조건",
-            BlockCategory.Function => "함수",
-            BlockCategory.FunctionDef => "함수",
+            BlockCategory.Control => Constants.CategoryNames.Control,
+            BlockCategory.Command => Constants.CategoryNames.Command,
+            BlockCategory.Value => Constants.CategoryNames.Value,
+            BlockCategory.FlowControl => Constants.CategoryNames.FlowControl,
+            BlockCategory.ConditionAction => Constants.CategoryNames.ConditionAction,
+            BlockCategory.Action => Constants.CategoryNames.Action,
+            BlockCategory.Logic => Constants.CategoryNames.Logic,
+            BlockCategory.Condition => Constants.CategoryNames.Condition,
+            BlockCategory.Function => Constants.CategoryNames.Function,
+            BlockCategory.FunctionDef => Constants.CategoryNames.FunctionDef,
             _ => cat.ToString()
         };
 
@@ -550,10 +545,10 @@ namespace DG.Game
 
         private static Material MakeSpriteFillMat(string matName, float yMax, float xMin)
         {
-            Shader shader = Shader.Find("Custom/UI/SpriteFill");
+            Shader shader = Shader.Find(Constants.ResourcePaths.SpriteFillShader);
             if (!shader)
             {
-                Debug.LogWarning("[BlockFactory] 'Custom/UI/SpriteFill' 셰이더를 찾을 수 없습니다.");
+                Debug.LogWarning($"[BlockFactory] '{Constants.ResourcePaths.SpriteFillShader}' 셰이더를 찾을 수 없습니다.");
                 return null;
             }
 

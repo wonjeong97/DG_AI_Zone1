@@ -70,7 +70,7 @@ namespace DG.Scenes
             // 롸벗 영상 — 진입과 동시에 루프 재생 (isLooping은 컴포넌트에 설정됨)
             if (robotVideoPlayer)
             {
-                robotVideoPlayer.url = Path.Combine(Application.streamingAssetsPath, "Videos/Robot_260710.webm");
+                robotVideoPlayer.url = Constants.VideoPaths.RobotUrl;
                 robotVideoPlayer.Prepare();
                 SceneFader.RegisterPendingTask(UniTask.WaitUntil(() => robotVideoPlayer.isPrepared, cancellationToken: destroyCancellationToken));
                 robotVideoPlayer.Play();
