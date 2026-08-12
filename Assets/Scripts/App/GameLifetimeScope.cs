@@ -29,7 +29,16 @@ namespace DG.App
             // 전역 페이드 매니저 — App 하위에 생성되어 씬 전환 간 유지
             builder.RegisterComponentOnNewGameObject<FadeManager>(Lifetime.Singleton, "FadeManager")
                 .UnderTransform(transform);
-            builder.RegisterBuildCallback(container => container.Resolve<FadeManager>());
+            builder.RegisterBuildCallback(container =>
+            {
+                FadeManager fadeManager = container.Resolve<FadeManager>();
+
+                // 템플릿 FadeManager가 자체 생성하는 FadeCanvas의 sortingOrder가 기본값(-1)이라
+                // 씬의 UI Canvas(0)보다도 아래에 그려져 페이드 커튼이 화면을 실제로 가리지 못했음.
+                // SystemCanvas(30000)를 포함한 모든 UI 위에 그려지도록 여기서 보정
+                Canvas fadeCanvas = fadeManager.GetComponentInChildren<Canvas>(true);
+                if (fadeCanvas) fadeCanvas.sortingOrder = 32000;
+            });
 
             // 게임 세션 데이터 — [Inject]로 주입 가능하도록 컨테이너에 등록
             // 앱을 껐다 켜면 항상 처음부터 시작하도록 부팅 시점에 진행도 초기화
