@@ -109,6 +109,8 @@ InitTestScene*.unity*
 # IDE and tool directories
 .idea/
 .claude/
+.agents/
+CLAUDE.md
 
 # Editor screenshots
 /Assets/Screenshots/
