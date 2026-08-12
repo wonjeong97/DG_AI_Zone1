@@ -35,9 +35,10 @@ namespace DG.Scenes
             
             if (robotVideoPlayer)
             {
+                SceneFader.ClearVideoRenderTexture(robotVideoPlayer);
                 robotVideoPlayer.url = Constants.VideoPaths.RobotUrl;
                 robotVideoPlayer.Prepare();
-                SceneFader.RegisterPendingTask(UniTask.WaitUntil(() => robotVideoPlayer.isPrepared, cancellationToken: destroyCancellationToken));
+                SceneFader.RegisterPendingTask(SceneFader.WaitUntilVideoProgressAsync(robotVideoPlayer, Constants.VideoPaths.MinPlaybackProgressBeforeReveal, destroyCancellationToken));
                 robotVideoPlayer.Play();
             }
         }

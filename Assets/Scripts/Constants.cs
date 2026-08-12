@@ -26,6 +26,9 @@ namespace DG
             {
                 return System.IO.Path.Combine(UnityEngine.Application.streamingAssetsPath, relativePath);
             }
+
+            // 씬 전환 시 영상이 화면에 드러나기 전 최소 재생 진행률 (%) — 재생 시작 직후의 어색한 첫 프레임을 가림
+            public const float MinPlaybackProgressBeforeReveal = 0.01f;
         }
 
         // ── 3. 리소스 및 에셋 경로 ──────────────────────────────────
