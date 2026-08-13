@@ -36,7 +36,13 @@ namespace DG.Scenes
         [SerializeField] private TMP_Text aiStartText;
         [SerializeField] private float aiStartHold = 3f;
 
-        [Inject] private GameSession _session;
+        private GameSession _session;
+
+        [Inject]
+        public void Construct(GameSession session)
+        {
+            _session = session;
+        }
 
         private int _playerPercent;
         private Material _grayscaleInstance;   // 흑백 전환용 머티리얼 인스턴스 (null이면 컬러 유지)

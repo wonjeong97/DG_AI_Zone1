@@ -31,7 +31,13 @@ namespace DG.Game
         public DG.Data.ControlRole ControlRole { get; private set; }
         public bool IsDragHandled { get; private set; }
 
-        [Inject] private ILogger<CodingBlock> _log;
+        private ILogger<CodingBlock> _log;
+
+        [Inject]
+        public void Construct(ILogger<CodingBlock> log)
+        {
+            _log = log;
+        }
 
         private Canvas _canvas;
         private RectTransform _rt;
@@ -39,6 +45,19 @@ namespace DG.Game
         private Transform _homeParent;
         private int _homeIndex;
         private Vector2 _homeAnchoredPos;
+
+        private ChainOutSocket[] _cachedChainOutSockets;
+        private InnerSocket[] _cachedInnerSockets;
+        private ValueOutSocket[] _cachedValueOutSockets;
+        private ConditionOutSocket[] _cachedConditionOutSockets;
+
+        private void ClearDragCache()
+        {
+            _cachedChainOutSockets = null;
+            _cachedInnerSockets = null;
+            _cachedValueOutSockets = null;
+            _cachedConditionOutSockets = null;
+        }
 
         // ── 하이라이트 ─────────────────────────────────────────────
         private CodingBlock _snapTarget;
@@ -94,6 +113,7 @@ namespace DG.Game
             if (!_cg) TryGetComponent(out _cg);
             if (_cg) _cg.blocksRaycasts = true;
             IsDragHandled = false;
+            ClearDragCache();
         }
 
         // 드래그 시점에 캔버스를 다시 확인 (Init이 배치 전 호출될 수 있으므로)
@@ -110,6 +130,11 @@ namespace DG.Game
         public void OnBeginDrag(PointerEventData e)
         {
             if (!RootCanvas) return;
+
+            _cachedChainOutSockets = FindObjectsOfType<ChainOutSocket>();
+            _cachedInnerSockets = FindObjectsOfType<InnerSocket>();
+            _cachedValueOutSockets = FindObjectsOfType<ValueOutSocket>();
+            _cachedConditionOutSockets = FindObjectsOfType<ConditionOutSocket>();
 
             // 코딩을 다시 건드리기 시작하면 이전 빌드 결과(성공/에러 외곽선)는 더 이상 유효하지 않으므로 정리
             foreach (CodingBlock b in FindObjectsOfType<CodingBlock>())
@@ -228,6 +253,7 @@ namespace DG.Game
                         IsDragHandled = true;
                         BlockFactory.AttachSockets(this);
                         condSlot.Accept(this);
+                        ClearDragCache();
                         return;
                     }
                 }
@@ -238,6 +264,7 @@ namespace DG.Game
                     IsDragHandled = true;
                     BlockFactory.AttachSockets(this);
                     slot.Accept(this);
+                    ClearDragCache();
                     return;
                 }
             }
@@ -251,6 +278,7 @@ namespace DG.Game
                     IsDragHandled = true;
                     BlockFactory.AttachSockets(this);
                     chainSocket.Accept(this);
+                    ClearDragCache();
                     return;
                 }
 
@@ -259,12 +287,15 @@ namespace DG.Game
                     IsDragHandled = true;
                     BlockFactory.AttachSockets(this);
                     innerSocket.Accept(this);
+                    ClearDragCache();
                     return;
                 }
             }
 
             if (!RootCanvas || transform.parent == RootCanvas.transform)
                 ReturnHomeOrRelease(e);
+            
+            ClearDragCache();
         }
 
         // ChainInSocket 위치 또는 블록 상단 중앙을 스냅 기준점으로 반환
@@ -303,7 +334,8 @@ namespace DG.Game
             ChainOutSocket best = null;
             float minSqr = _chainSnapRadius * _chainSnapRadius;
 
-            foreach (ChainOutSocket candidate in FindObjectsOfType<ChainOutSocket>())
+            var candidates = _cachedChainOutSockets ?? FindObjectsOfType<ChainOutSocket>();
+            foreach (ChainOutSocket candidate in candidates)
             {
                 if (candidate.transform.IsChildOf(transform)) continue;
                 if (!candidate.CanAccept(this)) continue;
@@ -336,7 +368,8 @@ namespace DG.Game
             InnerSocket best = null;
             float minSqr = _chainSnapRadius * _chainSnapRadius;
 
-            foreach (InnerSocket candidate in FindObjectsOfType<InnerSocket>())
+            var candidates = _cachedInnerSockets ?? FindObjectsOfType<InnerSocket>();
+            foreach (InnerSocket candidate in candidates)
             {
                 if (candidate.transform.IsChildOf(transform)) continue;
                 if (!candidate.CanAccept(this)) continue;
@@ -377,7 +410,8 @@ namespace DG.Game
             ValueOutSocket best = null;
             float minSqr = _snapRadius * _snapRadius;
 
-            foreach (ValueOutSocket candidate in Object.FindObjectsOfType<ValueOutSocket>())
+            var candidates = _cachedValueOutSockets ?? FindObjectsOfType<ValueOutSocket>();
+            foreach (ValueOutSocket candidate in candidates)
             {
                 if (candidate.transform.IsChildOf(transform)) continue;
                 if (!candidate.IsEmpty) continue;
@@ -434,7 +468,8 @@ namespace DG.Game
             ConditionOutSocket best = null;
             float minSqr = _snapRadius * _snapRadius;
 
-            foreach (ConditionOutSocket candidate in Object.FindObjectsOfType<ConditionOutSocket>())
+            var candidates = _cachedConditionOutSockets ?? FindObjectsOfType<ConditionOutSocket>();
+            foreach (ConditionOutSocket candidate in candidates)
             {
                 if (candidate.transform.IsChildOf(transform)) continue;
                 if (!candidate.IsEmpty) continue;

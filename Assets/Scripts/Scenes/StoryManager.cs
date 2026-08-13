@@ -7,8 +7,10 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using Microsoft.Extensions.Logging;
 using UnityEngine.Video;
 using VContainer;
+using ZLogger;
 
 namespace DG.Scenes
 {
@@ -25,12 +27,24 @@ namespace DG.Scenes
         [SerializeField] private VideoPlayer robotVideoPlayer;
         [SerializeField] private float fadeDuration = 0.3f;
 
-        [Inject] private GameSession _session;
+        private GameSession _session;
+        private ILogger<StoryManager> _log;
+
+        [Inject]
+        public void Construct(GameSession session, ILogger<StoryManager> log)
+        {
+            _session = session;
+            _log = log;
+        }
 
         private LevelData _currentLevel;
 
         private void Start()
         {
+            if (!levelSelectPanel) _log?.ZLogWarning($"[StoryManager] levelSelectPanel이 할당되지 않았습니다.");
+            if (!storyPanel) _log?.ZLogWarning($"[StoryManager] storyPanel이 할당되지 않았습니다.");
+            if (!startButton) _log?.ZLogWarning($"[StoryManager] startButton이 할당되지 않았습니다.");
+
             if (storyPanel)
             {
                 storyPanel.alpha = 0f;
