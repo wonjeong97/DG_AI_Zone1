@@ -2,7 +2,10 @@ using System.IO;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
+using Microsoft.Extensions.Logging;
 using UnityEngine.Video;
+using VContainer;
+using ZLogger;
 
 namespace DG.Scenes
 {
@@ -11,8 +14,19 @@ namespace DG.Scenes
         [SerializeField] private Button endButton;
         [SerializeField] private VideoPlayer robotVideoPlayer;
 
+        private ILogger<OutroSceneManager> _log;
+
+        [Inject]
+        public void Construct(ILogger<OutroSceneManager> log)
+        {
+            _log = log;
+        }
+
         private void Start()
         {
+            if (!endButton) _log?.ZLogWarning($"[OutroSceneManager] endButton이 할당되지 않았습니다.");
+            if (!robotVideoPlayer) _log?.ZLogWarning($"[OutroSceneManager] robotVideoPlayer가 할당되지 않았습니다.");
+
             if (endButton)
                 endButton.onClick.AddListener(OnEndButtonClicked);
 

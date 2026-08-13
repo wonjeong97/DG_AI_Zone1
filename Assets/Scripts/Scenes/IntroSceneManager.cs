@@ -2,7 +2,10 @@ using System.IO;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
+using Microsoft.Extensions.Logging;
 using UnityEngine.Video;
+using VContainer;
+using ZLogger;
 
 namespace DG.Scenes
 {
@@ -16,15 +19,34 @@ namespace DG.Scenes
         [SerializeField] private VideoPlayer robotVideoPlayer;
         [SerializeField] private float crossFadeDuration = 0.2f;
 
+        private ILogger<IntroSceneManager> _log;
+
+        [Inject]
+        public void Construct(ILogger<IntroSceneManager> log)
+        {
+            _log = log;
+        }
+
         private void Start()
         {
-            tutorialPanel.alpha = 0f;
-            SceneFader.SetGroupInteractable(tutorialPanel, false);
-            introPanel.alpha = 1f;
-            SceneFader.SetGroupInteractable(introPanel, true);
+            if (!introPanel) _log?.ZLogWarning($"[IntroSceneManager] introPanel이 할당되지 않았습니다.");
+            if (!tutorialPanel) _log?.ZLogWarning($"[IntroSceneManager] tutorialPanel이 할당되지 않았습니다.");
+            if (!introStartButton) _log?.ZLogWarning($"[IntroSceneManager] introStartButton이 할당되지 않았습니다.");
+            if (!tutorialStartButton) _log?.ZLogWarning($"[IntroSceneManager] tutorialStartButton이 할당되지 않았습니다.");
 
-            introStartButton.onClick.AddListener(OnIntroStartClicked);
-            tutorialStartButton.onClick.AddListener(OnTutorialStartClicked);
+            if (tutorialPanel)
+            {
+                tutorialPanel.alpha = 0f;
+                SceneFader.SetGroupInteractable(tutorialPanel, false);
+            }
+            if (introPanel)
+            {
+                introPanel.alpha = 1f;
+                SceneFader.SetGroupInteractable(introPanel, true);
+            }
+
+            if (introStartButton) introStartButton.onClick.AddListener(OnIntroStartClicked);
+            if (tutorialStartButton) tutorialStartButton.onClick.AddListener(OnTutorialStartClicked);
             
             if (videoPlayer)
             {

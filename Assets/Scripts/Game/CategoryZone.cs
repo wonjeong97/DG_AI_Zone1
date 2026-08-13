@@ -19,7 +19,13 @@ namespace DG.Game
         public Transform InventoryContent => inventoryContent;
         public BlockCategory CurrentCategory { get; private set; }
 
-        [Inject] private ILogger<CategoryZone> _log;
+        private ILogger<CategoryZone> _log;
+
+        [Inject]
+        public void Construct(ILogger<CategoryZone> log)
+        {
+            _log = log;
+        }
 
         private static GameObject _buttonPrefab;
         private readonly List<(BlockCategory cat, Image fillImg, TMPro.TextMeshProUGUI labelText)> _buttons = new();

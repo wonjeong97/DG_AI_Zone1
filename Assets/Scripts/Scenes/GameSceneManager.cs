@@ -24,12 +24,18 @@ namespace DG.Scenes
         [SerializeField] private StoryPanel      storyPanel;
         [SerializeField] private TextMeshProUGUI questionText;
 
-        [Inject] private GameSession _session;
-        [Inject] private ILogger<GameSceneManager> _log;
+        private GameSession _session;
+        private ILogger<GameSceneManager> _log;
+
+        [Inject]
+        public void Construct(GameSession session, ILogger<GameSceneManager> log)
+        {
+            _session = session;
+            _log = log;
+        }
 
         private CancellationTokenSource _cts;
         private string _questionTime;
-        private string _windDirection;
         private string _currentLevelName;
 
         private void Start()
@@ -101,14 +107,14 @@ namespace DG.Scenes
             // 진행 중인 실행 중단
             _cts?.Cancel();
             _cts?.Dispose();
-            _cts = new CancellationTokenSource();
+            _cts = CancellationTokenSource.CreateLinkedTokenSource(this.GetCancellationTokenOnDestroy());
 
             if (!codingZone)
                 codingZone = FindObjectOfType<CodingZone>();
 
             if (!codingZone)
             {
-                _log?.ZLogWarning($"[Compile] CodingZone을 찾을 수 없습니다.");
+                _log?.ZLogWarning($"[GameSceneManager] CodingZone을 찾을 수 없습니다.");
                 return;
             }
 
@@ -147,7 +153,7 @@ namespace DG.Scenes
             // 스페이스바: 컴파일 검증까지만 — 채점·실행·씬 전환은 완료 버튼 전용
             if (!advanceScene)
             {
-                _log?.ZLogInformation($"[Compile] 컴파일만 수행 — 씬 전환 없음");
+                _log?.ZLogInformation($"[GameSceneManager] 컴파일만 수행 — 씬 전환 없음");
                 return;
             }
 
@@ -162,10 +168,10 @@ namespace DG.Scenes
                 (_session.lastDirection, _session.lastAngle, _session.lastCount) =
                     BlockScorer.ExtractValues(result.Instructions);
             }
-            _log?.ZLogInformation($"[점수] {score}점 (기준 시간: {_questionTime})");
+            _log?.ZLogInformation($"[GameSceneManager] 점수: {score}점 (기준 시간: {_questionTime})");
 
             var executor = new BlockExecutor();
-            executor.OnBlockEnter = block => { if (block) _log?.ZLogInformation($"[실행] {block.name}"); };
+            executor.OnBlockEnter = block => { if (block) _log?.ZLogInformation($"[GameSceneManager] 블록 실행: {block.name}"); };
             executor.OnExecute    = async (instr, ct) =>
             {
                 switch (instr)
@@ -186,7 +192,7 @@ namespace DG.Scenes
             executor.OnCondition = _ => false;
             executor.OnComplete += () =>
             {
-                _log?.ZLogInformation($"[실행] 완료 — {score}점");
+                _log?.ZLogInformation($"[GameSceneManager] 실행 완료 — {score}점");
                 SceneFader.FadeAndLoad(Constants.Scenes.Result, logger: _log).Forget();
             };
 

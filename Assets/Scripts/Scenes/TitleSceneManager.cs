@@ -1,6 +1,9 @@
-﻿using Cysharp.Threading.Tasks;
+using Cysharp.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using UnityEngine;
 using UnityEngine.UI;
+using VContainer;
+using ZLogger;
 
 namespace DG.Scenes
 {
@@ -8,9 +11,19 @@ namespace DG.Scenes
     {
         [SerializeField] private Button startButton;
 
+        private ILogger<TitleSceneManager> _log;
+
+        [Inject]
+        public void Construct(ILogger<TitleSceneManager> log)
+        {
+            _log = log;
+        }
+
         private void Start()
         {
-            startButton.onClick.AddListener(OnStartButtonClicked);
+            if (!startButton) _log?.ZLogWarning($"[TitleSceneManager] startButton이 할당되지 않았습니다.");
+            
+            if (startButton) startButton.onClick.AddListener(OnStartButtonClicked);
         }
 
         private void OnDestroy()

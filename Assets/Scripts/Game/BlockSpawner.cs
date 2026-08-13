@@ -13,7 +13,13 @@ namespace DG.Game
         [SerializeField] private Transform codingContainer;
         [SerializeField] private CategoryZone categoryZone;
 
-        [Inject] private IObjectResolver _resolver;
+        private IObjectResolver _resolver;
+
+        [Inject]
+        public void Construct(IObjectResolver resolver)
+        {
+            _resolver = resolver;
+        }
 
         private Canvas _rootCanvas;
 
