@@ -22,8 +22,8 @@ namespace DG.Scenes
         [SerializeField] private TextMeshProUGUI playerEffText;
         [SerializeField] private CanvasGroup aiEffGroup;
         [SerializeField] private TextMeshProUGUI aiEffText;
-        [SerializeField] private SolarPanelPose playerPanelPose;
-        [SerializeField] private SolarPanelPose aiPanelPose;
+        [SerializeField] private SolarPanelModelPose playerPanelPose;
+        [SerializeField] private SolarPanelModelPose aiPanelPose;
         [SerializeField] private float effCountDuration = 0.8f;
         [SerializeField] private float fadeDuration = 0.5f;
 
