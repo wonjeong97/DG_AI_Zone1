@@ -1,4 +1,6 @@
 {
+  "targetFrameRate": 60,
+  "apiUrl": "https://www.huliac.com/api/content_log.cfm?idx_content_device=16&uid=5D4282B79242&message=",
   "closeSetting": {
     "position": { "x": 1.0, "y": 1.0 },  
     "numToClose": 10,
