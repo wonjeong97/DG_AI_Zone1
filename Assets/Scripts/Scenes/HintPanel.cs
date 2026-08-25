@@ -34,7 +34,11 @@ namespace Scenes
                 if (levelPanels[i]) levelPanels[i].SetActive(i == levelIndex);
             }
 
-            ApplyTimeVariant(questionValueKey);
+            if (level1TimeContainer)
+                level1TimeContainer.gameObject.SetActive(levelIndex == 0);
+
+            if (levelIndex == 0)
+                ApplyTimeVariant(questionValueKey);
 
             gameObject.SetActive(true);
         }

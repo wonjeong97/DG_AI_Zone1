@@ -20,7 +20,8 @@ namespace Scenes
         // storyText가 null이면 패널에 이미 있는 텍스트를 그대로 둠(테스트 등 LevelData 없이 호출하는 경우 대비)
         public void Show(int levelIndex, string storyText = null)
         {
-            headerImage.sprite = levelHeaderImages[levelIndex];
+            if (headerImage && levelHeaderImages != null && levelIndex >= 0 && levelIndex < levelHeaderImages.Length && levelHeaderImages[levelIndex])
+                headerImage.sprite = levelHeaderImages[levelIndex];
 
             for (int i = 0; i < levelPanels.Length; i++)
             {
@@ -28,7 +29,7 @@ namespace Scenes
             }
 
             // 2_Story와 같은 텍스트를 쓰도록 LevelData.storyText에서 가져옴
-            if (storyText != null && levelIndex < levelPanels.Length && levelPanels[levelIndex])
+            if (storyText != null && levelIndex >= 0 && levelIndex < levelPanels.Length && levelPanels[levelIndex])
             {
                 TMP_Text tmp = levelPanels[levelIndex].GetComponentInChildren<TMP_Text>(true);
                 if (tmp) tmp.text = storyText;
