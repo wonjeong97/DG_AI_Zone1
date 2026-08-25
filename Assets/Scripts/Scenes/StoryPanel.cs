@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace DG.Scenes
+namespace Scenes
 {
     public class StoryPanel : MonoBehaviour
     {

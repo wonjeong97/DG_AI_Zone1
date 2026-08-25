@@ -1,15 +1,15 @@
 using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using DG.Data;
-using DG.Game.Runtime;
+using Data;
+using Game.Runtime;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using VContainer;
 
-namespace DG.Scenes
+namespace Scenes
 {
     public class ResultSequence : MonoBehaviour
     {
@@ -96,8 +96,7 @@ namespace DG.Scenes
                 return;
 
             // 코딩 완료(컴파일 성공) 없이 넘어온 경우 값 대신 '-' 표시
-            bool hasCoding = _session.lastAngle is not null
-                             && _session.lastCount is not null
+            bool hasCoding = _session.lastCount is not null
                              && _session.lastDirection is not null;
 
             if (hasCoding)
@@ -109,7 +108,7 @@ namespace DG.Scenes
                 _playerPercent = Mathf.Clamp(Mathf.FloorToInt(percent), 0, 100);
 
                 playerText.SetText(BuildResultText(
-                    _session.lastAngle, _session.lastCount, _session.lastDirection, status));
+                    _session.lastCount, _session.lastDirection, status));
 
                 if (status == Constants.ResultMessages.StatusPoor)
                     ApplyGrayscale();
@@ -125,7 +124,6 @@ namespace DG.Scenes
             string levelName = _session && _session.currentLevel ? _session.currentLevel.name : null;
 
             aiText.SetText(BuildResultText(
-                BlockScorer.GetBestAngle(),
                 BlockScorer.GetBestCount(),
                 BlockScorer.GetBestDirection(_session.lastQuestionTime, levelName),
                 Constants.ResultMessages.StatusGood));
@@ -155,8 +153,8 @@ namespace DG.Scenes
             _grayscaleInstance.SetFloat("_GrayscaleAmount", 1f);
         }
 
-        private static string BuildResultText(string angle, string count, string direction, string status)
-            => $"각도: [{angle}]\n가동 수: [{count}]\n방향: [{direction}]\n\n전력 수급 상태: {status}";
+        private static string BuildResultText(string count, string direction, string status)
+            => $"가동 수: [{count}]\n방향: [{direction}]\n\n전력 수급 상태: {status}";
 
         private async UniTaskVoid PlaySequence()
         {
@@ -166,7 +164,7 @@ namespace DG.Scenes
                 await playerText.PlayAsync(ct);
                 await SceneFader.FadeCanvasGroupAsync(playerImageGroup, 0f, 1f, fadeDuration, ct);
                 if (playerPanelPose)
-                    await playerPanelPose.ApplyAsync(_session ? _session.lastAngle : null, _session ? _session.lastDirection : null, ct);
+                    await playerPanelPose.ApplyAsync(null, _session ? _session.lastDirection : null, ct);
                 await PlayEfficiencyAsync(playerEffGroup, playerEffText, _playerPercent, ct);
                 await FadeToGrayscaleAsync(ct);
 
@@ -180,7 +178,7 @@ namespace DG.Scenes
                 await SceneFader.FadeCanvasGroupAsync(aiImageGroup, 0f, 1f, fadeDuration, ct);
                 string levelName = _session && _session.currentLevel ? _session.currentLevel.name : null;
                 if (aiPanelPose)
-                    await aiPanelPose.ApplyAsync(BlockScorer.GetBestAngle(), BlockScorer.GetBestDirection(_session ? _session.lastQuestionTime : null, levelName), ct);
+                    await aiPanelPose.ApplyAsync(null, BlockScorer.GetBestDirection(_session ? _session.lastQuestionTime : null, levelName), ct);
                 await PlayEfficiencyAsync(aiEffGroup, aiEffText, 100, ct);
 
                 await SceneFader.FadeCanvasGroupAsync(confirmButtonGroup, 0f, 1f, fadeDuration, ct);

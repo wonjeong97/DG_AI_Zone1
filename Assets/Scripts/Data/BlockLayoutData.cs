@@ -1,8 +1,8 @@
 using System;
-using DG.Game;
+using Game;
 using UnityEngine;
 
-namespace DG.Data
+namespace Data
 {
     [CreateAssetMenu(fileName = "BlockLayoutData", menuName = "DG/Block Layout Data")]
     public class BlockLayoutData : ScriptableObject

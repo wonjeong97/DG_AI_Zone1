@@ -3,7 +3,7 @@ using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using UnityEngine;
 
-namespace DG.Scenes
+namespace Scenes
 {
     // 신규 FBX 솔라패널 모델(Circle.001/Cylinder.007-009/Plane.006-008) 전용 자세 제어.
     // 방향(yaw)은 yawPivot(PanelYawPivot)을 월드 Y(수직)축 기준으로 회전.

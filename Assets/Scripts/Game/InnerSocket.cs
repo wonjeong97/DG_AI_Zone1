@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEditor;
 #endif
 
-namespace DG.Game
+namespace Game
 {
     // FlowControl 블록 내부 영역의 진입 소켓.
     // ChainOutSocket과 동일한 Accept/Release 인터페이스를 가지며,

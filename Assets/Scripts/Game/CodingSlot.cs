@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-namespace DG.Game
+namespace Game
 {
     // 코딩 영역의 세로 슬롯. Control·Value·Logic은 받지 않음.
     public class CodingSlot : MonoBehaviour, IDropHandler

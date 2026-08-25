@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace DG.Data
+namespace Data
 {
     [CreateAssetMenu(fileName = "GameSession", menuName = "DG/Game Session")]
     public class GameSession : ScriptableObject

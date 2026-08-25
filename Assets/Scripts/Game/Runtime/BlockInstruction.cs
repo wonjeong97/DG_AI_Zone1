@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace DG.Game.Runtime
+namespace Game.Runtime
 {
     public abstract class BlockInstruction
     {

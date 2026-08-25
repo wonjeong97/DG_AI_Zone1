@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace DG.Game.Runtime
+namespace Game.Runtime
 {
     // 컴파일된 명령 목록을 코드 형태의 문자열로 변환한다 (디버그 로그·표시용).
     //   START

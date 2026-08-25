@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using DG.Data;
-using DG.Game;
-using DG.Game.Runtime;
+using Data;
+using Game;
+using Game.Runtime;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 using UnityEngine.UI;
@@ -11,7 +11,7 @@ using TMPro;
 using VContainer;
 using ZLogger;
 
-namespace DG.Scenes
+namespace Scenes
 {
     public class GameSceneManager : MonoBehaviour
     {

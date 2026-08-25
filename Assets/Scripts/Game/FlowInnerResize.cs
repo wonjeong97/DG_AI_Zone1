@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 
-namespace DG.Game
+namespace Game
 {
     [RequireComponent(typeof(LayoutElement))]
     public class FlowInnerResize : MonoBehaviour

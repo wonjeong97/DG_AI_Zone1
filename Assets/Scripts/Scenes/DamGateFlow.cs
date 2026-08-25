@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace DG.Scenes
+namespace Scenes
 {
     // 댐 수문 1개와 그 수문 자리의 물줄기를 묶어 제어한다.
     // 수문은 피벗이 상단이라 Z스케일을 줄이면 아래에서부터 열린다.

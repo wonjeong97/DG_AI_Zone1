@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEditor;
 #endif
 
-namespace DG.Game
+namespace Game
 {
     // Value 블록의 연결 포인트. 부모 Command 블록의 ValueOutSocket 위치와 정렬되어 스냅된다.
     public class ValueInSocket : MonoBehaviour

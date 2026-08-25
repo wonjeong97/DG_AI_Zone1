@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEditor;
 #endif
 
-namespace DG.Game
+namespace Game
 {
     // 블록 하단 연결 포인트. 자식 블록의 ChainInSocket과 위치를 맞춰 스냅한다.
     public class ChainOutSocket : MonoBehaviour
@@ -37,11 +37,11 @@ namespace DG.Game
                 if (owner)
                 {
                     bool ownerIsStart   = owner.Category == BlockCategory.Control
-                                          && owner.ControlRole == DG.Data.ControlRole.Start;
+                                          && owner.ControlRole == Data.ControlRole.Start;
                     bool ownerIsFunc    = owner.Category == BlockCategory.Function;
                     bool incomingIsFunc = incoming.Category == BlockCategory.Function;
                     bool incomingIsEnd  = incoming.Category == BlockCategory.Control
-                                          && incoming.ControlRole == DG.Data.ControlRole.End;
+                                          && incoming.ControlRole == Data.ControlRole.End;
 
                     // 시작하기 소켓엔 함수만 / 함수 소켓엔 완성하기만(삽입 금지) / 완성하기는 함수 뒤에만
                     if (ownerIsStart && !incomingIsFunc) return false;

@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
-namespace DG.Game
+namespace Game
 {
     public class CategoryButtonUI : MonoBehaviour
     {
