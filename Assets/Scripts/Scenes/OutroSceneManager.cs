@@ -1,6 +1,8 @@
 using System.IO;
 using Cysharp.Threading.Tasks;
+using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using Microsoft.Extensions.Logging;
 using UnityEngine.Video;
@@ -13,6 +15,7 @@ namespace Scenes
     {
         [SerializeField] private Button endButton;
         [SerializeField] private VideoPlayer robotVideoPlayer;
+        [SerializeField] private TMP_Text endingText;
 
         private ILogger<OutroSceneManager> _log;
 
@@ -39,6 +42,25 @@ namespace Scenes
                 SceneFader.RegisterPendingTask(SceneFader.WaitUntilVideoProgressAsync(robotVideoPlayer, Constants.VideoPaths.MinPlaybackProgressBeforeReveal, destroyCancellationToken));
                 robotVideoPlayer.Play();
             }
+
+            if (endingText)
+            {
+                // 페이드인 도중 전체 텍스트가 잠깐 보이지 않도록 미리 숨겨 둠
+                endingText.ForceMeshUpdate();
+                endingText.maxVisibleCharacters = 0;
+                StoryLineAnimator.AnimateAsync(endingText,
+                    Constants.StoryLine.StoryLineMoveDuration,
+                    Constants.StoryLine.StoryLineInterval,
+                    Constants.StoryLine.StoryLineYOffset,
+                    IsSkipRequested, destroyCancellationToken).Forget();
+            }
+        }
+
+        // 이번 프레임에 마우스 또는 터치 눌림이 있었는지 반환함(연출 스킵용)
+        private bool IsSkipRequested()
+        {
+            Pointer pointer = Pointer.current;
+            return pointer != null && pointer.press.wasPressedThisFrame;
         }
 
         private void OnDestroy()

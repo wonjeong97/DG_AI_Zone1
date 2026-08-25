@@ -108,6 +108,10 @@ namespace Scenes
                 if (i == index) storyText = levelPanels[i].GetComponentInChildren<TMP_Text>(true);
             }
 
+            // 2_Story·3_Game(스토리 다시보기)이 같은 텍스트를 쓰도록 LevelData.storyText에서 가져옴
+            if (storyText != null)
+                storyText.text = _currentLevel.storyText;
+
             // 페이드인 도중 전체 텍스트가 잠깐 보이지 않도록 미리 숨겨 둠
             if (storyText != null)
             {

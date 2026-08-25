@@ -179,13 +179,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\uD2B9\uC815 \uC870\uAC74\uC5D0\uC11C \uC62C\uBC14\uB974\uAC8C \uC81C\uC5B4\uD558\uB294
-    \uC2DC\uC2A4\uD15C\uC744 \uB9CC\uB4E4\uC5B4 \uC218\uB825 \uB310\uC5D0\uC11C\n\uC804\uAE30\uAC00
-    \uC548\uC815\uC801\uC73C\uB85C \uB9CC\uB4E4\uC5B4 \uC9C0\uAC8C \uD574\uBCFC\uAE4C\uC694?\n<size=70%>*
-    \uC6B0\uB9AC \uB310\uC740 \uBCF4\uD1B5 5m \uC218\uC704\uB97C \uC720\uC9C0\uD55C\uB2F5\uB2C8\uB2E4.
-    \u200B (\uBB3C\uC758 \uB192\uC774 (\uC218\uC704) 1~10m \uC911 \uB79C\uB364 1)</size>\n\n<font=\"GamtanRoadTantan
-    SDF Outline\">\\t\u25AA \uC870\uAC74\uBB38\n\\t\u25AA \uBB3C\uC758 \uC591 \uAC10\uC9C0\uAE30\n\\t\u25AA
-    \uAC1C\uBC29\uD558\uAE30 / \uD3D0\uC1E0\uD558\uAE30</font>\n\n"
+  m_text: Text
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: d0d2f5797b1d2f34ea9ffb7c01ef8fd6, type: 2}
   m_sharedMaterial: {fileID: 1948369249235228639, guid: d0d2f5797b1d2f34ea9ffb7c01ef8fd6,
@@ -254,7 +248,7 @@ MonoBehaviour:
   m_margin: {x: 132.23383, y: 205.19885, z: 76.42822, w: 58.764587}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
-  m_hasFontAssetChanged: 1
+  m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
 --- !u!222 &106556531
@@ -763,11 +757,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\uD0DC\uC591\uC758 \uC704\uCE58(\uC2DC\uAC04)\uC5D0 \uB530\uB77C \uC544\uB798
-    \uC138 \uAC00\uC9C0\uB97C \uC798 \uC870\uC808\uD558\uC5EC,\n\uAC00\uC7A5 \uB9CE\uC740
-    \uD0DC\uC591\uC5F4\uC744 \uB2F4\uC544\uBCFC\uAE4C\uC694?\n\n<font=\"GamtanRoadTantan
-    SDF Outline\"> \u25AA \uD0DC\uC591\uAD11 \uD328\uB110\uC758 \uAC01\uB3C4\n \u25AA
-    \uD328\uB110\uC758 \uBC29\uD5A5\n \u25AA \uC124\uCE58 \uAC1C\uC218</font>\n\n"
+  m_text: Text
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: d0d2f5797b1d2f34ea9ffb7c01ef8fd6, type: 2}
   m_sharedMaterial: {fileID: 1948369249235228639, guid: d0d2f5797b1d2f34ea9ffb7c01ef8fd6,
@@ -1655,13 +1645,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\uBC14\uB78C \uBC29\uD5A5\uC744 \uACC4\uC18D \uAC10\uC9C0\uD558\uACE0,
-    \uD48D\uCC28\uC758 \uBC29\uD5A5\uC774 \uBC14\uB78C\uC758 \uBC29\uD5A5\uB300\uB85C\n\uC6C0\uC9C1\uC774\uAC8C
-    \uD574\uC11C \uBC1C\uC804\uAE30\uAC00 \uC9C0\uC18D\uC801\uC73C\uB85C \uC798 \uC6B4\uC601\uB418\uAC8C
-    \uD574\uBCFC\uAE4C\uC694?\n<size=70%>* \uBC14\uB78C\uC758 \uBC29\uD5A5 \uB3D9,
-    \uC11C, \uB0A8, \uBD81 \uC911 \uB79C\uB364 1</size>\n\n<font=\"GamtanRoadTantan
-    SDF Outline\">\\t\u25AA \uBC18\uBCF5\uBB38\n\\t\u25AA \uD48D\uCC28\uC758 \uB0A0\uAC1C
-    \uBC29\uD5A5\n\\t\u25AA \uB0A0\uAC1C \uBC29\uD5A5 \uC870\uC808\uD558\uAE30</font>\n\n"
+  m_text: Text
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: d0d2f5797b1d2f34ea9ffb7c01ef8fd6, type: 2}
   m_sharedMaterial: {fileID: 1948369249235228639, guid: d0d2f5797b1d2f34ea9ffb7c01ef8fd6,
@@ -1730,7 +1714,7 @@ MonoBehaviour:
   m_margin: {x: 132.23383, y: 205.19885, z: 76.42822, w: 58.764587}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
-  m_hasFontAssetChanged: 1
+  m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
 --- !u!222 &891781498
@@ -2144,10 +2128,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\uD0DC\uC591\uC758 \uC704\uCE58(\uC2DC\uAC04)\uC5D0 \uB530\uB77C \uC544\uB798
-    \uB450 \uAC00\uC9C0\uB97C \uC798 \uC870\uC808\uD558\uC5EC,\n\uAC00\uC7A5 \uB9CE\uC740
-    \uD0DC\uC591\uC5F4\uC744 \uB2F4\uC544\uBCFC\uAE4C\uC694?\n\n<font=\"GamtanRoadTantan
-    SDF Outline\">\u25AA \uD328\uB110\uC758 \uBC29\uD5A5\n\u25AA \uC124\uCE58 \uAC1C\uC218</font>\n\n"
+  m_text: Text
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: d0d2f5797b1d2f34ea9ffb7c01ef8fd6, type: 2}
   m_sharedMaterial: {fileID: 1948369249235228639, guid: d0d2f5797b1d2f34ea9ffb7c01ef8fd6,
@@ -2577,14 +2558,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\uC2A4\uB9C8\uD2B8\uC5D0\uB108\uC9C0 \uB3C4\uC2DC\uC758 \uBC1C\uC804\uC18C\uAC00
-    \uC804\uAE30\uAC00 \uACFC\uBD80\uD558\uC774\uBA74\uC11C \uBC24\uC774 \uB418\uBA74\n\uB180\uC774\uC2DC\uC124\uC758
-    \uBD88\uC740 \uC7A0\uAE50 \uB044\uB3C4\uB85D \uD574\uC694.\u200B \uD558\uC9C0\uB9CC
-    \uBCD1\uC6D0\uC758 \uBD88\uC740 \uD56D\uC0C1 \uCF1C\uB3C4\uB85D \uD558\uC5EC
-    \uC544\uD508 \uC0AC\uB78C\uB4E4\uC774 \uBC24\uC5D0\uB3C4 \uCE58\uB8CC\uB97C \uBC1B\uC744
-    \uC218 \uC788\uAC8C \uD574\uBCFC\uAE4C\uC694?\n\n<font=\"GamtanRoadTantan SDF
-    Outline\">\\t\u25AA \uC870\uAC74\uBB38\n\\t\u25AA \uBB3C\uC758 \uC591 \uAC10\uC9C0\uAE30\n\\t\u25AA
-    \uAC1C\uBC29\uD558\uAE30 / \uD3D0\uC1E0\uD558\uAE30</font>\n\n"
+  m_text: Text
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: d0d2f5797b1d2f34ea9ffb7c01ef8fd6, type: 2}
   m_sharedMaterial: {fileID: 1948369249235228639, guid: d0d2f5797b1d2f34ea9ffb7c01ef8fd6,
@@ -2653,7 +2627,7 @@ MonoBehaviour:
   m_margin: {x: 132.23383, y: 205.19885, z: 76.42822, w: 58.764587}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
-  m_hasFontAssetChanged: 1
+  m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
 --- !u!222 &1339635988
@@ -2726,7 +2700,7 @@ GameObject:
   - component: {fileID: 1549751286}
   - component: {fileID: 1549751285}
   m_Layer: 5
-  m_Name: "\uB878\uBC97"
+  m_Name: Video_Robot
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3079,7 +3053,7 @@ GameObject:
   - component: {fileID: 1962577945}
   - component: {fileID: 1962577944}
   m_Layer: 5
-  m_Name: BG
+  m_Name: Background
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

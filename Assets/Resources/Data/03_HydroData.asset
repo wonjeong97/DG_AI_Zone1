@@ -12,8 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 35b45145103e568498fa13c3afd65638, type: 3}
   m_Name: 03_HydroData
   m_EditorClassIdentifier: 
-  storyText: "[\uB808\uBCA8 3 \uC2A4\uD1A0\uB9AC \uD14D\uC2A4\uD2B8]\n\n\uB0B4\uC6A9\uC744
-    \uC785\uB825\uD558\uC138\uC694."
   nextSceneName: 3_Game
   blockLayout: {fileID: 11400000, guid: 55cda33418a7d344397108c22fa051d3, type: 2}
+  storyText: "\uAC15\uBB3C\uC758 \uC591\uC744 \uD655\uC778\uD558\uBA74\uC11C \uD544\uC694\uD55C
+    \uC21C\uAC04\uC5D0\uB9CC \uC218\uBB38\uC744 \uC5F4\uC5B4\uC57C \uD574\uC694!\n<font=\"GamtanRoadTantan
+    SDF Outline\">\n\u25AA \uD2B9\uC815 \uC870\uAC74\uC5D0\uC11C \uAC1C\uBC29\uB418\uACE0
+    \uC544\uB2C8\uBA74 \uD3D0\uC1C4\uB418\uB294 \uC2DC\uC2A4\uD15C\uC744 \uB9CC\uB4E4\uC5B4\n</font>\n\uC218\uB825
+    \uB310\uC774 \uC548\uC815\uC801\uC73C\uB85C \uC791\uB3D9\uB418\uAC8C \uD574\uC8FC\uC138\uC694."
   afterResultScene: 2_Story

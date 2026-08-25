@@ -20,8 +20,10 @@ namespace Scenes
         [SerializeField] private CodingZone      codingZone;
         [SerializeField] private Button          compileButton;
         [SerializeField] private Button          storyButton;
+        [SerializeField] private Button          hintButton;
         [SerializeField] private Button          skipButton;
         [SerializeField] private StoryPanel      storyPanel;
+        [SerializeField] private HintPanel       hintPanel;
         [SerializeField] private TextMeshProUGUI questionText;
 
         private GameSession _session;
@@ -83,7 +85,12 @@ namespace Scenes
                 compileButton.onClick.AddListener(() => CompileAndRun(advanceScene: true).Forget());
 
             if (storyButton)
-                storyButton.onClick.AddListener(() => storyPanel.Show(_session ? _session.unlockedLevelIndex : 0));
+                storyButton.onClick.AddListener(() => storyPanel.Show(
+                    _session ? _session.unlockedLevelIndex : 0,
+                    _session && _session.currentLevel ? _session.currentLevel.storyText : null));
+
+            if (hintButton)
+                hintButton.onClick.AddListener(() => hintPanel.Show(_session ? _session.unlockedLevelIndex : 0, _questionTime));
 
             if (skipButton)
                 skipButton.onClick.AddListener(SkipToResult);

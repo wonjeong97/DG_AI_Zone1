@@ -295,7 +295,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 224, y: 88}
-  m_SizeDelta: {x: 1354, y: 647}
+  m_SizeDelta: {x: 1372, y: 650}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &100839212
 MonoBehaviour:
@@ -317,7 +317,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: cbbdac14c50e708499614c822530f908, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 1ec93e3c65ddc174e846e4903fe055b9, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -524,9 +524,8 @@ MonoBehaviour:
   m_text: "\uBBF8\uC158\uC744 \uD6CC\uB96D\uD558\uAC8C \uC644\uC218\uD558\uC600\uC2B5\uB2C8\uB2E4!\u200B\r\n\r\n\uC5D0\uD53C\uC18C\uB4DC\uC5D0\uC11C
     \uC124\uACC4\uD55C \uD0DC\uC591\uAD11, \uD48D\uB825, \uC218\uB825, \uC2A4\uB9C8\uD2B8
     \uB3C4\uC2DC \uBC1C\uC804\uC18C \uADF8\uB9AC\uACE0 \uBBF8\uB798\uC5D0\uB108\uC9C0
-    \uC5F0\uAD6C\uC18C\uC758 \uC124\uACC4\uAC00 \uC644\uBCBD\uD558\uAC8C \uC735\uD569\uB418\uC5B4
-    \uAE68\uB057\uD558\uACE0 \uC548\uC804\uD55C \uC5D0\uB108\uC9C0\uAC00 \uD750\uB974\uAE30
-    \uC2DC\uC791\uD588\uC2B5\uB2C8\uB2E4!"
+    \uC5F0\uAD6C\uC18C\uC758 \uC124\uACC4\uAC00 \uC644\uBCBD\uD558\uAC8C \uC735\uD569\uB418\uC5B4,\n\uAE68\uB057\uD558\uACE0
+    \uC548\uC804\uD55C \uC5D0\uB108\uC9C0\uAC00 \uD750\uB974\uAE30 \uC2DC\uC791\uD588\uC2B5\uB2C8\uB2E4!"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: d0d2f5797b1d2f34ea9ffb7c01ef8fd6, type: 2}
   m_sharedMaterial: {fileID: 1948369249235228639, guid: d0d2f5797b1d2f34ea9ffb7c01ef8fd6,
@@ -970,6 +969,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   endButton: {fileID: 125706348}
   robotVideoPlayer: {fileID: 1549751285}
+  endingText: {fileID: 170305825}
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0
