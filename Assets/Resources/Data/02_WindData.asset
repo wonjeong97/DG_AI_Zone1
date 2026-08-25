@@ -12,8 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 35b45145103e568498fa13c3afd65638, type: 3}
   m_Name: 02_WindData
   m_EditorClassIdentifier: 
-  storyText: "[\uB808\uBCA8 2 \uC2A4\uD1A0\uB9AC \uD14D\uC2A4\uD2B8]\n\n\uB0B4\uC6A9\uC744
-    \uC785\uB825\uD558\uC138\uC694."
   nextSceneName: 3_Game
   blockLayout: {fileID: 11400000, guid: baecb7195ffa6f14ba6f9a4f7cad5301, type: 2}
+  storyText: "\uBC14\uB78C\uC758 \uBC29\uD5A5\uC5D0 \uB530\uB77C,\n<font=\"GamtanRoadTantan
+    SDF Outline\">\n\u25AA \uBC14\uB78C\uC758 \uBC29\uD5A5\uC744 \uBC18\uBCF5\uD574
+    \uAC10\uC9C0\uD558\uACE0,\n\u25AA \uD48D\uCC28\uC758 \uBC29\uD5A5\uC774 \uBC14\uB78C\uC5D0
+    \uB9DE\uAC8C \uC6C0\uC9C1\uC774\uAC8C \uD574\uC11C\n</font>\n\uBC1C\uC804\uAE30\uAC00
+    \uC9C0\uC18D\uC801\uC73C\uB85C \uC798 \uC6B4\uC601\uB418\uAC8C \uD574\uBCFC\uAE4C\uC694?\n\n"
   afterResultScene: 2_Story
