@@ -7,7 +7,7 @@ using UnityEngine.Video;
 using VContainer;
 using ZLogger;
 
-namespace DG.Scenes
+namespace Scenes
 {
     public class OutroSceneManager : MonoBehaviour
     {

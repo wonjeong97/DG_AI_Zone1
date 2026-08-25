@@ -3,7 +3,7 @@
 using UnityEditor;
 #endif
 
-namespace DG.Game
+namespace Game
 {
     // Inner 컨테이너 하단 기준점 — FlowInnerResize가 마지막 ChainOutSocket 위치와 맞춰 높이를 계산
     public class InnerBottomSocket : MonoBehaviour

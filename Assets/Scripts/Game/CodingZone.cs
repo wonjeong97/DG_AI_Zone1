@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-namespace DG.Game
+namespace Game
 {
     // 코딩 패널 자유 배치 드랍존.
     // 드랍된 블록은 놓은 위치 그대로 유지된다.

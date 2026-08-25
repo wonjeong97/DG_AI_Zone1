@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEditor;
 #endif
 
-namespace DG.Game
+namespace Game
 {
     // Command 블록의 값 연결 포인트. Value 블록의 ValueInSocket과 위치를 맞춰 스냅한다.
     public class ValueOutSocket : MonoBehaviour

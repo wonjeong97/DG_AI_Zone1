@@ -1,4 +1,4 @@
-namespace DG.Game
+namespace Game
 {
     // Value 블록의 값 타입. Command 블록은 허용할 타입을 지정한다 (None = 값 슬롯 없는 동작 블록).
     public enum ValueKind

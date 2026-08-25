@@ -5,7 +5,7 @@ using UnityEngine.UI;
 using VContainer;
 using ZLogger;
 
-namespace DG.Scenes
+namespace Scenes
 {
     public class TitleSceneManager : MonoBehaviour
     {

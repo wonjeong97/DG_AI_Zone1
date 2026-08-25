@@ -3,7 +3,7 @@ using Cysharp.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 
-namespace DG.Scenes
+namespace Scenes
 {
     // TMP 버전 타이프라이터 — maxVisibleCharacters로 노출량만 늘려 리치텍스트 태그(<font>/<material> 등)가 잘리지 않음.
     // 레거시 Text용 TypewriterText와 API(SetText/PlayAsync)를 맞춰 사용처를 최소 변경으로 대체.

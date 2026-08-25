@@ -1,4 +1,4 @@
-namespace DG.Game
+namespace Game
 {
     public enum BlockCategory
     {

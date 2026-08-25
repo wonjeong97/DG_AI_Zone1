@@ -52,6 +52,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 528258cfd382cad498f7c62563edbd16
+    m_Address: GameSession
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 67fdb630d03f3a44aa2760162b1d1276
     m_Address: WhileBlock
     m_ReadOnly: 0

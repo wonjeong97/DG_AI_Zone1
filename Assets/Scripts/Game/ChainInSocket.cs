@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEditor;
 #endif
 
-namespace DG.Game
+namespace Game
 {
     // 블록 상단 연결 포인트. 부모 블록의 ChainOutSocket 위치와 정렬되어 스냅된다.
     public class ChainInSocket : MonoBehaviour

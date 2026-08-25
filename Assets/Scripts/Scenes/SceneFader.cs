@@ -9,7 +9,7 @@ using UnityEngine.Video;
 using Wonjeong.UI;
 using ZLogger;
 
-namespace DG.Scenes
+namespace Scenes
 {
     // 템플릿 FadeManager로 페이드아웃 → 씬 로드 → 페이드인 전환.
     public static class SceneFader

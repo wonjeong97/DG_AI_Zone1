@@ -1,7 +1,7 @@
 using System.Threading;
 using UnityEngine;
 
-namespace DG.Scenes
+namespace Scenes
 {
     // 테스트 전용 — SolarPanelModelPose 수동 테스트용 키 입력.
     // 방향: 1(남) 2(동) 3(북) 4(서). 각도: 5(30도) 6(45도) 7(60도).

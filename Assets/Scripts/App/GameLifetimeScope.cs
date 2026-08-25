@@ -1,5 +1,6 @@
-using DG.Data;
+using Data;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using UnityEngine.SceneManagement;
 using VContainer;
 using VContainer.Unity;
@@ -7,7 +8,7 @@ using Wonjeong.App;
 using Wonjeong.UI;
 using Wonjeong.Utils;
 
-namespace DG.App
+namespace App
 {
     public class GameLifetimeScope : RootLifetimeScope
     {
@@ -42,8 +43,8 @@ namespace DG.App
 
             // 게임 세션 데이터 — [Inject]로 주입 가능하도록 컨테이너에 등록
             // 앱을 껐다 켜면 항상 처음부터 시작하도록 부팅 시점에 진행도 초기화
-            // VContainer Configure는 동기 실행이라 Addressables.WaitForCompletion(WebGL 미지원)을 쓸 수 없어 Resources.Load 유지
-            _session = Resources.Load<GameSession>("Data/GameSession");
+            // VContainer Configure는 동기 실행이라 Addressables.WaitForCompletion으로 동기 로드
+            _session = Addressables.LoadAssetAsync<GameSession>(Constants.ResourcePaths.GameSessionKey).WaitForCompletion();
             _session.ResetProgress();
             builder.RegisterInstance(_session);
         }
@@ -52,6 +53,12 @@ namespace DG.App
         {
             base.Awake();
             SceneManager.sceneLoaded += OnSceneLoaded;
+
+            // VContainerSettings는 활성 씬이 이미 로드된 상태(에디터에서 특정 씬을 바로 플레이하는 경우 등)면
+            // sceneLoaded 이벤트 없이 곧바로 루트 스코프를 생성한다 — 그 최초 씬은 위 구독으로 못 잡으므로 직접 주입
+            Scene activeScene = SceneManager.GetActiveScene();
+            if (activeScene.isLoaded)
+                OnSceneLoaded(activeScene, LoadSceneMode.Single);
         }
 
         protected override void OnDestroy()

@@ -7,7 +7,7 @@ using UnityEngine.UI;
 using VContainer;
 using ZLogger;
 
-namespace DG.Game
+namespace Game
 {
     // 카테고리 존 — 인벤토리에 존재하는 카테고리별 선택 버튼을 코드로 생성하고,
     // 선택된 카테고리의 블록만 인벤토리에 표시(show/hide)한다. (Control 블록은 코딩존이라 대상 아님)

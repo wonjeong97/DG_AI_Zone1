@@ -1,8 +1,8 @@
-using DG.Data;
-using DG.Scenes;
+using Data;
+using Scenes;
 using UnityEditor;
 
-namespace DG.Editor
+namespace Editor
 {
     // GameSceneManager 인스펙터 — testLevel을 에셋 드래그 대신
     // 프로젝트 내 LevelData 목록 드랍다운으로 선택하게 한다.

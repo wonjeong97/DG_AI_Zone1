@@ -1,11 +1,11 @@
 using Cysharp.Threading.Tasks;
-using DG.Data;
+using Data;
 using UnityEngine;
 using UnityEngine.UI;
 using VContainer;
 using VContainer.Unity;
 
-namespace DG.Game
+namespace Game
 {
     public class BlockSpawner : MonoBehaviour
     {

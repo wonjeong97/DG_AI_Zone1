@@ -23,14 +23,6 @@ MonoBehaviour:
     chainBlocks: []
     chainSocketOffset: {x: 0, y: 0}
   - category: 1
-    label: "\uD0DC\uC591\uAD11 \uD328\uB110\uC758 \uAC01\uB3C4"
-    valueLabel: 
-    valueKind: 3
-    innerBlocks: []
-    elseBlocks: []
-    chainBlocks: []
-    chainSocketOffset: {x: 0, y: 0}
-  - category: 1
     label: "\uD0DC\uC591\uAD11 \uD328\uB110\uC758 \uAC00\uB3D9 \uC218"
     valueLabel: 
     valueKind: 2
@@ -42,30 +34,6 @@ MonoBehaviour:
     label: "\uD0DC\uC591\uAD11 \uD328\uB110\uC758 \uBC29\uD5A5"
     valueLabel: 
     valueKind: 1
-    innerBlocks: []
-    elseBlocks: []
-    chainBlocks: []
-    chainSocketOffset: {x: 0, y: 0}
-  - category: 2
-    label: "30\uB3C4"
-    valueLabel: 
-    valueKind: 3
-    innerBlocks: []
-    elseBlocks: []
-    chainBlocks: []
-    chainSocketOffset: {x: 0, y: 0}
-  - category: 2
-    label: "45\uB3C4"
-    valueLabel: 
-    valueKind: 3
-    innerBlocks: []
-    elseBlocks: []
-    chainBlocks: []
-    chainSocketOffset: {x: 0, y: 0}
-  - category: 2
-    label: "60\uB3C4"
-    valueLabel: 
-    valueKind: 3
     innerBlocks: []
     elseBlocks: []
     chainBlocks: []

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace DG.Game.Runtime
+namespace Game.Runtime
 {
     public readonly struct CompileResult
     {
@@ -40,7 +40,7 @@ namespace DG.Game.Runtime
             CodingBlock start = null;
             foreach (CodingBlock b in zone.GetComponentsInChildren<CodingBlock>())
             {
-                if (b.Category == BlockCategory.Control && b.ControlRole == DG.Data.ControlRole.Start)
+                if (b.Category == BlockCategory.Control && b.ControlRole == Data.ControlRole.Start)
                 { start = b; break; }
             }
             if (!start)
@@ -60,7 +60,7 @@ namespace DG.Game.Runtime
 
             var program = new List<BlockInstruction>();
             CodingBlock terminal = WalkChain(socket.Occupant, program);
-            bool reachedEnd = terminal && terminal.ControlRole == DG.Data.ControlRole.End;
+            bool reachedEnd = terminal && terminal.ControlRole == Data.ControlRole.End;
 
             // 레벨 5(함수) 전용 규칙 — 함수/함수 정의 블록 필수 사용 + 함수 정의는 1개 이상 내부 블록
             if (CodingBlock.RestrictMainChainToFunction)
@@ -100,7 +100,7 @@ namespace DG.Game.Runtime
                 // 씬 전체(인벤토리 포함)에서 완성하기 블록을 찾아 표시
                 CodingBlock endBlock = null;
                 foreach (CodingBlock b in FindAllBlocksInScene())
-                    if (b.ControlRole == DG.Data.ControlRole.End) { endBlock = b; break; }
+                    if (b.ControlRole == Data.ControlRole.End) { endBlock = b; break; }
                 return CompileResult.Fail(Constants.CompilerMessages.MissingEndBlock, endBlock, program, reachedEnd);
             }
 

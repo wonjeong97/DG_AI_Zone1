@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace DG.Data
+namespace Data
 {
     [CreateAssetMenu(fileName = "LevelData", menuName = "DG/Level Data")]
     public class LevelData : ScriptableObject

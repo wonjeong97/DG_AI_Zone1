@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using DG.Data;
+using Data;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -12,7 +12,7 @@ using UnityEngine.Video;
 using VContainer;
 using ZLogger;
 
-namespace DG.Scenes
+namespace Scenes
 {
     public class StoryManager : MonoBehaviour
     {

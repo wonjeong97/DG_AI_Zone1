@@ -3,7 +3,7 @@ using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using UnityEngine;
 
-namespace DG.Scenes
+namespace Scenes
 {
     // 결과 씬 태양광 패널 — 각도(기울기)·방향(회전) 값에 따라 자세를 잡는다.
     // 기울기·방향 모두 tiltPivot(PanelPivot)의 local X·Y로 표현.

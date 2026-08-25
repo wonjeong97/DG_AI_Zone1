@@ -4,7 +4,7 @@ using Cysharp.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 
-namespace DG.Scenes
+namespace Scenes
 {
     // TMP 텍스트가 한 줄씩 아래에서 위로 올라오며 페이드인되는 연출 공용 유틸
     public static class StoryLineAnimator

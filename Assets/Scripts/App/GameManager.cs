@@ -1,6 +1,6 @@
 using Wonjeong.Core;
 
-namespace DG.App
+namespace App
 {
     public class GameManager : GameManagerBase<GameManager>
     {

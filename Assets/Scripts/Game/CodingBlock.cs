@@ -13,7 +13,7 @@ using Object = UnityEngine.Object;
 using UnityEditor;
 #endif
 
-namespace DG.Game
+namespace Game
 {
     [RequireComponent(typeof(CanvasGroup))]
     public class CodingBlock : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
@@ -28,7 +28,7 @@ namespace DG.Game
 
         public BlockCategory Category { get; private set; }
         public ValueKind ValueKind { get; private set; }
-        public DG.Data.ControlRole ControlRole { get; private set; }
+        public Data.ControlRole ControlRole { get; private set; }
         public bool IsDragHandled { get; private set; }
 
         private ILogger<CodingBlock> _log;
@@ -98,7 +98,7 @@ namespace DG.Game
         }
 
         public void Init(BlockCategory category, Canvas rootCanvas, ValueKind valueKind = ValueKind.None,
-            DG.Data.ControlRole controlRole = DG.Data.ControlRole.None)
+            Data.ControlRole controlRole = Data.ControlRole.None)
         {
             Category = category;
             ValueKind = valueKind;
@@ -619,7 +619,7 @@ namespace DG.Game
 
             if (block.transform is RectTransform rt)
             {
-                bool isStart = block.ControlRole == DG.Data.ControlRole.Start;
+                bool isStart = block.ControlRole == Data.ControlRole.Start;
                 rt.anchorMin = rt.anchorMax = new Vector2(0f, isStart ? 1f : 0f);
                 float y = isStart ? -120f : 120f;
 

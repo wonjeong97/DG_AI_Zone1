@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace DG.Game.Runtime
+namespace Game.Runtime
 {
     // Command 블록에 연결된 Value 블록의 값에 따라 점수를 부여한다.
     // 각 Command 블록당 1회 채점 — 반복/조건 내부 블록도 배치 기준으로 1회.
@@ -32,14 +32,13 @@ namespace DG.Game.Runtime
         }
 
         // ── 최고 점수 값 조회 (AI 코딩 결과 표시용) ─────────────────
-        // 프로그램 최고 점수 — 방향 정답 + 각도/개수 최고점 합
+        // 프로그램 최고 점수 — 방향 정답 + 개수 최고점 합
         public static int GetMaxScore()
-            => Constants.Scores.DirectionCorrectScore + Constants.Scores.AngleScore[GetBestAngle()] + Constants.Scores.CountScore[GetBestCount()];
+            => Constants.Scores.DirectionCorrectScore + Constants.Scores.CountScore[GetBestCount()];
 
         public static string GetBestDirection(string questionValueKey, string levelName = null)
             => Constants.Questions.GetCorrectDirection(levelName, questionValueKey);
 
-        public static string GetBestAngle() => MaxScoreKey(Constants.Scores.AngleScore);
         public static string GetBestCount() => MaxScoreKey(Constants.Scores.CountScore);
 
         private static string MaxScoreKey(Dictionary<string, int> table)
