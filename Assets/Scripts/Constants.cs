@@ -327,6 +327,11 @@ public static class Constants
         public const float OutlineThickness = 10f;
         // 세로 체인 하단 스냅 하이라이트 Y 범위 (기존 35% -> 45%)
         public const float ChainHighlightYMax = 0.45f;
+        // InnerSnapHighlight 전용 UV Y Max (헤더 하단 노치 라인 클리핑)
+        public const float InnerHighlightYMax = 0.38f;
+        // InnerSnapHighlight 전용 RectTransform 오프셋 (Bottom: 155, Top: -175)
+        public const float InnerHighlightOffsetBottom = 155f;
+        public const float InnerHighlightOffsetTop = -175f;
         // 가로 슬롯 우측 스냅 하이라이트 X 범위 (기존 80% -> 75%)
         public const float ValueHighlightXMin = 0.75f;
 

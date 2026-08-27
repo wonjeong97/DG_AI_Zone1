@@ -538,10 +538,12 @@ namespace Game
         // Right: 우측 20% (값 스냅 표시)
         private static Material _spriteFillMaterial;
         private static Material _spriteFillMaterialBottom;
+        private static Material _spriteFillMaterialInner;
         private static Material _spriteFillMaterialRight;
 
         public static Material SpriteFillMaterial       => GetOrLoadMaterial(ref _spriteFillMaterial,       "BlockOutlineFull",   0.0f, 1.0f, 0.0f, 1.0f);
         public static Material SpriteFillMaterialBottom => GetOrLoadMaterial(ref _spriteFillMaterialBottom, "BlockOutlineBottom", 0.0f, Constants.HighlightSettings.ChainHighlightYMax, 0.0f, 1.0f);
+        public static Material SpriteFillMaterialInner  => GetOrLoadMaterial(ref _spriteFillMaterialInner,  "BlockOutlineInner",  0.0f, Constants.HighlightSettings.InnerHighlightYMax, 0.0f, 1.0f);
         public static Material SpriteFillMaterialRight  => GetOrLoadMaterial(ref _spriteFillMaterialRight,  "BlockOutlineRight",  0.0f, 1.0f, Constants.HighlightSettings.ValueHighlightXMin, 1.0f);
 
         private static Material GetOrLoadMaterial(ref Material cache, string matName, float yMin, float yMax, float xMin, float xMax)

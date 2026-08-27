@@ -100,18 +100,17 @@ namespace Game
 
             go.AddComponent<LayoutElement>().ignoreLayout = true;
 
-            float t = Constants.HighlightSettings.OutlineThickness;
             RectTransform rt = go.GetComponent<RectTransform>();
             rt.anchorMin = Vector2.zero;
             rt.anchorMax = Vector2.one;
-            rt.offsetMin = new Vector2(0f, -t);
-            rt.offsetMax = new Vector2(0f, t);
+            rt.offsetMin = new Vector2(0f, Constants.HighlightSettings.InnerHighlightOffsetBottom);
+            rt.offsetMax = new Vector2(0f, -Constants.HighlightSettings.InnerHighlightOffsetTop);
 
             Image img = go.GetComponent<Image>();
             img.sprite = blockSprite;
             img.type = Image.Type.Simple;
             img.preserveAspect = false;
-            img.material = BlockFactory.SpriteFillMaterialBottom;
+            img.material = BlockFactory.SpriteFillMaterialInner;
             img.color = Color.clear;
             img.raycastTarget = false;
 
