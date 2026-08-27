@@ -63,7 +63,7 @@ namespace Scenes
 
         private void OnTutorialStartClicked()
         {
-            SceneFader.FadeAndLoad(Constants.Scenes.Story).Forget();
+            SceneFader.FadeAndLoad(Constants.Scenes.Story, logger: _log).Forget();
         }
     }
 }

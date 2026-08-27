@@ -60,11 +60,8 @@ namespace Scenes
             // 함수 블록이 포함된 레벨(레벨5)에서는 메인 체인에 함수 블록만 연결하도록 제한
             CodingBlock.RestrictMainChainToFunction = HasFunctionBlock(layout);
 
-            // UniTask는 1회만 await 가능 — Preserve 없이는 Forget()과 SceneFader의 대기가
-            // 이중 소비되어 예외로 대기가 무시되고 페이드인이 스폰 완료 전에 시작됨
-            UniTask spawnTask = blockSpawner.Spawn(layout).Preserve();
-            SceneFader.RegisterPendingTask(spawnTask);
-            spawnTask.Forget();
+            // 씬 진입 페이드인이 블록 스폰과 카테고리 구성 완료 후에 시작되도록 등록
+            SceneFader.RegisterPendingTask(blockSpawner.Spawn(layout));
 
             // 레벨별 문제 출제 — Constants.Questions 센터에서 생성
             var issue = Constants.Questions.GenerateQuestion(_currentLevelName);

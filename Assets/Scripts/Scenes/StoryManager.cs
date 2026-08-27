@@ -146,7 +146,7 @@ namespace Scenes
         {
             if (_currentLevel == null) return;
             if (_session) _session.currentLevel = _currentLevel;
-            SceneFader.FadeAndLoad(_currentLevel.nextSceneName).Forget();
+            SceneFader.FadeAndLoad(_currentLevel.nextSceneName, logger: _log).Forget();
         }
     }
 }

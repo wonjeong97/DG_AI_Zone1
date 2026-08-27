@@ -46,9 +46,22 @@ namespace Game
 
         public async UniTask Spawn(BlockLayoutData layout)
         {
+            // 스폰 및 카테고리 구성 중 인벤토리 깜빡임 방지를 위해 숨김 처리
+            CanvasGroup invGroup = null;
+            if (inventoryContainer)
+            {
+                if (!inventoryContainer.TryGetComponent(out invGroup))
+                    invGroup = inventoryContainer.gameObject.AddComponent<CanvasGroup>();
+                invGroup.alpha = 0f;
+            }
+
             Clear(inventoryContainer);
 
-            if (layout?.inventoryBlocks is null) return;
+            if (layout?.inventoryBlocks is null)
+            {
+                if (invGroup) invGroup.alpha = 1f;
+                return;
+            }
 
             foreach (var entry in layout.inventoryBlocks)
             {
@@ -76,6 +89,14 @@ namespace Game
 
             if (categoryZone)
                 await categoryZone.Build(CollectInventoryCategories());
+
+            // 카테고리 버튼 생성 및 첫 탭 선택/필터링이 완료된 후 최종 레이아웃을 정착시키고 표시
+            await UniTask.Yield(PlayerLoopTiming.LastPostLateUpdate);
+            Canvas.ForceUpdateCanvases();
+            if (inventoryContainer is RectTransform finalRt)
+                LayoutRebuilder.ForceRebuildLayoutImmediate(finalRt);
+
+            if (invGroup) invGroup.alpha = 1f;
         }
 
         // 인벤토리에 스폰된 블록들의 탭 카테고리를 등장 순서대로(중복 없이) 수집
