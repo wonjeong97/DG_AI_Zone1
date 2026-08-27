@@ -1,4 +1,6 @@
+using DG.Tweening;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Game
 {
@@ -10,7 +12,111 @@ namespace Game
         // 프리팹에서는 직렬화로 연결, 코드 생성 경로에서는 SetEmptyIndicator로 주입
         [SerializeField] private GameObject _emptyIndicator;
 
+        private Image _highlightImg;
+        private Tweener _pulseTween;
+
         public void SetEmptyIndicator(GameObject go) => _emptyIndicator = go;
+
+        // ── 내부 슬롯 스냅 하이라이트 (헤더 하단 내부 소켓 노치 라인을 따라 초록색 펄스) ──
+        public void ShowSnapHighlight()
+        {
+            Image img = GetOrAddHighlightImage();
+            if (!img) return;
+
+            if (_pulseTween != null && _pulseTween.IsActive()) return;
+
+            StopSnapPulse();
+
+            Color baseColor = Constants.HighlightColors.Snap;
+            baseColor.a = Constants.HighlightSettings.SnapPulseMaxAlpha;
+            img.color = baseColor;
+
+            _pulseTween = img.DOFade(Constants.HighlightSettings.SnapPulseMinAlpha, Constants.HighlightSettings.SnapPulseDuration)
+                .SetEase(Ease.InOutSine)
+                .SetLoops(-1, LoopType.Yoyo)
+                .SetLink(gameObject);
+        }
+
+        public void ClearSnapHighlight()
+        {
+            StopSnapPulse();
+        }
+
+        private void StopSnapPulse()
+        {
+            if (_pulseTween != null && _pulseTween.IsActive())
+            {
+                _pulseTween.Kill();
+                _pulseTween = null;
+            }
+
+            if (_highlightImg)
+            {
+                _highlightImg.color = Color.clear;
+            }
+        }
+
+        private Image GetOrAddHighlightImage()
+        {
+            if (_highlightImg) return _highlightImg;
+
+            CodingBlock parentBlock = GetComponentInParent<CodingBlock>();
+            Transform container = null;
+            Sprite blockSprite = null;
+
+            if (parentBlock)
+            {
+                // Header 컨테이너 탐색 (root의 첫 번째 자식, e.g. Label / Header_...)
+                if (parentBlock.transform.childCount > 0)
+                {
+                    Transform firstChild = parentBlock.transform.GetChild(0);
+                    if (firstChild != transform.parent)
+                        container = firstChild;
+                }
+
+                Image bg = parentBlock.GetComponentInChildren<Image>(true);
+                if (bg) blockSprite = bg.sprite;
+            }
+
+            if (!container)
+                container = transform.parent ? transform.parent : transform;
+
+            Transform existing = container.Find("InnerSnapHighlight");
+            if (existing && existing.TryGetComponent<Image>(out Image existingImg))
+            {
+                _highlightImg = existingImg;
+                return existingImg;
+            }
+
+            GameObject go = new GameObject("InnerSnapHighlight", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            go.transform.SetParent(container, false);
+
+            // ValueHighlight 바로 아래에 배치하여 렌더링 순서 최적화
+            Transform valueHighlight = container.Find(Constants.BlockParts.ValueHighlight);
+            if (valueHighlight)
+                go.transform.SetSiblingIndex(valueHighlight.GetSiblingIndex() + 1);
+            else
+                go.transform.SetAsFirstSibling();
+
+            go.AddComponent<LayoutElement>().ignoreLayout = true;
+
+            RectTransform rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = new Vector2(0f, Constants.HighlightSettings.InnerHighlightOffsetBottom);
+            rt.offsetMax = new Vector2(0f, -Constants.HighlightSettings.InnerHighlightOffsetTop);
+
+            Image img = go.GetComponent<Image>();
+            img.sprite = blockSprite;
+            img.type = Image.Type.Simple;
+            img.preserveAspect = false;
+            img.material = BlockFactory.SpriteFillMaterialInner;
+            img.color = Color.clear;
+            img.raycastTarget = false;
+
+            _highlightImg = img;
+            return img;
+        }
 
         public bool CanAccept(CodingBlock incoming)
         {
@@ -42,6 +148,8 @@ namespace Game
 
         public void Accept(CodingBlock block)
         {
+            ClearSnapHighlight();
+
             CodingBlock displaced = Occupant;
             SetOccupant(block);
             block.SnapInto(transform, ChainOutSocket.ComputeChainSnapOffset(block)).Forget();
@@ -59,8 +167,19 @@ namespace Game
 
         public override void Release()
         {
+            ClearSnapHighlight();
             base.Release();
             if (_emptyIndicator) _emptyIndicator.SetActive(true);
+        }
+
+        private void OnDisable()
+        {
+            ClearSnapHighlight();
+        }
+
+        private void OnDestroy()
+        {
+            ClearSnapHighlight();
         }
 
 #if UNITY_EDITOR

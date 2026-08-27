@@ -96,7 +96,7 @@ namespace Game
         // ── 진입점 ──────────────────────────────────────────────
         public static async UniTask<GameObject> Create(BlockEntry entry, Canvas rootCanvas, bool draggable = true)
         {
-            return entry.category switch
+            GameObject go = entry.category switch
             {
                 BlockCategory.Value       => await CreateFromPrefab(Constants.BlockAssets.ValuePrefab, entry, rootCanvas, draggable),
                 // 조건 블록 — None: 이벤트형 조건(전용 아트) / kind 지정: 값형 조건(Value 아트 재사용)
@@ -118,11 +118,19 @@ namespace Game
                 BlockCategory.Logic       => await CreateLogicBlock(entry, rootCanvas, draggable),
                 _                         => await CreateSimpleBlock(entry, rootCanvas, draggable)
             };
+
+            // 인벤토리에서 최초 드래그 시에도 정확한 소켓 위치(스냅 기준점)를 기준으로 탐색되도록 소켓을 미리 부착
+            if (go && draggable && go.TryGetComponent<CodingBlock>(out CodingBlock block))
+            {
+                AttachSockets(block);
+            }
+
+            return go;
         }
 
         // ── 프리팹 기반 블록 (Value / Command) ──────────────────
         // 시각 계층(배경·하이라이트·라벨)은 프리팹이 담당하고, 코드에서는 라벨 텍스트와
-        // CodingBlock 메타(카테고리/ValueKind)만 주입한다. 소켓은 기존처럼 AttachSockets가 런타임 부착.
+        // CodingBlock 메타(카테고리/ValueKind) 및 소켓을 주입한다.
         private readonly static Dictionary<string, GameObject> _prefabCache = new();
 
         /// <summary>
@@ -264,9 +272,9 @@ namespace Game
             le.flexibleWidth = 1f;
 
             // 진입 소켓: 내부 영역 상단 중앙
-            GameObject socketGo = new GameObject(Constants.Sockets.InnerName);
+            GameObject socketGo = new GameObject(Constants.Sockets.InnerName, typeof(RectTransform));
             socketGo.transform.SetParent(inner.transform, false);
-            RectTransform socketRt = socketGo.AddComponent<RectTransform>();
+            RectTransform socketRt = socketGo.GetComponent<RectTransform>();
             socketRt.anchorMin = socketRt.anchorMax = new Vector2(0.5f, 1f);
             socketRt.pivot = new Vector2(0.5f, 0.5f);
             socketRt.sizeDelta = Vector2.zero;
@@ -287,9 +295,9 @@ namespace Game
             innerSocket.SetEmptyIndicator(empty);
 
             // 체인 하단 기준점: Inner 바닥 중앙 — FlowInnerResize가 마지막 ChainOutSocket과 이 위치를 맞춰 높이를 계산
-            GameObject bottomSocketGo = new GameObject(Constants.Sockets.InnerBottomName);
+            GameObject bottomSocketGo = new GameObject(Constants.Sockets.InnerBottomName, typeof(RectTransform));
             bottomSocketGo.transform.SetParent(inner.transform, false);
-            RectTransform bottomRt = bottomSocketGo.AddComponent<RectTransform>();
+            RectTransform bottomRt = bottomSocketGo.GetComponent<RectTransform>();
             bottomRt.anchorMin = bottomRt.anchorMax = new Vector2(0.5f, 0f);
             bottomRt.pivot = new Vector2(0.5f, 0.5f);
             bottomRt.sizeDelta = Vector2.zero;
@@ -419,9 +427,9 @@ namespace Game
         {
             if (block.transform.Find(Constants.Sockets.ChainOutName)) return;
 
-            GameObject go = new GameObject(Constants.Sockets.ChainOutName);
+            GameObject go = new GameObject(Constants.Sockets.ChainOutName, typeof(RectTransform));
             go.transform.SetParent(block.transform, false);
-            RectTransform rt = go.AddComponent<RectTransform>();
+            RectTransform rt = go.GetComponent<RectTransform>();
             rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0f);
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.sizeDelta = Vector2.zero;
@@ -435,9 +443,9 @@ namespace Game
         {
             if (block.transform.Find(Constants.Sockets.ChainInName)) return;
 
-            GameObject go = new GameObject(Constants.Sockets.ChainInName);
+            GameObject go = new GameObject(Constants.Sockets.ChainInName, typeof(RectTransform));
             go.transform.SetParent(block.transform, false);
-            RectTransform rt = go.AddComponent<RectTransform>();
+            RectTransform rt = go.GetComponent<RectTransform>();
             rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 1f);
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.sizeDelta = Vector2.zero;
@@ -451,9 +459,9 @@ namespace Game
         {
             if (commandBlock.transform.Find(Constants.Sockets.ValueOutName)) return;
 
-            GameObject go = new GameObject(Constants.Sockets.ValueOutName);
+            GameObject go = new GameObject(Constants.Sockets.ValueOutName, typeof(RectTransform));
             go.transform.SetParent(commandBlock.transform, false);
-            RectTransform rt = go.AddComponent<RectTransform>();
+            RectTransform rt = go.GetComponent<RectTransform>();
             rt.anchorMin = rt.anchorMax = new Vector2(1f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.sizeDelta = Vector2.zero;
@@ -467,9 +475,9 @@ namespace Game
         {
             if (valueBlock.transform.Find(Constants.Sockets.ValueInName)) return;
 
-            GameObject go = new GameObject(Constants.Sockets.ValueInName);
+            GameObject go = new GameObject(Constants.Sockets.ValueInName, typeof(RectTransform));
             go.transform.SetParent(valueBlock.transform, false);
-            RectTransform rt = go.AddComponent<RectTransform>();
+            RectTransform rt = go.GetComponent<RectTransform>();
             rt.anchorMin = rt.anchorMax = new Vector2(0f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.sizeDelta = Vector2.zero;
@@ -483,9 +491,9 @@ namespace Game
         {
             if (block.transform.Find(Constants.Sockets.ConditionOutName)) return;
 
-            GameObject go = new GameObject(Constants.Sockets.ConditionOutName);
+            GameObject go = new GameObject(Constants.Sockets.ConditionOutName, typeof(RectTransform));
             go.transform.SetParent(block.transform, false);
-            RectTransform rt = go.AddComponent<RectTransform>();
+            RectTransform rt = go.GetComponent<RectTransform>();
             rt.anchorMin = rt.anchorMax = new Vector2(1f, 0.5f);
             rt.pivot     = new Vector2(0.5f, 0.5f);
             rt.sizeDelta = Vector2.zero;
@@ -498,9 +506,9 @@ namespace Game
         {
             if (block.transform.Find(Constants.Sockets.ConditionInName)) return;
 
-            GameObject go = new GameObject(Constants.Sockets.ConditionInName);
+            GameObject go = new GameObject(Constants.Sockets.ConditionInName, typeof(RectTransform));
             go.transform.SetParent(block.transform, false);
-            RectTransform rt = go.AddComponent<RectTransform>();
+            RectTransform rt = go.GetComponent<RectTransform>();
             rt.anchorMin = rt.anchorMax = new Vector2(0f, 0.5f);
             rt.pivot     = new Vector2(0.5f, 0.5f);
             rt.sizeDelta = Vector2.zero;
@@ -530,19 +538,21 @@ namespace Game
         // Right: 우측 20% (값 스냅 표시)
         private static Material _spriteFillMaterial;
         private static Material _spriteFillMaterialBottom;
+        private static Material _spriteFillMaterialInner;
         private static Material _spriteFillMaterialRight;
 
-        private static Material SpriteFillMaterial       => GetOrLoadMaterial(ref _spriteFillMaterial,       "BlockOutlineFull",   1.0f, 0.0f);
-        private static Material SpriteFillMaterialBottom => GetOrLoadMaterial(ref _spriteFillMaterialBottom, "BlockOutlineBottom", 0.35f, 0.0f);
-        private static Material SpriteFillMaterialRight  => GetOrLoadMaterial(ref _spriteFillMaterialRight,  "BlockOutlineRight",  1.0f, 0.8f);
+        public static Material SpriteFillMaterial       => GetOrLoadMaterial(ref _spriteFillMaterial,       "BlockOutlineFull",   0.0f, 1.0f, 0.0f, 1.0f);
+        public static Material SpriteFillMaterialBottom => GetOrLoadMaterial(ref _spriteFillMaterialBottom, "BlockOutlineBottom", 0.0f, Constants.HighlightSettings.ChainHighlightYMax, 0.0f, 1.0f);
+        public static Material SpriteFillMaterialInner  => GetOrLoadMaterial(ref _spriteFillMaterialInner,  "BlockOutlineInner",  0.0f, Constants.HighlightSettings.InnerHighlightYMax, 0.0f, 1.0f);
+        public static Material SpriteFillMaterialRight  => GetOrLoadMaterial(ref _spriteFillMaterialRight,  "BlockOutlineRight",  0.0f, 1.0f, Constants.HighlightSettings.ValueHighlightXMin, 1.0f);
 
-        private static Material GetOrLoadMaterial(ref Material cache, string matName, float yMax, float xMin)
+        private static Material GetOrLoadMaterial(ref Material cache, string matName, float yMin, float yMax, float xMin, float xMax)
         {
-            if (!cache) cache = MakeSpriteFillMat(matName, yMax, xMin);
+            if (!cache) cache = MakeSpriteFillMat(matName, yMin, yMax, xMin, xMax);
             return cache;
         }
 
-        private static Material MakeSpriteFillMat(string matName, float yMax, float xMin)
+        private static Material MakeSpriteFillMat(string matName, float yMin, float yMax, float xMin, float xMax)
         {
             Shader shader = Shader.Find(Constants.ResourcePaths.SpriteFillShader);
             if (!shader)
@@ -552,8 +562,10 @@ namespace Game
             }
 
             Material mat = new Material(shader) { name = matName };
+            mat.SetFloat("_YMin", yMin);
             mat.SetFloat("_YMax", yMax);
             mat.SetFloat("_XMin", xMin);
+            mat.SetFloat("_XMax", xMax);
             return mat;
         }
 
@@ -596,9 +608,9 @@ namespace Game
             {
                 AddHighlightOverlays(go, sprite);
 
-                GameObject spriteGo = new GameObject(Constants.BlockParts.Sprite);
+                GameObject spriteGo = new GameObject(Constants.BlockParts.Sprite, typeof(RectTransform));
                 spriteGo.transform.SetParent(go.transform, false);
-                RectTransform srt = spriteGo.AddComponent<RectTransform>();
+                RectTransform srt = spriteGo.GetComponent<RectTransform>();
                 srt.anchorMin = Vector2.zero;
                 srt.anchorMax = Vector2.one;
                 srt.offsetMin = srt.offsetMax = Vector2.zero;
@@ -612,9 +624,9 @@ namespace Game
             {
                 AddBorderOverlay(go);
 
-                GameObject fillGo = new GameObject(Constants.BlockParts.Fill);
+                GameObject fillGo = new GameObject(Constants.BlockParts.Fill, typeof(RectTransform));
                 fillGo.transform.SetParent(go.transform, false);
-                RectTransform frt = fillGo.AddComponent<RectTransform>();
+                RectTransform frt = fillGo.GetComponent<RectTransform>();
                 frt.anchorMin = Vector2.zero;
                 frt.anchorMax = Vector2.one;
                 frt.offsetMin = frt.offsetMax = Vector2.zero;
@@ -624,18 +636,21 @@ namespace Game
 
         // 스프라이트 블록용 방향별 하이라이트 오버레이 3종 생성 (기본 투명, 런타임에 색 변경)
         // sibling 0: SpriteOutline  — 전체 (컴파일 에러 → 빨간색)
-        // sibling 1: ChainHighlight — 셰이더로 하단 35%만 표시 (체인 스냅 → 초록색)
-        // sibling 2: ValueHighlight — 셰이더로 우측 20%만 표시 (값 스냅 → 초록색)
+        // sibling 1: ChainHighlight — 셰이더로 하단 영역만 표시 (체인 스냅 → 초록색)
+        // sibling 2: ValueHighlight — 셰이더로 우측 영역만 표시 (값 스냅 → 초록색)
         private static void AddHighlightOverlays(GameObject blockGo, Sprite sprite)
         {
-            const float t = 4f;
-            var minOff = new Vector2(-t, -t);
-            var maxOff = new Vector2(t, t);
+            float t = Constants.HighlightSettings.OutlineThickness;
+            var minOffFull = new Vector2(-t, -t);
+            var maxOffFull = new Vector2(t, t);
 
-            AddOverlay(Constants.BlockParts.Outline, blockGo, sprite, Vector2.zero, Vector2.one, minOff, maxOff, SpriteFillMaterial);
-            AddOverlay(Constants.BlockParts.ChainHighlight, blockGo, sprite, Vector2.zero, Vector2.one, minOff, maxOff,
+            var minOffChain = new Vector2(0f, -t);
+            var maxOffChain = new Vector2(0f, t);
+
+            AddOverlay(Constants.BlockParts.Outline, blockGo, sprite, Vector2.zero, Vector2.one, minOffFull, maxOffFull, SpriteFillMaterial);
+            AddOverlay(Constants.BlockParts.ChainHighlight, blockGo, sprite, Vector2.zero, Vector2.one, minOffChain, maxOffChain,
                 SpriteFillMaterialBottom);
-            AddOverlay(Constants.BlockParts.ValueHighlight, blockGo, sprite, Vector2.zero, Vector2.one, minOff, maxOff,
+            AddOverlay(Constants.BlockParts.ValueHighlight, blockGo, sprite, Vector2.zero, Vector2.one, minOffFull, maxOffFull,
                 SpriteFillMaterialRight);
         }
 
@@ -643,9 +658,9 @@ namespace Game
             Vector2 anchorMin, Vector2 anchorMax, Vector2 offsetMin, Vector2 offsetMax,
             Material mat = null)
         {
-            GameObject go = new GameObject(name);
+            GameObject go = new GameObject(name, typeof(RectTransform));
             go.transform.SetParent(parent.transform, false);
-            RectTransform rt = go.AddComponent<RectTransform>();
+            RectTransform rt = go.GetComponent<RectTransform>();
             rt.anchorMin = anchorMin;
             rt.anchorMax = anchorMax;
             rt.offsetMin = offsetMin;
@@ -663,10 +678,10 @@ namespace Game
         // 스프라이트 없는 블록 본체용 테두리 (기본 투명, 런타임에 색 변경)
         private static void AddBorderOverlay(GameObject go, float thickness = 2f)
         {
-            GameObject border = new GameObject(Constants.BlockParts.Outline);
+            GameObject border = new GameObject(Constants.BlockParts.Outline, typeof(RectTransform));
             border.transform.SetParent(go.transform, false);
             border.transform.SetAsFirstSibling();
-            RectTransform rt = border.AddComponent<RectTransform>();
+            RectTransform rt = border.GetComponent<RectTransform>();
             rt.anchorMin = Vector2.zero;
             rt.anchorMax = Vector2.one;
             rt.offsetMin = new Vector2(-thickness, -thickness);
@@ -679,9 +694,9 @@ namespace Game
         private static async UniTask AddLabel(GameObject go, string text, int size = 28, float bottom = 0f)
         {
             UnityEngine.TextCore.Text.FontAsset font = await LoadLabelFontAsync();
-            GameObject t = new GameObject(Constants.BlockParts.Label);
+            GameObject t = new GameObject(Constants.BlockParts.Label, typeof(RectTransform));
             t.transform.SetParent(go.transform, false);
-            RectTransform rt = t.AddComponent<RectTransform>();
+            RectTransform rt = t.GetComponent<RectTransform>();
             rt.anchorMin = Vector2.zero;
             rt.anchorMax = Vector2.one;
             rt.offsetMin = new Vector2(0f, bottom);

@@ -59,6 +59,7 @@ namespace Game
 
         // ── 하이라이트 ─────────────────────────────────────────────
         private CodingBlock _snapTarget;
+        private InnerSocket _snapInnerSocket;
         private Image _chainHighlightImg;
         private Image _valueHighlightImg;
         private Image _errorHighlightImg;
@@ -77,14 +78,68 @@ namespace Game
             return null;
         }
 
-        // ── 스냅 하이라이트 (드래그 중 연결 가능 지점 표시) ──
-        public void ShowChainHighlight() => SetHighlight(ChainHighlight, Constants.HighlightColors.Snap);
-        public void ShowValueHighlight() => SetHighlight(ValueHighlight, Constants.HighlightColors.Snap);
+        private Tweener _snapHighlightTween;
+        private Image _activeSnapImage;
+
+        // ── 스냅 하이라이트 (드래그 중 연결 가능 지점 표시 — 부드러운 깜빡임 펄스 연출) ──
+        public void ShowChainHighlight() => PlaySnapPulse(ChainHighlight, isVerticalChain: true);
+        public void ShowValueHighlight() => PlaySnapPulse(ValueHighlight, isVerticalChain: false);
 
         public void ClearSnapHighlight()
         {
+            StopSnapPulse();
             SetHighlight(ChainHighlight, Color.clear);
             SetHighlight(ValueHighlight, Color.clear);
+        }
+
+        private void PlaySnapPulse(Image img, bool isVerticalChain = false)
+        {
+            if (!img) return;
+            if (_activeSnapImage == img && _snapHighlightTween != null && _snapHighlightTween.IsActive()) return;
+
+            StopSnapPulse();
+
+            float t = Constants.HighlightSettings.OutlineThickness;
+            RectTransform rt = img.rectTransform;
+            if (rt)
+            {
+                if (isVerticalChain)
+                {
+                    // ChainHighlight: 좌우(X) 0, 상하(Y) -10~10 확장
+                    rt.offsetMin = new Vector2(0f, -t);
+                    rt.offsetMax = new Vector2(0f, t);
+                }
+                else
+                {
+                    rt.offsetMin = new Vector2(-t, -t);
+                    rt.offsetMax = new Vector2(t, t);
+                }
+            }
+
+            Color baseColor = Constants.HighlightColors.Snap;
+            baseColor.a = Constants.HighlightSettings.SnapPulseMaxAlpha;
+            img.color = baseColor;
+            _activeSnapImage = img;
+
+            _snapHighlightTween = img.DOFade(Constants.HighlightSettings.SnapPulseMinAlpha, Constants.HighlightSettings.SnapPulseDuration)
+                .SetEase(Ease.InOutSine)
+                .SetLoops(-1, LoopType.Yoyo)
+                .SetLink(gameObject);
+        }
+
+        private void StopSnapPulse()
+        {
+            if (_snapHighlightTween != null && _snapHighlightTween.IsActive())
+            {
+                _snapHighlightTween.Kill();
+                _snapHighlightTween = null;
+            }
+
+            if (_activeSnapImage)
+            {
+                _activeSnapImage.color = Color.clear;
+                _activeSnapImage = null;
+            }
         }
 
         // ── 외곽선 (컴파일 결과 표시) ──
@@ -98,7 +153,18 @@ namespace Game
 
         private static void SetHighlight(Image img, Color color)
         {
-            if (img) img.color = color;
+            if (!img) return;
+            img.color = color;
+            if (color != Color.clear)
+            {
+                float t = Constants.HighlightSettings.OutlineThickness;
+                RectTransform rt = img.rectTransform;
+                if (rt)
+                {
+                    rt.offsetMin = new Vector2(-t, -t);
+                    rt.offsetMax = new Vector2(t, t);
+                }
+            }
         }
 
         public void Init(BlockCategory category, Canvas rootCanvas, ValueKind valueKind = ValueKind.None,
@@ -114,10 +180,16 @@ namespace Game
 
         private void OnDisable()
         {
+            StopSnapPulse();
             if (!_cg) TryGetComponent(out _cg);
             if (_cg) _cg.blocksRaycasts = true;
             IsDragHandled = false;
             ClearDragCache();
+        }
+
+        private void OnDestroy()
+        {
+            StopSnapPulse();
         }
 
         // 드래그 시점에 캔버스를 다시 확인 (Init이 배치 전 호출될 수 있으므로)
@@ -135,6 +207,9 @@ namespace Game
         {
             if (!RootCanvas) return;
 
+            // 드래그 시작 시 소켓이 확실히 부착되어 있도록 보장 (스냅 오프셋 기준점 정상화)
+            BlockFactory.AttachSockets(this);
+
             _cachedChainOutSockets = FindObjectsOfType<ChainOutSocket>();
             _cachedInnerSockets = FindObjectsOfType<InnerSocket>();
             _cachedValueOutSockets = FindObjectsOfType<ValueOutSocket>();
@@ -146,6 +221,8 @@ namespace Game
 
             _snapTarget?.ClearSnapHighlight();
             _snapTarget = null;
+            _snapInnerSocket?.ClearSnapHighlight();
+            _snapInnerSocket = null;
 
             // 진행 중인 스냅 트윈을 즉시 완료 — 리페런트 후 잔여 틱이 캔버스 좌표계에 적용되어
             // 블록이 좌상단으로 날아가는 문제 방지 (홈 위치도 정착 좌표로 기록되도록 드래그 상태 저장 전에 수행)
@@ -205,6 +282,7 @@ namespace Game
         private void UpdateSnapHighlight()
         {
             CodingBlock newTarget = null;
+            InnerSocket newInnerSocket = null;
             bool isValue = SnapsHorizontally;
 
             if (isValue)
@@ -227,28 +305,44 @@ namespace Game
             else
             {
                 ChainOutSocket chainSocket = FindSnapOutSocket(out float chainSqr);
-                FindSnapInnerSocket(out float innerSqr);
+                InnerSocket innerSocket = FindSnapInnerSocket(out float innerSqr);
 
-                // 두 범위가 겹치면 더 가까운 쪽 우선 — InnerSocket이 가까우면 하이라이트 없음
-                if (chainSocket && chainSqr <= innerSqr)
+                // 두 범위가 겹치면 더 가까운 쪽 우선
+                if (chainSocket && (!innerSocket || chainSqr <= innerSqr))
+                {
                     newTarget = chainSocket.GetComponentInParent<CodingBlock>();
+                }
+                else if (innerSocket)
+                {
+                    newInnerSocket = innerSocket;
+                }
             }
 
-            if (newTarget == _snapTarget) return;
+            if (newTarget == _snapTarget && newInnerSocket == _snapInnerSocket) return;
 
             _snapTarget?.ClearSnapHighlight();
+            _snapInnerSocket?.ClearSnapHighlight();
+
             _snapTarget = newTarget;
+            _snapInnerSocket = newInnerSocket;
 
-            if (!_snapTarget) return;
-
-            if (isValue) _snapTarget.ShowValueHighlight();
-            else _snapTarget.ShowChainHighlight();
+            if (_snapInnerSocket)
+            {
+                _snapInnerSocket.ShowSnapHighlight();
+            }
+            else if (_snapTarget)
+            {
+                if (isValue) _snapTarget.ShowValueHighlight();
+                else _snapTarget.ShowChainHighlight();
+            }
         }
 
         public void OnEndDrag(PointerEventData e)
         {
             _snapTarget?.ClearSnapHighlight();
             _snapTarget = null;
+            _snapInnerSocket?.ClearSnapHighlight();
+            _snapInnerSocket = null;
             _cg.blocksRaycasts = true;
             IsDragHandled = false;
 

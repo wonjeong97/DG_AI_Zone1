@@ -316,11 +316,31 @@ public static class Constants
 
         // 하이라이트 오버레이 — 렌더 순서상 블록 본체보다 앞(sibling 0~2)에 놓인다
         public const string Outline        = "SpriteOutline";  // 전체 (컴파일 성공/에러)
-        public const string ChainHighlight = "ChainHighlight"; // 하단 35% (체인 스냅)
-        public const string ValueHighlight = "ValueHighlight"; // 우측 20% (값 스냅)
+        public const string ChainHighlight = "ChainHighlight"; // 하단 체인 스냅 영역
+        public const string ValueHighlight = "ValueHighlight"; // 우측 값 스냅 영역
     }
 
-    // ── 15. 블록 하이라이트 색상 ──────────────────────────────────
+    // ── 15. 블록 하이라이트 색상 및 크기 설정 ─────────────────────
+    public static class HighlightSettings
+    {
+        // 외곽선 두께/확장 크기 (기존 4px -> 10px로 확대하여 가시성 강화)
+        public const float OutlineThickness = 10f;
+        // 세로 체인 하단 스냅 하이라이트 Y 범위 (기존 35% -> 45%)
+        public const float ChainHighlightYMax = 0.45f;
+        // InnerSnapHighlight 전용 UV Y Max (헤더 하단 노치 라인 클리핑)
+        public const float InnerHighlightYMax = 0.38f;
+        // InnerSnapHighlight 전용 RectTransform 오프셋 (Bottom: 155, Top: -175)
+        public const float InnerHighlightOffsetBottom = 155f;
+        public const float InnerHighlightOffsetTop = -175f;
+        // 가로 슬롯 우측 스냅 하이라이트 X 범위 (기존 80% -> 75%)
+        public const float ValueHighlightXMin = 0.75f;
+
+        // 스냅 하이라이트 부드러운 깜빡임(Pulse) 애니메이션 설정
+        public const float SnapPulseMinAlpha = 0.35f;
+        public const float SnapPulseMaxAlpha = 1.0f;
+        public const float SnapPulseDuration = 0.4f;
+    }
+
     public static class HighlightColors
     {
         public readonly static UnityEngine.Color Snap    = new(0.1f, 0.9f, 0.3f, 1f);
