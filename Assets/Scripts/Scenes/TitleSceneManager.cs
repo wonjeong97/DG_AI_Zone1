@@ -34,7 +34,7 @@ namespace Scenes
 
         private void OnStartButtonClicked()
         {
-            SceneFader.FadeAndLoad(Constants.Scenes.Intro).Forget();
+            SceneFader.FadeAndLoad(Constants.Scenes.Intro, logger: _log).Forget();
         }
     }
 }
