@@ -122,3 +122,8 @@ CLAUDE.md
 
 # Unity directory monitor sync temp files
 ~UnityDirMonSyncFile~*
+
+# Archive files
+*.zip
+*.7z
+*.rar
