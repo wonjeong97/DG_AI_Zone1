@@ -1,4 +1,6 @@
+using DG.Tweening;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Game
 {
@@ -10,7 +12,70 @@ namespace Game
         // 프리팹에서는 직렬화로 연결, 코드 생성 경로에서는 SetEmptyIndicator로 주입
         [SerializeField] private GameObject _emptyIndicator;
 
+        private Tweener _snapPulseTween;
+        private Image _indicatorImg;
+        private Outline _indicatorOutline;
+        private bool _isHighlighting;
+
         public void SetEmptyIndicator(GameObject go) => _emptyIndicator = go;
+
+        // ── 내부 슬롯 스냅 하이라이트 (드래그 진입 시 부드러운 깜빡임 연출) ──
+        public void ShowSnapHighlight()
+        {
+            if (!_emptyIndicator) return;
+            if (_isHighlighting) return;
+            _isHighlighting = true;
+
+            if (!_indicatorImg)
+            {
+                _indicatorImg = _emptyIndicator.GetComponent<Image>();
+                if (!_indicatorImg) _indicatorImg = _emptyIndicator.AddComponent<Image>();
+            }
+
+            if (!_indicatorOutline)
+            {
+                _indicatorOutline = _emptyIndicator.GetComponent<Outline>();
+                if (!_indicatorOutline) _indicatorOutline = _emptyIndicator.AddComponent<Outline>();
+                _indicatorOutline.effectDistance = new Vector2(3f, -3f);
+                _indicatorOutline.useGraphicAlpha = true;
+            }
+
+            _indicatorOutline.enabled = true;
+            _indicatorOutline.effectColor = new Color(0.1f, 0.9f, 0.3f, 0.9f);
+
+            Color targetColor = Constants.HighlightColors.Snap;
+            targetColor.a = 0.45f;
+            _indicatorImg.color = targetColor;
+
+            _snapPulseTween?.Kill();
+            _snapPulseTween = _indicatorImg.DOFade(0.15f, Constants.HighlightSettings.SnapPulseDuration)
+                .SetEase(Ease.InOutSine)
+                .SetLoops(-1, LoopType.Yoyo)
+                .SetLink(gameObject);
+        }
+
+        public void ClearSnapHighlight()
+        {
+            if (!_isHighlighting) return;
+            _isHighlighting = false;
+
+            if (_snapPulseTween != null && _snapPulseTween.IsActive())
+            {
+                _snapPulseTween.Kill();
+                _snapPulseTween = null;
+            }
+
+            if (_indicatorOutline)
+            {
+                _indicatorOutline.enabled = false;
+                _indicatorOutline.effectColor = Color.clear;
+            }
+
+            if (_indicatorImg)
+            {
+                _indicatorImg.color = Constants.HighlightColors.EmptySlot;
+            }
+        }
 
         public bool CanAccept(CodingBlock incoming)
         {
@@ -42,6 +107,7 @@ namespace Game
 
         public void Accept(CodingBlock block)
         {
+            ClearSnapHighlight();
             CodingBlock displaced = Occupant;
             SetOccupant(block);
             block.SnapInto(transform, ChainOutSocket.ComputeChainSnapOffset(block)).Forget();
@@ -59,8 +125,19 @@ namespace Game
 
         public override void Release()
         {
+            ClearSnapHighlight();
             base.Release();
             if (_emptyIndicator) _emptyIndicator.SetActive(true);
+        }
+
+        private void OnDisable()
+        {
+            ClearSnapHighlight();
+        }
+
+        private void OnDestroy()
+        {
+            ClearSnapHighlight();
         }
 
 #if UNITY_EDITOR
