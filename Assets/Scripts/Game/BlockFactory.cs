@@ -96,7 +96,7 @@ namespace Game
         // ── 진입점 ──────────────────────────────────────────────
         public static async UniTask<GameObject> Create(BlockEntry entry, Canvas rootCanvas, bool draggable = true)
         {
-            return entry.category switch
+            GameObject go = entry.category switch
             {
                 BlockCategory.Value       => await CreateFromPrefab(Constants.BlockAssets.ValuePrefab, entry, rootCanvas, draggable),
                 // 조건 블록 — None: 이벤트형 조건(전용 아트) / kind 지정: 값형 조건(Value 아트 재사용)
@@ -118,11 +118,19 @@ namespace Game
                 BlockCategory.Logic       => await CreateLogicBlock(entry, rootCanvas, draggable),
                 _                         => await CreateSimpleBlock(entry, rootCanvas, draggable)
             };
+
+            // 인벤토리에서 최초 드래그 시에도 정확한 소켓 위치(스냅 기준점)를 기준으로 탐색되도록 소켓을 미리 부착
+            if (go && draggable && go.TryGetComponent<CodingBlock>(out CodingBlock block))
+            {
+                AttachSockets(block);
+            }
+
+            return go;
         }
 
         // ── 프리팹 기반 블록 (Value / Command) ──────────────────
         // 시각 계층(배경·하이라이트·라벨)은 프리팹이 담당하고, 코드에서는 라벨 텍스트와
-        // CodingBlock 메타(카테고리/ValueKind)만 주입한다. 소켓은 기존처럼 AttachSockets가 런타임 부착.
+        // CodingBlock 메타(카테고리/ValueKind) 및 소켓을 주입한다.
         private readonly static Dictionary<string, GameObject> _prefabCache = new();
 
         /// <summary>

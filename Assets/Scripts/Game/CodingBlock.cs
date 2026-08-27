@@ -135,6 +135,9 @@ namespace Game
         {
             if (!RootCanvas) return;
 
+            // 드래그 시작 시 소켓이 확실히 부착되어 있도록 보장 (스냅 오프셋 기준점 정상화)
+            BlockFactory.AttachSockets(this);
+
             _cachedChainOutSockets = FindObjectsOfType<ChainOutSocket>();
             _cachedInnerSockets = FindObjectsOfType<InnerSocket>();
             _cachedValueOutSockets = FindObjectsOfType<ValueOutSocket>();
