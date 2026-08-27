@@ -1,5 +1,4 @@
 using System;
-using System.Threading;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using Microsoft.Extensions.Logging;
@@ -8,7 +7,6 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using VContainer;
 using ZLogger;
-using Object = UnityEngine.Object;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -79,22 +77,28 @@ namespace Game
             return null;
         }
 
-        public void ShowChainHighlight() => SetHL(GetOrFindHighlight(ref _chainHighlightImg, "ChainHighlight"), new Color(0.1f, 0.9f, 0.3f, 1f));
-        public void ShowValueHighlight() => SetHL(GetOrFindHighlight(ref _valueHighlightImg, "ValueHighlight"), new Color(0.1f, 0.9f, 0.3f, 1f));
+        // ── 스냅 하이라이트 (드래그 중 연결 가능 지점 표시) ──
+        public void ShowChainHighlight() => SetHighlight(ChainHighlight, Constants.HighlightColors.Snap);
+        public void ShowValueHighlight() => SetHighlight(ValueHighlight, Constants.HighlightColors.Snap);
 
         public void ClearSnapHighlight()
         {
-            SetHL(GetOrFindHighlight(ref _chainHighlightImg, "ChainHighlight"), Color.clear);
-            SetHL(GetOrFindHighlight(ref _valueHighlightImg, "ValueHighlight"), Color.clear);
+            SetHighlight(ChainHighlight, Color.clear);
+            SetHighlight(ValueHighlight, Color.clear);
         }
 
-        public void ShowErrorHighlight() => SetHL(GetOrFindHighlight(ref _errorHighlightImg, "SpriteOutline"), new Color(1f, 0.15f, 0.1f, 1f));
-        public void ShowSuccessHighlight() => SetHL(GetOrFindHighlight(ref _errorHighlightImg, "SpriteOutline"), new Color(0.1f, 0.9f, 0.3f, 1f));
-        public void ClearErrorHighlight() => SetHL(GetOrFindHighlight(ref _errorHighlightImg, "SpriteOutline"), Color.clear);
+        // ── 외곽선 (컴파일 결과 표시) ──
+        public void ShowErrorHighlight()   => SetHighlight(Outline, Constants.HighlightColors.Error);
+        public void ShowSuccessHighlight() => SetHighlight(Outline, Constants.HighlightColors.Success);
+        public void ClearErrorHighlight()  => SetHighlight(Outline, Color.clear);
 
-        private static void SetHL(Image img, Color c)
+        private Image ChainHighlight => GetOrFindHighlight(ref _chainHighlightImg, Constants.BlockParts.ChainHighlight);
+        private Image ValueHighlight => GetOrFindHighlight(ref _valueHighlightImg, Constants.BlockParts.ValueHighlight);
+        private Image Outline        => GetOrFindHighlight(ref _errorHighlightImg, Constants.BlockParts.Outline);
+
+        private static void SetHighlight(Image img, Color color)
         {
-            if (img) img.color = c;
+            if (img) img.color = color;
         }
 
         public void Init(BlockCategory category, Canvas rootCanvas, ValueKind valueKind = ValueKind.None,
@@ -190,15 +194,23 @@ namespace Game
             UpdateSnapHighlight();
         }
 
+        // 값 계열(Value/Logic/Condition)은 가로 방향으로 붙고, 나머지는 세로 체인으로 붙는다
+        private bool SnapsHorizontally =>
+            Category is BlockCategory.Value or BlockCategory.Logic or BlockCategory.Condition;
+
+        // Logic/Condition은 조건 체인(ConditionOut)에 먼저 붙어보고, 실패하면 값 슬롯(ValueOut)으로 넘어간다
+        private bool PrefersConditionSocket =>
+            Category is BlockCategory.Condition or BlockCategory.Logic;
+
         private void UpdateSnapHighlight()
         {
             CodingBlock newTarget = null;
-            bool isValue = Category == BlockCategory.Value || Category == BlockCategory.Logic || Category == BlockCategory.Condition;
+            bool isValue = SnapsHorizontally;
 
             if (isValue)
             {
                 // Condition / Logic: ConditionOut 스냅 우선, 없으면 ValueOut 스냅
-                if (Category == BlockCategory.Condition || Category == BlockCategory.Logic)
+                if (PrefersConditionSocket)
                 {
                     ConditionOutSocket condSocket = FindSnapConditionOutSocket();
                     if (condSocket)
@@ -240,62 +252,73 @@ namespace Game
             _cg.blocksRaycasts = true;
             IsDragHandled = false;
 
-            bool isValue = Category == BlockCategory.Value || Category == BlockCategory.Logic || Category == BlockCategory.Condition;
-
-            if (isValue)
+            if (TrySnapToSocket())
             {
-                // Condition / Logic: ConditionOut 스냅 우선
-                if (Category == BlockCategory.Condition || Category == BlockCategory.Logic)
-                {
-                    ConditionOutSocket condSlot = FindSnapConditionOutSocket();
-                    if (condSlot)
-                    {
-                        IsDragHandled = true;
-                        BlockFactory.AttachSockets(this);
-                        condSlot.Accept(this);
-                        ClearDragCache();
-                        return;
-                    }
-                }
-
-                ValueOutSocket slot = FindSnapValueOutSocket();
-                if (slot)
-                {
-                    IsDragHandled = true;
-                    BlockFactory.AttachSockets(this);
-                    slot.Accept(this);
-                    ClearDragCache();
-                    return;
-                }
-            }
-            else
-            {
-                ChainOutSocket chainSocket = FindSnapOutSocket(out float chainSqr);
-                InnerSocket innerSocket = FindSnapInnerSocket(out float innerSqr);
-
-                if (chainSocket && (!innerSocket || chainSqr <= innerSqr))
-                {
-                    IsDragHandled = true;
-                    BlockFactory.AttachSockets(this);
-                    chainSocket.Accept(this);
-                    ClearDragCache();
-                    return;
-                }
-
-                if (innerSocket)
-                {
-                    IsDragHandled = true;
-                    BlockFactory.AttachSockets(this);
-                    innerSocket.Accept(this);
-                    ClearDragCache();
-                    return;
-                }
+                ClearDragCache();
+                return;
             }
 
             if (!RootCanvas || transform.parent == RootCanvas.transform)
                 ReturnHomeOrRelease(e);
-            
+
             ClearDragCache();
+        }
+
+        /// <summary>
+        /// 드롭 지점 주변에서 연결 가능한 소켓을 찾아 붙인다. 붙일 곳이 없으면 false.
+        /// </summary>
+        private bool TrySnapToSocket()
+        {
+            if (SnapsHorizontally)
+            {
+                // Condition / Logic: ConditionOut 스냅 우선
+                if (PrefersConditionSocket)
+                {
+                    ConditionOutSocket condSlot = FindSnapConditionOutSocket();
+                    if (condSlot) return AttachTo(condSlot.Accept);
+                }
+
+                ValueOutSocket slot = FindSnapValueOutSocket();
+                if (slot) return AttachTo(slot.Accept);
+
+                return false;
+            }
+
+            ChainOutSocket chainSocket = FindSnapOutSocket(out float chainSqr);
+            InnerSocket innerSocket = FindSnapInnerSocket(out float innerSqr);
+
+            // 두 후보가 모두 범위 안이면 더 가까운 쪽 우선
+            if (chainSocket && (!innerSocket || chainSqr <= innerSqr))
+                return AttachTo(chainSocket.Accept);
+
+            if (innerSocket) return AttachTo(innerSocket.Accept);
+
+            return false;
+        }
+
+        // 소켓 부착 공통 절차 — 드롭 처리 완료 표시 → 소켓 부착 → 대상 소켓에 인계
+        private bool AttachTo(Action<CodingBlock> accept)
+        {
+            IsDragHandled = true;
+            BlockFactory.AttachSockets(this);
+            accept(this);
+            return true;
+        }
+
+        // GetWorldCorners 인덱스 — 0:좌하 1:좌상 2:우상 3:우하
+        private const int CornerBottomLeft = 0;
+        private const int CornerTopLeft    = 1;
+        private const int CornerTopRight   = 2;
+
+        // GetWorldCorners 결과 재사용 버퍼 — 드래그 중 매 프레임 호출되므로 프레임당 할당을 피한다.
+        // 값을 즉시 소비하고 메인 스레드에서만 쓰이므로 공유해도 안전하다.
+        private readonly static Vector3[] _cornerBuffer = new Vector3[4];
+
+        // RectTransform 월드 코너 두 지점의 중점 (변의 중앙)
+        private static Vector2 EdgeCenter(RectTransform rt, int cornerA, int cornerB)
+        {
+            rt.GetWorldCorners(_cornerBuffer);
+            return ((Vector2)_cornerBuffer[cornerA] + (Vector2)_cornerBuffer[cornerB]) * 0.5f;
         }
 
         // ChainInSocket 위치 또는 블록 상단 중앙을 스냅 기준점으로 반환
@@ -311,9 +334,27 @@ namespace Game
 
             if (_rt)
             {
-                Vector3[] corners = new Vector3[4];
-                _rt.GetWorldCorners(corners);
-                pos = ((Vector2)corners[1] + (Vector2)corners[2]) * 0.5f;
+                pos = EdgeCenter(_rt, CornerTopLeft, CornerTopRight);
+                return true;
+            }
+
+            pos = default;
+            return false;
+        }
+
+        // 가로 연결(값/조건) 기준점 — 해당 In 소켓 위치, 없으면 블록 좌측 중앙
+        private bool TryGetHorizontalSnapOrigin<TInSocket>(out Vector2 pos) where TInSocket : Component
+        {
+            TInSocket inSocket = GetComponentInChildren<TInSocket>();
+            if (inSocket)
+            {
+                pos = (Vector2)inSocket.transform.position;
+                return true;
+            }
+
+            if (_rt)
+            {
+                pos = EdgeCenter(_rt, CornerBottomLeft, CornerTopLeft);
                 return true;
             }
 
@@ -395,17 +436,7 @@ namespace Game
         /// </summary>
         private ValueOutSocket FindSnapValueOutSocket()
         {
-            Vector2 myPos;
-            ValueInSocket myInSocket = GetComponentInChildren<ValueInSocket>();
-            if (myInSocket)
-                myPos = (Vector2)myInSocket.transform.position;
-            else if (_rt)
-            {
-                Vector3[] corners = new Vector3[4];
-                _rt.GetWorldCorners(corners);
-                myPos = ((Vector2)corners[0] + (Vector2)corners[1]) * 0.5f;
-            }
-            else return null;
+            if (!TryGetHorizontalSnapOrigin<ValueInSocket>(out Vector2 myPos)) return null;
 
             ValueOutSocket best = null;
             float minSqr = _snapRadius * _snapRadius;
@@ -432,7 +463,7 @@ namespace Game
 
                     // 반복하기의 헤더 슬롯은 조건용이 아니므로 조건 블록은 스냅 제외 (만약 전용)
                     if (Category == BlockCategory.Condition
-                        && targetBlock.Category == BlockCategory.FlowControl && targetBlock.name.Contains("반복"))
+                        && targetBlock.Category == BlockCategory.FlowControl && targetBlock.name.Contains(Constants.BlockLabels.RepeatKeyword))
                         continue;
                 }
 
@@ -453,17 +484,7 @@ namespace Game
         // ConditionInSocket 기준으로 가장 가까운 ConditionOutSocket 탐색
         private ConditionOutSocket FindSnapConditionOutSocket()
         {
-            ConditionInSocket myInSocket = GetComponentInChildren<ConditionInSocket>();
-            Vector2 myPos;
-            if (myInSocket)
-                myPos = (Vector2)myInSocket.transform.position;
-            else if (_rt)
-            {
-                Vector3[] corners = new Vector3[4];
-                _rt.GetWorldCorners(corners);
-                myPos = ((Vector2)corners[0] + (Vector2)corners[1]) * 0.5f;
-            }
-            else return null;
+            if (!TryGetHorizontalSnapOrigin<ConditionInSocket>(out Vector2 myPos)) return null;
 
             ConditionOutSocket best = null;
             float minSqr = _snapRadius * _snapRadius;
@@ -563,51 +584,55 @@ namespace Game
             _homeParent = parent;
         }
 
+        /// <summary>
+        /// 이 블록에 물려 있는 모든 자식 블록을 소켓에서 떼어 인벤토리로 되돌린다 (하위까지 재귀).
+        /// </summary>
         public void ReleaseAllAttachedChildren()
         {
-            foreach (InnerSocket innerSocket in GetComponentsInChildren<InnerSocket>(true))
+            ReleaseAttachedChildren<InnerSocket>();
+            ReleaseAttachedChildren<ValueOutSocket>();
+            ReleaseAttachedChildren<ConditionOutSocket>();
+            ReleaseAttachedChildren<ChainOutSocket>();
+        }
+
+        private void ReleaseAttachedChildren<TSocket>() where TSocket : BlockSocket
+        {
+            foreach (TSocket socket in GetComponentsInChildren<TSocket>(true))
             {
-                if (innerSocket.Occupant)
+                CodingBlock child = socket.Occupant;
+                if (!child) continue;
+
+                socket.Release();
+                child.ReleaseAllAttachedChildren();
+                child.ReturnToInventory();
+            }
+        }
+
+        /// <summary>
+        /// 시작하기/완성하기 블록을 코딩 패널의 고정 자리(좌상단 / 좌하단)에 배치한다.
+        /// 최초 스폰(BlockSpawner)과 인벤토리 반입 시 복귀(ReturnToInventory)가 같은 규칙을 쓰도록 공유한다.
+        /// </summary>
+        public static void ApplyControlBlockLayout(RectTransform rt, bool isStart, Transform codingZone)
+        {
+            if (!rt) return;
+
+            rt.anchorMin = rt.anchorMax = new Vector2(0f, isStart ? 1f : 0f);
+            float y = isStart
+                ? -Constants.CodingZoneLayout.ControlBlockYInset
+                : Constants.CodingZoneLayout.ControlBlockYInset;
+
+            // 스크롤 콘텐츠가 뷰포트보다 클 때, 완성하기가 초기 화면(콘텐츠 좌상단 뷰) 안에 보이도록 보정
+            if (!isStart && codingZone is RectTransform content)
+            {
+                ScrollRect scroll = content.GetComponentInParent<ScrollRect>();
+                if (scroll && scroll.viewport)
                 {
-                    CodingBlock child = innerSocket.Occupant;
-                    innerSocket.Release();
-                    child.ReleaseAllAttachedChildren();
-                    child.ReturnToInventory();
+                    float overflow = content.rect.height - scroll.viewport.rect.height;
+                    if (overflow > 0f) y += overflow;
                 }
             }
 
-            foreach (ValueOutSocket valSocket in GetComponentsInChildren<ValueOutSocket>(true))
-            {
-                if (valSocket.Occupant)
-                {
-                    CodingBlock child = valSocket.Occupant;
-                    valSocket.Release();
-                    child.ReleaseAllAttachedChildren();
-                    child.ReturnToInventory();
-                }
-            }
-
-            foreach (ConditionOutSocket condSocket in GetComponentsInChildren<ConditionOutSocket>(true))
-            {
-                if (condSocket.Occupant)
-                {
-                    CodingBlock child = condSocket.Occupant;
-                    condSocket.Release();
-                    child.ReleaseAllAttachedChildren();
-                    child.ReturnToInventory();
-                }
-            }
-
-            foreach (ChainOutSocket chainSocket in GetComponentsInChildren<ChainOutSocket>(true))
-            {
-                if (chainSocket.Occupant)
-                {
-                    CodingBlock child = chainSocket.Occupant;
-                    chainSocket.Release();
-                    child.ReleaseAllAttachedChildren();
-                    child.ReturnToInventory();
-                }
-            }
+            rt.anchoredPosition = new Vector2(Constants.CodingZoneLayout.ControlBlockX, y);
         }
 
         public static void ResetControlBlockPosition(CodingBlock block, Transform codingZone)
@@ -617,21 +642,8 @@ namespace Game
             block.transform.SetParent(codingZone, false);
             block.SetHome(codingZone);
 
-            if (block.transform is RectTransform rt)
-            {
-                bool isStart = block.ControlRole == Data.ControlRole.Start;
-                rt.anchorMin = rt.anchorMax = new Vector2(0f, isStart ? 1f : 0f);
-                float y = isStart ? -120f : 120f;
-
-                ScrollRect scroll = codingZone.GetComponentInParent<ScrollRect>();
-                if (!isStart && scroll && scroll.viewport && codingZone is RectTransform content)
-                {
-                    float overflow = content.rect.height - scroll.viewport.rect.height;
-                    if (overflow > 0f) y += overflow;
-                }
-
-                rt.anchoredPosition = new Vector2(80f, y);
-            }
+            ApplyControlBlockLayout(block.transform as RectTransform,
+                block.ControlRole == Data.ControlRole.Start, codingZone);
 
             block.gameObject.SetActive(true);
         }

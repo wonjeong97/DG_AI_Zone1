@@ -28,7 +28,8 @@ namespace Scenes
 
         private void OnDestroy()
         {
-            startButton.onClick.RemoveListener(OnStartButtonClicked);
+            // Start()에서 등록을 건너뛴 미할당 버튼도 있을 수 있으므로 해제도 동일하게 가드
+            if (startButton) startButton.onClick.RemoveListener(OnStartButtonClicked);
         }
 
         private void OnStartButtonClicked()

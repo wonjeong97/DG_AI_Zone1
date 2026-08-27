@@ -3,12 +3,23 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace Scenes
 {
     // TMP 텍스트가 한 줄씩 아래에서 위로 올라오며 페이드인되는 연출 공용 유틸
     public static class StoryLineAnimator
     {
+        /// <summary>
+        /// 이번 프레임에 마우스 또는 터치 눌림이 있었는지 반환한다 (연출 스킵용 기본 판정).
+        /// AnimateAsync의 skipRequested 인자로 그대로 넘겨 쓴다.
+        /// </summary>
+        public static bool IsPointerPressedThisFrame()
+        {
+            Pointer pointer = Pointer.current;
+            return pointer != null && pointer.press.wasPressedThisFrame;
+        }
+
         // storyText의 각 줄을 아래에서 위로 올리며 순차적으로 페이드인함. 보이는 문자가 없는 줄(간격용 빈 줄)은
         // 연출과 대기 없이 즉시 통과함. skipRequested가 true를 반환하면 남은 줄까지 즉시 표시하고 종료함.
         public static async UniTask AnimateAsync(TMP_Text text, float lineMoveDuration, float lineInterval, float lineYOffset, Func<bool> skipRequested, CancellationToken token)

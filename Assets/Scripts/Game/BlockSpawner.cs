@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Data;
 using UnityEngine;
@@ -20,6 +21,9 @@ namespace Game
         {
             _resolver = resolver;
         }
+
+        // VerticalLayoutGroup + ContentSizeFitter 체인이 한 프레임 만에 안정화되지 않아 필요한 리빌드 횟수
+        private const int LayoutSettlePasses = 2;
 
         private Canvas _rootCanvas;
 
@@ -62,26 +66,30 @@ namespace Game
 
             // 모든 블록 생성 및 부모 지정 완료 후, UI 레이아웃과 텍스트 크기가 완전히 계산되도록 프레임 끝까지 대기 및 강제 리빌드
             // (VerticalLayoutGroup + ContentSizeFitter 체인이 한 프레임 만에 안정화되지 않아 2회 반복)
-            for (int i = 0; i < 2; i++)
+            for (int i = 0; i < LayoutSettlePasses; i++)
             {
                 await UniTask.Yield(PlayerLoopTiming.LastPostLateUpdate);
                 Canvas.ForceUpdateCanvases();
                 if (inventoryContainer is RectTransform rt)
-                    UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(rt);
+                    LayoutRebuilder.ForceRebuildLayoutImmediate(rt);
             }
 
-            // 인벤토리에 스폰된 블록들의 카테고리를 등장 순으로 수집해 카테고리 버튼 생성 + 첫 카테고리 활성화
             if (categoryZone)
+                await categoryZone.Build(CollectInventoryCategories());
+        }
+
+        // 인벤토리에 스폰된 블록들의 탭 카테고리를 등장 순서대로(중복 없이) 수집
+        private List<BlockCategory> CollectInventoryCategories()
+        {
+            var categories = new List<BlockCategory>();
+            foreach (Transform child in inventoryContainer)
             {
-                var categories = new System.Collections.Generic.List<BlockCategory>();
-                foreach (Transform child in inventoryContainer)
-                    if (child.TryGetComponent<CodingBlock>(out CodingBlock block))
-                    {
-                        BlockCategory tab = BlockFactory.GetTabCategory(block.Category);
-                        if (!categories.Contains(tab)) categories.Add(tab);
-                    }
-                await categoryZone.Build(categories);
+                if (!child.TryGetComponent<CodingBlock>(out CodingBlock block)) continue;
+
+                BlockCategory tab = BlockFactory.GetTabCategory(block.Category);
+                if (!categories.Contains(tab)) categories.Add(tab);
             }
+            return categories;
         }
 
         // 시작하기/완성하기는 인벤토리 대신 코딩 패널에 초기 배치 (시작: 좌상단, 완성: 좌하단)
@@ -89,24 +97,7 @@ namespace Game
         {
             go.transform.SetParent(codingContainer, false);
 
-            if (go.transform is RectTransform rt)
-            {
-                rt.anchorMin = rt.anchorMax = new Vector2(0f, isStart ? 1f : 0f);
-                float y = isStart ? -120f : 120f;
-
-                // 스크롤 콘텐츠가 뷰포트보다 클 때, 완성하기가 초기 화면(콘텐츠 좌상단 뷰) 안에 보이도록 보정
-                if (!isStart && codingContainer is RectTransform content)
-                {
-                    ScrollRect scroll = content.GetComponentInParent<ScrollRect>();
-                    if (scroll && scroll.viewport)
-                    {
-                        float overflow = content.rect.height - scroll.viewport.rect.height;
-                        if (overflow > 0f) y += overflow;
-                    }
-                }
-
-                rt.anchoredPosition = new Vector2(80f, y);
-            }
+            CodingBlock.ApplyControlBlockLayout(go.transform as RectTransform, isStart, codingContainer);
 
             if (go.TryGetComponent<CodingBlock>(out CodingBlock block))
             {

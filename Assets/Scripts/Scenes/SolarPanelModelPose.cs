@@ -24,7 +24,6 @@ namespace Scenes
         [SerializeField] private Transform tiltPivot;       // 기울기를 제어할 피벗(Planes_Group)
         [SerializeField] private float animDuration = 1.5f;
 
-        private const float FrontYaw = 180f;   // 카메라 정면 기준 yaw
         private const float BaselineAngle = 45f; // 이 각도일 때 tiltPivot local Y = 0
 
         private Quaternion _yawRestRotation;
@@ -46,32 +45,9 @@ namespace Scenes
             _yawRestCaptured = true;
         }
 
-        // 방향 문자열 → yaw 각도(root 기준 상대값).
-        // root가 이미 FrontYaw(180°)를 향하므로, 남쪽=0, 동쪽=-90, …
-        private static float DirectionToLocalYaw(string direction)
-        {
-            float worldYaw = direction switch
-            {
-                Constants.Directions.North => 0f,
-                Constants.Directions.East  => 90f,
-                Constants.Directions.South => 180f,
-                Constants.Directions.West  => 270f,
-                _ => FrontYaw,
-            };
-            return worldYaw - FrontYaw;
-        }
-
         // 각도 문자열("30도") → tiltPivot local Y. 45도 기준 오프셋. 값 없으면 0(=45도 취급)
         private static float AngleToTilt(string angle)
-        {
-            if (!string.IsNullOrEmpty(angle))
-            {
-                string digits = new string(System.Array.FindAll(angle.ToCharArray(), char.IsDigit));
-                if (int.TryParse(digits, out int deg) && deg > 0)
-                    return deg - BaselineAngle;
-            }
-            return 0f;
-        }
+            => PanelPoseMath.TryParseAngleDegrees(angle, out int deg) ? deg - BaselineAngle : 0f;
 
         // 기본 자세 (평평 + 정면) — 연출 시작점.
         public void SetNeutral()
@@ -84,7 +60,7 @@ namespace Scenes
         public async UniTask ApplyAsync(string angle, string direction, CancellationToken ct)
         {
             float targetTilt = AngleToTilt(angle);
-            float targetYaw = DirectionToLocalYaw(direction);
+            float targetYaw = PanelPoseMath.DirectionToLocalYaw(direction);
 
             // 1) 방향(yaw) 먼저 — DeltaAngle로 최단 경로 회전, PanelYawPivot을 돌린다.
             float startYaw = _currentYaw;

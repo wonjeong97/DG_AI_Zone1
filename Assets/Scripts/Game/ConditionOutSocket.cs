@@ -1,62 +1,29 @@
 using UnityEngine;
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
 
 namespace Game
 {
-    public class ConditionOutSocket : MonoBehaviour
+    // 조건 블록의 우측 연결 포인트. 다음 조건/Logic 블록의 ConditionInSocket과 위치를 맞춰 스냅한다.
+    public class ConditionOutSocket : BlockSocket
     {
-        private CodingBlock _occupant;
-        public bool IsEmpty => !_occupant;
-        public CodingBlock Occupant => _occupant;
-
         public void Accept(CodingBlock block)
         {
-            _occupant = block;
-            block.SnapInto(transform, ComputeSnapOffset(block)).Forget();
+            SetOccupant(block);
+            block.SnapInto(transform, ComputeSnapOffset(block, block.GetComponentInChildren<ConditionInSocket>())).Forget();
         }
-
-        private static Vector2 ComputeSnapOffset(CodingBlock block)
-        {
-            ConditionInSocket inSocket = block.GetComponentInChildren<ConditionInSocket>();
-            if (!inSocket
-                || !block.TryGetComponent<RectTransform>(out RectTransform blockRt)
-                || !inSocket.TryGetComponent<RectTransform>(out RectTransform inRt))
-                return Vector2.zero;
-
-            var anchor = (inRt.anchorMin + inRt.anchorMax) * 0.5f;
-            return -new Vector2(
-                (anchor.x - blockRt.pivot.x) * blockRt.sizeDelta.x + inRt.anchoredPosition.x,
-                (anchor.y - blockRt.pivot.y) * blockRt.sizeDelta.y + inRt.anchoredPosition.y);
-        }
-
-        public void Release() => _occupant = null;
-        public void Reoccupy(CodingBlock block) => _occupant = block;
 
 #if UNITY_EDITOR
         private const float SnapRadius = 120f;
 
         private void OnDrawGizmos()
         {
-            if (!TryGetComponent<RectTransform>(out RectTransform rt)) return;
+            if (!TryGetComponent(out RectTransform rt)) return;
 
-            var markerColor = IsEmpty ? new Color(0.6f, 0.3f, 1f, 0.9f) : new Color(1f, 0.4f, 0.1f, 0.9f);
+            Color markerColor = IsEmpty ? new Color(0.6f, 0.3f, 1f, 0.9f) : new Color(1f, 0.4f, 0.1f, 0.9f);
 
-            Gizmos.color = markerColor;
-            float arm = 10f;
-            var pos = (Vector2)rt.position;
-            Gizmos.DrawLine(pos + Vector2.left * arm, pos + Vector2.right * arm);
-            Gizmos.DrawLine(pos + Vector2.up * arm, pos + Vector2.down * arm);
-            Gizmos.DrawWireSphere(rt.position, 4f);
-
-            Handles.color = new Color(0.6f, 0.3f, 1f, 0.08f);
-            Handles.DrawSolidArc(rt.position, Vector3.forward, Vector3.down, 180f, SnapRadius);
-            Handles.color = markerColor;
-            Handles.DrawWireArc(rt.position, Vector3.forward, Vector3.down, 180f, SnapRadius);
-
-            Handles.Label(rt.position + Vector3.up * 16f, $"CondOut  r={SnapRadius}",
-                new GUIStyle { normal = { textColor = new Color(0.6f, 0.3f, 1f) }, fontSize = 9 });
+            SocketGizmos.DrawCross(rt, markerColor, arm: 10f, dotRadius: 4f);
+            // 스냅 감지 범위 — 1·4사분면(우측 반원). 범위 색은 점유 여부와 무관하게 고정
+            SocketGizmos.DrawSnapRange(rt, Vector3.down, SnapRadius, markerColor, new Color(0.6f, 0.3f, 1f, 0.08f));
+            SocketGizmos.DrawLabel(rt, $"CondOut  r={SnapRadius}", new Color(0.6f, 0.3f, 1f), yOffset: 16f);
         }
 #endif
     }

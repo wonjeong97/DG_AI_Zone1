@@ -15,7 +15,7 @@ namespace Scenes
                 if (!_grayscaleLookedUp)
                 {
                     _grayscaleLookedUp = true;
-                    Shader shader = Shader.Find("Custom/UI/Grayscale");
+                    Shader shader = Shader.Find(Constants.ResourcePaths.GrayscaleShader);
                     if (shader) _grayscaleMaterial = new Material(shader);
                 }
                 return _grayscaleMaterial;

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -18,7 +19,7 @@ namespace Game
             // 시작하기/완성하기는 코딩 패널 전용 — 인벤토리 반입 금지 (거부 시 원래 자리로 복귀)
             if (block.Category == BlockCategory.Control) return;
 
-            var all = new System.Collections.Generic.List<CodingBlock>();
+            var all = new List<CodingBlock>();
             CollectAll(block, all);
 
             CategoryZone categoryZone = FindObjectOfType<CategoryZone>();
@@ -37,7 +38,7 @@ namespace Game
             }
         }
 
-        private void CollectAll(CodingBlock block, System.Collections.Generic.List<CodingBlock> all)
+        private void CollectAll(CodingBlock block, List<CodingBlock> all)
         {
             if (block.Category == BlockCategory.Control)
             {
@@ -50,16 +51,7 @@ namespace Game
             }
 
             // 1. InnerSocket (FlowControl 내부 컨테이너에 들어간 블록) 분리 후 수집
-            foreach (InnerSocket ins in block.GetComponentsInChildren<InnerSocket>(true))
-            {
-                CodingBlock innerChild = ins.Occupant;
-                if (innerChild)
-                {
-                    ins.Release();
-                    innerChild.transform.SetParent(null, true);
-                    CollectAll(innerChild, all);
-                }
-            }
+            DetachAndCollect<InnerSocket>(block, all, includeInactive: true);
 
             // 2. ChainOutSocket 자식을 먼저 분리 — 이후 GetComponentsInChildren이 손자 소켓을 잡지 않도록
             ChainOutSocket chainOut = block.GetComponentInChildren<ChainOutSocket>();
@@ -68,28 +60,29 @@ namespace Game
             if (chainChild) chainChild.transform.SetParent(null, true);
 
             // 3. 이 블록에 붙은 value 블록 분리 후 수집
-            foreach (ValueOutSocket vos in block.GetComponentsInChildren<ValueOutSocket>())
-            {
-                CodingBlock valueBlock = vos.Occupant;
-                if (!valueBlock) continue;
-                vos.Release();
-                valueBlock.transform.SetParent(null, true);
-                CollectAll(valueBlock, all);
-            }
+            DetachAndCollect<ValueOutSocket>(block, all, includeInactive: false);
 
             // 4. 이 블록에 붙은 condition 블록 분리 후 수집
-            foreach (ConditionOutSocket condOut in block.GetComponentsInChildren<ConditionOutSocket>())
-            {
-                CodingBlock condBlock = condOut.Occupant;
-                if (!condBlock) continue;
-                condOut.Release();
-                condBlock.transform.SetParent(null, true);
-                CollectAll(condBlock, all);
-            }
+            DetachAndCollect<ConditionOutSocket>(block, all, includeInactive: false);
 
             all.Add(block);
 
             if (chainChild) CollectAll(chainChild, all);
+        }
+
+        // 지정한 종류의 소켓에 물려 있는 블록을 모두 떼어내고 그 하위까지 재귀 수집한다.
+        private void DetachAndCollect<TSocket>(CodingBlock block, List<CodingBlock> all, bool includeInactive)
+            where TSocket : BlockSocket
+        {
+            foreach (TSocket socket in block.GetComponentsInChildren<TSocket>(includeInactive))
+            {
+                CodingBlock child = socket.Occupant;
+                if (!child) continue;
+
+                socket.Release();
+                child.transform.SetParent(null, true);
+                CollectAll(child, all);
+            }
         }
     }
 }

@@ -9,24 +9,10 @@ namespace Game.Runtime
         public static int ScoreProgram(List<BlockInstruction> instructions, string questionValueKey, string levelName = null)
         {
             int total = 0;
-            foreach (var instr in instructions)
+            foreach (BlockInstruction instr in InstructionTree.Traverse(instructions))
             {
-                switch (instr)
-                {
-                    case CommandInstruction cmd:
-                        total += ScoreCommand(cmd, questionValueKey, levelName);
-                        break;
-                    case RepeatInstruction rep when rep.Body is not null:
-                        total += ScoreProgram(rep.Body, questionValueKey, levelName);
-                        break;
-                    case FunctionInstruction fn when fn.Body is not null:
-                        total += ScoreProgram(fn.Body, questionValueKey, levelName);
-                        break;
-                    case IfInstruction ifInstr:
-                        if (ifInstr.Then is not null) total += ScoreProgram(ifInstr.Then, questionValueKey, levelName);
-                        if (ifInstr.Else is not null) total += ScoreProgram(ifInstr.Else, questionValueKey, levelName);
-                        break;
-                }
+                if (instr is CommandInstruction cmd)
+                    total += ScoreCommand(cmd, questionValueKey, levelName);
             }
             return total;
         }
@@ -58,34 +44,21 @@ namespace Game.Runtime
         // 같은 타입의 Command가 여러 개면 마지막 값이 남는다.
         public static (string direction, string angle, string count) ExtractValues(List<BlockInstruction> instructions)
         {
-            var values = new string[3];
-            CollectValues(instructions, values);
-            return (values[0], values[1], values[2]);
-        }
+            string direction = null, angle = null, count = null;
 
-        private static void CollectValues(List<BlockInstruction> instructions, string[] values)
-        {
-            foreach (var instr in instructions)
+            foreach (BlockInstruction instr in InstructionTree.Traverse(instructions))
             {
-                switch (instr)
+                if (instr is not CommandInstruction cmd || cmd.Value is null) continue;
+
+                switch (cmd.ValueKind)
                 {
-                    case CommandInstruction cmd when cmd.Value is not null:
-                        if (cmd.ValueKind == ValueKind.Direction) values[0] = cmd.Value;
-                        else if (cmd.ValueKind == ValueKind.Angle) values[1] = cmd.Value;
-                        else if (cmd.ValueKind == ValueKind.Count) values[2] = cmd.Value;
-                        break;
-                    case RepeatInstruction rep when rep.Body is not null:
-                        CollectValues(rep.Body, values);
-                        break;
-                    case FunctionInstruction fn when fn.Body is not null:
-                        CollectValues(fn.Body, values);
-                        break;
-                    case IfInstruction ifInstr:
-                        if (ifInstr.Then is not null) CollectValues(ifInstr.Then, values);
-                        if (ifInstr.Else is not null) CollectValues(ifInstr.Else, values);
-                        break;
+                    case ValueKind.Direction: direction = cmd.Value; break;
+                    case ValueKind.Angle:     angle     = cmd.Value; break;
+                    case ValueKind.Count:     count     = cmd.Value; break;
                 }
             }
+
+            return (direction, angle, count);
         }
 
         public static int ScoreCommand(CommandInstruction cmd, string questionValueKey, string levelName = null)

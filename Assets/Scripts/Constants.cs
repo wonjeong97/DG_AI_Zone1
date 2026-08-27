@@ -14,16 +14,9 @@ public static class Constants
     // ── 2. 비디오 파일 경로 ──────────────────────────────────────
     public static class VideoPaths
     {
-        public const string TutorialRelative = "Videos/Tutorial_260710.webm";
-        public const string RobotRelative    = "Videos/Robot_260728.webm";
+        public const string RobotRelative = "Videos/Robot_260728.webm";
 
-        public static string TutorialUrl => System.IO.Path.Combine(UnityEngine.Application.streamingAssetsPath, TutorialRelative);
-        public static string RobotUrl    => System.IO.Path.Combine(UnityEngine.Application.streamingAssetsPath, RobotRelative);
-
-        public static string GetUrl(string relativePath)
-        {
-            return System.IO.Path.Combine(UnityEngine.Application.streamingAssetsPath, relativePath);
-        }
+        public static string RobotUrl => System.IO.Path.Combine(UnityEngine.Application.streamingAssetsPath, RobotRelative);
 
         // 씬 전환 시 영상이 화면에 드러나기 전 최소 재생 진행률 (%) — 재생 시작 직후의 어색한 첫 프레임을 가림
         public const float MinPlaybackProgressBeforeReveal = 0.01f;
@@ -32,11 +25,18 @@ public static class Constants
     // ── 3. 리소스 및 에셋 경로 ──────────────────────────────────
     public static class ResourcePaths
     {
-        public const string BlockImagePath       = "Images/Blocks/";
         public const string TutorialImageAddress = "Tutorial";
-        public const string LabelFontKey         = "GamtanRoadTantan SDF";
         public const string GameSessionKey       = "GameSession";
+        public const string LabelFontKey         = "GamtanRoadTantan SDF";
+
+        // TMP 폰트 에셋 묶음 라벨.
+        // TMP의 <font="..."> 태그는 MaterialReferenceManager 캐시를 먼저 조회하고, 없으면
+        // Resources에서만 폰트를 찾는다. 폰트를 Addressables로 관리하므로 부팅 시 이 라벨의
+        // 폰트를 모두 로드해 캐시에 등록해 둔다(GameLifetimeScope). 그래야 태그가 해석된다.
+        // 폰트 변형을 추가할 때는 이 라벨만 붙이면 코드 수정이 필요 없다.
+        public const string TmpFontLabel = "TMPFont";
         public const string SpriteFillShader     = "Custom/UI/SpriteFill";
+        public const string GrayscaleShader      = "Custom/UI/Grayscale";
     }
 
     // ── 4. 방향 명칭 ───────────────────────────────────────────
@@ -84,6 +84,7 @@ public static class Constants
     }
 
     // ── 7. 컴파일러 메시지 ─────────────────────────────────────
+    // {0}이 있는 항목은 string.Format용 서식 — 대상 블록 이름이 들어간다
     public static class CompilerMessages
     {
         public const string MissingStartBlock          = "'시작하기' 블록이 코딩 영역에 없습니다";
@@ -92,18 +93,34 @@ public static class Constants
         public const string MissingEndBlock            = "'완성하기' 블록으로 끝나지 않았습니다";
         public const string FunctionBetweenStartEnd    = "'함수' 블록을 시작하기와 완성하기 사이에 연결해야 합니다";
         public const string EmptyFunctionDef           = "'함수 정의' 블록 안에 블록을 1개 이상 넣어야 합니다";
-        public const string UnusedBlocksExist          = "사용되지 않은 블록이 남아있습니다";
+        public const string CommandWithoutValueFormat  = "'{0}' 블록에 값 블록이 없습니다";
+        public const string IfWithoutConditionFormat   = "'{0}' 블록에 조건이 없습니다";
+        public const string EmptyFlowInnerFormat       = "'{0}' 블록 내부에 최소 1개의 블록이 있어야 합니다";
+        public const string ControlInsideFlowFormat    = "'{0}' 블록은 제어 블록 내부에 넣을 수 없습니다";
+        public const string UnusedBlocksFormat         = "사용되지 않은 블록이 있습니다 ({0}개)";
     }
 
     // ── 8. 결과 씬 연출 메시지 및 평가 ─────────────────────────
     public static class ResultMessages
     {
-        public const string StatusPoor       = "<color=red>부족</color>";
-        public const string StatusNormal     = "보통";
-        public const string StatusGood       = "<color=#0B7A0B>양호</color>";
-        public const string StatusPoorRaw    = "부족";
-        public const string AiCodingStart   = "AI가 코딩을 시작합니다";
-        public const string EfficiencyFormat = "에너지 효율:{p:D2}%";
+        public const string StatusPoor    = "<color=red>부족</color>";
+        public const string StatusNormal  = "보통";
+        public const string StatusGood    = "<color=#0B7A0B>양호</color>";
+        public const string AiCodingStart = "AI가 코딩을 시작합니다";
+
+        // 최고 점수 대비 비율(%)로 전력 수급 상태를 나눈다 — 미만/이상 경계값
+        public const float NormalThresholdPercent = 50f;
+        public const float GoodThresholdPercent   = 80f;
+
+        public const string EfficiencyFormat = "에너지 효율:{0:D2}%";
+        public const string ResultTextFormat = "가동 수: [{0}]\n방향: [{1}]\n\n전력 수급 상태: {2}";
+
+        // 코딩 미완료(스킵)로 표시할 값이 없을 때
+        public const string NoResultText = "-\n\n전력 수급 상태: -";
+
+        // 'AI가 코딩을 시작합니다' 뒤 말줄임 애니메이션
+        public const int AiCodingDotCycle      = 4;    // 점 0~3개 반복
+        public const int AiCodingDotIntervalMs = 400;
     }
 
     // ── 9. 블록 라벨 (아트·프리팹 분기 키) ───────────────────────
@@ -112,6 +129,10 @@ public static class Constants
     {
         public const string While = "반복하기";
         public const string If    = "만약";
+        public const string Else  = "아니면";
+
+        // 라벨 부분 일치 판정용 — "반복하기"의 사용자 표기 흔들림을 흡수한다
+        public const string RepeatKeyword = "반복";
     }
 
     // ── 10. 블록 크기 ───────────────────────────────────────────
@@ -253,7 +274,74 @@ public static class Constants
         public readonly static UnityEngine.Color Default         = new UnityEngine.Color32(255, 255, 255, 255);
     }
 
-    // ── 13. 스토리 연출 ─────────────────────────────────────────
+    // ── 13. 블록 어드레서블 키 (프리팹 / 스프라이트) ──────────────
+    public static class BlockAssets
+    {
+        // 프리팹 — 시각 계층(배경·하이라이트·라벨)을 담당하고, 소켓은 런타임에 부착된다
+        public const string ValuePrefab          = "ValueBlock";
+        public const string ConditionPrefab      = "ConditionBlock";
+        public const string CommandPrefab        = "CommandBlock";
+        public const string CommandNoValuePrefab = "CommandNoValueBlock";
+        public const string StartPrefab          = "StartBlock";
+        public const string EndPrefab            = "EndBlock";
+        public const string FunctionPrefab       = "FunctionBlock";
+        public const string FuncDefPrefab        = "FuncDefBlock";
+        public const string WhilePrefab          = "WhileBlock";
+        public const string IfPrefab             = "IfBlock";
+        public const string FlowControlPrefab    = "FlowControlBlock";
+        public const string CategoryButtonPrefab = "CategoryButton";
+
+        // 스프라이트 — 프리팹 없이 코드로 조립하는 블록의 9-slice 아트
+        public const string StartSprite           = "Start";
+        public const string EndSprite             = "End";
+        public const string CommandSprite         = "Command";
+        public const string ValueSprite           = "Value";
+        public const string FlowControlSprite     = "FlowControl";
+        public const string ConditionActionSprite = "ConditionAction";
+        public const string ActionSprite          = "Action";
+        public const string LogicSprite           = "Logic";
+    }
+
+    // ── 14. 블록 내부 자식 오브젝트 이름 (탐색 키) ─────────────────
+    public static class BlockParts
+    {
+        public const string InnerPrefix  = "Inner";   // Inner / Inner_Else … FlowControl 내부 컨테이너
+        public const string HeaderPrefix = "Header_"; // Header_반복하기 / Header_아니면 …
+        public const string Footer       = "Footer";
+        public const string Label        = "Label";
+        public const string Sprite       = "Sprite";
+        public const string Fill         = "Fill";
+        public const string Slot         = "Slot";
+        public const string EmptyIndicator = "EmptyIndicator";
+
+        // 하이라이트 오버레이 — 렌더 순서상 블록 본체보다 앞(sibling 0~2)에 놓인다
+        public const string Outline        = "SpriteOutline";  // 전체 (컴파일 성공/에러)
+        public const string ChainHighlight = "ChainHighlight"; // 하단 35% (체인 스냅)
+        public const string ValueHighlight = "ValueHighlight"; // 우측 20% (값 스냅)
+    }
+
+    // ── 15. 블록 하이라이트 색상 ──────────────────────────────────
+    public static class HighlightColors
+    {
+        public readonly static UnityEngine.Color Snap    = new(0.1f, 0.9f, 0.3f, 1f);
+        public readonly static UnityEngine.Color Success = new(0.1f, 0.9f, 0.3f, 1f);
+        public readonly static UnityEngine.Color Error   = new(1f, 0.15f, 0.1f, 1f);
+
+        // 비어있는 내부 슬롯 표시용 반투명 흰색
+        public readonly static UnityEngine.Color EmptySlot = new(1f, 1f, 1f, 0.08f);
+    }
+
+    // ── 16. 코딩존 고정 배치 ──────────────────────────────────────
+    // 시작하기/완성하기는 드래그 대상이 아니라 코딩 패널 좌상단·좌하단에 고정 배치된다
+    public static class CodingZoneLayout
+    {
+        public const float ControlBlockX = 80f;
+
+        // 시작하기: 상단 앵커에서 아래로, 완성하기: 하단 앵커에서 위로 이만큼 띄운다
+        public const float ControlBlockYInset = 120f;
+    }
+
+    // ── 17. 스토리 연출 ─────────────────────────────────────────
     public static class StoryLine
     {
         public const float StoryLineMoveDuration = 0.7f;
@@ -261,7 +349,7 @@ public static class Constants
         public const float StoryLineYOffset      = 22.0f;
     }
 
-    // ── 14. 레벨별 문제 출제 및 정답 전용 센터 ───────────────────────
+    // ── 18. 레벨별 문제 출제 및 정답 전용 센터 ───────────────────────
     public static class Questions
     {
         public struct QuestionData
