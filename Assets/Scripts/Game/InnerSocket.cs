@@ -60,34 +60,52 @@ namespace Game
         {
             if (_highlightImg) return _highlightImg;
 
-            Transform innerTransform = transform.parent ? transform.parent : transform;
-            Transform existing = innerTransform.Find("InnerSnapHighlight");
+            CodingBlock parentBlock = GetComponentInParent<CodingBlock>();
+            Transform container = null;
+            Sprite blockSprite = null;
+
+            if (parentBlock)
+            {
+                // Header 컨테이너 탐색 (root의 첫 번째 자식, e.g. Label / Header_...)
+                if (parentBlock.transform.childCount > 0)
+                {
+                    Transform firstChild = parentBlock.transform.GetChild(0);
+                    if (firstChild != transform.parent)
+                        container = firstChild;
+                }
+
+                Image bg = parentBlock.GetComponentInChildren<Image>(true);
+                if (bg) blockSprite = bg.sprite;
+            }
+
+            if (!container)
+                container = transform.parent ? transform.parent : transform;
+
+            Transform existing = container.Find("InnerSnapHighlight");
             if (existing && existing.TryGetComponent<Image>(out Image existingImg))
             {
                 _highlightImg = existingImg;
                 return existingImg;
             }
 
-            // 부모 CodingBlock에서 스프라이트 참조 가져오기
-            CodingBlock parentBlock = GetComponentInParent<CodingBlock>();
-            Sprite blockSprite = null;
-            if (parentBlock)
-            {
-                Image bg = parentBlock.GetComponentInChildren<Image>(true);
-                if (bg) blockSprite = bg.sprite;
-            }
-
             GameObject go = new GameObject("InnerSnapHighlight", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-            go.transform.SetParent(innerTransform, false);
-            go.transform.SetAsFirstSibling();
+            go.transform.SetParent(container, false);
+
+            // ValueHighlight 바로 아래에 배치하여 렌더링 순서 최적화
+            Transform valueHighlight = container.Find(Constants.BlockParts.ValueHighlight);
+            if (valueHighlight)
+                go.transform.SetSiblingIndex(valueHighlight.GetSiblingIndex() + 1);
+            else
+                go.transform.SetAsFirstSibling();
+
             go.AddComponent<LayoutElement>().ignoreLayout = true;
 
+            float t = Constants.HighlightSettings.OutlineThickness;
             RectTransform rt = go.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0f, 1f);
-            rt.anchorMax = new Vector2(1f, 1f);
-            rt.pivot = new Vector2(0.5f, 1f);
-            rt.anchoredPosition = new Vector2(0f, 10f);
-            rt.sizeDelta = new Vector2(0f, 60f);
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = new Vector2(0f, -t);
+            rt.offsetMax = new Vector2(0f, t);
 
             Image img = go.GetComponent<Image>();
             img.sprite = blockSprite;
