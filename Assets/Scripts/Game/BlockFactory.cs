@@ -538,12 +538,10 @@ namespace Game
         // Right: 우측 20% (값 스냅 표시)
         private static Material _spriteFillMaterial;
         private static Material _spriteFillMaterialBottom;
-        private static Material _spriteFillMaterialInner;
         private static Material _spriteFillMaterialRight;
 
         public static Material SpriteFillMaterial       => GetOrLoadMaterial(ref _spriteFillMaterial,       "BlockOutlineFull",   0.0f, 1.0f, 0.0f, 1.0f);
         public static Material SpriteFillMaterialBottom => GetOrLoadMaterial(ref _spriteFillMaterialBottom, "BlockOutlineBottom", 0.0f, Constants.HighlightSettings.ChainHighlightYMax, 0.0f, 1.0f);
-        public static Material SpriteFillMaterialInner  => GetOrLoadMaterial(ref _spriteFillMaterialInner,  "BlockOutlineInner",  Constants.HighlightSettings.InnerHighlightYMin, Constants.HighlightSettings.InnerHighlightYMax, Constants.HighlightSettings.InnerHighlightXMin, Constants.HighlightSettings.InnerHighlightXMax);
         public static Material SpriteFillMaterialRight  => GetOrLoadMaterial(ref _spriteFillMaterialRight,  "BlockOutlineRight",  0.0f, 1.0f, Constants.HighlightSettings.ValueHighlightXMin, 1.0f);
 
         private static Material GetOrLoadMaterial(ref Material cache, string matName, float yMin, float yMax, float xMin, float xMax)
@@ -650,8 +648,6 @@ namespace Game
             AddOverlay(Constants.BlockParts.Outline, blockGo, sprite, Vector2.zero, Vector2.one, minOffFull, maxOffFull, SpriteFillMaterial);
             AddOverlay(Constants.BlockParts.ChainHighlight, blockGo, sprite, Vector2.zero, Vector2.one, minOffChain, maxOffChain,
                 SpriteFillMaterialBottom);
-            AddOverlay(Constants.BlockParts.InnerHighlight, blockGo, sprite, Vector2.zero, Vector2.one, minOffChain, maxOffChain,
-                SpriteFillMaterialInner);
             AddOverlay(Constants.BlockParts.ValueHighlight, blockGo, sprite, Vector2.zero, Vector2.one, minOffFull, maxOffFull,
                 SpriteFillMaterialRight);
         }
@@ -662,6 +658,7 @@ namespace Game
         {
             GameObject go = new GameObject(name);
             go.transform.SetParent(parent.transform, false);
+            go.AddComponent<LayoutElement>().ignoreLayout = true;
             RectTransform rt = go.AddComponent<RectTransform>();
             rt.anchorMin = anchorMin;
             rt.anchorMax = anchorMax;

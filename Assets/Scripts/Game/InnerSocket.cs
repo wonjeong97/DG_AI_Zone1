@@ -12,11 +12,6 @@ namespace Game
         // 프리팹에서는 직렬화로 연결, 코드 생성 경로에서는 SetEmptyIndicator로 주입
         [SerializeField] private GameObject _emptyIndicator;
 
-        private Tweener _snapPulseTween;
-        private Image _indicatorImg;
-        private Outline _indicatorOutline;
-        private bool _isHighlighting;
-
         public void SetEmptyIndicator(GameObject go) => _emptyIndicator = go;
 
         public bool CanAccept(CodingBlock incoming)
@@ -49,6 +44,10 @@ namespace Game
 
         public void Accept(CodingBlock block)
         {
+            // 블록이 내부 소켓에 결합되는 즉시 상위 블록 하이라이트 확실히 해제
+            CodingBlock parentBlock = GetComponentInParent<CodingBlock>();
+            if (parentBlock) parentBlock.ClearSnapHighlight();
+
             CodingBlock displaced = Occupant;
             SetOccupant(block);
             block.SnapInto(transform, ChainOutSocket.ComputeChainSnapOffset(block)).Forget();
