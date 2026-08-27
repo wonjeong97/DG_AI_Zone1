@@ -98,7 +98,18 @@ namespace Game
 
         private static void SetHighlight(Image img, Color color)
         {
-            if (img) img.color = color;
+            if (!img) return;
+            img.color = color;
+            if (color != Color.clear)
+            {
+                float t = Constants.HighlightSettings.OutlineThickness;
+                RectTransform rt = img.rectTransform;
+                if (rt)
+                {
+                    rt.offsetMin = new Vector2(-t, -t);
+                    rt.offsetMax = new Vector2(t, t);
+                }
+            }
         }
 
         public void Init(BlockCategory category, Canvas rootCanvas, ValueKind valueKind = ValueKind.None,

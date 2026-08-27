@@ -541,8 +541,8 @@ namespace Game
         private static Material _spriteFillMaterialRight;
 
         private static Material SpriteFillMaterial       => GetOrLoadMaterial(ref _spriteFillMaterial,       "BlockOutlineFull",   1.0f, 0.0f);
-        private static Material SpriteFillMaterialBottom => GetOrLoadMaterial(ref _spriteFillMaterialBottom, "BlockOutlineBottom", 0.35f, 0.0f);
-        private static Material SpriteFillMaterialRight  => GetOrLoadMaterial(ref _spriteFillMaterialRight,  "BlockOutlineRight",  1.0f, 0.8f);
+        private static Material SpriteFillMaterialBottom => GetOrLoadMaterial(ref _spriteFillMaterialBottom, "BlockOutlineBottom", Constants.HighlightSettings.ChainHighlightYMax, 0.0f);
+        private static Material SpriteFillMaterialRight  => GetOrLoadMaterial(ref _spriteFillMaterialRight,  "BlockOutlineRight",  1.0f, Constants.HighlightSettings.ValueHighlightXMin);
 
         private static Material GetOrLoadMaterial(ref Material cache, string matName, float yMax, float xMin)
         {
@@ -632,11 +632,11 @@ namespace Game
 
         // 스프라이트 블록용 방향별 하이라이트 오버레이 3종 생성 (기본 투명, 런타임에 색 변경)
         // sibling 0: SpriteOutline  — 전체 (컴파일 에러 → 빨간색)
-        // sibling 1: ChainHighlight — 셰이더로 하단 35%만 표시 (체인 스냅 → 초록색)
-        // sibling 2: ValueHighlight — 셰이더로 우측 20%만 표시 (값 스냅 → 초록색)
+        // sibling 1: ChainHighlight — 셰이더로 하단 영역만 표시 (체인 스냅 → 초록색)
+        // sibling 2: ValueHighlight — 셰이더로 우측 영역만 표시 (값 스냅 → 초록색)
         private static void AddHighlightOverlays(GameObject blockGo, Sprite sprite)
         {
-            const float t = 4f;
+            float t = Constants.HighlightSettings.OutlineThickness;
             var minOff = new Vector2(-t, -t);
             var maxOff = new Vector2(t, t);
 
