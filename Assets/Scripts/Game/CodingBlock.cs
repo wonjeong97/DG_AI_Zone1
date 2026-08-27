@@ -310,12 +310,15 @@ namespace Game
         private const int CornerTopLeft    = 1;
         private const int CornerTopRight   = 2;
 
+        // GetWorldCorners 결과 재사용 버퍼 — 드래그 중 매 프레임 호출되므로 프레임당 할당을 피한다.
+        // 값을 즉시 소비하고 메인 스레드에서만 쓰이므로 공유해도 안전하다.
+        private readonly static Vector3[] _cornerBuffer = new Vector3[4];
+
         // RectTransform 월드 코너 두 지점의 중점 (변의 중앙)
         private static Vector2 EdgeCenter(RectTransform rt, int cornerA, int cornerB)
         {
-            Vector3[] corners = new Vector3[4];
-            rt.GetWorldCorners(corners);
-            return ((Vector2)corners[cornerA] + (Vector2)corners[cornerB]) * 0.5f;
+            rt.GetWorldCorners(_cornerBuffer);
+            return ((Vector2)_cornerBuffer[cornerA] + (Vector2)_cornerBuffer[cornerB]) * 0.5f;
         }
 
         // ChainInSocket 위치 또는 블록 상단 중앙을 스냅 기준점으로 반환

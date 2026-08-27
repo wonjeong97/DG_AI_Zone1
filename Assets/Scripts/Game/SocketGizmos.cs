@@ -12,6 +12,10 @@ namespace Game
     {
         private const int LabelFontSize = 9;
 
+        // 기즈모는 씬 뷰가 그려질 때마다 호출되므로 스타일을 재사용한다
+        // (도메인 리로드로 날아가면 다음 호출에서 다시 만들어진다)
+        private static GUIStyle _labelStyle;
+
         // 십자 마커 + 중심 점
         public static void DrawCross(RectTransform rt, Color color, float arm, float dotRadius)
         {
@@ -43,8 +47,9 @@ namespace Game
 
         public static void DrawLabel(RectTransform rt, string text, Color color, float yOffset)
         {
-            Handles.Label(rt.position + Vector3.up * yOffset, text,
-                new GUIStyle { normal = { textColor = color }, fontSize = LabelFontSize });
+            _labelStyle ??= new GUIStyle { fontSize = LabelFontSize };
+            _labelStyle.normal.textColor = color;   // 소켓마다 색이 달라 호출 시점에 덮어쓴다
+            Handles.Label(rt.position + Vector3.up * yOffset, text, _labelStyle);
         }
     }
 }

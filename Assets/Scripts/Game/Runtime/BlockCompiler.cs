@@ -393,21 +393,18 @@ namespace Game.Runtime
         }
 
         // 제어 블록(반복/만약/함수 정의) 내부에 Control 블록(시작하기/완성하기)이 들어있는지 확인.
-        // 최상위 명령 자체는 대상이 아니므로 하위 본문만 훑는다.
+        // 최상위 명령 자체는 대상이 아니므로 하위 본문만 Traverse로 훑는다.
         private static CodingBlock FindControlInInner(List<BlockInstruction> instructions)
         {
             foreach (BlockInstruction instr in instructions)
             {
                 foreach (List<BlockInstruction> body in InstructionTree.ChildBodies(instr))
                 {
-                    foreach (BlockInstruction inner in body)
+                    foreach (BlockInstruction nested in InstructionTree.Traverse(body))
                     {
-                        if (inner.Source && inner.Source.Category == BlockCategory.Control)
-                            return inner.Source;
+                        if (nested.Source && nested.Source.Category == BlockCategory.Control)
+                            return nested.Source;
                     }
-
-                    CodingBlock err = FindControlInInner(body);
-                    if (err) return err;
                 }
             }
             return null;
