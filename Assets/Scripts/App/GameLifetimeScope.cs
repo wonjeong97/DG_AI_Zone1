@@ -1,7 +1,11 @@
+using System;
+using System.Collections.Generic;
 using Data;
+using TMPro;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.SceneManagement;
+using UnityEngine.TextCore.Text;
 using VContainer;
 using VContainer.Unity;
 using Wonjeong.App;
@@ -47,6 +51,34 @@ namespace App
             _session = Addressables.LoadAssetAsync<GameSession>(Constants.ResourcePaths.GameSessionKey).WaitForCompletion();
             _session.ResetProgress();
             builder.RegisterInstance(_session);
+
+            RegisterTmpFonts();
+        }
+
+        /// <summary>
+        /// Addressables로 관리하는 TMP 폰트를 MaterialReferenceManager 캐시에 미리 등록한다.
+        /// TMP의 &lt;font="..."&gt; 태그는 이 캐시를 먼저 조회하고, 없으면 Resources에서만 폰트를 찾는다.
+        /// 등록해 두지 않으면 태그가 해석되지 않고 문자열 그대로 화면에 출력된다.
+        /// 첫 씬이 그려지기 전에 끝나야 하므로 동기 로드한다.
+        /// </summary>
+        private static void RegisterTmpFonts()
+        {
+            try
+            {
+                IList<FontAsset> fonts = Addressables
+                    .LoadAssetsAsync<FontAsset>(Constants.ResourcePaths.TmpFontLabel, null)
+                    .WaitForCompletion();
+
+                if (fonts is null) return;
+
+                foreach (FontAsset font in fonts)
+                    if (font) MaterialReferenceManager.AddFontAsset(font);
+            }
+            catch (Exception ex)
+            {
+                // 폰트 등록 실패는 치명적이지 않다 — 태그가 해석되지 않을 뿐이므로 부팅은 계속 진행
+                Debug.LogWarning($"[GameLifetimeScope] TMP 폰트 등록 실패: {ex.Message}");
+            }
         }
 
         protected override void Awake()

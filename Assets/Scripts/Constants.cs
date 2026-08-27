@@ -26,8 +26,15 @@ public static class Constants
     public static class ResourcePaths
     {
         public const string TutorialImageAddress = "Tutorial";
-        public const string LabelFontKey         = "GamtanRoadTantan SDF";
         public const string GameSessionKey       = "GameSession";
+        public const string LabelFontKey         = "GamtanRoadTantan SDF";
+
+        // TMP 폰트 에셋 묶음 라벨.
+        // TMP의 <font="..."> 태그는 MaterialReferenceManager 캐시를 먼저 조회하고, 없으면
+        // Resources에서만 폰트를 찾는다. 폰트를 Addressables로 관리하므로 부팅 시 이 라벨의
+        // 폰트를 모두 로드해 캐시에 등록해 둔다(GameLifetimeScope). 그래야 태그가 해석된다.
+        // 폰트 변형을 추가할 때는 이 라벨만 붙이면 코드 수정이 필요 없다.
+        public const string TmpFontLabel = "TMPFont";
         public const string SpriteFillShader     = "Custom/UI/SpriteFill";
         public const string GrayscaleShader      = "Custom/UI/Grayscale";
     }

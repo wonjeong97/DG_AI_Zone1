@@ -82,6 +82,12 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6c470cd6f07271944ab5d9d8642e3b56
+    m_Address: GamtanRoadTantan SDF Outline Black
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - TMPFont
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 7381b259d754b194da7c333bfa9fb777
     m_Address: IfBlock
     m_ReadOnly: 0
@@ -117,6 +123,12 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ad2cd6bb45bbbac45b8fba3fd8162e43
+    m_Address: GamtanRoadTantan SDF Outline
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - TMPFont
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: b1feda19850645b69af03a5cebefb591
     m_Address: FuncDefBlock
     m_ReadOnly: 0
@@ -130,7 +142,8 @@ MonoBehaviour:
   - m_GUID: d0d2f5797b1d2f34ea9ffb7c01ef8fd6
     m_Address: GamtanRoadTantan SDF
     m_ReadOnly: 0
-    m_SerializedLabels: []
+    m_SerializedLabels:
+    - TMPFont
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: e1bb829d518d8974c8d54bf92cbbfe07
     m_Address: FlowControlBlock
