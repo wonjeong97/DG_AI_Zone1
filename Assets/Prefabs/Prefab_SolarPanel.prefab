@@ -116,6 +116,26 @@ PrefabInstance:
       propertyPath: m_Name
       value: __PoseTest
       objectReference: {fileID: 0}
+    - target: {fileID: 3136135531656943737, guid: 789b842eda18f6b46a12d1fdfe94e0ae,
+        type: 3}
+      propertyPath: m_LocalRotation.w
+      value: -0.5000863
+      objectReference: {fileID: 0}
+    - target: {fileID: 3136135531656943737, guid: 789b842eda18f6b46a12d1fdfe94e0ae,
+        type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0.49991366
+      objectReference: {fileID: 0}
+    - target: {fileID: 3136135531656943737, guid: 789b842eda18f6b46a12d1fdfe94e0ae,
+        type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.5000863
+      objectReference: {fileID: 0}
+    - target: {fileID: 3136135531656943737, guid: 789b842eda18f6b46a12d1fdfe94e0ae,
+        type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0.49991366
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
