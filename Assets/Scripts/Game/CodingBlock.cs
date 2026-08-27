@@ -77,14 +77,59 @@ namespace Game
             return null;
         }
 
-        // ── 스냅 하이라이트 (드래그 중 연결 가능 지점 표시) ──
-        public void ShowChainHighlight() => SetHighlight(ChainHighlight, Constants.HighlightColors.Snap);
-        public void ShowValueHighlight() => SetHighlight(ValueHighlight, Constants.HighlightColors.Snap);
+        private Tweener _snapHighlightTween;
+        private Image _activeSnapImage;
+
+        // ── 스냅 하이라이트 (드래그 중 연결 가능 지점 표시 — 부드러운 깜빡임 펄스 연출) ──
+        public void ShowChainHighlight() => PlaySnapPulse(ChainHighlight);
+        public void ShowValueHighlight() => PlaySnapPulse(ValueHighlight);
 
         public void ClearSnapHighlight()
         {
+            StopSnapPulse();
             SetHighlight(ChainHighlight, Color.clear);
             SetHighlight(ValueHighlight, Color.clear);
+        }
+
+        private void PlaySnapPulse(Image img)
+        {
+            if (!img) return;
+            if (_activeSnapImage == img && _snapHighlightTween != null && _snapHighlightTween.IsActive()) return;
+
+            StopSnapPulse();
+
+            float t = Constants.HighlightSettings.OutlineThickness;
+            RectTransform rt = img.rectTransform;
+            if (rt)
+            {
+                rt.offsetMin = new Vector2(-t, -t);
+                rt.offsetMax = new Vector2(t, t);
+            }
+
+            Color baseColor = Constants.HighlightColors.Snap;
+            baseColor.a = Constants.HighlightSettings.SnapPulseMaxAlpha;
+            img.color = baseColor;
+            _activeSnapImage = img;
+
+            _snapHighlightTween = img.DOFade(Constants.HighlightSettings.SnapPulseMinAlpha, Constants.HighlightSettings.SnapPulseDuration)
+                .SetEase(Ease.InOutSine)
+                .SetLoops(-1, LoopType.Yoyo)
+                .SetLink(gameObject);
+        }
+
+        private void StopSnapPulse()
+        {
+            if (_snapHighlightTween != null && _snapHighlightTween.IsActive())
+            {
+                _snapHighlightTween.Kill();
+                _snapHighlightTween = null;
+            }
+
+            if (_activeSnapImage)
+            {
+                _activeSnapImage.color = Color.clear;
+                _activeSnapImage = null;
+            }
         }
 
         // ── 외곽선 (컴파일 결과 표시) ──
@@ -125,10 +170,16 @@ namespace Game
 
         private void OnDisable()
         {
+            StopSnapPulse();
             if (!_cg) TryGetComponent(out _cg);
             if (_cg) _cg.blocksRaycasts = true;
             IsDragHandled = false;
             ClearDragCache();
+        }
+
+        private void OnDestroy()
+        {
+            StopSnapPulse();
         }
 
         // 드래그 시점에 캔버스를 다시 확인 (Init이 배치 전 호출될 수 있으므로)

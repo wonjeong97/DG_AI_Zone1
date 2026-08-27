@@ -329,6 +329,11 @@ public static class Constants
         public const float ChainHighlightYMax = 0.45f;
         // 가로 슬롯 우측 스냅 하이라이트 X 범위 (기존 80% -> 75%)
         public const float ValueHighlightXMin = 0.75f;
+
+        // 스냅 하이라이트 부드러운 깜빡임(Pulse) 애니메이션 설정
+        public const float SnapPulseMinAlpha = 0.35f;
+        public const float SnapPulseMaxAlpha = 1.0f;
+        public const float SnapPulseDuration = 0.4f;
     }
 
     public static class HighlightColors
