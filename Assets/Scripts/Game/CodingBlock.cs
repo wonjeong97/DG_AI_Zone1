@@ -59,6 +59,7 @@ namespace Game
 
         // ── 하이라이트 ─────────────────────────────────────────────
         private CodingBlock _snapTarget;
+        private InnerSocket _snapInnerSocket;
         private Image _chainHighlightImg;
         private Image _valueHighlightImg;
         private Image _errorHighlightImg;
@@ -220,6 +221,8 @@ namespace Game
 
             _snapTarget?.ClearSnapHighlight();
             _snapTarget = null;
+            _snapInnerSocket?.ClearSnapHighlight();
+            _snapInnerSocket = null;
 
             // 진행 중인 스냅 트윈을 즉시 완료 — 리페런트 후 잔여 틱이 캔버스 좌표계에 적용되어
             // 블록이 좌상단으로 날아가는 문제 방지 (홈 위치도 정착 좌표로 기록되도록 드래그 상태 저장 전에 수행)
@@ -279,6 +282,7 @@ namespace Game
         private void UpdateSnapHighlight()
         {
             CodingBlock newTarget = null;
+            InnerSocket newInnerSocket = null;
             bool isValue = SnapsHorizontally;
 
             if (isValue)
@@ -310,17 +314,23 @@ namespace Game
                 }
                 else if (innerSocket)
                 {
-                    newTarget = innerSocket.GetComponentInParent<CodingBlock>();
+                    newInnerSocket = innerSocket;
                 }
             }
 
-            if (newTarget == _snapTarget) return;
+            if (newTarget == _snapTarget && newInnerSocket == _snapInnerSocket) return;
 
             _snapTarget?.ClearSnapHighlight();
+            _snapInnerSocket?.ClearSnapHighlight();
 
             _snapTarget = newTarget;
+            _snapInnerSocket = newInnerSocket;
 
-            if (_snapTarget)
+            if (_snapInnerSocket)
+            {
+                _snapInnerSocket.ShowSnapHighlight();
+            }
+            else if (_snapTarget)
             {
                 if (isValue) _snapTarget.ShowValueHighlight();
                 else _snapTarget.ShowChainHighlight();
@@ -331,6 +341,8 @@ namespace Game
         {
             _snapTarget?.ClearSnapHighlight();
             _snapTarget = null;
+            _snapInnerSocket?.ClearSnapHighlight();
+            _snapInnerSocket = null;
             _cg.blocksRaycasts = true;
             IsDragHandled = false;
 
