@@ -695,6 +695,7 @@ namespace Game
         {
             UnityEngine.TextCore.Text.FontAsset font = await LoadLabelFontAsync();
             GameObject t = new GameObject(Constants.BlockParts.Label, typeof(RectTransform));
+            t.SetActive(false);
             t.transform.SetParent(go.transform, false);
             RectTransform rt = t.GetComponent<RectTransform>();
             rt.anchorMin = Vector2.zero;
@@ -702,11 +703,12 @@ namespace Game
             rt.offsetMin = new Vector2(0f, bottom);
             rt.offsetMax = Vector2.zero;
             TMPro.TextMeshProUGUI txt = t.AddComponent<TMPro.TextMeshProUGUI>();
-            txt.text = text;
             txt.font = font;
+            txt.text = text;
             txt.fontSize = size;
             txt.color = Color.white;
             txt.alignment = TMPro.TextAlignmentOptions.Center;
+            t.SetActive(true);
         }
 
         private static void AddDraggable(GameObject go, BlockEntry entry, Canvas rootCanvas)
