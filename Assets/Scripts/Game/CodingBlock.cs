@@ -59,8 +59,9 @@ namespace Game
 
         // ── 하이라이트 ─────────────────────────────────────────────
         private CodingBlock _snapTarget;
-        private InnerSocket _snapInnerSocket;
+        private bool _isInnerSnapTarget;
         private Image _chainHighlightImg;
+        private Image _innerHighlightImg;
         private Image _valueHighlightImg;
         private Image _errorHighlightImg;
 
@@ -75,6 +76,34 @@ namespace Game
                     return img;
                 }
 
+            // InnerHighlight가 프리팹/오브젝트에 미리 생성되어 있지 않은 경우 자동 생성
+            if (childName == Constants.BlockParts.InnerHighlight)
+            {
+                Image sourceImg = Outline ?? GetComponentInChildren<Image>(true);
+                if (sourceImg && sourceImg.sprite)
+                {
+                    GameObject go = new GameObject(Constants.BlockParts.InnerHighlight);
+                    go.transform.SetParent(transform, false);
+                    go.transform.SetSiblingIndex(2);
+                    RectTransform rt = go.AddComponent<RectTransform>();
+                    rt.anchorMin = Vector2.zero;
+                    rt.anchorMax = Vector2.one;
+                    rt.offsetMin = new Vector2(0f, -Constants.HighlightSettings.OutlineThickness);
+                    rt.offsetMax = new Vector2(0f, Constants.HighlightSettings.OutlineThickness);
+
+                    Image img = go.AddComponent<Image>();
+                    img.sprite = sourceImg.sprite;
+                    img.type = sourceImg.type;
+                    img.preserveAspect = sourceImg.preserveAspect;
+                    img.material = BlockFactory.SpriteFillMaterialInner;
+                    img.color = Color.clear;
+                    img.raycastTarget = false;
+
+                    cache = img;
+                    return img;
+                }
+            }
+
             return null;
         }
 
@@ -83,12 +112,14 @@ namespace Game
 
         // ── 스냅 하이라이트 (드래그 중 연결 가능 지점 표시 — 부드러운 깜빡임 펄스 연출) ──
         public void ShowChainHighlight() => PlaySnapPulse(ChainHighlight, isVerticalChain: true);
+        public void ShowInnerHighlight() => PlaySnapPulse(InnerHighlight, isVerticalChain: true);
         public void ShowValueHighlight() => PlaySnapPulse(ValueHighlight, isVerticalChain: false);
 
         public void ClearSnapHighlight()
         {
             StopSnapPulse();
             SetHighlight(ChainHighlight, Color.clear);
+            SetHighlight(InnerHighlight, Color.clear);
             SetHighlight(ValueHighlight, Color.clear);
         }
 
@@ -148,6 +179,7 @@ namespace Game
         public void ClearErrorHighlight()  => SetHighlight(Outline, Color.clear);
 
         private Image ChainHighlight => GetOrFindHighlight(ref _chainHighlightImg, Constants.BlockParts.ChainHighlight);
+        private Image InnerHighlight => GetOrFindHighlight(ref _innerHighlightImg, Constants.BlockParts.InnerHighlight);
         private Image ValueHighlight => GetOrFindHighlight(ref _valueHighlightImg, Constants.BlockParts.ValueHighlight);
         private Image Outline        => GetOrFindHighlight(ref _errorHighlightImg, Constants.BlockParts.Outline);
 
@@ -221,8 +253,7 @@ namespace Game
 
             _snapTarget?.ClearSnapHighlight();
             _snapTarget = null;
-            _snapInnerSocket?.ClearSnapHighlight();
-            _snapInnerSocket = null;
+            _isInnerSnapTarget = false;
 
             // 진행 중인 스냅 트윈을 즉시 완료 — 리페런트 후 잔여 틱이 캔버스 좌표계에 적용되어
             // 블록이 좌상단으로 날아가는 문제 방지 (홈 위치도 정착 좌표로 기록되도록 드래그 상태 저장 전에 수행)
@@ -282,7 +313,7 @@ namespace Game
         private void UpdateSnapHighlight()
         {
             CodingBlock newTarget = null;
-            InnerSocket newInnerSocket = null;
+            bool isInnerSnap = false;
             bool isValue = SnapsHorizontally;
 
             if (isValue)
@@ -311,28 +342,26 @@ namespace Game
                 if (chainSocket && (!innerSocket || chainSqr <= innerSqr))
                 {
                     newTarget = chainSocket.GetComponentInParent<CodingBlock>();
+                    isInnerSnap = false;
                 }
                 else if (innerSocket)
                 {
-                    newInnerSocket = innerSocket;
+                    newTarget = innerSocket.GetComponentInParent<CodingBlock>();
+                    isInnerSnap = true;
                 }
             }
 
-            if (newTarget == _snapTarget && newInnerSocket == _snapInnerSocket) return;
+            if (newTarget == _snapTarget && isInnerSnap == _isInnerSnapTarget) return;
 
             _snapTarget?.ClearSnapHighlight();
-            _snapInnerSocket?.ClearSnapHighlight();
 
             _snapTarget = newTarget;
-            _snapInnerSocket = newInnerSocket;
+            _isInnerSnapTarget = isInnerSnap;
 
-            if (_snapInnerSocket)
-            {
-                _snapInnerSocket.ShowSnapHighlight();
-            }
-            else if (_snapTarget)
+            if (_snapTarget)
             {
                 if (isValue) _snapTarget.ShowValueHighlight();
+                else if (isInnerSnap) _snapTarget.ShowInnerHighlight();
                 else _snapTarget.ShowChainHighlight();
             }
         }
@@ -341,8 +370,7 @@ namespace Game
         {
             _snapTarget?.ClearSnapHighlight();
             _snapTarget = null;
-            _snapInnerSocket?.ClearSnapHighlight();
-            _snapInnerSocket = null;
+            _isInnerSnapTarget = false;
             _cg.blocksRaycasts = true;
             IsDragHandled = false;
 

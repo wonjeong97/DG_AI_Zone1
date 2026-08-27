@@ -538,19 +538,21 @@ namespace Game
         // Right: 우측 20% (값 스냅 표시)
         private static Material _spriteFillMaterial;
         private static Material _spriteFillMaterialBottom;
+        private static Material _spriteFillMaterialInner;
         private static Material _spriteFillMaterialRight;
 
-        private static Material SpriteFillMaterial       => GetOrLoadMaterial(ref _spriteFillMaterial,       "BlockOutlineFull",   1.0f, 0.0f);
-        private static Material SpriteFillMaterialBottom => GetOrLoadMaterial(ref _spriteFillMaterialBottom, "BlockOutlineBottom", Constants.HighlightSettings.ChainHighlightYMax, 0.0f);
-        private static Material SpriteFillMaterialRight  => GetOrLoadMaterial(ref _spriteFillMaterialRight,  "BlockOutlineRight",  1.0f, Constants.HighlightSettings.ValueHighlightXMin);
+        public static Material SpriteFillMaterial       => GetOrLoadMaterial(ref _spriteFillMaterial,       "BlockOutlineFull",   0.0f, 1.0f, 0.0f, 1.0f);
+        public static Material SpriteFillMaterialBottom => GetOrLoadMaterial(ref _spriteFillMaterialBottom, "BlockOutlineBottom", 0.0f, Constants.HighlightSettings.ChainHighlightYMax, 0.0f, 1.0f);
+        public static Material SpriteFillMaterialInner  => GetOrLoadMaterial(ref _spriteFillMaterialInner,  "BlockOutlineInner",  Constants.HighlightSettings.InnerHighlightYMin, Constants.HighlightSettings.InnerHighlightYMax, Constants.HighlightSettings.InnerHighlightXMin, Constants.HighlightSettings.InnerHighlightXMax);
+        public static Material SpriteFillMaterialRight  => GetOrLoadMaterial(ref _spriteFillMaterialRight,  "BlockOutlineRight",  0.0f, 1.0f, Constants.HighlightSettings.ValueHighlightXMin, 1.0f);
 
-        private static Material GetOrLoadMaterial(ref Material cache, string matName, float yMax, float xMin)
+        private static Material GetOrLoadMaterial(ref Material cache, string matName, float yMin, float yMax, float xMin, float xMax)
         {
-            if (!cache) cache = MakeSpriteFillMat(matName, yMax, xMin);
+            if (!cache) cache = MakeSpriteFillMat(matName, yMin, yMax, xMin, xMax);
             return cache;
         }
 
-        private static Material MakeSpriteFillMat(string matName, float yMax, float xMin)
+        private static Material MakeSpriteFillMat(string matName, float yMin, float yMax, float xMin, float xMax)
         {
             Shader shader = Shader.Find(Constants.ResourcePaths.SpriteFillShader);
             if (!shader)
@@ -560,8 +562,10 @@ namespace Game
             }
 
             Material mat = new Material(shader) { name = matName };
+            mat.SetFloat("_YMin", yMin);
             mat.SetFloat("_YMax", yMax);
             mat.SetFloat("_XMin", xMin);
+            mat.SetFloat("_XMax", xMax);
             return mat;
         }
 
@@ -646,6 +650,8 @@ namespace Game
             AddOverlay(Constants.BlockParts.Outline, blockGo, sprite, Vector2.zero, Vector2.one, minOffFull, maxOffFull, SpriteFillMaterial);
             AddOverlay(Constants.BlockParts.ChainHighlight, blockGo, sprite, Vector2.zero, Vector2.one, minOffChain, maxOffChain,
                 SpriteFillMaterialBottom);
+            AddOverlay(Constants.BlockParts.InnerHighlight, blockGo, sprite, Vector2.zero, Vector2.one, minOffChain, maxOffChain,
+                SpriteFillMaterialInner);
             AddOverlay(Constants.BlockParts.ValueHighlight, blockGo, sprite, Vector2.zero, Vector2.one, minOffFull, maxOffFull,
                 SpriteFillMaterialRight);
         }

@@ -314,9 +314,10 @@ public static class Constants
         public const string Slot         = "Slot";
         public const string EmptyIndicator = "EmptyIndicator";
 
-        // 하이라이트 오버레이 — 렌더 순서상 블록 본체보다 앞(sibling 0~2)에 놓인다
+        // 하이라이트 오버레이 — 렌더 순서상 블록 본체보다 앞(sibling 0~3)에 놓인다
         public const string Outline        = "SpriteOutline";  // 전체 (컴파일 성공/에러)
         public const string ChainHighlight = "ChainHighlight"; // 하단 체인 스냅 영역
+        public const string InnerHighlight = "InnerHighlight"; // FlowControl/FuncDef 내부 소켓 라인 스냅 영역
         public const string ValueHighlight = "ValueHighlight"; // 우측 값 스냅 영역
     }
 
@@ -327,6 +328,11 @@ public static class Constants
         public const float OutlineThickness = 10f;
         // 세로 체인 하단 스냅 하이라이트 Y 범위 (기존 35% -> 45%)
         public const float ChainHighlightYMax = 0.45f;
+        // FlowControl / FuncDef 내부 소켓 라인 (헤더 하단 노치) UV 범위
+        public const float InnerHighlightYMin = 0.50f;
+        public const float InnerHighlightYMax = 0.88f;
+        public const float InnerHighlightXMin = 0.05f;
+        public const float InnerHighlightXMax = 0.95f;
         // 가로 슬롯 우측 스냅 하이라이트 X 범위 (기존 80% -> 75%)
         public const float ValueHighlightXMin = 0.75f;
 

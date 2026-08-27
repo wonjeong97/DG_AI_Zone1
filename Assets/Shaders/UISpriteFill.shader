@@ -5,8 +5,10 @@ Shader "Custom/UI/SpriteFill"
     Properties
     {
         [PerRendererData] _MainTex ("Main Texture", 2D) = "white" {}
+        _YMin ("UV Y Min (top clip)",    Range(0,1)) = 0.0
         _YMax ("UV Y Max (bottom clip)", Range(0,1)) = 1.0
-        _XMin ("UV X Min (right clip)",  Range(0,1)) = 0.0
+        _XMin ("UV X Min (left clip)",   Range(0,1)) = 0.0
+        _XMax ("UV X Max (right clip)",  Range(0,1)) = 1.0
 
         _StencilComp     ("Stencil Comparison", Float) = 8
         _Stencil         ("Stencil ID",         Float) = 0
@@ -74,8 +76,10 @@ Shader "Custom/UI/SpriteFill"
             };
 
             sampler2D _MainTex;
+            float     _YMin;
             float     _YMax;
             float     _XMin;
+            float     _XMax;
             fixed4    _TextureSampleAdd;
             float4    _ClipRect;
 
@@ -95,7 +99,7 @@ Shader "Custom/UI/SpriteFill"
             {
                 // 스프라이트 알파 + UV 방향 클리핑. RGB/투명도는 버텍스 컬러(Image.color)로 제어.
                 fixed alpha = (tex2D(_MainTex, i.uv) + _TextureSampleAdd).a;
-                float inRange = step(i.uv.y, _YMax) * step(_XMin, i.uv.x);
+                float inRange = step(_YMin, i.uv.y) * step(i.uv.y, _YMax) * step(_XMin, i.uv.x) * step(i.uv.x, _XMax);
                 fixed4 color = fixed4(i.color.rgb, alpha * i.color.a * inRange);
 
                 #ifdef UNITY_UI_CLIP_RECT
