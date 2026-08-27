@@ -32,10 +32,11 @@ public static class Constants
     // ── 3. 리소스 및 에셋 경로 ──────────────────────────────────
     public static class ResourcePaths
     {
-        public const string BlockImagePath   = "Images/Blocks/";
-        public const string LabelFontKey     = "GamtanRoadTantan SDF";
-        public const string GameSessionKey   = "GameSession";
-        public const string SpriteFillShader = "Custom/UI/SpriteFill";
+        public const string BlockImagePath       = "Images/Blocks/";
+        public const string TutorialImageAddress = "Tutorial";
+        public const string LabelFontKey         = "GamtanRoadTantan SDF";
+        public const string GameSessionKey       = "GameSession";
+        public const string SpriteFillShader     = "Custom/UI/SpriteFill";
     }
 
     // ── 4. 방향 명칭 ───────────────────────────────────────────

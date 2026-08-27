@@ -15,7 +15,6 @@ namespace Scenes
         [SerializeField] private CanvasGroup tutorialPanel;
         [SerializeField] private Button introStartButton;
         [SerializeField] private Button tutorialStartButton;
-        [SerializeField] private VideoPlayer videoPlayer;
         [SerializeField] private VideoPlayer robotVideoPlayer;
         [SerializeField] private float crossFadeDuration = 0.2f;
 
@@ -47,14 +46,7 @@ namespace Scenes
 
             if (introStartButton) introStartButton.onClick.AddListener(OnIntroStartClicked);
             if (tutorialStartButton) tutorialStartButton.onClick.AddListener(OnTutorialStartClicked);
-            
-            if (videoPlayer)
-            {
-                videoPlayer.url = Constants.VideoPaths.TutorialUrl;
-                videoPlayer.Prepare();
-                SceneFader.RegisterPendingTask(UniTask.WaitUntil(() => videoPlayer.isPrepared, cancellationToken: destroyCancellationToken));
-            }
-            
+
             if (robotVideoPlayer)
             {
                 SceneFader.ClearVideoRenderTexture(robotVideoPlayer);
@@ -74,7 +66,6 @@ namespace Scenes
         private void OnIntroStartClicked()
         {
             SceneFader.CrossFadeGroupsAsync(introPanel, tutorialPanel, crossFadeDuration, destroyCancellationToken).Forget();
-            if (videoPlayer) videoPlayer.Play();
         }
 
         private void OnTutorialStartClicked()
