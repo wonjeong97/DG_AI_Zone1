@@ -637,13 +637,16 @@ namespace Game
         private static void AddHighlightOverlays(GameObject blockGo, Sprite sprite)
         {
             float t = Constants.HighlightSettings.OutlineThickness;
-            var minOff = new Vector2(-t, -t);
-            var maxOff = new Vector2(t, t);
+            var minOffFull = new Vector2(-t, -t);
+            var maxOffFull = new Vector2(t, t);
 
-            AddOverlay(Constants.BlockParts.Outline, blockGo, sprite, Vector2.zero, Vector2.one, minOff, maxOff, SpriteFillMaterial);
-            AddOverlay(Constants.BlockParts.ChainHighlight, blockGo, sprite, Vector2.zero, Vector2.one, minOff, maxOff,
+            var minOffChain = new Vector2(0f, -t);
+            var maxOffChain = new Vector2(0f, t);
+
+            AddOverlay(Constants.BlockParts.Outline, blockGo, sprite, Vector2.zero, Vector2.one, minOffFull, maxOffFull, SpriteFillMaterial);
+            AddOverlay(Constants.BlockParts.ChainHighlight, blockGo, sprite, Vector2.zero, Vector2.one, minOffChain, maxOffChain,
                 SpriteFillMaterialBottom);
-            AddOverlay(Constants.BlockParts.ValueHighlight, blockGo, sprite, Vector2.zero, Vector2.one, minOff, maxOff,
+            AddOverlay(Constants.BlockParts.ValueHighlight, blockGo, sprite, Vector2.zero, Vector2.one, minOffFull, maxOffFull,
                 SpriteFillMaterialRight);
         }
 

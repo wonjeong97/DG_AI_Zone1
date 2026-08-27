@@ -81,8 +81,8 @@ namespace Game
         private Image _activeSnapImage;
 
         // ── 스냅 하이라이트 (드래그 중 연결 가능 지점 표시 — 부드러운 깜빡임 펄스 연출) ──
-        public void ShowChainHighlight() => PlaySnapPulse(ChainHighlight);
-        public void ShowValueHighlight() => PlaySnapPulse(ValueHighlight);
+        public void ShowChainHighlight() => PlaySnapPulse(ChainHighlight, isVerticalChain: true);
+        public void ShowValueHighlight() => PlaySnapPulse(ValueHighlight, isVerticalChain: false);
 
         public void ClearSnapHighlight()
         {
@@ -91,7 +91,7 @@ namespace Game
             SetHighlight(ValueHighlight, Color.clear);
         }
 
-        private void PlaySnapPulse(Image img)
+        private void PlaySnapPulse(Image img, bool isVerticalChain = false)
         {
             if (!img) return;
             if (_activeSnapImage == img && _snapHighlightTween != null && _snapHighlightTween.IsActive()) return;
@@ -102,8 +102,17 @@ namespace Game
             RectTransform rt = img.rectTransform;
             if (rt)
             {
-                rt.offsetMin = new Vector2(-t, -t);
-                rt.offsetMax = new Vector2(t, t);
+                if (isVerticalChain)
+                {
+                    // ChainHighlight: 좌우(X) 0, 상하(Y) -10~10 확장
+                    rt.offsetMin = new Vector2(0f, -t);
+                    rt.offsetMax = new Vector2(0f, t);
+                }
+                else
+                {
+                    rt.offsetMin = new Vector2(-t, -t);
+                    rt.offsetMax = new Vector2(t, t);
+                }
             }
 
             Color baseColor = Constants.HighlightColors.Snap;
