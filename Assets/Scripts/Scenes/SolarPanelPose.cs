@@ -14,7 +14,6 @@ namespace Scenes
         [SerializeField] private Transform pole;           // 기둥(Pole) — 틸트 시 높이를 줄여 패널 관통 방지
         [SerializeField] private float animDuration = 1.5f;
 
-        private const float FrontYaw = 180f;   // 카메라 정면 기준 yaw
         private const float DefaultTilt = -30f;
 
         // Pole 초기값 (Awake에서 캐시)
@@ -35,32 +34,9 @@ namespace Scenes
                 _pivotY = tiltPivot.localPosition.y;
         }
 
-        // 방향 문자열 → PanelPivot local Y (root 기준 상대값).
-        // root가 이미 FrontYaw(180°)를 향하므로, 남쪽=0, 동쪽=-90, …
-        private static float DirectionToLocalYaw(string direction)
-        {
-            float worldYaw = direction switch
-            {
-                Constants.Directions.North => 0f,
-                Constants.Directions.East  => 90f,
-                Constants.Directions.South => 180f,
-                Constants.Directions.West  => 270f,
-                _ => FrontYaw,
-            };
-            return worldYaw - FrontYaw;
-        }
-
         // 각도 문자열("30도") → 기울기(local X, 음수). 값 없으면 기본값
         private static float AngleToTilt(string angle)
-        {
-            if (!string.IsNullOrEmpty(angle))
-            {
-                string digits = new string(System.Array.FindAll(angle.ToCharArray(), char.IsDigit));
-                if (int.TryParse(digits, out int deg) && deg > 0)
-                    return -deg;
-            }
-            return DefaultTilt;
-        }
+            => PanelPoseMath.TryParseAngleDegrees(angle, out int deg) ? -deg : DefaultTilt;
 
         // 기본 자세 (평평 + 정면) — 연출 시작점. 바닥은 고정.
         public void SetNeutral()
@@ -81,7 +57,7 @@ namespace Scenes
         {
             _isNorth = (direction == Constants.Directions.North);
             float targetTilt = AngleToTilt(angle);
-            float targetYaw = DirectionToLocalYaw(direction);
+            float targetYaw = PanelPoseMath.DirectionToLocalYaw(direction);
             float currentTilt = GetCurrentTilt();
 
             // 1) 방향(yaw) 먼저 — DeltaAngle로 최단 경로 회전 (순수 수치 보간이므로 DOVirtual)

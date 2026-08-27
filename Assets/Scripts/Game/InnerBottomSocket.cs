@@ -1,7 +1,4 @@
-﻿using UnityEngine;
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
+using UnityEngine;
 
 namespace Game
 {
@@ -11,18 +8,11 @@ namespace Game
 #if UNITY_EDITOR
         private void OnDrawGizmos()
         {
-            if (!TryGetComponent<RectTransform>(out RectTransform rt)) return;
+            if (!TryGetComponent(out RectTransform rt)) return;
 
-            var pos = (Vector2)rt.position;
-
-            Gizmos.color = new Color(0f, 0.8f, 1f, 0.9f);
-            float arm = 12f;
-            Gizmos.DrawLine(pos + Vector2.left  * arm, pos + Vector2.right * arm);
-            Gizmos.DrawLine(pos + Vector2.up    * arm, pos + Vector2.down  * arm);
-            Gizmos.DrawWireSphere(rt.position, 5f);
-
-            Handles.Label(rt.position + Vector3.up * 18f, Constants.Sockets.InnerBottomName,
-                new GUIStyle { normal = { textColor = new Color(0f, 0.8f, 1f) }, fontSize = 9 });
+            var color = new Color(0f, 0.8f, 1f);
+            SocketGizmos.DrawCross(rt, new Color(0f, 0.8f, 1f, 0.9f), arm: 12f, dotRadius: 5f);
+            SocketGizmos.DrawLabel(rt, Constants.Sockets.InnerBottomName, color, yOffset: 18f);
         }
 #endif
     }

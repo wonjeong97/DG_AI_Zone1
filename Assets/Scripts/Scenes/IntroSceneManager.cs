@@ -1,4 +1,3 @@
-using System.IO;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
@@ -47,20 +46,14 @@ namespace Scenes
             if (introStartButton) introStartButton.onClick.AddListener(OnIntroStartClicked);
             if (tutorialStartButton) tutorialStartButton.onClick.AddListener(OnTutorialStartClicked);
 
-            if (robotVideoPlayer)
-            {
-                SceneFader.ClearVideoRenderTexture(robotVideoPlayer);
-                robotVideoPlayer.url = Constants.VideoPaths.RobotUrl;
-                robotVideoPlayer.Prepare();
-                SceneFader.RegisterPendingTask(SceneFader.WaitUntilVideoProgressAsync(robotVideoPlayer, Constants.VideoPaths.MinPlaybackProgressBeforeReveal, destroyCancellationToken));
-                robotVideoPlayer.Play();
-            }
+            SceneFader.PlayLoopingVideo(robotVideoPlayer, Constants.VideoPaths.RobotUrl, destroyCancellationToken);
         }
 
         private void OnDestroy()
         {
-            introStartButton.onClick.RemoveListener(OnIntroStartClicked);
-            tutorialStartButton.onClick.RemoveListener(OnTutorialStartClicked);
+            // Start()에서 등록을 건너뛴 미할당 버튼도 있을 수 있으므로 해제도 동일하게 가드
+            if (introStartButton) introStartButton.onClick.RemoveListener(OnIntroStartClicked);
+            if (tutorialStartButton) tutorialStartButton.onClick.RemoveListener(OnTutorialStartClicked);
         }
 
         private void OnIntroStartClicked()

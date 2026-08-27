@@ -9,8 +9,6 @@ namespace Game
 {
     public static class BlockFactory
     {
-        private const string BlockImagePath = Constants.ResourcePaths.BlockImagePath;
-
         // 이름별로 1회만 Addressables에서 로드하고 이후에는 캐시에서 반환
         private readonly static Dictionary<string, Sprite> _spriteCache = new();
 
@@ -19,13 +17,15 @@ namespace Game
         {
             string name = cat switch
             {
-                BlockCategory.Control => controlRole == ControlRole.Start ? "Start" : "End",
-                BlockCategory.Command => "Command",
-                BlockCategory.Value => "Value",
-                BlockCategory.FlowControl => "FlowControl",
-                BlockCategory.ConditionAction => "ConditionAction",
-                BlockCategory.Action => "Action",
-                BlockCategory.Logic => "Logic",
+                BlockCategory.Control         => controlRole == ControlRole.Start
+                                                 ? Constants.BlockAssets.StartSprite
+                                                 : Constants.BlockAssets.EndSprite,
+                BlockCategory.Command         => Constants.BlockAssets.CommandSprite,
+                BlockCategory.Value           => Constants.BlockAssets.ValueSprite,
+                BlockCategory.FlowControl     => Constants.BlockAssets.FlowControlSprite,
+                BlockCategory.ConditionAction => Constants.BlockAssets.ConditionActionSprite,
+                BlockCategory.Action          => Constants.BlockAssets.ActionSprite,
+                BlockCategory.Logic           => Constants.BlockAssets.LogicSprite,
                 _ => null
             };
             if (name is null) return null;
@@ -98,19 +98,22 @@ namespace Game
         {
             return entry.category switch
             {
-                BlockCategory.Value       => await CreateFromPrefab("ValueBlock", entry, rootCanvas, draggable),
+                BlockCategory.Value       => await CreateFromPrefab(Constants.BlockAssets.ValuePrefab, entry, rootCanvas, draggable),
                 // 조건 블록 — None: 이벤트형 조건(전용 아트) / kind 지정: 값형 조건(Value 아트 재사용)
-                BlockCategory.Condition   => await CreateFromPrefab(
-                    entry.valueKind == ValueKind.None ? "ConditionBlock" : "ValueBlock", entry, rootCanvas, draggable),
+                BlockCategory.Condition   => await CreateFromPrefab(entry.valueKind == ValueKind.None
+                    ? Constants.BlockAssets.ConditionPrefab
+                    : Constants.BlockAssets.ValuePrefab, entry, rootCanvas, draggable),
                 // Command + ValueKind.None = 값 슬롯 없는 동작 블록 (전용 아트, ValueOutSocket 미부착)
-                BlockCategory.Command     => await CreateFromPrefab(
-                    entry.valueKind == ValueKind.None ? "CommandNoValueBlock" : "CommandBlock", entry, rootCanvas, draggable),
-                BlockCategory.Control     => await CreateFromPrefab(
-                    entry.controlRole == ControlRole.Start ? "StartBlock" : "EndBlock", entry, rootCanvas, draggable),
+                BlockCategory.Command     => await CreateFromPrefab(entry.valueKind == ValueKind.None
+                    ? Constants.BlockAssets.CommandNoValuePrefab
+                    : Constants.BlockAssets.CommandPrefab, entry, rootCanvas, draggable),
+                BlockCategory.Control     => await CreateFromPrefab(entry.controlRole == ControlRole.Start
+                    ? Constants.BlockAssets.StartPrefab
+                    : Constants.BlockAssets.EndPrefab, entry, rootCanvas, draggable),
                 // 함수 블록 — CommandNoValue와 동일한 구조(값 슬롯 없음, 체인 소켓만)
-                BlockCategory.Function    => await CreateFromPrefab("FunctionBlock", entry, rootCanvas, draggable),
+                BlockCategory.Function    => await CreateFromPrefab(Constants.BlockAssets.FunctionPrefab, entry, rootCanvas, draggable),
                 // 함수 구현 블록 — FlowControl과 동일한 C자 컨테이너(헤더 값 슬롯 없음)
-                BlockCategory.FunctionDef => await CreateFromPrefab("FuncDefBlock", entry, rootCanvas, draggable),
+                BlockCategory.FunctionDef => await CreateFromPrefab(Constants.BlockAssets.FuncDefPrefab, entry, rootCanvas, draggable),
                 BlockCategory.FlowControl => await CreateFlowBlock(entry, rootCanvas, draggable),
                 BlockCategory.Logic       => await CreateLogicBlock(entry, rootCanvas, draggable),
                 _                         => await CreateSimpleBlock(entry, rootCanvas, draggable)
@@ -193,13 +196,6 @@ namespace Game
         }
 
         // ── FlowControl 블록 (C자형) ────────────────────────────
-        // 크기·배율 상수는 Constants.Blocks에서 관리
-        private const float FlowScale = Constants.Blocks.FlowScale;
-        private const float FlowBlockWidth = Constants.Blocks.FlowWidth;
-        private const float FlowHeaderHeight = Constants.Blocks.FlowHeaderHeight;
-        private const float FlowElseHeight = Constants.Blocks.FlowElseHeight;
-        private const float FlowFooterHeight = Constants.Blocks.FlowFooterHeight;
-
         // 만약/반복하기는 같은 카테고리라 라벨로 아트를 구분한다 (각각 전용 프리팹).
         // 분류 기준(라벨 문자열 비교)은 여기 한 곳에만 있고, 생성 시점(FlowPrefabName)과
         // 부착 시점(AttachSockets)이 같은 함수를 호출해 서로 다른 결과를 낼 수 없게 한다.
@@ -211,9 +207,9 @@ namespace Game
 
         private static string FlowPrefabName(string label) => GetFlowKind(label) switch
         {
-            FlowKind.While => "WhileBlock",
-            FlowKind.If    => "IfBlock",
-            _              => "FlowControlBlock"
+            FlowKind.While => Constants.BlockAssets.WhilePrefab,
+            FlowKind.If    => Constants.BlockAssets.IfPrefab,
+            _              => Constants.BlockAssets.FlowControlPrefab
         };
 
         private static async UniTask<GameObject> CreateFlowBlock(BlockEntry entry, Canvas rootCanvas, bool draggable)
@@ -228,10 +224,10 @@ namespace Game
             // else 분기 (만약 블록) — 프리팹 기본 구조 뒤에 런타임 추가 후 푸터를 맨 아래로
             if (entry.elseBlocks is not null && entry.elseBlocks.Length > 0)
             {
-                await AppendFlowHeader(go.transform, "아니면", FlowElseHeight);
+                await AppendFlowHeader(go.transform, Constants.BlockLabels.Else, Constants.Blocks.FlowElseHeight);
                 AppendInnerContainer(go.transform, entry.elseBlocks, rootCanvas, draggable);
 
-                Transform footer = go.transform.Find("Footer");
+                Transform footer = go.transform.Find(Constants.BlockParts.Footer);
                 if (footer)
                     footer.SetAsLastSibling();
                 else
@@ -246,7 +242,7 @@ namespace Game
         // else 구분 헤더 — 스페이서 + 텍스트 (시각은 Label GO의 9-slice 배경이 담당)
         private static async UniTask AppendFlowHeader(Transform parent, string label, float height)
         {
-            GameObject h = NewRect("Header_" + label, 0f, height);
+            GameObject h = NewRect(Constants.BlockParts.HeaderPrefix + label, 0f, height);
             h.transform.SetParent(parent, false);
             await AddLabel(h, label, (int)Constants.Blocks.LabelFontSize);
             LayoutElement le = h.AddComponent<LayoutElement>();
@@ -259,7 +255,7 @@ namespace Game
         private static void AppendInnerContainer(Transform parent, BlockEntry[] blocks,
             Canvas rootCanvas, bool draggable)
         {
-            GameObject inner = NewRect("Inner", 0f, InnerMinHeight);
+            GameObject inner = NewRect(Constants.BlockParts.InnerPrefix, 0f, InnerMinHeight);
             inner.transform.SetParent(parent, false);
 
             LayoutElement le = inner.AddComponent<LayoutElement>();
@@ -278,16 +274,16 @@ namespace Game
             InnerSocket innerSocket = socketGo.AddComponent<InnerSocket>();
 
             // 빈 상태 표시 (블록이 들어오면 숨겨짐)
-            GameObject empty = NewRect("EmptyIndicator", 0f, 60f);
+            GameObject empty = NewRect(Constants.BlockParts.EmptyIndicator, 0f, EmptySlotHeight);
             empty.transform.SetParent(inner.transform, false);
             empty.TryGetComponent<RectTransform>(out RectTransform emptyRt);
             emptyRt.anchorMin = new Vector2(0.14f, 0.5f);
             emptyRt.anchorMax = new Vector2(0.97f, 0.5f);
             emptyRt.pivot = new Vector2(0.5f, 0.5f);
-            emptyRt.sizeDelta = new Vector2(0f, 60f);
+            emptyRt.sizeDelta = new Vector2(0f, EmptySlotHeight);
             emptyRt.anchoredPosition = Vector2.zero;
             Image emptyImg = empty.AddComponent<Image>();
-            emptyImg.color = new Color(1f, 1f, 1f, 0.08f);
+            emptyImg.color = Constants.HighlightColors.EmptySlot;
             innerSocket.SetEmptyIndicator(empty);
 
             // 체인 하단 기준점: Inner 바닥 중앙 — FlowInnerResize가 마지막 ChainOutSocket과 이 위치를 맞춰 높이를 계산
@@ -514,12 +510,15 @@ namespace Game
         }
 
         // ── 빈 CodingSlot ───────────────────────────────────────
+        // 비어있는 슬롯(EmptyIndicator·CodingSlot) 공통 높이
+        private const float EmptySlotHeight = 60f;
+
         public static GameObject CreateEmptyCodingSlot()
         {
-            GameObject go = NewRect("Slot", 0f, 60f);
-            AddImage(go, new Color(1f, 1f, 1f, 0.08f));
+            GameObject go = NewRect(Constants.BlockParts.Slot, 0f, EmptySlotHeight);
+            AddImage(go, Constants.HighlightColors.EmptySlot);
             LayoutElement le = go.AddComponent<LayoutElement>();
-            le.preferredHeight = 60f;
+            le.preferredHeight = EmptySlotHeight;
             le.flexibleWidth = 1f;
             go.AddComponent<CodingSlot>();
             return go;
@@ -597,7 +596,7 @@ namespace Game
             {
                 AddHighlightOverlays(go, sprite);
 
-                GameObject spriteGo = new GameObject("Sprite");
+                GameObject spriteGo = new GameObject(Constants.BlockParts.Sprite);
                 spriteGo.transform.SetParent(go.transform, false);
                 RectTransform srt = spriteGo.AddComponent<RectTransform>();
                 srt.anchorMin = Vector2.zero;
@@ -613,7 +612,7 @@ namespace Game
             {
                 AddBorderOverlay(go);
 
-                GameObject fillGo = new GameObject("Fill");
+                GameObject fillGo = new GameObject(Constants.BlockParts.Fill);
                 fillGo.transform.SetParent(go.transform, false);
                 RectTransform frt = fillGo.AddComponent<RectTransform>();
                 frt.anchorMin = Vector2.zero;
@@ -633,10 +632,10 @@ namespace Game
             var minOff = new Vector2(-t, -t);
             var maxOff = new Vector2(t, t);
 
-            AddOverlay("SpriteOutline", blockGo, sprite, Vector2.zero, Vector2.one, minOff, maxOff, SpriteFillMaterial);
-            AddOverlay("ChainHighlight", blockGo, sprite, Vector2.zero, Vector2.one, minOff, maxOff,
+            AddOverlay(Constants.BlockParts.Outline, blockGo, sprite, Vector2.zero, Vector2.one, minOff, maxOff, SpriteFillMaterial);
+            AddOverlay(Constants.BlockParts.ChainHighlight, blockGo, sprite, Vector2.zero, Vector2.one, minOff, maxOff,
                 SpriteFillMaterialBottom);
-            AddOverlay("ValueHighlight", blockGo, sprite, Vector2.zero, Vector2.one, minOff, maxOff,
+            AddOverlay(Constants.BlockParts.ValueHighlight, blockGo, sprite, Vector2.zero, Vector2.one, minOff, maxOff,
                 SpriteFillMaterialRight);
         }
 
@@ -664,7 +663,7 @@ namespace Game
         // 스프라이트 없는 블록 본체용 테두리 (기본 투명, 런타임에 색 변경)
         private static void AddBorderOverlay(GameObject go, float thickness = 2f)
         {
-            GameObject border = new GameObject("SpriteOutline");
+            GameObject border = new GameObject(Constants.BlockParts.Outline);
             border.transform.SetParent(go.transform, false);
             border.transform.SetAsFirstSibling();
             RectTransform rt = border.AddComponent<RectTransform>();
@@ -680,7 +679,7 @@ namespace Game
         private static async UniTask AddLabel(GameObject go, string text, int size = 28, float bottom = 0f)
         {
             UnityEngine.TextCore.Text.FontAsset font = await LoadLabelFontAsync();
-            GameObject t = new GameObject("Label");
+            GameObject t = new GameObject(Constants.BlockParts.Label);
             t.transform.SetParent(go.transform, false);
             RectTransform rt = t.AddComponent<RectTransform>();
             rt.anchorMin = Vector2.zero;

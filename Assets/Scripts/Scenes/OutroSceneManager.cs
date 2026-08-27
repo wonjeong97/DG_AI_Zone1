@@ -1,8 +1,6 @@
-using System.IO;
 using Cysharp.Threading.Tasks;
 using TMPro;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using Microsoft.Extensions.Logging;
 using UnityEngine.Video;
@@ -34,14 +32,7 @@ namespace Scenes
                 endButton.onClick.AddListener(OnEndButtonClicked);
 
             // 로봇 영상 — 진입과 동시에 루프 재생 (isLooping은 컴포넌트에 설정됨)
-            if (robotVideoPlayer)
-            {
-                SceneFader.ClearVideoRenderTexture(robotVideoPlayer);
-                robotVideoPlayer.url = Constants.VideoPaths.RobotUrl;
-                robotVideoPlayer.Prepare();
-                SceneFader.RegisterPendingTask(SceneFader.WaitUntilVideoProgressAsync(robotVideoPlayer, Constants.VideoPaths.MinPlaybackProgressBeforeReveal, destroyCancellationToken));
-                robotVideoPlayer.Play();
-            }
+            SceneFader.PlayLoopingVideo(robotVideoPlayer, Constants.VideoPaths.RobotUrl, destroyCancellationToken);
 
             if (endingText)
             {
@@ -52,15 +43,8 @@ namespace Scenes
                     Constants.StoryLine.StoryLineMoveDuration,
                     Constants.StoryLine.StoryLineInterval,
                     Constants.StoryLine.StoryLineYOffset,
-                    IsSkipRequested, destroyCancellationToken).Forget();
+                    StoryLineAnimator.IsPointerPressedThisFrame, destroyCancellationToken).Forget();
             }
-        }
-
-        // 이번 프레임에 마우스 또는 터치 눌림이 있었는지 반환함(연출 스킵용)
-        private bool IsSkipRequested()
-        {
-            Pointer pointer = Pointer.current;
-            return pointer != null && pointer.press.wasPressedThisFrame;
         }
 
         private void OnDestroy()

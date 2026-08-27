@@ -13,12 +13,15 @@ namespace Game.Runtime
     public static class ProgramFormatter
     {
         private const int IndentSize = 2;
+        private const string StartMarker = "START";
+        private const string EndMarker = "END";
+        private const string UnreachedEndMarker = "(완성하기 미연결)";
 
         // includeEnd: 체인이 완성하기(End)까지 도달했을 때만 END를 출력. 미연결이면 생략.
         public static string ToCode(IReadOnlyList<BlockInstruction> program, bool includeEnd)
         {
             var sb = new StringBuilder();
-            sb.AppendLine("START");
+            sb.AppendLine(StartMarker);
 
             var functions = new List<FunctionInstruction>();
 
@@ -31,7 +34,7 @@ namespace Game.Runtime
                 }
             }
 
-            sb.Append(includeEnd ? "END" : "(완성하기 미연결)");
+            sb.Append(includeEnd ? EndMarker : UnreachedEndMarker);
 
             if (functions.Count > 0)
             {
@@ -39,7 +42,7 @@ namespace Game.Runtime
                 {
                     sb.AppendLine();
                     sb.AppendLine();
-                    sb.AppendLine($"{fn.DefName ?? "함수 정의"} {{");
+                    sb.AppendLine($"{fn.DefName ?? Constants.CategoryNames.FunctionDef} {{");
                     AppendBody(sb, fn.Body, 1);
                     sb.Append("}");
                 }
@@ -48,21 +51,19 @@ namespace Game.Runtime
             return sb.ToString();
         }
 
+        // 반복/만약 안에 들어간 함수 호출까지 수집한다.
+        // 함수 본문 안의 함수는 수집하지 않는다 — 중첩 함수 정의는 지원 대상이 아니다.
         private static void CollectFunctions(BlockInstruction instr, List<FunctionInstruction> functions)
         {
             if (instr is FunctionInstruction fn)
             {
                 functions.Add(fn);
+                return;
             }
-            else if (instr is RepeatInstruction rep && rep.Body is not null)
-            {
-                foreach (var child in rep.Body) CollectFunctions(child, functions);
-            }
-            else if (instr is IfInstruction ifInstr)
-            {
-                if (ifInstr.Then is not null) foreach (var child in ifInstr.Then) CollectFunctions(child, functions);
-                if (ifInstr.Else is not null) foreach (var child in ifInstr.Else) CollectFunctions(child, functions);
-            }
+
+            foreach (List<BlockInstruction> body in InstructionTree.ChildBodies(instr))
+                foreach (BlockInstruction child in body)
+                    CollectFunctions(child, functions);
         }
 
         private static void Append(StringBuilder sb, BlockInstruction instr, int depth)
@@ -87,23 +88,23 @@ namespace Game.Runtime
                     break;
 
                 case FunctionInstruction fn:
-                    sb.AppendLine($"{indent}{fn.Name ?? "함수"}");
+                    sb.AppendLine($"{indent}{fn.Name ?? Constants.CategoryNames.Function}");
                     break;
 
                 case RepeatInstruction rep:
                     string count = rep.IsInfinite ? "무한" : rep.Count.ToString();
-                    sb.AppendLine($"{indent}{Name(rep.Source, "반복하기")}({count}) {{");
+                    sb.AppendLine($"{indent}{Name(rep.Source, Constants.BlockLabels.While)}({count}) {{");
                     AppendBody(sb, rep.Body, depth + 1);
                     sb.AppendLine($"{indent}}}");
                     break;
 
                 case IfInstruction ifInstr:
-                    sb.AppendLine($"{indent}{Name(ifInstr.Source, "만약")}({FormatCondition(ifInstr.Condition)}) {{");
+                    sb.AppendLine($"{indent}{Name(ifInstr.Source, Constants.BlockLabels.If)}({FormatCondition(ifInstr.Condition)}) {{");
                     AppendBody(sb, ifInstr.Then, depth + 1);
                     sb.AppendLine($"{indent}}}");
                     if (ifInstr.Else is not null && ifInstr.Else.Count > 0)
                     {
-                        sb.AppendLine($"{indent}아니면 {{");
+                        sb.AppendLine($"{indent}{Constants.BlockLabels.Else} {{");
                         AppendBody(sb, ifInstr.Else, depth + 1);
                         sb.AppendLine($"{indent}}}");
                     }

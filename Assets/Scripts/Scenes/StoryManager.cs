@@ -1,11 +1,9 @@
 using System;
-using System.IO;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Data;
 using TMPro;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using Microsoft.Extensions.Logging;
 using UnityEngine.Video;
@@ -81,15 +79,8 @@ namespace Scenes
 
             startButton.onClick.AddListener(OnStartClicked);
 
-            // 롸벗 영상 — 진입과 동시에 루프 재생 (isLooping은 컴포넌트에 설정됨)
-            if (robotVideoPlayer)
-            {
-                SceneFader.ClearVideoRenderTexture(robotVideoPlayer);
-                robotVideoPlayer.url = Constants.VideoPaths.RobotUrl;
-                robotVideoPlayer.Prepare();
-                SceneFader.RegisterPendingTask(SceneFader.WaitUntilVideoProgressAsync(robotVideoPlayer, Constants.VideoPaths.MinPlaybackProgressBeforeReveal, destroyCancellationToken));
-                robotVideoPlayer.Play();
-            }
+            // 로봇 영상 — 진입과 동시에 루프 재생 (isLooping은 컴포넌트에 설정됨)
+            SceneFader.PlayLoopingVideo(robotVideoPlayer, Constants.VideoPaths.RobotUrl, destroyCancellationToken);
         }
 
         private void OnLevelButtonClicked(int index)
@@ -141,7 +132,7 @@ namespace Scenes
                     Constants.StoryLine.StoryLineMoveDuration,
                     Constants.StoryLine.StoryLineInterval,
                     Constants.StoryLine.StoryLineYOffset,
-                    IsSkipRequested, ct);
+                    StoryLineAnimator.IsPointerPressedThisFrame, ct);
 
                 if (startButton) startButton.interactable = true;
             }
@@ -149,13 +140,6 @@ namespace Scenes
             {
                 // 전환 도중 씬 전환 등으로 오브젝트가 파괴된 경우 — 정상 종료
             }
-        }
-
-        // 이번 프레임에 마우스 또는 터치 눌림이 있었는지 반환함(연출 스킵용)
-        private bool IsSkipRequested()
-        {
-            Pointer pointer = Pointer.current;
-            return pointer != null && pointer.press.wasPressedThisFrame;
         }
 
         private void OnStartClicked()

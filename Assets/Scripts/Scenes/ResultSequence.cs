@@ -44,6 +44,11 @@ namespace Scenes
             _session = session;
         }
 
+        private const int MaxPercent = 100;
+
+        // 셰이더 프로퍼티 조회 비용을 줄이기 위한 ID 캐시
+        private static readonly int GrayscaleAmountId = Shader.PropertyToID("_GrayscaleAmount");
+
         private int _playerPercent;
         private Material _grayscaleInstance;   // 흑백 전환용 머티리얼 인스턴스 (null이면 컬러 유지)
 
@@ -104,12 +109,13 @@ namespace Scenes
                 // 최고 점수 대비 비율로 전력 수급 상태 판정
                 int maxScore = BlockScorer.GetMaxScore();
                 float percent = maxScore > 0 ? _session.lastScore * 100f / maxScore : 0f;
-                string status = percent < 50f ? Constants.ResultMessages.StatusPoor : percent < 80f ? Constants.ResultMessages.StatusNormal : Constants.ResultMessages.StatusGood;
-                _playerPercent = Mathf.Clamp(Mathf.FloorToInt(percent), 0, 100);
+                string status = ToStatusText(percent);
+                _playerPercent = Mathf.Clamp(Mathf.FloorToInt(percent), 0, MaxPercent);
 
                 playerText.SetText(BuildResultText(
                     _session.lastCount, _session.lastDirection, status));
 
+                // 전력이 부족한 결과는 흑백으로 전환해 시각적으로 구분
                 if (status == Constants.ResultMessages.StatusPoor)
                     ApplyGrayscale();
             }
@@ -117,7 +123,7 @@ namespace Scenes
             {
                 // 스킵/코딩 미완료 — 효율 0% 고정
                 _playerPercent = 0;
-                playerText.SetText("-\n\n전력 수급 상태: -");
+                playerText.SetText(Constants.ResultMessages.NoResultText);
                 ApplyGrayscale();
             }
 
@@ -135,7 +141,7 @@ namespace Scenes
             if (!playerImageGroup.TryGetComponent<RawImage>(out RawImage img)) return;
             if (!UiEffects.GrayscaleMaterial) return;
             _grayscaleInstance = new Material(UiEffects.GrayscaleMaterial);
-            _grayscaleInstance.SetFloat("_GrayscaleAmount", 0f);
+            _grayscaleInstance.SetFloat(GrayscaleAmountId, 0f);
             img.material = _grayscaleInstance;
         }
 
@@ -147,14 +153,20 @@ namespace Scenes
             while (t < fadeDuration)
             {
                 t += Time.deltaTime;
-                _grayscaleInstance.SetFloat("_GrayscaleAmount", Mathf.Clamp01(t / fadeDuration));
+                _grayscaleInstance.SetFloat(GrayscaleAmountId, Mathf.Clamp01(t / fadeDuration));
                 await UniTask.Yield(ct);
             }
-            _grayscaleInstance.SetFloat("_GrayscaleAmount", 1f);
+            _grayscaleInstance.SetFloat(GrayscaleAmountId, 1f);
         }
 
+        // 최고 점수 대비 비율(%)을 전력 수급 상태 문구로 변환
+        private static string ToStatusText(float percent) =>
+            percent < Constants.ResultMessages.NormalThresholdPercent ? Constants.ResultMessages.StatusPoor :
+            percent < Constants.ResultMessages.GoodThresholdPercent   ? Constants.ResultMessages.StatusNormal :
+                                                                       Constants.ResultMessages.StatusGood;
+
         private static string BuildResultText(string count, string direction, string status)
-            => $"가동 수: [{count}]\n방향: [{direction}]\n\n전력 수급 상태: {status}";
+            => string.Format(Constants.ResultMessages.ResultTextFormat, count, direction, status);
 
         private async UniTaskVoid PlaySequence()
         {
@@ -179,7 +191,7 @@ namespace Scenes
                 string levelName = _session && _session.currentLevel ? _session.currentLevel.name : null;
                 if (aiPanelPose)
                     await aiPanelPose.ApplyAsync(null, BlockScorer.GetBestDirection(_session ? _session.lastQuestionTime : null, levelName), ct);
-                await PlayEfficiencyAsync(aiEffGroup, aiEffText, 100, ct);
+                await PlayEfficiencyAsync(aiEffGroup, aiEffText, MaxPercent, ct);
 
                 await SceneFader.FadeCanvasGroupAsync(confirmButtonGroup, 0f, 1f, fadeDuration, ct);
                 SceneFader.SetGroupInteractable(confirmButtonGroup, true);
@@ -214,14 +226,14 @@ namespace Scenes
         private async UniTaskVoid AnimateDotsAsync(CancellationToken ct)
         {
             string baseText = Constants.ResultMessages.AiCodingStart;
-            int n = 0;
+            int dotCount = 0;
             try
             {
                 while (true)
                 {
-                    if (aiStartText) aiStartText.text = baseText + new string('.', n);
-                    n = (n + 1) % 4;
-                    await UniTask.Delay(400, cancellationToken: ct);
+                    if (aiStartText) aiStartText.text = baseText + new string('.', dotCount);
+                    dotCount = (dotCount + 1) % Constants.ResultMessages.AiCodingDotCycle;
+                    await UniTask.Delay(Constants.ResultMessages.AiCodingDotIntervalMs, cancellationToken: ct);
                 }
             }
             catch (OperationCanceledException) { }
@@ -232,19 +244,21 @@ namespace Scenes
         {
             if (!group || !text) return;
 
-            text.text = "에너지 효율:00%";
+            text.text = FormatEfficiency(0);
             await SceneFader.FadeCanvasGroupAsync(group, 0f, 1f, fadeDuration, ct);
 
             // 빠르게 오르다 끝에서 감속하는 카운터 연출 (순수 수치 보간이므로 DOVirtual)
             await DOVirtual.Float(0f, target, effCountDuration, v =>
                 {
-                    int p = Mathf.Clamp(Mathf.RoundToInt(v), 0, target);
-                    text.text = $"에너지 효율:{p:D2}%";
+                    text.text = FormatEfficiency(Mathf.Clamp(Mathf.RoundToInt(v), 0, target));
                 })
                 .SetEase(Ease.OutQuad)
                 .SetLink(text.gameObject)
                 .ToUniTask(cancellationToken: ct);
-            text.text = $"에너지 효율:{target:D2}%";
+            text.text = FormatEfficiency(target);
         }
+
+        private static string FormatEfficiency(int percent)
+            => string.Format(Constants.ResultMessages.EfficiencyFormat, percent);
     }
 }

@@ -52,7 +52,7 @@ namespace Game
 
             if (!_buttonPrefab)
             {
-                _buttonPrefab = await Addressables.LoadAssetAsync<GameObject>("CategoryButton");
+                _buttonPrefab = await Addressables.LoadAssetAsync<GameObject>(Constants.BlockAssets.CategoryButtonPrefab);
             }
 
             foreach (BlockCategory cat in categories)

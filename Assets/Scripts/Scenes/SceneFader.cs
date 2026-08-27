@@ -42,6 +42,23 @@ namespace Scenes
             await UniTask.Yield(PlayerLoopTiming.LastPostLateUpdate, cancellationToken: ct);
         }
 
+        /// <summary>
+        /// 씬 진입과 동시에 루프 영상을 재생한다 (isLooping은 컴포넌트에 설정된 값을 따름).
+        /// 이전 씬 잔상 제거 → URL 지정 → Prepare → 첫 프레임이 실제로 보일 때까지 페이드인을 미루도록 등록 → 재생.
+        /// 여러 씬 매니저가 같은 절차를 반복하던 것을 모았다.
+        /// </summary>
+        public static void PlayLoopingVideo(VideoPlayer player, string url, CancellationToken ct)
+        {
+            if (!player) return;
+
+            ClearVideoRenderTexture(player);
+            player.url = url;
+            player.Prepare();
+            RegisterPendingTask(WaitUntilVideoProgressAsync(
+                player, Constants.VideoPaths.MinPlaybackProgressBeforeReveal, ct));
+            player.Play();
+        }
+
         // 씬 전환 직후 VideoPlayer가 사용하는 RenderTexture를 검은색으로 즉시 초기화함.
         // 여러 씬이 같은 RenderTexture 에셋(예: RobotRenderTexture)을 공유하면 이전 씬에서 그려진 마지막 프레임이
         // GPU에 남아있어, 새 영상이 실제로 그리기 전까지 이전 씬 잔상이 잠깐 비칠 수 있음

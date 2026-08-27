@@ -36,6 +36,9 @@ namespace Scenes
             _log = log;
         }
 
+        // 명령 하나를 실행한 것처럼 보이도록 두는 간격
+        private const int StepDelayMs = 200;
+
         private CancellationTokenSource _cts;
         private string _questionTime;
         private string _currentLevelName;
@@ -136,18 +139,7 @@ namespace Scenes
 
             if (!result.Success)
             {
-                if (result.ErrorBlocks is not null)
-                    foreach (CodingBlock b in result.ErrorBlocks)
-                        b?.ShowErrorHighlight();
-
-                if (result.Error != null && result.Error.Contains("사용되지 않은"))
-                {
-                    var categoryZone = FindObjectOfType<CategoryZone>();
-                    if (categoryZone && result.ErrorBlocks is not null && result.ErrorBlocks.Length > 0 && result.ErrorBlocks[0] != null)
-                    {
-                        categoryZone.Select(result.ErrorBlocks[0].Category);
-                    }
-                }
+                ShowCompileError(result);
                 return;
             }
 
@@ -177,9 +169,33 @@ namespace Scenes
             }
             _log?.ZLogInformation($"[GameSceneManager] 점수: {score}점 (기준 시간: {_questionTime})");
 
+            BlockExecutor executor = CreateExecutor(score);
+            await executor.RunAsync(result.Instructions, _cts.Token);
+        }
+
+        // 컴파일 실패 표시 — 문제 블록에 에러 외곽선을 켜고,
+        // '사용되지 않은 블록' 오류는 해당 블록이 보이도록 인벤토리 탭까지 전환한다.
+        private static void ShowCompileError(CompileResult result)
+        {
+            if (result.ErrorBlocks is null) return;
+
+            foreach (CodingBlock b in result.ErrorBlocks)
+                b?.ShowErrorHighlight();
+
+            if (result.ErrorKind != CompileErrorKind.UnusedBlocks) return;
+            if (result.ErrorBlocks.Length == 0 || !result.ErrorBlocks[0]) return;
+
+            CategoryZone categoryZone = FindObjectOfType<CategoryZone>();
+            if (categoryZone) categoryZone.Select(result.ErrorBlocks[0].Category);
+        }
+
+        // 현재는 실행 자체가 로그 재생 연출 — 각 명령을 로그로 남기고 일정 간격으로 진행한 뒤 결과 씬으로 넘어간다.
+        private BlockExecutor CreateExecutor(int score)
+        {
             var executor = new BlockExecutor();
+
             executor.OnBlockEnter = block => { if (block) _log?.ZLogInformation($"[GameSceneManager] 블록 실행: {block.name}"); };
-            executor.OnExecute    = async (instr, ct) =>
+            executor.OnExecute = async (instr, ct) =>
             {
                 switch (instr)
                 {
@@ -193,9 +209,11 @@ namespace Scenes
                         _log?.ZLogInformation($"  ConditionAction: {cond.Action}");
                         break;
                 }
-                await UniTask.Delay(200, cancellationToken: ct);
+                await UniTask.Delay(StepDelayMs, cancellationToken: ct);
                 return true;
             };
+
+            // 조건 평가기는 아직 미구현 — 항상 else 분기를 탄다
             executor.OnCondition = _ => false;
             executor.OnComplete += () =>
             {
@@ -203,7 +221,7 @@ namespace Scenes
                 SceneFader.FadeAndLoad(Constants.Scenes.Result, logger: _log).Forget();
             };
 
-            await executor.RunAsync(result.Instructions, _cts.Token);
+            return executor;
         }
 
         // 컴파일 결과를 코드 형태(START/…/END)로 로그. 순회 전 실패면 결과 라인만 출력.
@@ -243,19 +261,15 @@ namespace Scenes
         // 프로그램에 포함된 모든 블록(반복/조건 내부 포함)에 성공 외곽선 표시
         private static void HighlightSources(List<BlockInstruction> instructions)
         {
-            foreach (var instr in instructions)
+            foreach (BlockInstruction instr in instructions)
             {
                 if (instr.Source) instr.Source.ShowSuccessHighlight();
-                switch (instr)
-                {
-                    case RepeatInstruction rep when rep.Body is not null:
-                        HighlightSources(rep.Body);
-                        break;
-                    case IfInstruction ifInstr:
-                        if (ifInstr.Then is not null) HighlightSources(ifInstr.Then);
-                        if (ifInstr.Else is not null) HighlightSources(ifInstr.Else);
-                        break;
-                }
+
+                // 함수 본문은 제외 — 함수 정의는 메인 체인 밖의 별도 컨테이너라 대상이 아니다
+                if (instr is FunctionInstruction) continue;
+
+                foreach (List<BlockInstruction> body in InstructionTree.ChildBodies(instr))
+                    HighlightSources(body);
             }
         }
     }
