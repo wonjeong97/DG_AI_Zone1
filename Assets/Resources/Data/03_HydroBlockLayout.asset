@@ -25,7 +25,16 @@ MonoBehaviour:
   - category: 3
     label: "\uB9CC\uC57D"
     controlRole: 0
-    valueLabel: 
+    valueLabel:
+    valueKind: 0
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
+  - category: 10
+    label: "\uC544\uB2C8\uBA74"
+    controlRole: 0
+    valueLabel:
     valueKind: 0
     innerBlocks: []
     elseBlocks: []

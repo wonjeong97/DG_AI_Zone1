@@ -42,12 +42,14 @@ namespace Scenes
         private CancellationTokenSource _cts;
         private string _questionTime;
         private string _currentLevelName;
+        private LevelData _currentLevel;
 
         private void Start()
         {
             LevelData level = _session ? _session.currentLevel : null;
             if (!level) level = testLevel;
 
+            _currentLevel = level;
             _currentLevelName = level ? level.name : null;
 
             BlockLayoutData layout = level ? level.blockLayout : null;
@@ -86,11 +88,11 @@ namespace Scenes
 
             if (storyButton)
                 storyButton.onClick.AddListener(() => storyPanel.Show(
-                    _session ? _session.unlockedLevelIndex : 0,
-                    _session && _session.currentLevel ? _session.currentLevel.storyText : null));
+                    _currentLevelName,
+                    _currentLevel ? _currentLevel.storyText : null));
 
             if (hintButton)
-                hintButton.onClick.AddListener(() => hintPanel.Show(_session ? _session.unlockedLevelIndex : 0, _questionTime));
+                hintButton.onClick.AddListener(() => hintPanel.Show(_currentLevelName, _questionTime));
 
             if (skipButton)
                 skipButton.onClick.AddListener(SkipToResult);
@@ -131,8 +133,13 @@ namespace Scenes
 
             var result = BlockCompiler.Compile(codingZone);
 
+            // 컴파일 성공 시에만 점수를 계산 — 포매터/로그에 함께 표시
+            int? score = result.Success
+                ? BlockScorer.ScoreProgram(result.Instructions, _questionTime, _currentLevelName)
+                : null;
+
             // 컴파일 결과를 코드 형태로 로그 (실패 시에도 순회된 프로그램을 표시)
-            LogCompileResult(result);
+            LogCompileResult(result, score);
 
             if (!result.Success)
             {
@@ -156,17 +163,16 @@ namespace Scenes
             // 실행~씬 전환 중 연타 방지 (성공 시 씬을 떠나므로 재활성화 불필요)
             if (compileButton) compileButton.interactable = false;
 
-            int score = BlockScorer.ScoreProgram(result.Instructions, _questionTime, _currentLevelName);
             if (_session)
             {
-                _session.lastScore = score;
+                _session.lastScore = score.Value;
                 _session.lastQuestionTime = _questionTime;
                 (_session.lastDirection, _session.lastAngle, _session.lastCount) =
                     BlockScorer.ExtractValues(result.Instructions);
             }
             _log?.ZLogInformation($"[GameSceneManager] 점수: {score}점 (기준 시간: {_questionTime})");
 
-            BlockExecutor executor = CreateExecutor(score);
+            BlockExecutor executor = CreateExecutor(score.Value);
             await executor.RunAsync(result.Instructions, _cts.Token);
         }
 
@@ -222,10 +228,10 @@ namespace Scenes
         }
 
         // 컴파일 결과를 코드 형태(START/…/END)로 로그. 순회 전 실패면 결과 라인만 출력.
-        private void LogCompileResult(CompileResult result)
+        private void LogCompileResult(CompileResult result, int? score)
         {
             string prefix = result.Program is not null
-                ? $"\n{ProgramFormatter.ToCode(result.Program, result.ReachedEnd)}\n\n결과: "
+                ? $"\n{ProgramFormatter.ToCode(result.Program, result.ReachedEnd, score)}\n\n결과: "
                 : "결과: ";
 
             if (result.Success)
@@ -261,6 +267,14 @@ namespace Scenes
             foreach (BlockInstruction instr in instructions)
             {
                 if (instr.Source) instr.Source.ShowSuccessHighlight();
+
+                // Value 블록은 인스트럭션 트리에 별도 노드로 나타나지 않으므로 따로 표시
+                if (instr is CommandInstruction cmd && cmd.ValueSource)
+                    cmd.ValueSource.ShowSuccessHighlight();
+
+                // '아니면' 마커는 Then/Else 어느 리스트에도 포함되지 않으므로 따로 표시
+                if (instr is IfInstruction ifInstr && ifInstr.ElseMarkerSource)
+                    ifInstr.ElseMarkerSource.ShowSuccessHighlight();
 
                 // 함수 본문은 제외 — 함수 정의는 메인 체인 밖의 별도 컨테이너라 대상이 아니다
                 if (instr is FunctionInstruction) continue;

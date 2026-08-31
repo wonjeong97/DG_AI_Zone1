@@ -18,7 +18,8 @@ namespace Game.Runtime
         private const string UnreachedEndMarker = "(완성하기 미연결)";
 
         // includeEnd: 체인이 완성하기(End)까지 도달했을 때만 END를 출력. 미연결이면 생략.
-        public static string ToCode(IReadOnlyList<BlockInstruction> program, bool includeEnd)
+        // score: 계산된 최종 점수(컴파일 성공 시에만 값이 있음) — 있으면 코드 뒤에 함께 표시
+        public static string ToCode(IReadOnlyList<BlockInstruction> program, bool includeEnd, int? score = null)
         {
             var sb = new StringBuilder();
             sb.AppendLine(StartMarker);
@@ -46,6 +47,13 @@ namespace Game.Runtime
                     AppendBody(sb, fn.Body, 1);
                     sb.Append("}");
                 }
+            }
+
+            if (score.HasValue)
+            {
+                sb.AppendLine();
+                sb.AppendLine();
+                sb.Append($"점수: {score.Value}점");
             }
 
             return sb.ToString();
@@ -101,13 +109,22 @@ namespace Game.Runtime
                 case IfInstruction ifInstr:
                     sb.AppendLine($"{indent}{Name(ifInstr.Source, Constants.BlockLabels.If)}({FormatCondition(ifInstr.Condition)}) {{");
                     AppendBody(sb, ifInstr.Then, depth + 1);
-                    sb.AppendLine($"{indent}}}");
-                    if (ifInstr.Else is not null && ifInstr.Else.Count > 0)
+                    // '아니면' 블록이 실제로 놓였을 때만 출력 — else가 비어 있어도(뒤에 블록이 없어도) 마커 자체는 표시
+                    if (ifInstr.HasElseMarker)
                     {
-                        sb.AppendLine($"{indent}{Constants.BlockLabels.Else} {{");
-                        AppendBody(sb, ifInstr.Else, depth + 1);
-                        sb.AppendLine($"{indent}}}");
+                        string innerIndent = new string(' ', (depth + 1) * IndentSize);
+                        sb.AppendLine($"{innerIndent}{Constants.BlockLabels.Else} {{");
+                        AppendBody(sb, ifInstr.Else, depth + 2);
+                        sb.AppendLine($"{innerIndent}}}");
                     }
+                    sb.AppendLine($"{indent}}}");
+                    break;
+
+                case ElseInstruction elseInstr:
+                    // '만약' 밖에 잘못 놓인 '아니면' — 컴파일은 실패하지만 실패 시 표시되는 코드에는 제자리에 나타난다
+                    sb.AppendLine($"{indent}{Constants.BlockLabels.Else} {{");
+                    AppendBody(sb, elseInstr.Body, depth + 1);
+                    sb.AppendLine($"{indent}}}");
                     break;
             }
         }

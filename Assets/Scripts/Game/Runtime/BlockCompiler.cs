@@ -51,8 +51,13 @@ namespace Game.Runtime
 
     public static class BlockCompiler
     {
+        // WalkInnerWithElse가 '만약' 블록 안에서 실제로 만난 '아니면' 블록 — Compile() 1회 호출 동안만 유효
+        private static readonly HashSet<CodingBlock> _visitedElseBlocks = new();
+
         public static CompileResult Compile(CodingZone zone)
         {
+            _visitedElseBlocks.Clear();
+
             // '시작하기' 블록은 소켓 계층 어디에나 있을 수 있으므로 전체 탐색
             CodingBlock start = null;
             foreach (CodingBlock b in zone.GetComponentsInChildren<CodingBlock>())
@@ -114,6 +119,13 @@ namespace Game.Runtime
                 return CompileResult.Fail(
                     string.Format(Constants.CompilerMessages.ControlInsideFlowFormat, controlInInner.name),
                     controlInInner, program, reachedEnd);
+
+            // 코딩 존에 있는 '아니면' 블록 중 '만약' 블록 안에 놓이지 않은 것 — 빨간 외곽선 표시
+            CodingBlock[] misplacedElse = FindElseOutsideIf(zone);
+            if (misplacedElse.Length > 0)
+                return CompileResult.Fail(
+                    string.Format(Constants.CompilerMessages.ElseOutsideIfFormat, misplacedElse.Length),
+                    misplacedElse, program, reachedEnd);
 
             // 씬의 모든 실행 블록(Command, FlowControl 등 — 인벤토리·방치 블록 포함)이 프로그램에 포함돼야 함
             CodingBlock[] unused = FindUnusedExecutableBlocks(program);
@@ -192,6 +204,9 @@ namespace Game.Runtime
                 BlockCategory.Action          => new ActionInstruction         { Source = block, Action  = block.name },
                 BlockCategory.ConditionAction => new ConditionActionInstruction{ Source = block, Action  = block.name },
                 BlockCategory.FlowControl     => BuildFlowControl(block),
+                // '만약' Inner 체인 밖(WalkInnerWithElse를 거치지 않은 경로)에 놓인 '아니면' — 잘못된 배치라
+                // 컴파일은 실패하지만(FindElseOutsideIf), 실패 시에도 표시되는 코드에는 제자리에 나타나야 한다
+                BlockCategory.Else            => new ElseInstruction{ Source = block },
                 _                             => null
             };
         }
@@ -204,10 +219,11 @@ namespace Game.Runtime
             CodingBlock occupant = vos ? vos.Occupant : null;
             return new CommandInstruction
             {
-                Source    = block,
-                Command   = block.name,
-                Value     = occupant ? occupant.name : null,
-                ValueKind = occupant ? occupant.ValueKind : ValueKind.None
+                Source      = block,
+                Command     = block.name,
+                Value       = occupant ? occupant.name : null,
+                ValueKind   = occupant ? occupant.ValueKind : ValueKind.None,
+                ValueSource = occupant
             };
         }
 
@@ -235,16 +251,67 @@ namespace Game.Runtime
             {
                 var then = new List<BlockInstruction>();
                 var els  = new List<BlockInstruction>();
-                if (inners.Count > 0) WalkInner(inners[0], then);
-                if (inners.Count > 1) WalkInner(inners[1], els);
+                CodingBlock elseMarker = inners.Count > 0 ? WalkInnerWithElse(inners[0], then, els) : null;
                 return new IfInstruction
                 {
-                    Source    = block,
-                    Condition = BuildConditionExpr(block),
-                    Then      = then,
-                    Else      = els
+                    Source           = block,
+                    Condition        = BuildConditionExpr(block),
+                    Then             = then,
+                    Else             = els,
+                    HasElseMarker    = elseMarker,
+                    ElseMarkerSource = elseMarker
                 };
             }
+        }
+
+        // 만약 블록의 Inner 체인 탐색 — "아니면" 블록을 만나면 그 이후 블록부터는 els로 출력 대상을 전환.
+        // "아니면" 블록 자신은 구분 표시일 뿐이라 어느 분기에도 포함되지 않는다.
+        // 반환값: 실제로 만난 "아니면" 블록 (없으면 null — els가 비어 있어도 마커가 있었는지 구분하는 용도)
+        private static CodingBlock WalkInnerWithElse(Transform inner, List<BlockInstruction> then, List<BlockInstruction> els)
+        {
+            CodingBlock first = null;
+            InnerSocket innerSocket = inner.GetComponentInChildren<InnerSocket>();
+            if (innerSocket && innerSocket.Occupant)
+                first = innerSocket.Occupant;
+            if (!first) return null;
+
+            CodingBlock elseMarker = null;
+            List<BlockInstruction> output = then;
+            CodingBlock current = first;
+            while (current)
+            {
+                if (current.Category == BlockCategory.Control) break;
+
+                if (current.Category == BlockCategory.Else)
+                {
+                    _visitedElseBlocks.Add(current);
+                    elseMarker = current;
+                    output = els;
+                }
+                else if (current.Category == BlockCategory.Function)
+                {
+                    var body = new List<BlockInstruction>();
+                    string defName = ExpandFunctionCall(body);
+                    output.Add(new FunctionInstruction
+                    {
+                        Source = current,
+                        Name = current.name,
+                        DefName = defName ?? Constants.CategoryNames.FunctionDef,
+                        Body = body
+                    });
+                }
+                else
+                {
+                    BlockInstruction instr = Build(current);
+                    if (instr is not null) output.Add(instr);
+                }
+
+                ChainOutSocket socket = null;
+                current.transform.Find(Constants.Sockets.ChainOutName)?.TryGetComponent(out socket);
+                current = socket?.Occupant;
+            }
+
+            return elseMarker;
         }
 
         // Inner 컨테이너 내부 탐색
@@ -408,6 +475,19 @@ namespace Game.Runtime
                 }
             }
             return null;
+        }
+
+        // 코딩 존에 있는 '아니면' 블록 중 '만약' 블록의 Inner 체인 안에서 실제로 만나지 못한 것을 찾음
+        // (WalkInnerWithElse가 순회 중 방문한 블록만 유효 — 그 외는 메인 체인/반복문 안/미연결 등 잘못된 위치)
+        private static CodingBlock[] FindElseOutsideIf(CodingZone zone)
+        {
+            var misplaced = new List<CodingBlock>();
+            foreach (CodingBlock b in zone.GetComponentsInChildren<CodingBlock>())
+            {
+                if (b.Category == BlockCategory.Else && !_visitedElseBlocks.Contains(b))
+                    misplaced.Add(b);
+            }
+            return misplaced.ToArray();
         }
 
         // 반복하기 블록의 헤더에 달린 Value 블록에서 횟수를 읽음
