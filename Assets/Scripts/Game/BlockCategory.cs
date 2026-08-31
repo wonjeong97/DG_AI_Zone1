@@ -11,6 +11,7 @@ namespace Game
         Logic,            // 그리고 — 초록, 수평 체이닝
         Condition,
         Function,         // 함수(사용) — Func 아트, CommandNoValue와 동일한 크기·체인 소켓
-        FunctionDef       // 함수(구현) — FuncBody 아트, FlowControl과 동일한 C자 컨테이너(값 슬롯 없음)
+        FunctionDef,      // 함수(구현) — FuncBody 아트, FlowControl과 동일한 C자 컨테이너(값 슬롯 없음)
+        Else              // 아니면 — Else 아트, CommandNoValue와 동일한 크기·체인 소켓. 만약 블록의 Inner 체인 안에 놓여 Then/Else 분기 경계로 쓰인다
     }
 }

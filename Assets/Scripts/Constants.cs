@@ -53,6 +53,24 @@ public static class Constants
     {
         public const int DirectionCorrectScore = 5;
 
+        // 레벨2(풍력) 방향 채점 — 문제의 바람 방향과 같은 방향/정반대 방향/그 외로 3단계 채점
+        public const int WindDirectionSameScore     = 3;
+        public const int WindDirectionOppositeScore = 1;
+        public const int WindDirectionOtherScore    = 2;
+
+        // 레벨3(수력) 조건 채점 — 만약 블록에 연결한 높이가 문제 높이와 정확히 같음/더 낮음/더 높음으로 3단계 채점
+        public const int HydroExactScore  = 5;
+        public const int HydroLowerScore  = 3;
+        public const int HydroHigherScore = 1;
+
+        // 레벨3(수력) 아니면 배치 채점 — 만약 블록 내부에 아니면 블록을 배치했는지 여부
+        public const int HydroElsePlacedScore  = 5;
+        public const int HydroElseMissingScore = 1;
+
+        // 레벨3(수력) 개방/폐쇄 순서 채점 — 개방하기(Then) → 아니면 → 폐쇄하기(Else) 순서인지 여부
+        public const int HydroGateOrderCorrectScore = 5;
+        public const int HydroGateOrderWrongScore   = 1;
+
         public static readonly System.Collections.Generic.Dictionary<string, int> AngleScore = new()
         {
             ["30도"] = 3,
@@ -81,6 +99,7 @@ public static class Constants
         public const string Condition       = "조건";
         public const string Function        = "함수";
         public const string FunctionDef     = "함수 정의";
+        public const string Else            = "아니면";
     }
 
     // ── 7. 컴파일러 메시지 ─────────────────────────────────────
@@ -98,6 +117,7 @@ public static class Constants
         public const string EmptyFlowInnerFormat       = "'{0}' 블록 내부에 최소 1개의 블록이 있어야 합니다";
         public const string ControlInsideFlowFormat    = "'{0}' 블록은 제어 블록 내부에 넣을 수 없습니다";
         public const string UnusedBlocksFormat         = "사용되지 않은 블록이 있습니다 ({0}개)";
+        public const string ElseOutsideIfFormat        = "'아니면' 블록은 '만약' 블록 안에 있어야 합니다 ({0}개)";
     }
 
     // ── 8. 결과 씬 연출 메시지 및 평가 ─────────────────────────
@@ -271,6 +291,7 @@ public static class Constants
         public readonly static UnityEngine.Color Condition       = new UnityEngine.Color32( 69, 153, 217, 255);
         public readonly static UnityEngine.Color Function        = new UnityEngine.Color32(133,  36,  69, 255);
         public readonly static UnityEngine.Color FunctionDef     = new UnityEngine.Color32(133,  36,  69, 255);
+        public readonly static UnityEngine.Color Else            = new UnityEngine.Color32(235, 145,  20, 255);
         public readonly static UnityEngine.Color Default         = new UnityEngine.Color32(255, 255, 255, 255);
     }
 
@@ -300,6 +321,7 @@ public static class Constants
         public const string ConditionActionSprite = "ConditionAction";
         public const string ActionSprite          = "Action";
         public const string LogicSprite           = "Logic";
+        public const string ElseSprite            = "Else";
     }
 
     // ── 14. 블록 내부 자식 오브젝트 이름 (탐색 키) ─────────────────
@@ -402,14 +424,33 @@ public static class Constants
                 [Directions.North] = Directions.North,
             };
 
+        // 방향별 정반대 방향 — 풍력 레벨 채점(정반대 오답 판정)에 사용
+        public readonly static System.Collections.Generic.Dictionary<string, string> OppositeDirection =
+            new System.Collections.Generic.Dictionary<string, string>
+            {
+                [Directions.East]  = Directions.West,
+                [Directions.West]  = Directions.East,
+                [Directions.South] = Directions.North,
+                [Directions.North] = Directions.South,
+            };
+
+        // 수력 레벨 (강물 높이 임계값)
+        public readonly static string[] HydroLevels = { "1m", "3m", "5m", "8m", "10m" };
+
         public static QuestionData GenerateQuestion(string levelName)
         {
-            if (!string.IsNullOrEmpty(levelName) && levelName.Contains("풍력"))
+            if (!string.IsNullOrEmpty(levelName) && levelName.Contains("WindData"))
             {
                 string dir = WindDirections[UnityEngine.Random.Range(0, WindDirections.Length)];
-                string text = $"바람이 <color=yellow>{dir}에서 불고 있습니다.</color>\n풍차의 날개 방향이 어디로 향해 있어야 할까요?";
+                string text = $"바람이 <color=yellow>[{dir}]</color>에서 불고 있습니다.\n풍차의 날개 방향이 어디로 향해 있어야 할까요?";
                 string ans = WindAnswers.TryGetValue(dir, out var a) ? a : dir;
                 return new QuestionData { QuestionText = text, ValueKey = dir, CorrectAnswer = ans };
+            }
+            else if (!string.IsNullOrEmpty(levelName) && levelName.Contains("HydroData"))
+            {
+                string height = HydroLevels[UnityEngine.Random.Range(0, HydroLevels.Length)];
+                string text = $"현재 강물의 높이가 <color=yellow>{height}</color>를 넘어가면 안 돼요!\n댐의 문을 어느 조건에 열고 닫아야 할까요?";
+                return new QuestionData { QuestionText = text, ValueKey = height, CorrectAnswer = null };
             }
             else
             {
@@ -424,10 +465,25 @@ public static class Constants
         {
             if (string.IsNullOrEmpty(valueKey)) return null;
 
-            if (!string.IsNullOrEmpty(levelName) && levelName.Contains("풍력"))
+            if (!string.IsNullOrEmpty(levelName) && levelName.Contains("WindData"))
                 return WindAnswers.TryGetValue(valueKey, out var windAns) ? windAns : valueKey;
 
             return SolarAnswers.TryGetValue(valueKey, out var solarAns) ? solarAns : null;
+        }
+    }
+
+    // ── 19. 레벨 이름 규칙 ─────────────────────────────────────────
+    public static class Levels
+    {
+        // LevelData 에셋 이름("02_WindData")의 앞자리 숫자를 레벨 번호(2)로 파싱.
+        // Story/Hint 패널이 진행도가 아닌 실제 로드된 레벨을 기준으로 화면을 고를 때 사용.
+        public static int ParseLevelNumber(string levelName)
+        {
+            if (string.IsNullOrEmpty(levelName)) return 0;
+
+            int underscoreIndex = levelName.IndexOf('_');
+            string prefix = underscoreIndex > 0 ? levelName.Substring(0, underscoreIndex) : levelName;
+            return int.TryParse(prefix, out int levelNumber) ? levelNumber : 0;
         }
     }
 }

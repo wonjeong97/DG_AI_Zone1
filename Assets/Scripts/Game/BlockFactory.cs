@@ -26,6 +26,7 @@ namespace Game
                 BlockCategory.ConditionAction => Constants.BlockAssets.ConditionActionSprite,
                 BlockCategory.Action          => Constants.BlockAssets.ActionSprite,
                 BlockCategory.Logic           => Constants.BlockAssets.LogicSprite,
+                BlockCategory.Else            => Constants.BlockAssets.ElseSprite,
                 _ => null
             };
             if (name is null) return null;
@@ -62,6 +63,7 @@ namespace Game
             BlockCategory.Condition => Constants.CategoryColors.Condition,
             BlockCategory.Function => Constants.CategoryColors.Function,
             BlockCategory.FunctionDef => Constants.CategoryColors.FunctionDef,
+            BlockCategory.Else => Constants.CategoryColors.Else,
             _ => Constants.CategoryColors.Default
         };
 
@@ -80,6 +82,7 @@ namespace Game
             BlockCategory.Condition => Constants.CategoryNames.Condition,
             BlockCategory.Function => Constants.CategoryNames.Function,
             BlockCategory.FunctionDef => Constants.CategoryNames.FunctionDef,
+            BlockCategory.Else => Constants.CategoryNames.Else,
             _ => cat.ToString()
         };
 
@@ -90,6 +93,7 @@ namespace Game
         public static BlockCategory GetTabCategory(BlockCategory cat) => cat switch
         {
             BlockCategory.FunctionDef => BlockCategory.Function,
+            BlockCategory.Else        => BlockCategory.FlowControl,
             _ => cat
         };
 
@@ -179,9 +183,11 @@ namespace Game
         private static async UniTask<GameObject> CreateSimpleBlock(BlockEntry entry, Canvas rootCanvas, bool draggable)
         {
             Sprite sprite = await LoadSpriteAsync(entry.category, entry.controlRole);
-            
-            float w = Constants.Blocks.DefaultWidth;
-            float h = Constants.Blocks.DefaultHeight;
+
+            // 아니면 — CommandNoValue와 동일한 크기(값 슬롯 없는 체인 블록)
+            bool isElse = entry.category == BlockCategory.Else;
+            float w = isElse ? Constants.Blocks.CommandNoValueWidth  : Constants.Blocks.DefaultWidth;
+            float h = isElse ? Constants.Blocks.CommandNoValueHeight : Constants.Blocks.DefaultHeight;
 
             GameObject go = NewRect(entry.label, w, h);
             AddBlockBody(go, GetColor(entry.category), sprite);
@@ -396,7 +402,7 @@ namespace Game
                 // 값 슬롯 없는 Command는 폭이 좁아 체인 소켓 오프셋을 별도 사용.
                 // 함수 블록은 CommandNoValue와 동일한 크기이므로 같은 오프셋을 공유한다.
                 bool isNoValueCommand = isCommand && block.ValueKind == ValueKind.None;
-                bool useNoValueOffset = isNoValueCommand || cat == BlockCategory.Function;
+                bool useNoValueOffset = isNoValueCommand || cat == BlockCategory.Function || cat == BlockCategory.Else;
 
                 // 만약/반복하기는 전용 아트라 체인 소켓 오프셋도 각각 별도.
                 // 분류는 GetFlowKind 하나만 사용 — FlowPrefabName(생성 시점)과 같은 기준을 공유한다

@@ -104,10 +104,12 @@ namespace Scenes
             bool hasCoding = _session.lastCount is not null
                              && _session.lastDirection is not null;
 
+            string levelName = _session && _session.currentLevel ? _session.currentLevel.name : null;
+
             if (hasCoding)
             {
                 // 최고 점수 대비 비율로 전력 수급 상태 판정
-                int maxScore = BlockScorer.GetMaxScore();
+                int maxScore = BlockScorer.GetMaxScore(levelName);
                 float percent = maxScore > 0 ? _session.lastScore * 100f / maxScore : 0f;
                 string status = ToStatusText(percent);
                 _playerPercent = Mathf.Clamp(Mathf.FloorToInt(percent), 0, MaxPercent);
@@ -126,8 +128,6 @@ namespace Scenes
                 playerText.SetText(Constants.ResultMessages.NoResultText);
                 ApplyGrayscale();
             }
-
-            string levelName = _session && _session.currentLevel ? _session.currentLevel.name : null;
 
             aiText.SetText(BuildResultText(
                 BlockScorer.GetBestCount(),
