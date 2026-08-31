@@ -29,13 +29,19 @@ namespace Game.Runtime
         }
 
         // ── 최고 점수 값 조회 (AI 코딩 결과 표시용) ─────────────────
-        // 프로그램 최고 점수 — 방향 정답 + 개수 최고점 합
+        // 레벨별 최고 점수. 레벨3(수력)은 조건×아니면×순서 3항목을 곱한 점수 체계라 별도 계산식을 쓴다.
         public static int GetMaxScore(string levelName = null)
         {
-            int directionScore = !string.IsNullOrEmpty(levelName) && levelName.Contains("WindData")
-                ? Constants.Scores.WindDirectionSameScore
-                : Constants.Scores.DirectionCorrectScore;
-            return directionScore + Constants.Scores.CountScore[GetBestCount()];
+            if (!string.IsNullOrEmpty(levelName) && levelName.Contains("HydroData"))
+                return Constants.Scores.HydroExactScore
+                     * Constants.Scores.HydroElsePlacedScore
+                     * Constants.Scores.HydroGateOrderCorrectScore;
+
+            // 풍력은 방향 3단계 채점(같은 방향=최고점)뿐이라 개수 점수를 더하지 않는다
+            if (!string.IsNullOrEmpty(levelName) && levelName.Contains("WindData"))
+                return Constants.Scores.WindDirectionSameScore;
+
+            return Constants.Scores.DirectionCorrectScore + Constants.Scores.CountScore[GetBestCount()];
         }
 
         public static string GetBestDirection(string questionValueKey, string levelName = null)

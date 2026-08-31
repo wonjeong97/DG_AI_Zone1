@@ -272,15 +272,37 @@ namespace Scenes
                 if (instr is CommandInstruction cmd && cmd.ValueSource)
                     cmd.ValueSource.ShowSuccessHighlight();
 
-                // '아니면' 마커는 Then/Else 어느 리스트에도 포함되지 않으므로 따로 표시
-                if (instr is IfInstruction ifInstr && ifInstr.ElseMarkerSource)
-                    ifInstr.ElseMarkerSource.ShowSuccessHighlight();
+                if (instr is IfInstruction ifInstr)
+                {
+                    // '아니면' 마커는 Then/Else 어느 리스트에도 포함되지 않으므로 따로 표시
+                    if (ifInstr.ElseMarkerSource)
+                        ifInstr.ElseMarkerSource.ShowSuccessHighlight();
+
+                    // 조건 블록(들)도 인스트럭션 트리에 별도 노드로 나타나지 않으므로 따로 표시
+                    HighlightCondition(ifInstr.Condition);
+                }
 
                 // 함수 본문은 제외 — 함수 정의는 메인 체인 밖의 별도 컨테이너라 대상이 아니다
                 if (instr is FunctionInstruction) continue;
 
                 foreach (List<BlockInstruction> body in InstructionTree.ChildBodies(instr))
                     HighlightSources(body);
+            }
+        }
+
+        // 만약 헤더에 연결된 조건 블록(들)에 성공 외곽선 표시 — 그리고/또는(Logic)이면 좌우 조건까지
+        private static void HighlightCondition(ConditionExpr condition)
+        {
+            switch (condition)
+            {
+                case SimpleConditionExpr simple:
+                    if (simple.Source) simple.Source.ShowSuccessHighlight();
+                    break;
+                case LogicConditionExpr logic:
+                    if (logic.Source) logic.Source.ShowSuccessHighlight();
+                    if (logic.Left?.Source) logic.Left.Source.ShowSuccessHighlight();
+                    if (logic.Right?.Source) logic.Right.Source.ShowSuccessHighlight();
+                    break;
             }
         }
     }
