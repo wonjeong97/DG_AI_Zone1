@@ -240,11 +240,13 @@ namespace Game.Runtime
             {
                 var body = new List<BlockInstruction>();
                 if (inners.Count > 0) WalkInner(inners[0], body);
+                int count = ReadRepeatCount(block, out CodingBlock countValueSource);
                 return new RepeatInstruction
                 {
-                    Source = block,
-                    Count  = ReadRepeatCount(block),
-                    Body   = body
+                    Source      = block,
+                    Count       = count,
+                    Body        = body,
+                    ValueSource = countValueSource
                 };
             }
             else // 만약 (if)
@@ -492,7 +494,7 @@ namespace Game.Runtime
 
         // 반복하기 블록의 헤더에 달린 Value 블록에서 횟수를 읽음
         // 값이 없으면 무한 반복(-1) — 실제 실행은 BlockExecutor가 1회로 제한
-        private static int ReadRepeatCount(CodingBlock block)
+        private static int ReadRepeatCount(CodingBlock block, out CodingBlock valueSource)
         {
             foreach (Transform child in block.transform)
             {
@@ -500,8 +502,12 @@ namespace Game.Runtime
                 ValueOutSocket vos = null;
                 child.Find(Constants.Sockets.ValueOutName)?.TryGetComponent(out vos);
                 if (vos && vos.Occupant && int.TryParse(vos.Occupant.name, out int n))
+                {
+                    valueSource = vos.Occupant;
                     return n;
+                }
             }
+            valueSource = null;
             return -1;
         }
 

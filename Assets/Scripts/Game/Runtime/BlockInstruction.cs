@@ -67,6 +67,7 @@ namespace Game.Runtime
     {
         public int Count; // 음수 = 무한 반복 (횟수 Value 미연결)
         public List<BlockInstruction> Body;
+        public CodingBlock ValueSource; // 헤더에 연결된 횟수 Value 블록 자신 — 컴파일 성공 시 초록 외곽선 표시용
 
         public bool IsInfinite => Count < 0;
     }

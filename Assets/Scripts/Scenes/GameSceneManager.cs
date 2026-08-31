@@ -272,6 +272,10 @@ namespace Scenes
                 if (instr is CommandInstruction cmd && cmd.ValueSource)
                     cmd.ValueSource.ShowSuccessHighlight();
 
+                // 반복하기 헤더의 횟수 Value 블록도 마찬가지
+                if (instr is RepeatInstruction rep && rep.ValueSource)
+                    rep.ValueSource.ShowSuccessHighlight();
+
                 if (instr is IfInstruction ifInstr)
                 {
                     // '아니면' 마커는 Then/Else 어느 리스트에도 포함되지 않으므로 따로 표시
