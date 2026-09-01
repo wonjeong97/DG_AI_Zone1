@@ -156,30 +156,37 @@ namespace Scenes
                 return;
             }
 
-            // 시작하기 ~ 완성하기 순서로 성공(초록) 하이라이트가 파도타기처럼 순서대로 켜짐 (값 블록 포함)
-            await PlaySuccessWaveAsync(BuildSuccessOrder(codingZone, result.Instructions), _cts.Token);
-
-            // 스페이스바: 컴파일 검증까지만 — 채점·실행·씬 전환은 완료 버튼 전용
-            if (!advanceScene)
+            try
             {
-                _log?.ZLogInformation($"[GameSceneManager] 컴파일만 수행 — 씬 전환 없음");
-                return;
+                // 실행~씬 전환 중 연타 방지 — 파도타기 연출 시작 전에 비활성화 (성공 시 씬을 떠나므로 재활성화 불필요)
+                if (advanceScene && compileButton) compileButton.interactable = false;
+
+                // 시작하기 ~ 완성하기 순서로 성공(초록) 하이라이트가 파도타기처럼 순서대로 켜짐 (값 블록 포함)
+                await PlaySuccessWaveAsync(BuildSuccessOrder(codingZone, result.Instructions), _cts.Token);
+
+                // 스페이스바: 컴파일 검증까지만 — 채점·실행·씬 전환은 완료 버튼 전용
+                if (!advanceScene)
+                {
+                    _log?.ZLogInformation($"[GameSceneManager] 컴파일만 수행 — 씬 전환 없음");
+                    return;
+                }
+
+                if (_session)
+                {
+                    _session.lastScore = score.Value;
+                    _session.lastQuestionTime = _questionTime;
+                    (_session.lastDirection, _session.lastAngle, _session.lastCount) =
+                        BlockScorer.ExtractValues(result.Instructions);
+                }
+                _log?.ZLogInformation($"[GameSceneManager] 점수: {score}점 (기준 시간: {_questionTime})");
+
+                BlockExecutor executor = CreateExecutor(score.Value);
+                await executor.RunAsync(result.Instructions, _cts.Token);
             }
-
-            // 실행~씬 전환 중 연타 방지 (성공 시 씬을 떠나므로 재활성화 불필요)
-            if (compileButton) compileButton.interactable = false;
-
-            if (_session)
+            catch (System.OperationCanceledException)
             {
-                _session.lastScore = score.Value;
-                _session.lastQuestionTime = _questionTime;
-                (_session.lastDirection, _session.lastAngle, _session.lastCount) =
-                    BlockScorer.ExtractValues(result.Instructions);
+                // 새 컴파일 요청이나 씬 종료로 취소된 정상 흐름 — 별도 처리 불필요
             }
-            _log?.ZLogInformation($"[GameSceneManager] 점수: {score}점 (기준 시간: {_questionTime})");
-
-            BlockExecutor executor = CreateExecutor(score.Value);
-            await executor.RunAsync(result.Instructions, _cts.Token);
         }
 
         // 컴파일 실패 표시 — 문제 블록에 에러 외곽선을 켜고,
