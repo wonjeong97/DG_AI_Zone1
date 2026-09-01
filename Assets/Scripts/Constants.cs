@@ -71,6 +71,20 @@ public static class Constants
         public const int HydroGateOrderCorrectScore = 5;
         public const int HydroGateOrderWrongScore   = 1;
 
+        // 레벨4/5(발전소·미래에너지) 구조 채점 — 반복하기가 만약 안에 중첩돼 있으면 10점,
+        // 그 외(반복하기가 밖에 있거나 반대로 만약이 반복하기 안에 중첩된 경우 포함)는 5점
+        public const int PowerPlantStructureNestedScore = 10;
+        public const int PowerPlantStructureOtherScore  = 5;
+
+        // 레벨4/5 조건 채점 — 조건 블록 1개만 연결 5점 / 그리고로 두 조건 모두 연결 10점 / 또는으로 연결 5점
+        public const int PowerPlantConditionSingleScore = 5;
+        public const int PowerPlantConditionAndScore    = 10;
+        public const int PowerPlantConditionOrScore     = 5;
+
+        // 레벨4/5 명령 채점 — '병원 불 켜기'가 반복하기 블록 안에 있으면 10점, 밖이면 5점
+        public const int PowerPlantCommandInRepeatScore = 10;
+        public const int PowerPlantCommandOtherScore    = 5;
+
         public static readonly System.Collections.Generic.Dictionary<string, int> AngleScore = new()
         {
             ["30도"] = 3,
@@ -114,6 +128,7 @@ public static class Constants
         public const string EmptyFunctionDef           = "'함수 정의' 블록 안에 블록을 1개 이상 넣어야 합니다";
         public const string CommandWithoutValueFormat  = "'{0}' 블록에 값 블록이 없습니다";
         public const string IfWithoutConditionFormat   = "'{0}' 블록에 조건이 없습니다";
+        public const string LogicMissingRightFormat    = "'{0}' 블록의 오른쪽 조건이 비어 있습니다";
         public const string EmptyFlowInnerFormat       = "'{0}' 블록 내부에 최소 1개의 블록이 있어야 합니다";
         public const string ControlInsideFlowFormat    = "'{0}' 블록은 제어 블록 내부에 넣을 수 없습니다";
         public const string UnusedBlocksFormat         = "사용되지 않은 블록이 있습니다 ({0}개)";
@@ -333,6 +348,7 @@ public static class Constants
         public const string Label        = "Label";
         public const string Sprite       = "Sprite";
         public const string Fill         = "Fill";
+        public const string Background   = "Background"; // ㄷ자(FlowControl/FuncDef) 프리팹의 본체 이미지 — Sprite/Fill 대신 이 이름을 씀
         public const string Slot         = "Slot";
         public const string EmptyIndicator = "EmptyIndicator";
 
@@ -361,12 +377,23 @@ public static class Constants
         public const float SnapPulseMinAlpha = 0.35f;
         public const float SnapPulseMaxAlpha = 1.0f;
         public const float SnapPulseDuration = 0.4f;
+
+        // HighlightMode.Tint 전용 — 블록 원래 색상에서 성공/에러 색상 쪽으로 섞는 비율 (0=원래색, 1=완전히 성공/에러색)
+        public const float TintStrength = 0.35f;
+
+        // 에러 하이라이트 깜빡임 — 완전 채도 빨간색으로 N회 깜빡인 뒤 기본 에러 하이라이트로 정착
+        public const int ErrorBlinkCount = 2;
+        public const float ErrorBlinkHalfDuration = 0.22f;
+
+        // 성공 하이라이트 파도타기 — 시작하기~완성하기 순서로 블록마다 이 간격(ms)만큼 지연 후 초록 페이드인
+        public const int SuccessWaveStepMs = 120;
+        public const float SuccessWaveFadeInDuration = 0.18f;
     }
 
     public static class HighlightColors
     {
         public readonly static UnityEngine.Color Snap    = new(0.1f, 0.9f, 0.3f, 1f);
-        public readonly static UnityEngine.Color Success = new(0.1f, 0.9f, 0.3f, 1f);
+        public readonly static UnityEngine.Color Success = new(0f, 1f, 0f, 1f);
         public readonly static UnityEngine.Color Error   = new(1f, 0.15f, 0.1f, 1f);
 
         // 비어있는 내부 슬롯 표시용 반투명 흰색
@@ -397,9 +424,12 @@ public static class Constants
         public struct QuestionData
         {
             public string QuestionText;
-            public string ValueKey;      // 시간대("아침 8시") 또는 바람 방향("동쪽")
+            public string ValueKey;        // 시간대("아침 8시") 또는 바람 방향("동쪽")
             public string CorrectAnswer;  // 정답 방향("동쪽")
         }
+
+        // 레벨4(발전소) 문제 텍스트가 다른 레벨보다 길어 기본 폰트 크기(40)로는 넘치므로 축소
+        public const float PowerPlantQuestionFontSize = 35f;
 
         // 태양광 레벨 (시간대별 정답 방향)
         public readonly static string[] SolarTimes = { "아침 8시", "오전 10시", "정오", "오후 2시", "오후 4시" };
@@ -451,6 +481,12 @@ public static class Constants
                 string height = HydroLevels[UnityEngine.Random.Range(0, HydroLevels.Length)];
                 string text = $"현재 강물의 높이가 <color=yellow>{height}</color>를 넘어가면 안 돼요!\n댐의 문을 어느 조건에 열고 닫아야 할까요?";
                 return new QuestionData { QuestionText = text, ValueKey = height, CorrectAnswer = null };
+            }
+            else if (!string.IsNullOrEmpty(levelName) && levelName.Contains("PowerPlantData"))
+            {
+                // 레벨4(발전소) — 레벨1/2처럼 매 판마다 랜덤으로 바뀌지 않고 밤/과부하로 고정된 문제
+                const string text = "현재 <color=yellow>[밤]</color>이고 전기가 <color=yellow>[과부하]</color>입니다.\n놀이 시설의 불을 잠시 끄고 병원의 불은 항상 켜도록 해주세요.";
+                return new QuestionData { QuestionText = text, ValueKey = "밤", CorrectAnswer = null };
             }
             else
             {

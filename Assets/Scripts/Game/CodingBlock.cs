@@ -24,6 +24,9 @@ namespace Game
         // GameSceneManager가 레벨 로드 시 레이아웃에 함수 블록이 있으면 true로 설정.
         public static bool RestrictMainChainToFunction { get; set; }
 
+        // 컴파일 성공/에러 표시 방식 — GameSceneManager가 레벨 로드 시 Inspector 설정값으로 초기화.
+        public static HighlightMode Mode { get; set; } = HighlightMode.Outline;
+
         public BlockCategory Category { get; private set; }
         public ValueKind ValueKind { get; private set; }
         public Data.ControlRole ControlRole { get; private set; }
@@ -63,6 +66,9 @@ namespace Game
         private Image _chainHighlightImg;
         private Image _valueHighlightImg;
         private Image _errorHighlightImg;
+        private Image _bodyImg;
+        private Color _bodyOriginalColor;
+        private bool _bodyColorCached;
 
         private Image GetOrFindHighlight(ref Image cache, string childName)
         {
@@ -142,28 +148,170 @@ namespace Game
             }
         }
 
-        // ── 외곽선 (컴파일 결과 표시) ──
-        public void ShowErrorHighlight()   => SetHighlight(Outline, Constants.HighlightColors.Error);
-        public void ShowSuccessHighlight() => SetHighlight(Outline, Constants.HighlightColors.Success);
-        public void ClearErrorHighlight()  => SetHighlight(Outline, Color.clear);
+        // ── 컴파일 결과 표시 (HighlightMode에 따라 외곽선 또는 블록 색상 틴트) ──
+        private Tweener _compileHighlightTween;
+
+        // 에러 — 완전 채도 빨간색으로 N회 깜빡인 뒤 원래 블록 색상으로 되돌아감
+        public void ShowErrorHighlight() => PlayErrorBlink();
+
+        // 성공 — 즉시 켜지지 않고 페이드인 (파도타기 연출 시 블록마다 시차를 두고 호출됨)
+        public void ShowSuccessHighlight() => PlaySuccessFadeIn();
+
+        public void ClearErrorHighlight()
+        {
+            StopCompileHighlightTween();
+            ApplyCompileHighlight(Color.clear);
+        }
+
+        private void PlayErrorBlink()
+        {
+            StopCompileHighlightTween();
+
+            Color error = Constants.HighlightColors.Error;
+            Image target;
+            Color from;
+
+            if (Mode == HighlightMode.Tint)
+            {
+                SetHighlight(Outline, Color.clear);
+                target = BodyImage;
+                if (!target) return;
+                CacheBodyOriginalColor();
+                from = _bodyOriginalColor;
+            }
+            else
+            {
+                ResetBodyTint();
+                target = Outline;
+                if (!target) return;
+                SetHighlightRect(target);
+                from = Color.clear;
+            }
+
+            target.color = from;
+            int toggles = Constants.HighlightSettings.ErrorBlinkCount * 2;
+            _compileHighlightTween = target
+                .DOColor(error, Constants.HighlightSettings.ErrorBlinkHalfDuration)
+                .SetLoops(toggles, LoopType.Yoyo)
+                .SetEase(Ease.InOutSine)
+                .SetLink(gameObject)
+                .OnComplete(() => ApplyCompileHighlight(Color.clear)); // 깜빡임 종료 후 원래 색상으로 복원
+        }
+
+        private void PlaySuccessFadeIn()
+        {
+            StopCompileHighlightTween();
+
+            Color success = Constants.HighlightColors.Success;
+            float duration = Constants.HighlightSettings.SuccessWaveFadeInDuration;
+
+            if (Mode == HighlightMode.Tint)
+            {
+                SetHighlight(Outline, Color.clear);
+                Image body = BodyImage;
+                if (!body) return;
+                CacheBodyOriginalColor();
+                Color target = Color.Lerp(_bodyOriginalColor, success, Constants.HighlightSettings.TintStrength);
+                body.color = _bodyOriginalColor;
+                _compileHighlightTween = body.DOColor(target, duration).SetEase(Ease.OutSine).SetLink(gameObject);
+            }
+            else
+            {
+                ResetBodyTint();
+                Image outline = Outline;
+                if (!outline) return;
+                SetHighlightRect(outline);
+                outline.color = Color.clear;
+                _compileHighlightTween = outline.DOColor(success, duration).SetEase(Ease.OutSine).SetLink(gameObject);
+            }
+        }
+
+        private void ApplyCompileHighlight(Color color)
+        {
+            if (Mode == HighlightMode.Tint)
+            {
+                SetHighlight(Outline, Color.clear);
+                ApplyBodyTint(color);
+            }
+            else
+            {
+                ResetBodyTint();
+                SetHighlight(Outline, color);
+            }
+        }
+
+        private void StopCompileHighlightTween()
+        {
+            if (_compileHighlightTween != null && _compileHighlightTween.IsActive())
+            {
+                _compileHighlightTween.Kill();
+                _compileHighlightTween = null;
+            }
+        }
 
         private Image ChainHighlight => GetOrFindHighlight(ref _chainHighlightImg, Constants.BlockParts.ChainHighlight);
         private Image ValueHighlight => GetOrFindHighlight(ref _valueHighlightImg, Constants.BlockParts.ValueHighlight);
         private Image Outline        => GetOrFindHighlight(ref _errorHighlightImg, Constants.BlockParts.Outline);
 
+        // 블록 본체(스프라이트 또는 단색 Fill) — Sprite/Fill 둘 중 실제 존재하는 쪽을 찾는다
+        private Image BodyImage
+        {
+            get
+            {
+                if (_bodyImg) return _bodyImg;
+                foreach (Image img in GetComponentsInChildren<Image>(true))
+                {
+                    string n = img.gameObject.name;
+                    if (n == Constants.BlockParts.Sprite || n == Constants.BlockParts.Fill || n == Constants.BlockParts.Background)
+                    { _bodyImg = img; break; }
+                }
+                return _bodyImg;
+            }
+        }
+
+        // BodyImage의 원래(하이라이트 적용 전) 색상을 최초 1회만 캐싱
+        private void CacheBodyOriginalColor()
+        {
+            if (_bodyColorCached) return;
+            Image body = BodyImage;
+            if (!body) return;
+            _bodyOriginalColor = body.color;
+            _bodyColorCached = true;
+        }
+
+        // 원래 색상에서 target 쪽으로 살짝 섞음 (target이 clear면 원래 색상으로 복원)
+        private void ApplyBodyTint(Color target)
+        {
+            Image body = BodyImage;
+            if (!body) return;
+            CacheBodyOriginalColor();
+
+            body.color = target == Color.clear
+                ? _bodyOriginalColor
+                : Color.Lerp(_bodyOriginalColor, target, Constants.HighlightSettings.TintStrength);
+        }
+
+        private void ResetBodyTint()
+        {
+            if (_bodyColorCached && BodyImage)
+                BodyImage.color = _bodyOriginalColor;
+        }
+
         private static void SetHighlight(Image img, Color color)
         {
             if (!img) return;
             img.color = color;
-            if (color != Color.clear)
+            if (color != Color.clear) SetHighlightRect(img);
+        }
+
+        private static void SetHighlightRect(Image img)
+        {
+            float t = Constants.HighlightSettings.OutlineThickness;
+            RectTransform rt = img.rectTransform;
+            if (rt)
             {
-                float t = Constants.HighlightSettings.OutlineThickness;
-                RectTransform rt = img.rectTransform;
-                if (rt)
-                {
-                    rt.offsetMin = new Vector2(-t, -t);
-                    rt.offsetMax = new Vector2(t, t);
-                }
+                rt.offsetMin = new Vector2(-t, -t);
+                rt.offsetMax = new Vector2(t, t);
             }
         }
 

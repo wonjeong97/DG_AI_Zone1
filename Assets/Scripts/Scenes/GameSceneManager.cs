@@ -26,6 +26,9 @@ namespace Scenes
         [SerializeField] private HintPanel       hintPanel;
         [SerializeField] private TextMeshProUGUI questionText;
 
+        [Tooltip("컴파일 성공/에러를 블록에 표시하는 방식 — 외곽선 또는 블록 색상 틴트")]
+        [SerializeField] private HighlightMode highlightMode = HighlightMode.Outline;
+
         private GameSession _session;
         private ILogger<GameSceneManager> _log;
 
@@ -46,6 +49,8 @@ namespace Scenes
 
         private void Start()
         {
+            CodingBlock.Mode = highlightMode;
+
             LevelData level = _session ? _session.currentLevel : null;
             if (!level) level = testLevel;
 
@@ -66,12 +71,16 @@ namespace Scenes
             SceneFader.RegisterPendingTask(blockSpawner.Spawn(layout));
 
             // 레벨별 문제 출제 — Constants.Questions 센터에서 생성
-            var issue = Constants.Questions.GenerateQuestion(_currentLevelName);
+            Constants.Questions.QuestionData issue = Constants.Questions.GenerateQuestion(_currentLevelName);
             _questionTime = issue.ValueKey;
             string question = issue.QuestionText;
 
             if (questionText)
+            {
                 questionText.text = question;
+                if (!string.IsNullOrEmpty(_currentLevelName) && _currentLevelName.Contains("PowerPlantData"))
+                    questionText.fontSize = Constants.Questions.PowerPlantQuestionFontSize;
+            }
             else
                 _log?.ZLogWarning($"[GameSceneManager] questionText가 할당되지 않아 문제 텍스트를 표시할 수 없습니다.");
 
@@ -147,11 +156,8 @@ namespace Scenes
                 return;
             }
 
-            // 시작하기 ~ 완성하기 체인 전체에 성공(초록) 외곽선 표시
-            foreach (CodingBlock b in codingZone.GetComponentsInChildren<CodingBlock>())
-                if (b.Category == BlockCategory.Control)
-                    b.ShowSuccessHighlight();
-            HighlightSources(result.Instructions);
+            // 시작하기 ~ 완성하기 순서로 성공(초록) 하이라이트가 파도타기처럼 순서대로 켜짐 (값 블록 포함)
+            await PlaySuccessWaveAsync(BuildSuccessOrder(codingZone, result.Instructions), _cts.Token);
 
             // 스페이스바: 컴파일 검증까지만 — 채점·실행·씬 전환은 완료 버튼 전용
             if (!advanceScene)
@@ -261,52 +267,82 @@ namespace Scenes
             SceneFader.FadeAndLoad(Constants.Scenes.Result, logger: _log).Forget();
         }
 
-        // 프로그램에 포함된 모든 블록(반복/조건 내부 포함)에 성공 외곽선 표시
-        private static void HighlightSources(List<BlockInstruction> instructions)
+        // 시작하기 ~ 완성하기 파도타기 순서 — 시작하기 → 프로그램 순서대로(값 블록 포함) → 완성하기
+        private static List<CodingBlock> BuildSuccessOrder(CodingZone zone, List<BlockInstruction> instructions)
+        {
+            var order = new List<CodingBlock>();
+
+            CodingBlock startBlock = null, endBlock = null;
+            foreach (CodingBlock b in zone.GetComponentsInChildren<CodingBlock>())
+            {
+                if (b.Category != BlockCategory.Control) continue;
+                if (b.ControlRole == Data.ControlRole.Start) startBlock = b;
+                else if (b.ControlRole == Data.ControlRole.End) endBlock = b;
+            }
+
+            if (startBlock) order.Add(startBlock);
+            CollectSuccessOrder(instructions, order);
+            if (endBlock) order.Add(endBlock);
+            return order;
+        }
+
+        // 프로그램에 포함된 모든 블록(반복/조건 내부 포함)을 실행 순서대로 수집
+        private static void CollectSuccessOrder(List<BlockInstruction> instructions, List<CodingBlock> order)
         {
             foreach (BlockInstruction instr in instructions)
             {
-                if (instr.Source) instr.Source.ShowSuccessHighlight();
+                if (instr.Source) order.Add(instr.Source);
 
-                // Value 블록은 인스트럭션 트리에 별도 노드로 나타나지 않으므로 따로 표시
+                // Value 블록은 인스트럭션 트리에 별도 노드로 나타나지 않으므로 소유 블록 바로 뒤에 추가
                 if (instr is CommandInstruction cmd && cmd.ValueSource)
-                    cmd.ValueSource.ShowSuccessHighlight();
+                    order.Add(cmd.ValueSource);
 
                 // 반복하기 헤더의 횟수 Value 블록도 마찬가지
                 if (instr is RepeatInstruction rep && rep.ValueSource)
-                    rep.ValueSource.ShowSuccessHighlight();
+                    order.Add(rep.ValueSource);
 
                 if (instr is IfInstruction ifInstr)
                 {
-                    // '아니면' 마커는 Then/Else 어느 리스트에도 포함되지 않으므로 따로 표시
-                    if (ifInstr.ElseMarkerSource)
-                        ifInstr.ElseMarkerSource.ShowSuccessHighlight();
+                    // 조건 블록(들)도 인스트럭션 트리에 별도 노드로 나타나지 않으므로 따로 추가
+                    CollectConditionOrder(ifInstr.Condition, order);
 
-                    // 조건 블록(들)도 인스트럭션 트리에 별도 노드로 나타나지 않으므로 따로 표시
-                    HighlightCondition(ifInstr.Condition);
+                    // '아니면' 마커는 Then/Else 어느 리스트에도 포함되지 않으므로 따로 추가
+                    if (ifInstr.ElseMarkerSource)
+                        order.Add(ifInstr.ElseMarkerSource);
                 }
 
                 // 함수 본문은 제외 — 함수 정의는 메인 체인 밖의 별도 컨테이너라 대상이 아니다
                 if (instr is FunctionInstruction) continue;
 
                 foreach (List<BlockInstruction> body in InstructionTree.ChildBodies(instr))
-                    HighlightSources(body);
+                    CollectSuccessOrder(body, order);
             }
         }
 
-        // 만약 헤더에 연결된 조건 블록(들)에 성공 외곽선 표시 — 그리고/또는(Logic)이면 좌우 조건까지
-        private static void HighlightCondition(ConditionExpr condition)
+        // 만약 헤더에 연결된 조건 블록(들) 수집 — 그리고/또는(Logic)이면 좌우 조건까지
+        private static void CollectConditionOrder(ConditionExpr condition, List<CodingBlock> order)
         {
             switch (condition)
             {
                 case SimpleConditionExpr simple:
-                    if (simple.Source) simple.Source.ShowSuccessHighlight();
+                    if (simple.Source) order.Add(simple.Source);
                     break;
                 case LogicConditionExpr logic:
-                    if (logic.Source) logic.Source.ShowSuccessHighlight();
-                    if (logic.Left?.Source) logic.Left.Source.ShowSuccessHighlight();
-                    if (logic.Right?.Source) logic.Right.Source.ShowSuccessHighlight();
+                    if (logic.Left?.Source) order.Add(logic.Left.Source);
+                    if (logic.Source) order.Add(logic.Source);
+                    if (logic.Right?.Source) order.Add(logic.Right.Source);
                     break;
+            }
+        }
+
+        // 순서대로 시차를 두고 성공 하이라이트를 켜 파도타기 연출을 만든다
+        private static async UniTask PlaySuccessWaveAsync(List<CodingBlock> order, CancellationToken ct)
+        {
+            foreach (CodingBlock b in order)
+            {
+                if (!b) continue;
+                b.ShowSuccessHighlight();
+                await UniTask.Delay(Constants.HighlightSettings.SuccessWaveStepMs, cancellationToken: ct);
             }
         }
     }
