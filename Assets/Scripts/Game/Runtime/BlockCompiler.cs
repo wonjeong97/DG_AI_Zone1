@@ -108,6 +108,12 @@ namespace Game.Runtime
                     string.Format(Constants.CompilerMessages.IfWithoutConditionFormat, condError.name),
                     condError, program, reachedEnd);
 
+            CodingBlock logicError = FindLogicWithoutRight(program);
+            if (logicError)
+                return CompileResult.Fail(
+                    string.Format(Constants.CompilerMessages.LogicMissingRightFormat, logicError.name),
+                    logicError, program, reachedEnd);
+
             CodingBlock emptyFlow = FindFlowControlWithEmptyInner(program);
             if (emptyFlow)
                 return CompileResult.Fail(
@@ -440,6 +446,18 @@ namespace Game.Runtime
             {
                 if (instr is IfInstruction ifInstr && ifInstr.Condition is null)
                     return ifInstr.Source;
+            }
+            return null;
+        }
+
+        // 만약 블록 조건에 '그리고/또는'(Logic) 블록이 연결됐지만 오른쪽 ConditionOutSocket에
+        // 두 번째 조건이 연결되지 않은 첫 번째 블록을 탐색 (중첩 본문 포함)
+        private static CodingBlock FindLogicWithoutRight(List<BlockInstruction> instructions)
+        {
+            foreach (BlockInstruction instr in InstructionTree.Traverse(instructions))
+            {
+                if (instr is IfInstruction ifInstr && ifInstr.Condition is LogicConditionExpr logic && logic.Right is null)
+                    return logic.Source;
             }
             return null;
         }

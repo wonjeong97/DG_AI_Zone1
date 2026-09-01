@@ -8,6 +8,10 @@ namespace Game.Runtime
     {
         public static int ScoreProgram(List<BlockInstruction> instructions, string questionValueKey, string levelName = null)
         {
+            // 레벨4/5(발전소·미래에너지)는 명령에 값이 없어 아래 순회 채점과 무관 — 구조/조건/명령 3항목을 더한 별도 채점
+            if (IsPowerPlant(levelName))
+                return ScorePowerPlant(instructions);
+
             bool isHydro = !string.IsNullOrEmpty(levelName) && levelName.Contains("HydroData");
 
             int total = 0;
@@ -40,6 +44,11 @@ namespace Game.Runtime
             // 풍력은 방향 3단계 채점(같은 방향=최고점)뿐이라 개수 점수를 더하지 않는다
             if (!string.IsNullOrEmpty(levelName) && levelName.Contains("WindData"))
                 return Constants.Scores.WindDirectionSameScore;
+
+            if (IsPowerPlant(levelName))
+                return Constants.Scores.PowerPlantStructureNestedScore
+                     + Constants.Scores.PowerPlantConditionAndScore
+                     + Constants.Scores.PowerPlantCommandInRepeatScore;
 
             return Constants.Scores.DirectionCorrectScore + Constants.Scores.CountScore[GetBestCount()];
         }
@@ -141,6 +150,66 @@ namespace Game.Runtime
 
         private const string HydroOpenCommand  = "개방하기";
         private const string HydroCloseCommand = "폐쇄하기";
+
+        private static bool IsPowerPlant(string levelName) =>
+            !string.IsNullOrEmpty(levelName) &&
+            (levelName.Contains("PowerPlantData") || levelName.Contains("FutureEnergyData"));
+
+        private const string PowerPlantAndOperator     = "그리고";
+        private const string PowerPlantHospitalCommand = "병원 불 켜기";
+
+        // 레벨4/5 채점 — 구조(만약 안에 반복하기 중첩 여부) + 조건(단일/그리고/또는) + 명령(반복하기 안 병원 불 켜기 여부) 3항목을 더함
+        private static int ScorePowerPlant(List<BlockInstruction> instructions)
+        {
+            IfInstruction ifInstr = FindFirst<IfInstruction>(instructions);
+            RepeatInstruction repInstr = FindFirst<RepeatInstruction>(instructions);
+
+            bool repeatInsideIf = ifInstr is not null &&
+                (ContainsType<RepeatInstruction>(ifInstr.Then) || ContainsType<RepeatInstruction>(ifInstr.Else));
+            int structureScore = repeatInsideIf
+                ? Constants.Scores.PowerPlantStructureNestedScore
+                : Constants.Scores.PowerPlantStructureOtherScore;
+
+            int conditionScore = ifInstr is not null ? ScorePowerPlantCondition(ifInstr.Condition) : 0;
+
+            bool hospitalInRepeat = repInstr is not null && ContainsCommandDeep(repInstr.Body, PowerPlantHospitalCommand);
+            int commandScore = hospitalInRepeat
+                ? Constants.Scores.PowerPlantCommandInRepeatScore
+                : Constants.Scores.PowerPlantCommandOtherScore;
+
+            return structureScore + conditionScore + commandScore;
+        }
+
+        // 조건 블록 1개만 연결(단순 조건) 5점 / 그리고로 연결 10점 / 또는으로 연결 5점
+        private static int ScorePowerPlantCondition(ConditionExpr condition) => condition switch
+        {
+            LogicConditionExpr logic when logic.Operator == PowerPlantAndOperator => Constants.Scores.PowerPlantConditionAndScore,
+            LogicConditionExpr => Constants.Scores.PowerPlantConditionOrScore,
+            SimpleConditionExpr => Constants.Scores.PowerPlantConditionSingleScore,
+            _ => 0
+        };
+
+        private static T FindFirst<T>(List<BlockInstruction> instructions) where T : BlockInstruction
+        {
+            foreach (BlockInstruction instr in InstructionTree.Traverse(instructions))
+                if (instr is T match) return match;
+            return null;
+        }
+
+        private static bool ContainsType<T>(List<BlockInstruction> body) where T : BlockInstruction
+        {
+            foreach (BlockInstruction instr in InstructionTree.Traverse(body))
+                if (instr is T) return true;
+            return false;
+        }
+
+        private static bool ContainsCommandDeep(List<BlockInstruction> body, string commandName)
+        {
+            foreach (BlockInstruction instr in InstructionTree.Traverse(body))
+                if (instr is CommandInstruction cmd && cmd.Command == commandName)
+                    return true;
+            return false;
+        }
 
         // 수력 레벨 개방/폐쇄 순서 채점 — 개방하기가 Then에, 폐쇄하기가 Else에 있어야 정답(5점).
         // 둘 다 한쪽에 몰려있거나 순서가 반대(폐쇄하기가 Then, 개방하기가 Else)면 1점

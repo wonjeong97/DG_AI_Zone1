@@ -85,6 +85,15 @@ MonoBehaviour:
     elseBlocks: []
     chainBlocks: []
     chainSocketOffset: {x: 0, y: 0}
+  - category: 6
+    label: "\uB610\uB294"
+    controlRole: 0
+    valueLabel: 
+    valueKind: 0
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
   - category: 1
     label: "\uB180\uC774\uC2DC\uC124 \uBD88 \uB044\uAE30"
     controlRole: 0
