@@ -49,6 +49,10 @@ namespace Scenes
 
         private void Start()
         {
+            // UI 작업 중 에디터에서 켜둔 채로 남아있어도, 씬 시작 시 팝업 패널(스토리/힌트)은 항상 닫힌 상태로 시작
+            if (storyPanel) storyPanel.gameObject.SetActive(false);
+            if (hintPanel) hintPanel.gameObject.SetActive(false);
+
             CodingBlock.Mode = highlightMode;
 
             LevelData level = _session ? _session.currentLevel : null;

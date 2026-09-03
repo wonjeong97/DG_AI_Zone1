@@ -40,18 +40,16 @@ namespace Scenes
             if (!tutorialStartButton) _log?.ZLogWarning($"[IntroSceneManager] tutorialStartButton이 할당되지 않았습니다.");
             if (!visitorNameText) _log?.ZLogWarning($"[IntroSceneManager] visitorNameText가 할당되지 않았습니다.");
 
-            if (tutorialPanel)
-            {
-                tutorialPanel.alpha = 0f;
-                SceneFader.SetGroupInteractable(tutorialPanel, false);
-            }
-            if (introPanel)
-            {
-                introPanel.alpha = 1f;
-                SceneFader.SetGroupInteractable(introPanel, true);
-            }
+            // UI 작업 중 에디터에서 패널을 꺼둔 채 플레이해도 항상 introPanel만 보이는 상태로 시작하도록 정규화
+            SceneFader.InitializePanelState(introPanel, true);
+            SceneFader.InitializePanelState(tutorialPanel, false);
 
-            if (introStartButton) introStartButton.onClick.AddListener(OnIntroStartClicked);
+            if (introStartButton)
+            {
+                introStartButton.onClick.AddListener(OnIntroStartClicked);
+                // 이름 텍스트 연출이 끝나기 전까지는 시작 버튼을 눌러 넘어갈 수 없도록 비활성화
+                introStartButton.interactable = false;
+            }
             if (tutorialStartButton) tutorialStartButton.onClick.AddListener(OnTutorialStartClicked);
 
             SceneFader.PlayLoopingVideo(robotVideoPlayer, Constants.VideoPaths.RobotUrl, destroyCancellationToken);
@@ -59,18 +57,39 @@ namespace Scenes
             ApplyVisitorNameAsync(destroyCancellationToken).Forget();
         }
 
-        // 텍스트의 "{name}" 플레이스홀더를 서버 연동 시 실제 이름, 미연동 시 Visitor.json의 기본 이름으로 치환
+        // 텍스트의 "{name}" 플레이스홀더를 서버 연동 시 실제 이름, 미연동 시 Visitor.json의 기본 이름으로 치환한 뒤,
+        // 2_Story/5_Outro와 동일하게 한 줄씩 올라오며 페이드인되는 연출로 표시함
         private async UniTaskVoid ApplyVisitorNameAsync(System.Threading.CancellationToken ct)
         {
-            if (!visitorNameText || _visitorInfoProvider == null) return;
-
-            string visitorName = await _visitorInfoProvider.GetNameAsync(ct);
-
-            using (Utf16ValueStringBuilder sb = ZString.CreateStringBuilder())
+            try
             {
-                sb.Append(visitorNameText.text);
-                sb.Replace(VisitorNamePlaceholder, visitorName);
-                visitorNameText.text = sb.ToString();
+                if (!visitorNameText) return;
+
+                // 연출 시작 전까지 전체 텍스트가 잠깐 보이지 않도록 미리 숨겨 둠
+                visitorNameText.ForceMeshUpdate();
+                visitorNameText.maxVisibleCharacters = 0;
+
+                if (_visitorInfoProvider != null)
+                {
+                    string visitorName = await _visitorInfoProvider.GetNameAsync(ct);
+
+                    using (Utf16ValueStringBuilder sb = ZString.CreateStringBuilder())
+                    {
+                        sb.Append(visitorNameText.text);
+                        sb.Replace(VisitorNamePlaceholder, visitorName);
+                        visitorNameText.text = sb.ToString();
+                    }
+                }
+
+                (float moveDuration, float interval, float yOffset) = await SceneFader.GetStoryLineSettingsAsync();
+                await StoryLineAnimator.AnimateAsync(visitorNameText,
+                    moveDuration, interval, yOffset,
+                    StoryLineAnimator.IsPointerPressedThisFrame, ct);
+            }
+            finally
+            {
+                // 연출이 끝나거나(스킵 포함), visitorNameText 미할당으로 애초에 연출이 없는 경우에도 시작 버튼은 눌러야 함
+                if (introStartButton) introStartButton.interactable = true;
             }
         }
 

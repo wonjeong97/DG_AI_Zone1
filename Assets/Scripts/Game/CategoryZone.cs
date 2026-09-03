@@ -33,15 +33,14 @@ namespace Game
         // 인벤토리에 존재하는 카테고리 순서대로 버튼 생성 후 첫 카테고리 활성화
         public async UniTask Build(IReadOnlyList<BlockCategory> categories)
         {
-            // 가로정렬 대신 3x2 그리드 레이아웃 설정
+            // 3x2 그리드 레이아웃 — GridLayoutGroup은 buttonContainer에 미리 붙여둔 상태, 값만 코드로 강제한다
             if (!buttonContainer.TryGetComponent<GridLayoutGroup>(out GridLayoutGroup grid))
             {
-                if (buttonContainer.TryGetComponent<HorizontalLayoutGroup>(out HorizontalLayoutGroup hlg))
-                    DestroyImmediate(hlg);
-                grid = buttonContainer.gameObject.AddComponent<GridLayoutGroup>();
+                _log?.ZLogWarning($"[CategoryZone] buttonContainer에 GridLayoutGroup이 없습니다.");
+                return;
             }
             grid.cellSize = new Vector2(150f, 52f);
-            grid.spacing = new Vector2(16f, 12f);
+            grid.spacing = new Vector2(92f, 12f);
             grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
             grid.constraintCount = 2;
             grid.padding = new RectOffset(8, 8, 4, 4);
