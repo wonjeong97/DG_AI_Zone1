@@ -416,14 +416,6 @@ public static class Constants
         public const float ControlBlockYInset = 120f;
     }
 
-    // ── 17. 스토리 연출 ─────────────────────────────────────────
-    public static class StoryLine
-    {
-        public const float StoryLineMoveDuration = 0.7f;
-        public const float StoryLineInterval     = 0.35f;
-        public const float StoryLineYOffset      = 22.0f;
-    }
-
     // ── 18. 레벨별 문제 출제 및 정답 전용 센터 ───────────────────────
     public static class Questions
     {

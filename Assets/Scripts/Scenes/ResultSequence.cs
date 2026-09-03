@@ -56,8 +56,10 @@ namespace Scenes
 
         private void Start()
         {
+            // UI 작업 중 에디터에서 패널을 꺼둔 채 플레이해도 항상 resultPanel만 보이는 상태로 시작하도록 정규화.
             // CompletePanel은 크로스페이드 전까지 투명 상태 — 미리 입력을 막아 ResultPanel을 가리지 않도록
-            SceneFader.SetGroupInteractable(completePanel, false);
+            SceneFader.InitializePanelState(resultPanel, true);
+            SceneFader.InitializePanelState(completePanel, false);
 
             // 확인 버튼은 시퀀스에서 페이드인 완료 후에만 입력 가능
             confirmButtonGroup.alpha = 0f;

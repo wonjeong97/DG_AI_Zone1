@@ -120,6 +120,14 @@ namespace Scenes
             return (await GetCommonSettingsAsync()).panelFadeDuration;
         }
 
+        // 00_Common.json의 storyLineMoveDuration/storyLineInterval/storyLineYOffset —
+        // 한 줄씩 아래에서 위로 올라오며 페이드인되는 텍스트 연출(StoryLineAnimator)에 사용
+        public static async UniTask<(float moveDuration, float interval, float yOffset)> GetStoryLineSettingsAsync()
+        {
+            CommonSettings settings = await GetCommonSettingsAsync();
+            return (settings.storyLineMoveDuration, settings.storyLineInterval, settings.storyLineYOffset);
+        }
+
         private static async UniTask<CommonSettings> GetCommonSettingsAsync()
         {
             _commonSettings ??= await JsonLoader.LoadAsync<CommonSettings>(
@@ -206,6 +214,17 @@ namespace Scenes
             if (!group) return;
             group.interactable = value;
             group.blocksRaycasts = value;
+        }
+
+        // 패널 전환은 alpha만 조작하고 GameObject.SetActive는 건드리지 않으므로, 에디터에서 UI 작업 중
+        // 패널을 비활성화한 채로 남겨두고 플레이하면 alpha를 1로 페이드해도 화면에 나타나지 않는다.
+        // 씬 시작 시 이 메서드로 모든 패널의 GameObject를 항상 켜두고, alpha/상호작용만으로 표시 여부를 정규화한다.
+        public static void InitializePanelState(CanvasGroup panel, bool isVisible)
+        {
+            if (!panel) return;
+            panel.gameObject.SetActive(true);
+            panel.alpha = isVisible ? 1f : 0f;
+            SetGroupInteractable(panel, isVisible);
         }
     }
 }
