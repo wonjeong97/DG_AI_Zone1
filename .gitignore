@@ -120,6 +120,10 @@ CLAUDE.md
 /Assets/StreamingAssets/build_info
 /Assets/StreamingAssets/build_info.meta
 
+# Locally built via Tools > Build Shutdown Scheduler Exe (com.wonjeong.template) - too large for git, regenerate on demand
+/Assets/StreamingAssets/ShutdownScheduleEditor.exe
+/Assets/StreamingAssets/ShutdownScheduleEditor.exe.meta
+
 # Unity directory monitor sync temp files
 ~UnityDirMonSyncFile~*
 

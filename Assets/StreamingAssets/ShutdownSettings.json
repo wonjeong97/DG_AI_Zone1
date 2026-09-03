@@ -1,0 +1,32 @@
+{
+  "monday": {
+    "enabled": false,
+    "time": "09:10"
+  },
+  "tuesday": {
+    "enabled": false,
+    "time": "17:35"
+  },
+  "wednesday": {
+    "enabled": false,
+    "time": "17:35"
+  },
+  "thursday": {
+    "enabled": false,
+    "time": "17:35"
+  },
+  "friday": {
+    "enabled": false,
+    "time": "17:35"
+  },
+  "saturday": {
+    "enabled": false,
+    "time": "17:35"
+  },
+  "sunday": {
+    "enabled": false,
+    "time": "17:35"
+  },
+  "dateOverrides": [],
+  "shutdownArguments": "-s -f -t 45"
+}
