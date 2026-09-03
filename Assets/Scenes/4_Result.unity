@@ -2078,7 +2078,6 @@ MonoBehaviour:
   playerPanelPose: {fileID: 842877264}
   aiPanelPose: {fileID: 1122301505}
   effCountDuration: 0.8
-  fadeDuration: 1
   resultPanel: {fileID: 1624406949}
   completePanel: {fileID: 1614859083}
   nextButton: {fileID: 2101883253}

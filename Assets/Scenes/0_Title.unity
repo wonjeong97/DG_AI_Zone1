@@ -750,9 +750,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 57ba66f8c4b6edc47b70811ffd7d3516, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   startButton: {fileID: 1065975278}
+  qrCanvasGroup: {fileID: 2090881229}
 --- !u!4 &1371204857
 Transform:
   m_ObjectHideFlags: 0
@@ -1084,6 +1085,7 @@ GameObject:
   - component: {fileID: 2090881226}
   - component: {fileID: 2090881228}
   - component: {fileID: 2090881227}
+  - component: {fileID: 2090881229}
   m_Layer: 5
   m_Name: QR
   m_TagString: Untagged
@@ -1149,6 +1151,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2090881225}
   m_CullTransparentMesh: 1
+--- !u!225 &2090881229
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2090881225}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
