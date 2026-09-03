@@ -7,6 +7,6 @@ namespace Data
     public class CommonSettings
     {
         public float sceneTransitionFadeDuration = 0.5f;
-        public float panelFadeDuration = 0.3f;
+        public float panelFadeDuration = 0.5f;
     }
 }
