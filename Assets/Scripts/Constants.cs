@@ -37,6 +37,12 @@ public static class Constants
         public const string TmpFontLabel = "TMPFont";
         public const string SpriteFillShader     = "Custom/UI/SpriteFill";
         public const string GrayscaleShader      = "Custom/UI/Grayscale";
+
+        // 씬별 연출 타이밍 JSON(StreamingAssets/Json/{씬 이름}.json)이 모여 있는 폴더
+        public const string SceneSettingsFolder = "Json";
+
+        // 특정 씬이 아닌 공통 연출 타이밍(씬 전환 페이드 등)을 담는 JSON 파일명
+        public const string CommonSettingsFileName = "00_Common";
     }
 
     // ── 4. 방향 명칭 ───────────────────────────────────────────

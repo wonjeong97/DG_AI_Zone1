@@ -2451,7 +2451,6 @@ MonoBehaviour:
   - {fileID: 1282456547}
   startButton: {fileID: 125706348}
   robotVideoPlayer: {fileID: 1549751285}
-  fadeDuration: 0.3
 --- !u!1 &1305982037
 GameObject:
   m_ObjectHideFlags: 0

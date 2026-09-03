@@ -2,11 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using Data;
 using DG.Tweening;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.Video;
 using Wonjeong.UI;
+using Wonjeong.Utils;
 using ZLogger;
 
 namespace Scenes
@@ -17,6 +19,9 @@ namespace Scenes
         private static FadeManager _fadeManager;
         private static bool _isLoading;
         private static readonly Queue<UniTask> _pendingTasks = new();
+
+        // StreamingAssets/Json/00_Common.json — 최초 1회만 로드해 공유(정적 유틸리티라 인스턴스 수명이 앱과 같음)
+        private static CommonSettings _commonSettings;
 
         public static void RegisterPendingTask(UniTask task)
         {
@@ -73,15 +78,18 @@ namespace Scenes
             RenderTexture.active = prev;
         }
 
-        public static async UniTaskVoid FadeAndLoad(string sceneName, float duration = 0.5f, Microsoft.Extensions.Logging.ILogger logger = null)
+        // duration을 생략하면 StreamingAssets/Json/00_Common.json의 sceneTransitionFadeDuration을 사용함
+        public static async UniTaskVoid FadeAndLoad(string sceneName, float? duration = null, Microsoft.Extensions.Logging.ILogger logger = null)
         {
             if (_isLoading) return;
             _isLoading = true;
 
             try
             {
+                float resolvedDuration = duration ?? (await GetCommonSettingsAsync()).sceneTransitionFadeDuration;
+
                 FadeManager fade = Find(logger);
-                if (fade) await fade.FadeOutAsync(duration);
+                if (fade) await fade.FadeOutAsync(resolvedDuration);
 
                 // 이전 씬에서 등록됐지만 이 시점까지 대기되지 않은 작업은 폐기됨 — 가시성을 위해 경고 로그
                 if (_pendingTasks.Count > 0)
@@ -97,12 +105,27 @@ namespace Scenes
                 // 모든 비동기 작업(블록 스폰, UI 정렬 등)이 완료된 후, 화면이 완전히 렌더링되고 레이아웃이 정착될 수 있도록 1프레임 더 대기한 뒤 페이드인 시작
                 await UniTask.Yield(PlayerLoopTiming.LastPostLateUpdate);
 
-                if (fade) await fade.FadeInAsync(duration);
+                if (fade) await fade.FadeInAsync(resolvedDuration);
             }
             finally
             {
                 _isLoading = false;
             }
+        }
+
+        // 00_Common.json의 panelFadeDuration — SceneFader의 패널 페이드 헬퍼를 거치지 않고
+        // 직접 지속 시간 값이 필요한 호출부(수동 보간 루프 등)를 위해 공개함
+        public static async UniTask<float> GetPanelFadeDurationAsync()
+        {
+            return (await GetCommonSettingsAsync()).panelFadeDuration;
+        }
+
+        private static async UniTask<CommonSettings> GetCommonSettingsAsync()
+        {
+            _commonSettings ??= await JsonLoader.LoadAsync<CommonSettings>(
+                $"{Constants.ResourcePaths.SceneSettingsFolder}/{Constants.ResourcePaths.CommonSettingsFileName}");
+
+            return _commonSettings;
         }
 
         // 등록된 대기 작업을 각각 개별 타임아웃으로 대기 — 한 작업의 실패/타임아웃이 나머지 작업 대기를 막지 않도록 함
@@ -144,29 +167,34 @@ namespace Scenes
 
         // ── CanvasGroup 페이드 공용 헬퍼 (씬 매니저 간 중복 구현 통합) ──────────
 
-        // 그룹의 alpha를 from→to로 보간
-        public static async UniTask FadeCanvasGroupAsync(CanvasGroup group, float from, float to, float duration, CancellationToken ct)
+        // 그룹의 alpha를 from→to로 보간. duration을 생략하면 00_Common.json의 panelFadeDuration을 사용함
+        public static async UniTask FadeCanvasGroupAsync(CanvasGroup group, float from, float to, float? duration = null, CancellationToken ct = default)
         {
             if (!group) return;
 
+            float resolvedDuration = duration ?? (await GetCommonSettingsAsync()).panelFadeDuration;
+
             group.alpha = from;
-            await group.DOFade(to, duration)
+            await group.DOFade(to, resolvedDuration)
                 .SetEase(Ease.Linear)
                 .SetUpdate(true) // 씬 전환 페이드는 timeScale 0에서도 동작해야 하는 시스템 연출
                 .SetLink(group.gameObject)
                 .ToUniTask(cancellationToken: ct);
         }
 
-        // 두 CanvasGroup 간 크로스페이드 — interactable/blocksRaycasts 전환 포함
-        public static async UniTask CrossFadeGroupsAsync(CanvasGroup from, CanvasGroup to, float duration, CancellationToken ct)
+        // 두 CanvasGroup 간 크로스페이드 — interactable/blocksRaycasts 전환 포함.
+        // duration을 생략하면 00_Common.json의 panelFadeDuration을 사용함
+        public static async UniTask CrossFadeGroupsAsync(CanvasGroup from, CanvasGroup to, float? duration = null, CancellationToken ct = default)
         {
+            float resolvedDuration = duration ?? (await GetCommonSettingsAsync()).panelFadeDuration;
+
             SetGroupInteractable(to, true);
 
             UniTask fadeOut = from
-                ? from.DOFade(0f, duration).SetEase(Ease.Linear).SetUpdate(true).SetLink(from.gameObject).ToUniTask(cancellationToken: ct)
+                ? from.DOFade(0f, resolvedDuration).SetEase(Ease.Linear).SetUpdate(true).SetLink(from.gameObject).ToUniTask(cancellationToken: ct)
                 : UniTask.CompletedTask;
             UniTask fadeIn = to
-                ? to.DOFade(1f, duration).SetEase(Ease.Linear).SetUpdate(true).SetLink(to.gameObject).ToUniTask(cancellationToken: ct)
+                ? to.DOFade(1f, resolvedDuration).SetEase(Ease.Linear).SetUpdate(true).SetLink(to.gameObject).ToUniTask(cancellationToken: ct)
                 : UniTask.CompletedTask;
             await UniTask.WhenAll(fadeOut, fadeIn);
 

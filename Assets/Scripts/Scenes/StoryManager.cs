@@ -23,10 +23,12 @@ namespace Scenes
         [SerializeField] private GameObject[] levelPanels;
         [SerializeField] private Button startButton;
         [SerializeField] private VideoPlayer robotVideoPlayer;
-        [SerializeField] private float fadeDuration = 0.3f;
 
         private GameSession _session;
         private ILogger<StoryManager> _log;
+
+        // 00_Common.json의 panelFadeDuration 사용 — 로드 전까지의 폴백 기본값
+        private float _fadeDuration = 0.3f;
 
         [Inject]
         public void Construct(GameSession session, ILogger<StoryManager> log)
@@ -121,12 +123,13 @@ namespace Scenes
             try
             {
                 CancellationToken ct = destroyCancellationToken;
+                _fadeDuration = await SceneFader.GetPanelFadeDurationAsync();
 
                 SceneFader.SetGroupInteractable(levelSelectPanel, false);
-                await SceneFader.FadeCanvasGroupAsync(levelSelectPanel, 1f, 0f, fadeDuration, ct);
+                await SceneFader.FadeCanvasGroupAsync(levelSelectPanel, 1f, 0f, _fadeDuration, ct);
 
                 SceneFader.SetGroupInteractable(storyPanel, true);
-                await SceneFader.FadeCanvasGroupAsync(storyPanel, 0f, 1f, fadeDuration, ct);
+                await SceneFader.FadeCanvasGroupAsync(storyPanel, 0f, 1f, _fadeDuration, ct);
 
                 await StoryLineAnimator.AnimateAsync(storyText,
                     Constants.StoryLine.StoryLineMoveDuration,

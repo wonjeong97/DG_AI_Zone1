@@ -179,7 +179,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\uC774\uC81C\uBD80\uD130 <size=140%><color=orange>[\uCCB4\uD5D8\uC790]</color></size>\uC740(\uB294)\n\n\uC5D0\uB108\uC9C0
+  m_text: "\uC774\uC81C\uBD80\uD130 <size=140%><color=orange>[{name}]</color></size>\uC740(\uB294)\n\n\uC5D0\uB108\uC9C0
     \uC2DC\uC2A4\uD15C \uC124\uACC4\uC790\uAC00 \uB418\uC5B4 \uACF3\uACF3\uC758 \uC790\uC5F0\uD658\uACBD\uC5D0
     \uAF2D \uB9DE\uB294\n\uC2E0\uC7AC\uC0DD\uC5D0\uB108\uC9C0 \uC2DC\uC2A4\uD15C\uC744
     \uC9C1\uC811 \uC124\uACC4\uD574\uC57C \uD569\uB2C8\uB2E4."
@@ -296,7 +296,7 @@ MonoBehaviour:
   introStartButton: {fileID: 1065975278}
   tutorialStartButton: {fileID: 543362593}
   robotVideoPlayer: {fileID: 1356407829}
-  crossFadeDuration: 0.2
+  visitorNameText: {fileID: 81308543}
 --- !u!4 &208277161
 Transform:
   m_ObjectHideFlags: 0

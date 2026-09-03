@@ -22,6 +22,7 @@ namespace App
         {
             base.Configure(builder);
             builder.RegisterComponentInHierarchy<GameManager>();
+            builder.Register<VisitorInfoProvider>(Lifetime.Singleton);
 
             // GameCloser·SystemCanvas 등록은 base의 ConfigureCoreComponents()에서 수행됨(중복 등록 시 VContainer 충돌).
             // 다만 아무도 Resolve하지 않으면 지연 등록만으로는 주입되지 않으므로 빌드 시점에 즉시 Resolve

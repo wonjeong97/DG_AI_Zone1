@@ -25,7 +25,6 @@ namespace Scenes
         [SerializeField] private SolarPanelModelPose playerPanelPose;
         [SerializeField] private SolarPanelModelPose aiPanelPose;
         [SerializeField] private float effCountDuration = 0.8f;
-        [SerializeField] private float fadeDuration = 0.5f;
 
         [SerializeField] private CanvasGroup resultPanel;
         [SerializeField] private CanvasGroup completePanel;
@@ -51,6 +50,9 @@ namespace Scenes
 
         private int _playerPercent;
         private Material _grayscaleInstance;   // 흑백 전환용 머티리얼 인스턴스 (null이면 컬러 유지)
+
+        // 00_Common.json의 panelFadeDuration 사용 — 로드 전까지의 폴백 기본값
+        private float _fadeDuration = 0.5f;
 
         private void Start()
         {
@@ -150,10 +152,10 @@ namespace Scenes
         {
             if (!_grayscaleInstance) return;
             float t = 0f;
-            while (t < fadeDuration)
+            while (t < _fadeDuration)
             {
                 t += Time.deltaTime;
-                _grayscaleInstance.SetFloat(GrayscaleAmountId, Mathf.Clamp01(t / fadeDuration));
+                _grayscaleInstance.SetFloat(GrayscaleAmountId, Mathf.Clamp01(t / _fadeDuration));
                 await UniTask.Yield(ct);
             }
             _grayscaleInstance.SetFloat(GrayscaleAmountId, 1f);
@@ -173,8 +175,10 @@ namespace Scenes
             CancellationToken ct = destroyCancellationToken;
             try
             {
+                _fadeDuration = await SceneFader.GetPanelFadeDurationAsync();
+
                 await playerText.PlayAsync(ct);
-                await SceneFader.FadeCanvasGroupAsync(playerImageGroup, 0f, 1f, fadeDuration, ct);
+                await SceneFader.FadeCanvasGroupAsync(playerImageGroup, 0f, 1f, _fadeDuration, ct);
                 if (playerPanelPose)
                     await playerPanelPose.ApplyAsync(null, _session ? _session.lastDirection : null, ct);
                 await PlayEfficiencyAsync(playerEffGroup, playerEffText, _playerPercent, ct);
@@ -184,22 +188,22 @@ namespace Scenes
 
                 // AI 시작 안내가 사라진 뒤 AI 결과 패널 페이드인 → 연출 시작
                 if (aiResultGroup)
-                    await SceneFader.FadeCanvasGroupAsync(aiResultGroup, 0f, 1f, fadeDuration, ct);
+                    await SceneFader.FadeCanvasGroupAsync(aiResultGroup, 0f, 1f, _fadeDuration, ct);
 
                 await aiText.PlayAsync(ct);
-                await SceneFader.FadeCanvasGroupAsync(aiImageGroup, 0f, 1f, fadeDuration, ct);
+                await SceneFader.FadeCanvasGroupAsync(aiImageGroup, 0f, 1f, _fadeDuration, ct);
                 string levelName = _session && _session.currentLevel ? _session.currentLevel.name : null;
                 if (aiPanelPose)
                     await aiPanelPose.ApplyAsync(null, BlockScorer.GetBestDirection(_session ? _session.lastQuestionTime : null, levelName), ct);
                 await PlayEfficiencyAsync(aiEffGroup, aiEffText, MaxPercent, ct);
 
-                await SceneFader.FadeCanvasGroupAsync(confirmButtonGroup, 0f, 1f, fadeDuration, ct);
+                await SceneFader.FadeCanvasGroupAsync(confirmButtonGroup, 0f, 1f, _fadeDuration, ct);
                 SceneFader.SetGroupInteractable(confirmButtonGroup, true);
 
                 await confirmButton.OnClickAsync(ct);
                 // 크로스페이드 중 재클릭 방지
                 SceneFader.SetGroupInteractable(confirmButtonGroup, false);
-                await SceneFader.CrossFadeGroupsAsync(resultPanel, completePanel, fadeDuration, ct);
+                await SceneFader.CrossFadeGroupsAsync(resultPanel, completePanel, _fadeDuration, ct);
             }
             catch (OperationCanceledException)
             {
@@ -215,9 +219,9 @@ namespace Scenes
             using CancellationTokenSource dotCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             AnimateDotsAsync(dotCts.Token).Forget();
 
-            await SceneFader.FadeCanvasGroupAsync(aiStartPanel, 0f, 1f, fadeDuration, ct);
+            await SceneFader.FadeCanvasGroupAsync(aiStartPanel, 0f, 1f, _fadeDuration, ct);
             await UniTask.Delay(TimeSpan.FromSeconds(aiStartHold), cancellationToken: ct);
-            await SceneFader.FadeCanvasGroupAsync(aiStartPanel, 1f, 0f, fadeDuration, ct);
+            await SceneFader.FadeCanvasGroupAsync(aiStartPanel, 1f, 0f, _fadeDuration, ct);
 
             dotCts.Cancel();
         }
@@ -245,7 +249,7 @@ namespace Scenes
             if (!group || !text) return;
 
             text.text = FormatEfficiency(0);
-            await SceneFader.FadeCanvasGroupAsync(group, 0f, 1f, fadeDuration, ct);
+            await SceneFader.FadeCanvasGroupAsync(group, 0f, 1f, _fadeDuration, ct);
 
             // 빠르게 오르다 끝에서 감속하는 카운터 연출 (순수 수치 보간이므로 DOVirtual)
             await DOVirtual.Float(0f, target, effCountDuration, v =>
