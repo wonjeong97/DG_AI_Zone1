@@ -754,7 +754,6 @@ MonoBehaviour:
   m_EditorClassIdentifier:
   startButton: {fileID: 1065975278}
   qrCanvasGroup: {fileID: 2090881229}
-  qrBlinkMinAlpha: 0.3
 --- !u!4 &1371204857
 Transform:
   m_ObjectHideFlags: 0

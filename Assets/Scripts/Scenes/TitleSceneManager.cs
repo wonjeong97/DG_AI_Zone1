@@ -16,7 +16,6 @@ namespace Scenes
     {
         [SerializeField] private Button startButton;
         [SerializeField] private CanvasGroup qrCanvasGroup;
-        [SerializeField] private float qrBlinkMinAlpha = 0.3f;
 
         private ILogger<TitleSceneManager> _log;
         private VisitorInfoProvider _visitorInfoProvider;
@@ -52,7 +51,7 @@ namespace Scenes
                 string settingsPath = $"{Constants.ResourcePaths.SceneSettingsFolder}/{Constants.Scenes.Title}";
                 TitleSceneSettings sceneSettings = await JsonLoader.LoadAsync<TitleSceneSettings>(settingsPath, ct);
 
-                qrCanvasGroup.DOFade(qrBlinkMinAlpha, sceneSettings.qrFadeDuration)
+                qrCanvasGroup.DOFade(sceneSettings.qrBlinkMinAlpha, sceneSettings.qrFadeDuration)
                     .SetLoops(-1, LoopType.Yoyo)
                     .SetEase(Ease.InOutSine)
                     .SetLink(qrCanvasGroup.gameObject);

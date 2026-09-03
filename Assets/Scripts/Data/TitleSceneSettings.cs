@@ -7,5 +7,6 @@ namespace Data
     public class TitleSceneSettings
     {
         public float qrFadeDuration = 1.2f;
+        public float qrBlinkMinAlpha = 0.3f;
     }
 }
