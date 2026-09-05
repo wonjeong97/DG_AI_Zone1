@@ -58,6 +58,51 @@ namespace Game.Runtime
 
         public static string GetBestCount() => MaxScoreKey(Constants.Scores.CountScore);
 
+        // 프로그램에 반복하기 블록이 있는지 — 레벨2 결과의 '반복 감지' 표시에 사용 (채점에는 반영되지 않음)
+        public static bool ContainsRepeat(List<BlockInstruction> instructions)
+            => ContainsType<RepeatInstruction>(instructions);
+
+        // 첫 '만약' 블록에 연결된 조건 높이를 "5m" 형태로 반환 — 레벨3 결과의 '수문 개방 높이'/'조건 감지' 표시용.
+        // 조건 블록이 없거나 높이를 읽을 수 없으면 null (= 조건 감지 OFF).
+        public static string GetHydroGateHeight(List<BlockInstruction> instructions)
+        {
+            IfInstruction ifInstr = FindFirst<IfInstruction>(instructions);
+            if (ifInstr?.Condition is not SimpleConditionExpr simple) return null;
+
+            int meters = ParseMeters(simple.Name);
+            return meters >= 0 ? meters + "m" : null;
+        }
+
+        // 첫 '만약' 블록에 연결된 조건식 — 레벨4 결과의 '설정한 조건' 표시용. 만약/조건이 없으면 null.
+        // 결과 텍스트는 폭이 좁아 '그리고'를 가운뎃점으로 줄인다 (디버그 코드 표시는 원문 그대로).
+        public static string GetConditionText(List<BlockInstruction> instructions)
+        {
+            IfInstruction ifInstr = FindFirst<IfInstruction>(instructions);
+            return ifInstr?.Condition switch
+            {
+                SimpleConditionExpr s => s.Name,
+                LogicConditionExpr l when l.Operator == PowerPlantAndOperator
+                    => $"{l.Left?.Name} {Constants.ResultMessages.ConditionAndSeparator} {l.Right?.Name}",
+                LogicConditionExpr l => $"{l.Left?.Name} {l.Operator} {l.Right?.Name}",
+                _ => null
+            };
+        }
+
+        // 반복하기가 '만약' 안에 중첩돼 있는지 — 레벨4 구조 채점과 결과의 '반복 감지'가 같은 기준을 쓴다.
+        public static bool IsRepeatNestedInIf(List<BlockInstruction> instructions)
+        {
+            IfInstruction ifInstr = FindFirst<IfInstruction>(instructions);
+            return ifInstr is not null &&
+                (ContainsType<RepeatInstruction>(ifInstr.Then) || ContainsType<RepeatInstruction>(ifInstr.Else));
+        }
+
+        // '병원 불 켜기'가 반복하기 안에 있는지 — 레벨4 명령 채점과 결과의 '병원 전력 유지'가 같은 기준을 쓴다.
+        public static bool IsHospitalCommandInRepeat(List<BlockInstruction> instructions)
+        {
+            RepeatInstruction repInstr = FindFirst<RepeatInstruction>(instructions);
+            return repInstr is not null && ContainsCommandDeep(repInstr.Body, PowerPlantHospitalCommand);
+        }
+
         private static string MaxScoreKey(Dictionary<string, int> table)
         {
             string bestKey = null;
@@ -162,18 +207,14 @@ namespace Game.Runtime
         private static int ScorePowerPlant(List<BlockInstruction> instructions)
         {
             IfInstruction ifInstr = FindFirst<IfInstruction>(instructions);
-            RepeatInstruction repInstr = FindFirst<RepeatInstruction>(instructions);
 
-            bool repeatInsideIf = ifInstr is not null &&
-                (ContainsType<RepeatInstruction>(ifInstr.Then) || ContainsType<RepeatInstruction>(ifInstr.Else));
-            int structureScore = repeatInsideIf
+            int structureScore = IsRepeatNestedInIf(instructions)
                 ? Constants.Scores.PowerPlantStructureNestedScore
                 : Constants.Scores.PowerPlantStructureOtherScore;
 
             int conditionScore = ifInstr is not null ? ScorePowerPlantCondition(ifInstr.Condition) : 0;
 
-            bool hospitalInRepeat = repInstr is not null && ContainsCommandDeep(repInstr.Body, PowerPlantHospitalCommand);
-            int commandScore = hospitalInRepeat
+            int commandScore = IsHospitalCommandInRepeat(instructions)
                 ? Constants.Scores.PowerPlantCommandInRepeatScore
                 : Constants.Scores.PowerPlantCommandOtherScore;
 

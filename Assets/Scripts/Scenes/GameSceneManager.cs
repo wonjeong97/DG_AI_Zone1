@@ -9,6 +9,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using VContainer;
+using Wonjeong.Utils;
 using ZLogger;
 
 namespace Scenes
@@ -39,8 +40,11 @@ namespace Scenes
             _log = log;
         }
 
-        // 명령 하나를 실행한 것처럼 보이도록 두는 간격
+        // 명령 하나를 실행한 것처럼 보이도록 두는 간격 — 3_Game.json 로드 전까지의 폴백 기본값
         private const int StepDelayMs = 200;
+
+        // 3_Game.json 튜닝 값 — 씬 페이드인 전에 로드된다
+        private GameSceneSettings _sceneSettings;
 
         private CancellationTokenSource _cts;
         private string _questionTime;
@@ -55,8 +59,19 @@ namespace Scenes
 
             CodingBlock.Mode = highlightMode;
 
+            // 연출·감도 튜닝 값은 블록이 뜨기 전에 준비되어야 하므로 씬 페이드인 대기 작업으로 등록
+            SceneFader.RegisterPendingTask(LoadSceneSettingsAsync());
+
             LevelData level = _session ? _session.currentLevel : null;
-            if (!level) level = testLevel;
+
+            // 2_Story를 거치지 않고 3_Game에서 바로 Play한 경우 — testLevel로 대체하고 세션에도 반영한다.
+            // 결과 씬은 _session.currentLevel만 보기 때문에, 반영하지 않으면 4_Result가 레벨을 모른 채
+            // 레벨1 기준으로 동작한다. 부팅 시 ResetProgress가 currentLevel을 비우므로 값이 남지도 않는다.
+            if (!level)
+            {
+                level = testLevel;
+                if (_session) _session.currentLevel = level;
+            }
 
             _currentLevel = level;
             _currentLevelName = level ? level.name : null;
@@ -91,9 +106,8 @@ namespace Scenes
             // 코딩 완료 없이 넘어가면 결과 씬에서 '-'로 표시되도록 이전 결과 초기화
             if (_session)
             {
+                _session.ResetLastResult();
                 _session.lastQuestionTime = _questionTime;
-                _session.lastDirection = _session.lastAngle = _session.lastCount = null;
-                _session.lastScore = 0;
             }
 
             if (compileButton)
@@ -181,6 +195,12 @@ namespace Scenes
                     _session.lastQuestionTime = _questionTime;
                     (_session.lastDirection, _session.lastAngle, _session.lastCount) =
                         BlockScorer.ExtractValues(result.Instructions);
+                    _session.lastRepeatUsed = BlockScorer.ContainsRepeat(result.Instructions);
+                    _session.lastGateHeight = BlockScorer.GetHydroGateHeight(result.Instructions);
+                    _session.lastConditionText = BlockScorer.GetConditionText(result.Instructions);
+                    _session.lastRepeatNested = BlockScorer.IsRepeatNestedInIf(result.Instructions);
+                    _session.lastHospitalInRepeat = BlockScorer.IsHospitalCommandInRepeat(result.Instructions);
+                    _session.hasCodingResult = true;
                 }
                 _log?.ZLogInformation($"[GameSceneManager] 점수: {score}점 (기준 시간: {_questionTime})");
 
@@ -229,7 +249,7 @@ namespace Scenes
                         _log?.ZLogInformation($"  ConditionAction: {cond.Action}");
                         break;
                 }
-                await UniTask.Delay(StepDelayMs, cancellationToken: ct);
+                await UniTask.Delay(_sceneSettings?.executeStepDelayMs ?? StepDelayMs, cancellationToken: ct);
                 return true;
             };
 
@@ -272,8 +292,7 @@ namespace Scenes
         {
             if (_session)
             {
-                _session.lastScore = 0;
-                _session.lastDirection = _session.lastAngle = _session.lastCount = null;
+                _session.ResetLastResult();
             }
             SceneFader.FadeAndLoad(Constants.Scenes.Result, logger: _log).Forget();
         }
@@ -347,14 +366,23 @@ namespace Scenes
         }
 
         // 순서대로 시차를 두고 성공 하이라이트를 켜 파도타기 연출을 만든다
-        private static async UniTask PlaySuccessWaveAsync(List<CodingBlock> order, CancellationToken ct)
+        private async UniTask PlaySuccessWaveAsync(List<CodingBlock> order, CancellationToken ct)
         {
+            int stepMs = _sceneSettings?.successWaveStepMs ?? Constants.HighlightSettings.SuccessWaveStepMs;
             foreach (CodingBlock b in order)
             {
                 if (!b) continue;
                 b.ShowSuccessHighlight();
-                await UniTask.Delay(Constants.HighlightSettings.SuccessWaveStepMs, cancellationToken: ct);
+                await UniTask.Delay(stepMs, cancellationToken: ct);
             }
+        }
+
+        // 3_Game.json 로드 — 블록 스냅 감도는 CodingBlock이 정적으로 참조하므로 함께 넘긴다
+        private async UniTask LoadSceneSettingsAsync()
+        {
+            string path = $"{Constants.ResourcePaths.SceneSettingsFolder}/{Constants.Scenes.Game}";
+            _sceneSettings = await JsonLoader.LoadAsync<GameSceneSettings>(path, destroyCancellationToken);
+            CodingBlock.Settings = _sceneSettings;
         }
     }
 }

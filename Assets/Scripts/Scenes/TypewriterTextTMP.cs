@@ -12,6 +12,13 @@ namespace Scenes
     {
         [SerializeField] private float charInterval = 0.03f;
 
+        // 4_Result.json의 typewriterCharInterval로 덮어쓰기 위해 공개. 지정하지 않으면 인스펙터 값을 쓴다.
+        public float CharInterval
+        {
+            get => charInterval;
+            set => charInterval = value;
+        }
+
         private TMP_Text _text;
 
         private void Awake()

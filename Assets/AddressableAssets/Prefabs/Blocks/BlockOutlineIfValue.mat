@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: BlockOutlineRight
+  m_Name: BlockOutlineIfValue
   m_Shader: {fileID: 4800000, guid: 52c922a045f469d4e81018fc790abad8, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
@@ -39,6 +39,6 @@ Material:
     - _XMax: 1
     - _XMin: 0.8
     - _YMax: 1
-    - _YMin: 0
+    - _YMin: 0.5
     m_Colors: []
   m_BuildTextureStacks: []

@@ -7,6 +7,7 @@ using UnityEngine.UI;
 using Microsoft.Extensions.Logging;
 using UnityEngine.Video;
 using VContainer;
+using Wonjeong.Core;
 using ZLogger;
 
 namespace Scenes
@@ -24,12 +25,15 @@ namespace Scenes
 
         private ILogger<IntroSceneManager> _log;
         private VisitorInfoProvider _visitorInfoProvider;
+        private InactivityTimer _inactivityTimer;
 
         [Inject]
-        public void Construct(ILogger<IntroSceneManager> log, VisitorInfoProvider visitorInfoProvider)
+        public void Construct(ILogger<IntroSceneManager> log, VisitorInfoProvider visitorInfoProvider,
+            InactivityTimer inactivityTimer)
         {
             _log = log;
             _visitorInfoProvider = visitorInfoProvider;
+            _inactivityTimer = inactivityTimer;
         }
 
         private void Start()
@@ -84,7 +88,7 @@ namespace Scenes
                 (float moveDuration, float interval, float yOffset) = await SceneFader.GetStoryLineSettingsAsync();
                 await StoryLineAnimator.AnimateAsync(visitorNameText,
                     moveDuration, interval, yOffset,
-                    StoryLineAnimator.IsPointerPressedThisFrame, ct);
+                    StoryLineAnimator.IsPointerPressedThisFrame, ct, _inactivityTimer);
             }
             finally
             {

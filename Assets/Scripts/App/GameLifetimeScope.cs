@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using Data;
 using TMPro;
 using UnityEngine;
@@ -106,12 +107,57 @@ namespace App
         {
             if (scene == gameObject.scene) return;
 
-            // 타이틀로 돌아와 플로우를 다시 타는 경우도 부팅 시점과 동일하게 진행도 초기화
+            // 타이틀로 돌아온 경우(아웃트로 종료 버튼·비활동 타임아웃) 진행도 처리
             if (scene.name == Constants.Scenes.Title)
-                _session.ResetProgress();
+                HandleReturnToTitleAsync().Forget();
 
             foreach (GameObject root in scene.GetRootGameObjects())
                 Container.InjectGameObject(root);
+        }
+
+        /// <summary>
+        /// 타이틀로 돌아왔을 때의 진행도 처리 — 서버 사용 여부에 따라 갈린다.
+        /// <para>
+        /// 서버 미사용: 다음 체험자를 위해 부팅 시점과 동일하게 진행도를 0으로 초기화한다.
+        /// 비활동 타임아웃으로 중간에 이탈한 경우에도 레벨1부터 다시 시작하게 된다.
+        /// </para>
+        /// <para>
+        /// 서버 사용: 체험자가 진행도를 저장해 두고 나중에 이어서 할 수 있으므로 로컬에서 일방적으로
+        /// 지우면 안 된다. 대신 현재 체험자 세션만 끝내야 한다.
+        /// </para>
+        /// </summary>
+        private async UniTaskVoid HandleReturnToTitleAsync()
+        {
+            bool isServerConnected;
+            try
+            {
+                isServerConnected = await Container.Resolve<VisitorInfoProvider>()
+                    .IsServerConnectedAsync(this.GetCancellationTokenOnDestroy());
+            }
+            catch (OperationCanceledException)
+            {
+                // 앱 종료·스코프 파괴로 취소된 정상 흐름
+                return;
+            }
+            catch (Exception ex)
+            {
+                // fire-and-forget이라 여기서 놓치면 UnobservedException으로만 남는다.
+                // Visitor.json을 읽지 못하면 서버 미사용(기본값)으로 보고 다음 체험자를 위해 초기화한다.
+                Debug.LogWarning($"[GameLifetimeScope] 서버 사용 여부 조회 실패 — 진행도를 초기화합니다: {ex.Message}");
+                _session.ResetProgress();
+                return;
+            }
+
+            if (!isServerConnected)
+            {
+                _session.ResetProgress();
+                return;
+            }
+
+            // TODO: 서버 연동 시 — 현재 체험자 식별 정보와 진행도 세션을 종료/초기화할 것.
+            //       진행도는 서버에 저장되어 있어 다음 QR 스캔 때 이어서 시작할 수 있어야 하므로,
+            //       로컬 ResetProgress로 지우는 대신 "이 체험자의 세션이 끝났다"만 정리해야 한다.
+            //       (VisitorInfoProvider.GetNameAsync의 서버 연동 TODO와 함께 구현)
         }
     }
 }

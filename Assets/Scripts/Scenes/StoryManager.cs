@@ -9,6 +9,7 @@ using UnityEngine.UI;
 using Microsoft.Extensions.Logging;
 using UnityEngine.Video;
 using VContainer;
+using Wonjeong.Core;
 using Wonjeong.Utils;
 using ZLogger;
 
@@ -27,15 +28,17 @@ namespace Scenes
 
         private GameSession _session;
         private ILogger<StoryManager> _log;
+        private InactivityTimer _inactivityTimer;
 
         // 00_Common.json의 panelFadeDuration 사용 — 로드 전까지의 폴백 기본값
         private float _fadeDuration = 0.3f;
 
         [Inject]
-        public void Construct(GameSession session, ILogger<StoryManager> log)
+        public void Construct(GameSession session, ILogger<StoryManager> log, InactivityTimer inactivityTimer)
         {
             _session = session;
             _log = log;
+            _inactivityTimer = inactivityTimer;
         }
 
         private LevelData _currentLevel;
@@ -167,7 +170,7 @@ namespace Scenes
                 (float moveDuration, float interval, float yOffset) = await SceneFader.GetStoryLineSettingsAsync();
                 await StoryLineAnimator.AnimateAsync(storyText,
                     moveDuration, interval, yOffset,
-                    StoryLineAnimator.IsPointerPressedThisFrame, ct);
+                    StoryLineAnimator.IsPointerPressedThisFrame, ct, _inactivityTimer);
 
                 if (startButton) startButton.interactable = true;
             }
