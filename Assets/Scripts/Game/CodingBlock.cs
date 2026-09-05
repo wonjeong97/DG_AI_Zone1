@@ -106,8 +106,11 @@ namespace Game
             SetHighlight(ValueHighlight, Color.clear);
         }
 
-        // 만약 블록 — 반복하기와 같은 FlowControl이라 이름으로 구분한다 (조건 스냅 하이라이트 전용 처리)
-        private bool IsIfBlock => Category == BlockCategory.FlowControl && name.Contains(Constants.BlockLabels.If);
+        // 만약 블록 — 반복하기와 같은 FlowControl이라 이름으로 구분한다 (조건 스냅 하이라이트 전용 처리).
+        // 런타임에는 BlockFactory가 이름을 라벨("만약")로 바꾸지만, 에디터 테스트 씬에 프리팹 원본을
+        // 그대로 배치하면 이름이 "IfBlock"이므로 프리팹 키도 함께 본다.
+        private bool IsIfBlock => Category == BlockCategory.FlowControl
+            && (name.Contains(Constants.BlockLabels.If) || name.Contains(Constants.BlockAssets.IfPrefab));
 
         private void PlaySnapPulse(Image img, bool isVerticalChain = false)
         {

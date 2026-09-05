@@ -200,6 +200,7 @@ namespace Scenes
                     _session.lastConditionText = BlockScorer.GetConditionText(result.Instructions);
                     _session.lastRepeatNested = BlockScorer.IsRepeatNestedInIf(result.Instructions);
                     _session.lastHospitalInRepeat = BlockScorer.IsHospitalCommandInRepeat(result.Instructions);
+                    _session.hasCodingResult = true;
                 }
                 _log?.ZLogInformation($"[GameSceneManager] 점수: {score}점 (기준 시간: {_questionTime})");
 

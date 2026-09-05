@@ -105,6 +105,23 @@ namespace Scenes
             PlaySequence().Forget();
         }
 
+        private void OnDestroy()
+        {
+            // 흑백 전환용 머티리얼은 런타임에 new로 만든 인스턴스라 씬 언로드로 회수되지 않는다
+            if (_grayscaleInstance)
+            {
+                Destroy(_grayscaleInstance);
+                _grayscaleInstance = null;
+            }
+
+            if (nextButton)
+                nextButton.onClick.RemoveListener(OnNextClicked);
+
+            // 확인 버튼이 열리기 전에 파괴됐다면 타이머가 멈춘 채 남는다 —
+            // 이미 재개된 상태에서 다시 불러도 카운트만 처음부터 다시 시작할 뿐 부작용이 없다
+            _inactivityTimer?.Resume();
+        }
+
         // 다음 레벨로 진행 — 방금 플레이한 레벨의 afterResultScene을 따라감 (마지막 레벨은 5_Outro)
         private void OnNextClicked()
         {
@@ -122,12 +139,8 @@ namespace Scenes
             string levelName = _session && _session.currentLevel ? _session.currentLevel.name : null;
 
             // 코딩 완료(컴파일 성공) 없이 넘어온 경우 값 대신 '-' 표시.
-            // 레벨2(풍력)·레벨3(수력)은 가동 수 블록이 없어 각자의 값 하나로 판단한다.
-            bool hasCoding =
-                IsWindLevel(levelName)       ? _session.lastDirection is not null :
-                IsHydroLevel(levelName)      ? _session.lastGateHeight is not null :
-                IsPowerPlantLevel(levelName) ? _session.lastScore > 0 :
-                                               _session.lastCount is not null && _session.lastDirection is not null;
+            // 레벨마다 채워지는 값이 달라 개별 필드로 판정하지 않고 게임 씬이 세운 플래그를 그대로 쓴다.
+            bool hasCoding = _session.hasCodingResult;
 
             if (hasCoding)
             {

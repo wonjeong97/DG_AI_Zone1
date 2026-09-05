@@ -128,8 +128,25 @@ namespace App
         /// </summary>
         private async UniTaskVoid HandleReturnToTitleAsync()
         {
-            bool isServerConnected = await Container.Resolve<VisitorInfoProvider>()
-                .IsServerConnectedAsync(this.GetCancellationTokenOnDestroy());
+            bool isServerConnected;
+            try
+            {
+                isServerConnected = await Container.Resolve<VisitorInfoProvider>()
+                    .IsServerConnectedAsync(this.GetCancellationTokenOnDestroy());
+            }
+            catch (OperationCanceledException)
+            {
+                // 앱 종료·스코프 파괴로 취소된 정상 흐름
+                return;
+            }
+            catch (Exception ex)
+            {
+                // fire-and-forget이라 여기서 놓치면 UnobservedException으로만 남는다.
+                // Visitor.json을 읽지 못하면 서버 미사용(기본값)으로 보고 다음 체험자를 위해 초기화한다.
+                Debug.LogWarning($"[GameLifetimeScope] 서버 사용 여부 조회 실패 — 진행도를 초기화합니다: {ex.Message}");
+                _session.ResetProgress();
+                return;
+            }
 
             if (!isServerConnected)
             {

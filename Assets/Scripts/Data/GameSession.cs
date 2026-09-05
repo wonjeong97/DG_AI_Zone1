@@ -19,6 +19,11 @@ namespace Data
         [System.NonSerialized] public bool lastRepeatNested;     // 레벨4 결과의 '반복 감지' — 반복하기가 만약 안에 중첩
         [System.NonSerialized] public bool lastHospitalInRepeat; // 레벨4 결과의 '병원 전력 유지'
 
+        // 컴파일에 성공해 채점까지 끝난 결과인지 — 넘어가기/미완료와 구분한다.
+        // 레벨마다 채워지는 값이 달라 개별 필드로 판정하면 분기가 계속 늘고,
+        // 값 추출이 실패한 경우(예: 조건식 파싱 실패) 정상 플레이가 스킵으로 잘못 처리된다.
+        [System.NonSerialized] public bool hasCodingResult;
+
         private const string UnlockedLevelIndexKey = "UnlockedLevelIndex";
 
         // 서버 연동 전까지 PlayerPrefs에 로컬로 저장. 추후 서버 값으로 대체될 예정.
@@ -54,6 +59,7 @@ namespace Data
             lastConditionText = null;
             lastRepeatNested = false;
             lastHospitalInRepeat = false;
+            hasCodingResult = false;
         }
     }
 }
