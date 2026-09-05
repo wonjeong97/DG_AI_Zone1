@@ -27,6 +27,14 @@ namespace Game
         // 컴파일 성공/에러 표시 방식 — GameSceneManager가 레벨 로드 시 Inspector 설정값으로 초기화.
         public static HighlightMode Mode { get; set; } = HighlightMode.Outline;
 
+        // 3_Game.json 튜닝 값 — GameSceneManager가 씬 로드 시 주입.
+        // null이면(다른 씬에서 블록을 쓰거나 로드 전) 인스펙터·Constants 기본값으로 동작한다.
+        public static Data.GameSceneSettings Settings { get; set; }
+
+        private float SnapRadius      => Settings?.snapRadius        ?? _snapRadius;
+        private float ChainSnapRadius => Settings?.chainSnapRadius   ?? _chainSnapRadius;
+        private float SnapSeconds     => Settings?.blockSnapDuration ?? _snapSeconds;
+
         public BlockCategory Category { get; private set; }
         public ValueKind ValueKind { get; private set; }
         public Data.ControlRole ControlRole { get; private set; }
@@ -98,6 +106,9 @@ namespace Game
             SetHighlight(ValueHighlight, Color.clear);
         }
 
+        // 만약 블록 — 반복하기와 같은 FlowControl이라 이름으로 구분한다 (조건 스냅 하이라이트 전용 처리)
+        private bool IsIfBlock => Category == BlockCategory.FlowControl && name.Contains(Constants.BlockLabels.If);
+
         private void PlaySnapPulse(Image img, bool isVerticalChain = false)
         {
             if (!img) return;
@@ -114,6 +125,14 @@ namespace Game
                     // ChainHighlight: 좌우(X) 0, 상하(Y) -10~10 확장
                     rt.offsetMin = new Vector2(0f, -t);
                     rt.offsetMax = new Vector2(0f, t);
+                }
+                else if (IsIfBlock)
+                {
+                    // 만약 블록의 조건 슬롯: C자 본체로 초록이 흘러내리지 않도록 상하는 확장하지 않고 좌우만 넓힌다.
+                    // 세로 범위는 IfBlock.prefab의 ValueHighlight에 붙은 BlockOutlineIfValue 머티리얼이
+                    // 헤더 높이(UV Y 0.5~1)로 잘라낸다 — 값은 인스펙터에서 조정한다.
+                    rt.offsetMin = new Vector2(-t, 0f);
+                    rt.offsetMax = new Vector2(t, 0f);
                 }
                 else
                 {
@@ -189,9 +208,9 @@ namespace Game
             }
 
             target.color = from;
-            int toggles = Constants.HighlightSettings.ErrorBlinkCount * 2;
+            int toggles = (Settings?.errorBlinkCount ?? Constants.HighlightSettings.ErrorBlinkCount) * 2;
             _compileHighlightTween = target
-                .DOColor(error, Constants.HighlightSettings.ErrorBlinkHalfDuration)
+                .DOColor(error, Settings?.errorBlinkHalfDuration ?? Constants.HighlightSettings.ErrorBlinkHalfDuration)
                 .SetLoops(toggles, LoopType.Yoyo)
                 .SetEase(Ease.InOutSine)
                 .SetLink(gameObject)
@@ -203,7 +222,7 @@ namespace Game
             StopCompileHighlightTween();
 
             Color success = Constants.HighlightColors.Success;
-            float duration = Constants.HighlightSettings.SuccessWaveFadeInDuration;
+            float duration = Settings?.successWaveFadeInDuration ?? Constants.HighlightSettings.SuccessWaveFadeInDuration;
 
             if (Mode == HighlightMode.Tint)
             {
@@ -615,7 +634,7 @@ namespace Game
             }
 
             ChainOutSocket best = null;
-            float minSqr = _chainSnapRadius * _chainSnapRadius;
+            float minSqr = ChainSnapRadius * ChainSnapRadius;
 
             var candidates = _cachedChainOutSockets ?? FindObjectsOfType<ChainOutSocket>();
             foreach (ChainOutSocket candidate in candidates)
@@ -649,7 +668,7 @@ namespace Game
             }
 
             InnerSocket best = null;
-            float minSqr = _chainSnapRadius * _chainSnapRadius;
+            float minSqr = ChainSnapRadius * ChainSnapRadius;
 
             var candidates = _cachedInnerSockets ?? FindObjectsOfType<InnerSocket>();
             foreach (InnerSocket candidate in candidates)
@@ -681,7 +700,7 @@ namespace Game
             if (!TryGetHorizontalSnapOrigin<ValueInSocket>(out Vector2 myPos)) return null;
 
             ValueOutSocket best = null;
-            float minSqr = _snapRadius * _snapRadius;
+            float minSqr = SnapRadius * SnapRadius;
 
             var candidates = _cachedValueOutSockets ?? FindObjectsOfType<ValueOutSocket>();
             foreach (ValueOutSocket candidate in candidates)
@@ -729,7 +748,7 @@ namespace Game
             if (!TryGetHorizontalSnapOrigin<ConditionInSocket>(out Vector2 myPos)) return null;
 
             ConditionOutSocket best = null;
-            float minSqr = _snapRadius * _snapRadius;
+            float minSqr = SnapRadius * SnapRadius;
 
             var candidates = _cachedConditionOutSockets ?? FindObjectsOfType<ConditionOutSocket>();
             foreach (ConditionOutSocket candidate in candidates)
@@ -770,7 +789,7 @@ namespace Game
             {
                 // OutBack 이징으로 스냅 손맛 부여, 드래그 등으로 부모가 바뀌면 트윈 중단
                 Tween tween = null;
-                tween = _rt.DOAnchorPos(targetOffset, _snapSeconds)
+                tween = _rt.DOAnchorPos(targetOffset, SnapSeconds)
                     .SetEase(Ease.OutBack)
                     .SetLink(gameObject)
                     .OnUpdate(() =>
@@ -995,12 +1014,12 @@ namespace Game
             if (!rt) return;
 
             Gizmos.color = new Color(0.3f, 0.7f, 1f, 0.25f);
-            Gizmos.DrawWireSphere(rt.position, _snapRadius);
+            Gizmos.DrawWireSphere(rt.position, SnapRadius);
             Gizmos.color = new Color(0.3f, 0.7f, 1f, 0.6f);
             Gizmos.DrawWireSphere(rt.position, 4f);
 
-            Handles.Label(rt.position + Vector3.up * (_snapRadius + 10f),
-                $"snap r={_snapRadius}",
+            Handles.Label(rt.position + Vector3.up * (SnapRadius + 10f),
+                $"snap r={SnapRadius}",
                 new GUIStyle { normal = { textColor = new Color(0.3f, 0.7f, 1f) }, fontSize = 9 });
         }
 #endif

@@ -156,12 +156,47 @@ public static class Constants
         public const string EfficiencyFormat = "에너지 효율:{0:D2}%";
         public const string ResultTextFormat = "가동 수: [{0}]\n방향: [{1}]\n\n전력 수급 상태: {2}";
 
+        // 레벨2(풍력) — 가동 수 블록이 없어 문제 풍향·풍차 방향·반복 감지 여부로 구성한다
+        public const string WindResultTextFormat = "감지된 바람 방향: [{0}]\n풍차 방향: [{1}]\n반복 감지: {2}\n\n전력 수급 상태: {3}";
+
+        // 레벨3(수력) — 문제 강물 높이·플레이어가 연결한 수문 개방 높이·조건 감지 여부로 구성한다
+        public const string HydroResultTextFormat = "감지된 강물의 높이: [{0}]\n수문 개방 높이: [{1}]\n조건 감지: {2}\n\n전력 수급 상태: {3}";
+
+        // 레벨4(발전소) — 값 블록이 없어 채점 3항목(조건식·반복 중첩·병원 명령 위치)을 그대로 보여준다
+        public const string PowerPlantResultTextFormat = "상황: [{0}]\n조건: [{1}]\n반복 감지: {2}\n병원 전력 유지: {3}\n\n전력 수급 상태: {4}";
+        public const string PowerPlantSituation     = "밤 · 전기 과부하";  // 문제가 고정이라 상수
+        public const string PowerPlantBestCondition = "전기 과부하 · 밤";  // AI(정답) 조건식
+
+        // 결과 텍스트는 폭이 좁아 조건식의 '그리고'를 가운뎃점으로 줄여 쓴다
+        public const string ConditionAndSeparator = "·";
+
+        // '반복 감지'·'조건 감지' 줄의 ON/OFF 표기
+        public const string DetectedOn  = "ON";
+        public const string DetectedOff = "OFF";
+
         // 코딩 미완료(스킵)로 표시할 값이 없을 때
         public const string NoResultText = "-\n\n전력 수급 상태: -";
 
+        // 레벨2(풍력) 스킵 — 값은 레벨1과 같이 '-'로, 반복 감지만 OFF로 표시
+        public const string WindNoResultText = "-\n반복 감지: " + DetectedOff + "\n\n전력 수급 상태: -";
+
+        // 레벨3(수력) 스킵 — 값은 '-'로, 조건 감지만 OFF로 표시
+        public const string HydroNoResultText = "-\n조건 감지: " + DetectedOff + "\n\n전력 수급 상태: -";
+
+        // 레벨4(발전소) 스킵 — 값은 '-'로, 감지 항목만 OFF로 표시
+        public const string PowerPlantNoResultText = "-\n반복 감지: " + DetectedOff + "\n병원 전력 유지: " + DetectedOff + "\n\n전력 수급 상태: -";
+
         // 'AI가 코딩을 시작합니다' 뒤 말줄임 애니메이션
+        public const string AiCodingDots = "...";      // 슬롯 3개 — AiCodingDotCycle과 맞춰야 함
         public const int AiCodingDotCycle      = 4;    // 점 0~3개 반복
         public const int AiCodingDotIntervalMs = 400;
+
+        // 4_Result 상단 안내 문구 뒤 말줄임 — 슬롯 3개를 항상 문자열에 넣어두고
+        // maxVisibleCharacters로 노출 개수만 0~3으로 바꾼다 (문자열 폭이 고정이라 가운데 정렬이 흔들리지 않음)
+        public const string ResultTopDots          = " · · ·";
+        public const int    ResultTopDotSlotLength = 2;    // 슬롯 1개 " ·"의 문자 수 — ResultTopDots와 맞춰야 함
+        public const int    ResultTopDotMax        = 3;    // 슬롯 개수 — ResultTopDots와 맞춰야 함
+        public const int    ResultTopDotIntervalMs = 400;
     }
 
     // ── 9. 블록 라벨 (아트·프리팹 분기 키) ───────────────────────

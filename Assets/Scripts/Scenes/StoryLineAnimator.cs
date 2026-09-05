@@ -4,6 +4,7 @@ using Cysharp.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Wonjeong.Core;
 
 namespace Scenes
 {
@@ -22,9 +23,28 @@ namespace Scenes
 
         // storyText의 각 줄을 아래에서 위로 올리며 순차적으로 페이드인함. 보이는 문자가 없는 줄(간격용 빈 줄)은
         // 연출과 대기 없이 즉시 통과함. skipRequested가 true를 반환하면 남은 줄까지 즉시 표시하고 종료함.
-        public static async UniTask AnimateAsync(TMP_Text text, float lineMoveDuration, float lineInterval, float lineYOffset, Func<bool> skipRequested, CancellationToken token)
+        //
+        // inactivityTimer를 넘기면 연출이 진행되는 동안 비활동 타이머를 멈춤. 입력이 없어도 사용자는
+        // 글을 읽고 있는 구간이라 타임아웃으로 타이틀에 튕기면 안 됨. 스킵이나 씬 전환 취소로 중간에
+        // 빠져나가도 반드시 재개되도록 finally에서 Resume함.
+        public static async UniTask AnimateAsync(TMP_Text text, float lineMoveDuration, float lineInterval, float lineYOffset,
+            Func<bool> skipRequested, CancellationToken token, InactivityTimer inactivityTimer = null)
         {
             if (text == null) return;
+
+            inactivityTimer?.Pause();
+            try
+            {
+                await AnimateLinesAsync(text, lineMoveDuration, lineInterval, lineYOffset, skipRequested, token);
+            }
+            finally
+            {
+                inactivityTimer?.Resume();
+            }
+        }
+
+        private static async UniTask AnimateLinesAsync(TMP_Text text, float lineMoveDuration, float lineInterval, float lineYOffset, Func<bool> skipRequested, CancellationToken token)
+        {
 
             // 호출부에서 미리 숨겨 둔 경우(maxVisibleCharacters=0)를 대비해 전체 노출로 되돌린 뒤 메쉬를 갱신함
             text.maxVisibleCharacters = int.MaxValue;

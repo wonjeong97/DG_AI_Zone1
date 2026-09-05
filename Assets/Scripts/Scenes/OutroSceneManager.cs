@@ -5,6 +5,7 @@ using UnityEngine.UI;
 using Microsoft.Extensions.Logging;
 using UnityEngine.Video;
 using VContainer;
+using Wonjeong.Core;
 using ZLogger;
 
 namespace Scenes
@@ -16,11 +17,13 @@ namespace Scenes
         [SerializeField] private TMP_Text endingText;
 
         private ILogger<OutroSceneManager> _log;
+        private InactivityTimer _inactivityTimer;
 
         [Inject]
-        public void Construct(ILogger<OutroSceneManager> log)
+        public void Construct(ILogger<OutroSceneManager> log, InactivityTimer inactivityTimer)
         {
             _log = log;
+            _inactivityTimer = inactivityTimer;
         }
 
         private void Start()
@@ -48,7 +51,7 @@ namespace Scenes
             (float moveDuration, float interval, float yOffset) = await SceneFader.GetStoryLineSettingsAsync();
             await StoryLineAnimator.AnimateAsync(endingText,
                 moveDuration, interval, yOffset,
-                StoryLineAnimator.IsPointerPressedThisFrame, ct);
+                StoryLineAnimator.IsPointerPressedThisFrame, ct, _inactivityTimer);
         }
 
         private void OnDestroy()

@@ -1,0 +1,10 @@
+{
+  "executeStepDelayMs": 200,
+  "successWaveStepMs": 120,
+  "successWaveFadeInDuration": 0.18,
+  "errorBlinkCount": 2,
+  "errorBlinkHalfDuration": 0.22,
+  "snapRadius": 120.0,
+  "chainSnapRadius": 120.0,
+  "blockSnapDuration": 0.15
+}

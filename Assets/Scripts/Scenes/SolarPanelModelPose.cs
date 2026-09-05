@@ -24,6 +24,13 @@ namespace Scenes
         [SerializeField] private Transform tiltPivot;       // 기울기를 제어할 피벗(Planes_Group)
         [SerializeField] private float animDuration = 1.5f;
 
+        // 4_Result.json의 panelPoseDuration으로 덮어쓰기 위해 공개. 지정하지 않으면 인스펙터 값을 쓴다.
+        public float AnimDuration
+        {
+            get => animDuration;
+            set => animDuration = value;
+        }
+
         private const float BaselineAngle = 45f; // 이 각도일 때 tiltPivot local Y = 0
 
         private Quaternion _yawRestRotation;
