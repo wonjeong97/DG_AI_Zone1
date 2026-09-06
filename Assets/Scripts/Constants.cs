@@ -174,17 +174,22 @@ public static class Constants
         public const string DetectedOn  = "ON";
         public const string DetectedOff = "OFF";
 
-        // 코딩 미완료(스킵)로 표시할 값이 없을 때
-        public const string NoResultText = "-\n\n전력 수급 상태: -";
+        // 코딩 미완료(스킵) — 플레이어가 정하는 값만 '-'로 두고, 감지 항목은 OFF로 표시한다.
+        // 발전이 아예 일어나지 않았으므로 전력 수급 상태는 '-'가 아니라 '부족'으로 확정한다.
+        // 레벨1(태양광) — 문제로 주어지는 값이 따로 없어 두 줄 다 '-'.
+        public const string NoResultText = "가동 수: -\n방향: -\n\n전력 수급 상태: " + StatusPoor;
 
-        // 레벨2(풍력) 스킵 — 값은 레벨1과 같이 '-'로, 반복 감지만 OFF로 표시
-        public const string WindNoResultText = "-\n반복 감지: " + DetectedOff + "\n\n전력 수급 상태: -";
+        // 레벨2(풍력) — 바람 방향은 문제로 주어진 값이라 그대로 두고, 풍차 방향만 '-'.
+        public const string WindNoResultTextFormat =
+            "감지된 바람 방향: [{0}]\n풍차 방향: -\n반복 감지: " + DetectedOff + "\n\n전력 수급 상태: " + StatusPoor;
 
-        // 레벨3(수력) 스킵 — 값은 '-'로, 조건 감지만 OFF로 표시
-        public const string HydroNoResultText = "-\n조건 감지: " + DetectedOff + "\n\n전력 수급 상태: -";
+        // 레벨3(수력) — 강물 높이는 문제로 주어진 값이라 그대로 두고, 수문 개방 높이만 '-'.
+        public const string HydroNoResultTextFormat =
+            "감지된 강물의 높이: [{0}]\n수문 개방 높이: -\n조건 감지: " + DetectedOff + "\n\n전력 수급 상태: " + StatusPoor;
 
-        // 레벨4(발전소) 스킵 — 값은 '-'로, 감지 항목만 OFF로 표시
-        public const string PowerPlantNoResultText = "-\n반복 감지: " + DetectedOff + "\n병원 전력 유지: " + DetectedOff + "\n\n전력 수급 상태: -";
+        // 레벨4(발전소) — 상황은 매 판 고정이라 그대로 두고, 플레이어가 만드는 조건/배치만 '-'.
+        public const string PowerPlantNoResultText =
+            "상황: [" + PowerPlantSituation + "]\n조건: -\n반복 감지: " + DetectedOff + "\n병원 전력 유지: -\n\n전력 수급 상태: " + StatusPoor;
 
         // 'AI가 코딩을 시작합니다' 뒤 말줄임 애니메이션
         public const string AiCodingDots = "...";      // 슬롯 3개 — AiCodingDotCycle과 맞춰야 함

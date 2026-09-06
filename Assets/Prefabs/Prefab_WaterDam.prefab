@@ -418,8 +418,8 @@ ParticleSystem:
     startSpeed:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 0.24
-      minScalar: 0.08
+      scalar: 0.1
+      minScalar: 0.03
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -1119,7 +1119,7 @@ ParticleSystem:
     rateOverTime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 150
+      scalar: 0
       minScalar: 10
       maxCurve:
         serializedVersion: 2
@@ -5146,19 +5146,19 @@ MonoBehaviour:
     water: {fileID: 2991451154523603956}
     foam: {fileID: 5128264061986757871}
     foamPool: {fileID: 809366679693802297}
-    opening: 1
+    opening: 0
     closedScaleZ: 41.84
   - gate: {fileID: 1329017152861521716}
     water: {fileID: 4822533570539198807}
     foam: {fileID: 1126728156014196197}
     foamPool: {fileID: 2616664380150006622}
-    opening: 0.65
+    opening: 0
     closedScaleZ: 41.84
   - gate: {fileID: 8389479566645024751}
     water: {fileID: 7976039627824789263}
     foam: {fileID: 9220657534155855576}
     foamPool: {fileID: 3478177468598246209}
-    opening: 0.3
+    opening: 0
     closedScaleZ: 41.84
   - gate: {fileID: 2700509907290945213}
     water: {fileID: 8149728057820638902}
@@ -5166,6 +5166,7 @@ MonoBehaviour:
     foamPool: {fileID: 141483610780543989}
     opening: 0
     closedScaleZ: 41.84
+  openDuration: 3
   minStreamWidth: 1
   minStreamHeight: 1
   minStreamThickness: 0.2
@@ -5425,8 +5426,8 @@ ParticleSystem:
     startSpeed:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 0.142
-      minScalar: 0.044999998
+      scalar: 0.1
+      minScalar: 0.03
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -6126,7 +6127,7 @@ ParticleSystem:
     rateOverTime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 66
+      scalar: 0
       minScalar: 10
       maxCurve:
         serializedVersion: 2
@@ -15103,8 +15104,8 @@ ParticleSystem:
     startSpeed:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 0.191
-      minScalar: 0.062499996
+      scalar: 0.1
+      minScalar: 0.03
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -15804,7 +15805,7 @@ ParticleSystem:
     rateOverTime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 108
+      scalar: 0
       minScalar: 10
       maxCurve:
         serializedVersion: 2
@@ -19969,12 +19970,12 @@ PrefabInstance:
     - target: {fileID: -2117012103140297335, guid: a031b5e3c42481f4bab034b6957d2851,
         type: 3}
       propertyPath: m_BlendShapeWeights.Array.data[0]
-      value: 72
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -1937882452907516194, guid: a031b5e3c42481f4bab034b6957d2851,
         type: 3}
       propertyPath: m_LocalScale.z
-      value: 0
+      value: 41.84
       objectReference: {fileID: 0}
     - target: {fileID: -1937882452907516194, guid: a031b5e3c42481f4bab034b6957d2851,
         type: 3}
@@ -20024,7 +20025,7 @@ PrefabInstance:
     - target: {fileID: -608165536194913295, guid: a031b5e3c42481f4bab034b6957d2851,
         type: 3}
       propertyPath: m_BlendShapeWeights.Array.data[0]
-      value: 44
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: a031b5e3c42481f4bab034b6957d2851,
         type: 3}
@@ -20034,7 +20035,7 @@ PrefabInstance:
     - target: {fileID: 1903490928297391940, guid: a031b5e3c42481f4bab034b6957d2851,
         type: 3}
       propertyPath: m_LocalScale.z
-      value: 29.288
+      value: 41.84
       objectReference: {fileID: 0}
     - target: {fileID: 1903490928297391940, guid: a031b5e3c42481f4bab034b6957d2851,
         type: 3}
@@ -20084,12 +20085,12 @@ PrefabInstance:
     - target: {fileID: 4521941573380613388, guid: a031b5e3c42481f4bab034b6957d2851,
         type: 3}
       propertyPath: m_BlendShapeWeights.Array.data[0]
-      value: 100
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8968491851080804255, guid: a031b5e3c42481f4bab034b6957d2851,
         type: 3}
       propertyPath: m_LocalScale.z
-      value: 14.644001
+      value: 41.84
       objectReference: {fileID: 0}
     - target: {fileID: 8968491851080804255, guid: a031b5e3c42481f4bab034b6957d2851,
         type: 3}

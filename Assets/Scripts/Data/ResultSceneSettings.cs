@@ -18,6 +18,16 @@ namespace Data
         // 3D 태양광 패널 자세 애니메이션 시간(초) — 방향/각도가 순차 재생되므로 실제 소요는 이 값의 2배
         public float panelPoseDuration = 1.5f;
 
+        // 풍차 회전 속도 램프업 시간(초) — 레벨2 결과 스테이지. 정지 상태에서 효율에 비례한 속도까지
+        public float turbineSpinDuration = 1.5f;
+
+        // 댐 수문 개방 애니메이션 시간(초) — 레벨3 결과 스테이지. 닫힌 상태에서 효율에 비례한 개방량까지.
+        // 수문이 열리고 물이 마루에서 토우까지 내려가는 시간을 합친 값이라 다른 스테이지보다 길다.
+        public float damOpenDuration = 3f;
+
+        // 발전소 피스톤·수증기 강도 램프업 시간(초) — 레벨4 결과 스테이지
+        public float plantPumpDuration = 1.5f;
+
         // 'AI가 코딩을 시작합니다' 안내를 띄워 두는 시간(초)
         public float aiStartHold = 3f;
 
