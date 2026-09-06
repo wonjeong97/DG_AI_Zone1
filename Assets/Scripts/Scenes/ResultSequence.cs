@@ -24,12 +24,21 @@ namespace Scenes
         [SerializeField] private TextMeshProUGUI playerEffText;
         [SerializeField] private CanvasGroup aiEffGroup;
         [SerializeField] private TextMeshProUGUI aiEffText;
-        // TODO: 레벨2(풍력) 결과 스테이지 — 3D 풍차 모델을 아직 4_Result에 배치하지 않았다.
-        //       지금은 레벨과 무관하게 태양광 패널(ResultStage3D/PlayerPanel·AiPanel)만 회전한다.
-        //       풍차를 배치할 때 레벨별로 스테이지를 교체하는 구조와, SolarPanelModelPose에 대응하는
-        //       풍차용 방향(yaw) 제어 컴포넌트가 필요하다. (WindTurbineSpin은 날개 회전만 담당)
+        // 레벨별 3D 결과 스테이지 — 모델과 전용 카메라(RenderTexture 공유)를 통째로 켜고 끈다.
+        // 모든 스테이지의 카메라가 같은 RT를 노리므로 반드시 한 스테이지만 활성 상태여야 한다.
+        // 전용 모델이 없는 레벨(1·5)은 태양광 스테이지를 그대로 쓴다.
+        [SerializeField] private GameObject solarStage;
+        [SerializeField] private GameObject windStage;
+        [SerializeField] private GameObject hydroStage;
+        [SerializeField] private GameObject plantStage;
         [SerializeField] private SolarPanelModelPose playerPanelPose;
         [SerializeField] private SolarPanelModelPose aiPanelPose;
+        [SerializeField] private WindTurbineSpin playerTurbineSpin;
+        [SerializeField] private WindTurbineSpin aiTurbineSpin;
+        [SerializeField] private DamGateFlow playerDamGates;
+        [SerializeField] private DamGateFlow aiDamGates;
+        [SerializeField] private PowerPlantPump playerPlantPump;
+        [SerializeField] private PowerPlantPump aiPlantPump;
         [SerializeField] private float effCountDuration = 0.8f;
 
         [SerializeField] private CanvasGroup resultPanel;
@@ -54,10 +63,15 @@ namespace Scenes
 
         private const int MaxPercent = 100;
 
+        private string CurrentLevelName => _session && _session.currentLevel ? _session.currentLevel.name : null;
+
         // 셰이더 프로퍼티 조회 비용을 줄이기 위한 ID 캐시
         private static readonly int GrayscaleAmountId = Shader.PropertyToID("_GrayscaleAmount");
 
         private int _playerPercent;
+        private bool _isWindStage;             // 풍력 스테이지로 연출 중인지 (레벨2)
+        private bool _isHydroStage;            // 수력 스테이지로 연출 중인지 (레벨3)
+        private bool _isPlantStage;            // 발전소 스테이지로 연출 중인지 (레벨4)
         private Material _grayscaleInstance;   // 흑백 전환용 머티리얼 인스턴스 (null이면 컬러 유지)
 
         // 00_Common.json의 panelFadeDuration 사용 — 로드 전까지의 폴백 기본값
@@ -68,32 +82,7 @@ namespace Scenes
 
         private void Start()
         {
-            // UI 작업 중 에디터에서 패널을 꺼둔 채 플레이해도 항상 resultPanel만 보이는 상태로 시작하도록 정규화.
-            // CompletePanel은 크로스페이드 전까지 투명 상태 — 미리 입력을 막아 ResultPanel을 가리지 않도록
-            SceneFader.InitializePanelState(resultPanel, true);
-            SceneFader.InitializePanelState(completePanel, false);
-
-            // 확인 버튼은 시퀀스에서 페이드인 완료 후에만 입력 가능
-            confirmButtonGroup.alpha = 0f;
-            SceneFader.SetGroupInteractable(confirmButtonGroup, false);
-
-            if (aiStartPanel)
-            {
-                aiStartPanel.alpha = 0f;
-                SceneFader.SetGroupInteractable(aiStartPanel, false);
-            }
-
-            // AI 결과 패널은 AI 시작 안내 연출 후 페이드인 — 초기엔 숨김
-            if (aiResultGroup)
-                aiResultGroup.alpha = 0f;
-
-            // 에너지 효율 텍스트는 각 이미지 페이드인 후 별도로 페이드인 — 초기엔 숨김
-            if (playerEffGroup) playerEffGroup.alpha = 0f;
-            if (aiEffGroup) aiEffGroup.alpha = 0f;
-
-            // 태양광 패널은 기본 자세(평평·정면)에서 시작 — 값에 맞춰 이후 애니메이션
-            if (playerPanelPose) playerPanelPose.SetNeutral();
-            if (aiPanelPose) aiPanelPose.SetNeutral();
+            InitializeSceneState();
 
             if (nextButton)
                 nextButton.onClick.AddListener(OnNextClicked);
@@ -103,6 +92,48 @@ namespace Scenes
 
             ApplySessionResults();
             PlaySequence().Forget();
+        }
+
+        // 시퀀스가 건드리는 모든 표시 상태를 첫 입장 기준으로 되돌린다.
+        // 에디터에서 연출 중간 값(alpha, 꺼둔 패널, 흑백 머티리얼 등)을 저장해두고 플레이해도
+        // 항상 같은 그림에서 연출이 시작되도록, 씬에 저장된 값에 의존하지 않는 것이 목적이다.
+        private void InitializeSceneState()
+        {
+            // 레벨에 맞는 3D 스테이지를 먼저 켠다 — 아래 SetNeutral()이 활성화된 컴포넌트에 닿도록
+            ApplyLevelStage();
+
+            // 결과 패널만 보이는 상태로 시작. CompletePanel은 크로스페이드 전까지 투명 —
+            // 미리 입력을 막아 ResultPanel을 가리지 않도록
+            SceneFader.InitializePanelState(resultPanel, true);
+            SceneFader.InitializePanelState(completePanel, false);
+
+            // 시퀀스가 순서대로 페이드인하는 것들 — 전부 투명·입력 차단 상태에서 시작.
+            // (플레이어 이미지 → 효율 → AI 시작 안내 → AI 결과/이미지/효율 → 확인 버튼)
+            SceneFader.InitializePanelState(playerImageGroup, false);
+            SceneFader.InitializePanelState(playerEffGroup, false);
+            SceneFader.InitializePanelState(aiStartPanel, false);
+            SceneFader.InitializePanelState(aiResultGroup, false);
+            SceneFader.InitializePanelState(aiImageGroup, false);
+            SceneFader.InitializePanelState(aiEffGroup, false);
+            SceneFader.InitializePanelState(confirmButtonGroup, false);
+
+            // 효율 텍스트는 0%에서 카운트업 — 씬에 남은 값이 페이드인 첫 프레임에 비치지 않도록
+            if (playerEffText) playerEffText.text = FormatEfficiency(0);
+            if (aiEffText) aiEffText.text = FormatEfficiency(0);
+
+            // 흑백 머티리얼은 판정 결과에 따라 런타임에만 붙인다 — 씬에 남아 있으면 컬러로 되돌린다
+            if (playerImageGroup && playerImageGroup.TryGetComponent(out RawImage playerImage))
+                playerImage.material = null;
+
+            // 태양광 패널은 기본 자세(평평·정면), 풍차는 정지, 댐 수문은 닫힌 상태에서 시작
+            if (playerPanelPose) playerPanelPose.SetNeutral();
+            if (aiPanelPose) aiPanelPose.SetNeutral();
+            if (playerTurbineSpin) playerTurbineSpin.SetNeutral();
+            if (aiTurbineSpin) aiTurbineSpin.SetNeutral();
+            if (playerDamGates) playerDamGates.SetNeutral();
+            if (aiDamGates) aiDamGates.SetNeutral();
+            if (playerPlantPump) playerPlantPump.SetNeutral();
+            if (aiPlantPump) aiPlantPump.SetNeutral();
         }
 
         private void OnDestroy()
@@ -130,13 +161,28 @@ namespace Scenes
             SceneFader.FadeAndLoad(nextScene).Forget();
         }
 
+        // 레벨에 맞는 3D 스테이지만 남긴다 — 풍력(레벨2)은 풍차, 수력(레벨3)은 댐,
+        // 발전소(레벨4)는 발전소 건물, 나머지는 태양광 패널.
+        private void ApplyLevelStage()
+        {
+            string levelName = CurrentLevelName;
+            _isWindStage = IsWindLevel(levelName);
+            _isHydroStage = IsHydroLevel(levelName);
+            _isPlantStage = IsPowerPlantLevel(levelName);
+
+            if (solarStage) solarStage.SetActive(!_isWindStage && !_isHydroStage && !_isPlantStage);
+            if (windStage) windStage.SetActive(_isWindStage);
+            if (hydroStage) hydroStage.SetActive(_isHydroStage);
+            if (plantStage) plantStage.SetActive(_isPlantStage);
+        }
+
         // 4_Game에서 저장한 결과로 텍스트 구성 — 거치지 않고 진입하면 씬 기본 텍스트 유지
         private void ApplySessionResults()
         {
             if (!_session || _session.lastQuestionTime is null)
                 return;
 
-            string levelName = _session && _session.currentLevel ? _session.currentLevel.name : null;
+            string levelName = CurrentLevelName;
 
             // 코딩 완료(컴파일 성공) 없이 넘어온 경우 값 대신 '-' 표시.
             // 레벨마다 채워지는 값이 달라 개별 필드로 판정하지 않고 게임 씬이 세운 플래그를 그대로 쓴다.
@@ -161,8 +207,8 @@ namespace Scenes
                 // 스킵/코딩 미완료 — 효율 0% 고정
                 _playerPercent = 0;
                 playerText.SetText(
-                    IsWindLevel(levelName)       ? Constants.ResultMessages.WindNoResultText :
-                    IsHydroLevel(levelName)      ? Constants.ResultMessages.HydroNoResultText :
+                    IsWindLevel(levelName)       ? BuildWindNoResultText() :
+                    IsHydroLevel(levelName)      ? BuildHydroNoResultText() :
                     IsPowerPlantLevel(levelName) ? Constants.ResultMessages.PowerPlantNoResultText :
                                                    Constants.ResultMessages.NoResultText);
                 ApplyGrayscale();
@@ -245,6 +291,14 @@ namespace Scenes
                 hospitalInRepeat ? Constants.ResultMessages.DetectedOn : Constants.ResultMessages.DetectedOff,
                 status);
 
+        // 스킵 문구에 문제로 주어진 값이 들어가는 레벨 — 그 값만 채워 넣는다.
+        // 이 분기는 lastQuestionTime이 있을 때만 도달하므로 값이 비어 있을 일은 없다.
+        private string BuildWindNoResultText()
+            => string.Format(Constants.ResultMessages.WindNoResultTextFormat, _session.lastQuestionTime);
+
+        private string BuildHydroNoResultText()
+            => string.Format(Constants.ResultMessages.HydroNoResultTextFormat, _session.lastQuestionTime);
+
         private string BuildPlayerResultText(string levelName, string status)
         {
             if (IsWindLevel(levelName))
@@ -296,8 +350,7 @@ namespace Scenes
 
                 await playerText.PlayAsync(ct);
                 await SceneFader.FadeCanvasGroupAsync(playerImageGroup, 0f, 1f, _fadeDuration, ct);
-                if (playerPanelPose)
-                    await playerPanelPose.ApplyAsync(null, _session ? _session.lastDirection : null, ct);
+                await PlayPlayerStageAsync(ct);
                 await PlayEfficiencyAsync(playerEffGroup, playerEffText, _playerPercent, ct);
                 await FadeToGrayscaleAsync(ct);
 
@@ -309,9 +362,7 @@ namespace Scenes
 
                 await aiText.PlayAsync(ct);
                 await SceneFader.FadeCanvasGroupAsync(aiImageGroup, 0f, 1f, _fadeDuration, ct);
-                string levelName = _session && _session.currentLevel ? _session.currentLevel.name : null;
-                if (aiPanelPose)
-                    await aiPanelPose.ApplyAsync(null, BlockScorer.GetBestDirection(_session ? _session.lastQuestionTime : null, levelName), ct);
+                await PlayAiStageAsync(ct);
                 await PlayEfficiencyAsync(aiEffGroup, aiEffText, MaxPercent, ct);
 
                 await SceneFader.FadeCanvasGroupAsync(confirmButtonGroup, 0f, 1f, _fadeDuration, ct);
@@ -331,6 +382,58 @@ namespace Scenes
                 // 확인 버튼이 열리기 전에 빠져나갔다면 타이머가 멈춘 채 남으므로 여기서 되돌린다.
                 _inactivityTimer?.Resume();
             }
+        }
+
+        // 플레이어 스테이지 연출 — 태양광은 패널 방향, 풍력은 풍차 회전 속도,
+        // 수력은 댐 수문 개방량, 발전소는 피스톤·수증기 강도.
+        // 셋 다 에너지 효율(%)을 연출 강도로 쓴다(발전소만 부족 구간을 정지로 잘라낸다).
+        private async UniTask PlayPlayerStageAsync(CancellationToken ct)
+        {
+            if (_isWindStage)
+            {
+                if (playerTurbineSpin) await playerTurbineSpin.ApplyAsync(_playerPercent, ct);
+                return;
+            }
+
+            if (_isHydroStage)
+            {
+                if (playerDamGates) await playerDamGates.ApplyAsync(_playerPercent, ct);
+                return;
+            }
+
+            if (_isPlantStage)
+            {
+                if (playerPlantPump) await playerPlantPump.ApplyAsync(_playerPercent, ct);
+                return;
+            }
+
+            if (playerPanelPose)
+                await playerPanelPose.ApplyAsync(null, _session ? _session.lastDirection : null, ct);
+        }
+
+        // AI 스테이지 연출 — AI는 항상 정답이므로 전부 100% 기준으로 재생한다.
+        private async UniTask PlayAiStageAsync(CancellationToken ct)
+        {
+            if (_isWindStage)
+            {
+                if (aiTurbineSpin) await aiTurbineSpin.ApplyAsync(MaxPercent, ct);
+                return;
+            }
+
+            if (_isHydroStage)
+            {
+                if (aiDamGates) await aiDamGates.ApplyAsync(MaxPercent, ct);
+                return;
+            }
+
+            if (_isPlantStage)
+            {
+                if (aiPlantPump) await aiPlantPump.ApplyAsync(MaxPercent, ct);
+                return;
+            }
+
+            if (aiPanelPose)
+                await aiPanelPose.ApplyAsync(null, BlockScorer.GetBestDirection(_session ? _session.lastQuestionTime : null, CurrentLevelName), ct);
         }
 
         // AI 코딩 시작 안내 패널 — 페이드인 → 점(0~3) 반복 애니메이션 → 약 aiStartHold초 후 페이드아웃
@@ -382,6 +485,12 @@ namespace Scenes
             if (aiText) aiText.CharInterval = _sceneSettings.typewriterCharInterval;
             if (playerPanelPose) playerPanelPose.AnimDuration = _sceneSettings.panelPoseDuration;
             if (aiPanelPose) aiPanelPose.AnimDuration = _sceneSettings.panelPoseDuration;
+            if (playerTurbineSpin) playerTurbineSpin.RampDuration = _sceneSettings.turbineSpinDuration;
+            if (aiTurbineSpin) aiTurbineSpin.RampDuration = _sceneSettings.turbineSpinDuration;
+            if (playerDamGates) playerDamGates.OpenDuration = _sceneSettings.damOpenDuration;
+            if (aiDamGates) aiDamGates.OpenDuration = _sceneSettings.damOpenDuration;
+            if (playerPlantPump) playerPlantPump.RampDuration = _sceneSettings.plantPumpDuration;
+            if (aiPlantPump) aiPlantPump.RampDuration = _sceneSettings.plantPumpDuration;
         }
 
         // 상단 안내 문구 — 레벨별 문구 뒤에 말줄임 슬롯을 붙여둔다.

@@ -2,6 +2,9 @@
   "typewriterCharInterval": 0.03,
   "effCountDuration": 0.8,
   "panelPoseDuration": 1.5,
+  "turbineSpinDuration": 1.5,
+  "damOpenDuration": 3.0,
+  "plantPumpDuration": 1.5,
   "aiStartHold": 3.0,
   "aiCodingDotIntervalMs": 400,
   "topDotIntervalMs": 400

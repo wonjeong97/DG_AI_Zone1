@@ -10,6 +10,7 @@ Shader "DG/DamWaterFlow"
         _Opening    ("Opening (0-1)", Range(0,1)) = 1.0
         _WidthFrac  ("Stream Width (0-1)", Range(0,1)) = 1.0
         _HeightFrac ("Stream Height (0-1)", Range(0,1)) = 1.0
+        _FlowFrac   ("Flow Reach (0-1)", Range(0,1)) = 1.0
     }
 
     SubShader
@@ -46,6 +47,7 @@ Shader "DG/DamWaterFlow"
                 float  _Opening;
                 float  _WidthFrac;
                 float  _HeightFrac;
+                float  _FlowFrac;
             CBUFFER_END
 
             struct Attributes
@@ -103,6 +105,11 @@ Shader "DG/DamWaterFlow"
                 clip(IN.uv.y - topCut);
                 float topFade = smoothstep(topCut, topCut + 0.10, IN.uv.y);
 
+                // 도달 거리 - 수문이 열린 뒤 물이 마루에서 토우까지 내려가는 연출.
+                // 1이면 토우까지 다 닿은 상태라 아무것도 잘리지 않는다.
+                clip(_FlowFrac - IN.uv.y);
+                float leadFade = smoothstep(_FlowFrac, _FlowFrac - 0.08, IN.uv.y);
+
                 // V축이 흐름 방향(블렌더에서 호길이로 UV를 깔아둠)
                 float t = _Time.y * _Speed;
 
@@ -122,7 +129,7 @@ Shader "DG/DamWaterFlow"
                 float ndotl = saturate(abs(dot(n, mainLight.direction)));
                 col *= lerp(0.75, 1.15, ndotl);
 
-                half alpha = _BaseColor.a * saturate(_Opening) * edgeFade * topFade;
+                half alpha = _BaseColor.a * saturate(_Opening) * edgeFade * topFade * leadFade;
                 return half4(col, alpha);
             }
             ENDHLSL
