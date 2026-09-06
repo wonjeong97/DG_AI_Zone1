@@ -106,9 +106,12 @@ Shader "DG/DamWaterFlow"
                 float topFade = smoothstep(topCut, topCut + 0.10, IN.uv.y);
 
                 // 도달 거리 - 수문이 열린 뒤 물이 마루에서 토우까지 내려가는 연출.
-                // 1이면 토우까지 다 닿은 상태라 아무것도 잘리지 않는다.
-                clip(_FlowFrac - IN.uv.y);
-                float leadFade = smoothstep(_FlowFrac, _FlowFrac - 0.08, IN.uv.y);
+                // 선단은 leadWidth만큼 부드럽게 사라지는데, 그 폭만큼 여유를 두지 않으면
+                // 완전히 도달한 상태(_FlowFrac=1)에서도 토우 끝단이 투명하게 남는다.
+                const float leadWidth = 0.08;
+                float flowEdge = _FlowFrac * (1.0 + leadWidth);
+                clip(flowEdge - IN.uv.y);
+                float leadFade = smoothstep(flowEdge, flowEdge - leadWidth, IN.uv.y);
 
                 // V축이 흐름 방향(블렌더에서 호길이로 UV를 깔아둠)
                 float t = _Time.y * _Speed;

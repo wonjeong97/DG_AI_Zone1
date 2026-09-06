@@ -80,8 +80,14 @@ namespace Scenes
         private float _flowReach = 1f;
 
         private void OnEnable() => ApplyAll();
+
+        // 빌드에서는 매 프레임 돌 이유가 없다 — 값이 바뀌는 시점(OnEnable/SetNeutral/ApplyAsync)에만
+        // ApplyAll이 불리고, 스케일·MaterialPropertyBlock·파티클 설정은 한 번 넣으면 그대로 유지된다.
+        // 에디터에서는 인스펙터로 opening을 직접 만지며 확인하는 용도라 플레이 중에도 계속 반영한다.
+#if UNITY_EDITOR
         private void Update() => ApplyAll();
         private void OnValidate() => ApplyAll();
+#endif
 
         // 기본 상태(전부 닫힘, 물 없음) — 연출 시작점.
         public void SetNeutral()

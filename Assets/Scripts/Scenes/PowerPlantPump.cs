@@ -66,6 +66,9 @@ namespace Scenes
             CaptureRest();
             _phase = 0f;
             SetIntensity(0f);
+            // 방출을 멈춰도 이미 떠 있는 입자는 수명이 끝날 때까지 남는다 — 씬 진입 순간
+            // 이전 연출의 수증기가 비치지 않도록 지운다.
+            if (steam) steam.Clear();
             if (piston) piston.localPosition = _pistonRest;
         }
 
