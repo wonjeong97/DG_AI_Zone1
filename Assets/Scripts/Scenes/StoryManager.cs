@@ -62,9 +62,12 @@ namespace Scenes
 
             int unlockedIndex = Mathf.Clamp(_session ? _session.unlockedLevelIndex : 0, 0, levelDataList.Length - 1);
 
-            // 난이도 표시 — 현재 플레이어가 선택할 수 있는(잠금 해제된) 레벨 수만큼 별을 활성화
+            // 난이도 표시 — 별 1개만 고정으로 활성화
+            // 잠금 해제된 레벨 수만큼 별을 활성화하던 원래 로직 — 추후 재활성화할 수 있어 남겨둠
+            // for (int i = 0; i < difficultyStars.Length; i++)
+            //     if (difficultyStars[i]) difficultyStars[i].SetActive(i <= unlockedIndex);
             for (int i = 0; i < difficultyStars.Length; i++)
-                if (difficultyStars[i]) difficultyStars[i].SetActive(i <= unlockedIndex);
+                if (difficultyStars[i]) difficultyStars[i].SetActive(i == 0);
 
             for (int i = 0; i < levelButtons.Length; i++)
             {
@@ -73,7 +76,7 @@ namespace Scenes
                 int btnIndex = i;
                 levelButtons[i].onClick.AddListener(() => OnLevelButtonClicked(btnIndex));
 
-                if (i == unlockedIndex)
+                if (i <= unlockedIndex)
                 {
                     levelButtons[i].interactable = true;
                     if (levelButtons[i].image) levelButtons[i].image.material = null;

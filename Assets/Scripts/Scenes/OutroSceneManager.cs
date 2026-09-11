@@ -1,10 +1,12 @@
 using Cysharp.Threading.Tasks;
+using MessagePipe;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Microsoft.Extensions.Logging;
 using UnityEngine.Video;
 using VContainer;
+using Wonjeong.App;
 using Wonjeong.Core;
 using ZLogger;
 
@@ -18,12 +20,15 @@ namespace Scenes
 
         private ILogger<OutroSceneManager> _log;
         private InactivityTimer _inactivityTimer;
+        private IPublisher<MoveIdleEvent> _moveIdlePublisher;
 
         [Inject]
-        public void Construct(ILogger<OutroSceneManager> log, InactivityTimer inactivityTimer)
+        public void Construct(ILogger<OutroSceneManager> log, InactivityTimer inactivityTimer,
+            IPublisher<MoveIdleEvent> moveIdlePublisher)
         {
             _log = log;
             _inactivityTimer = inactivityTimer;
+            _moveIdlePublisher = moveIdlePublisher;
         }
 
         private void Start()
@@ -62,6 +67,8 @@ namespace Scenes
 
         private void OnEndButtonClicked()
         {
+            // 체험을 마치고 홈으로 돌아가는 정상 흐름 — 서버 통계에 move_idle로 집계되어야 함
+            _moveIdlePublisher?.Publish(new MoveIdleEvent());
             SceneFader.FadeAndLoad(Constants.Scenes.Title).Forget();
         }
     }

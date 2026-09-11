@@ -3,6 +3,7 @@ using Cysharp.Threading.Tasks;
 using Data;
 using DG.Tweening;
 using Microsoft.Extensions.Logging;
+using System;
 using System.Threading;
 using UnityEngine;
 using UnityEngine.UI;
@@ -43,18 +44,28 @@ namespace Scenes
         {
             if (!qrCanvasGroup || _visitorInfoProvider == null) return;
 
-            bool isServerConnected = await _visitorInfoProvider.IsServerConnectedAsync(ct);
-            qrCanvasGroup.gameObject.SetActive(isServerConnected);
+            // 서버 연동 여부를 비동기로 확인하는 동안 QR이 잠깐 보였다 꺼지는 플리커를 막기 위해 먼저 숨겨 둠
+            qrCanvasGroup.gameObject.SetActive(false);
 
-            if (isServerConnected)
+            try
             {
-                string settingsPath = $"{Constants.ResourcePaths.SceneSettingsFolder}/{Constants.Scenes.Title}";
-                TitleSceneSettings sceneSettings = await JsonLoader.LoadAsync<TitleSceneSettings>(settingsPath, ct);
+                bool isServerConnected = await _visitorInfoProvider.IsServerConnectedAsync(ct);
+                qrCanvasGroup.gameObject.SetActive(isServerConnected);
 
-                qrCanvasGroup.DOFade(sceneSettings.qrBlinkMinAlpha, sceneSettings.qrFadeDuration)
-                    .SetLoops(-1, LoopType.Yoyo)
-                    .SetEase(Ease.InOutSine)
-                    .SetLink(qrCanvasGroup.gameObject);
+                if (isServerConnected)
+                {
+                    string settingsPath = $"{Constants.ResourcePaths.SceneSettingsFolder}/{Constants.Scenes.Title}";
+                    TitleSceneSettings sceneSettings = await JsonLoader.LoadAsync<TitleSceneSettings>(settingsPath, ct);
+
+                    qrCanvasGroup.DOFade(sceneSettings.qrBlinkMinAlpha, sceneSettings.qrFadeDuration)
+                        .SetLoops(-1, LoopType.Yoyo)
+                        .SetEase(Ease.InOutSine)
+                        .SetLink(qrCanvasGroup.gameObject);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // 확인 도중 씬 전환 등으로 오브젝트가 파괴된 경우 — 정상 종료
             }
         }
 
