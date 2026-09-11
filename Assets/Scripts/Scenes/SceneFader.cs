@@ -190,25 +190,6 @@ namespace Scenes
                 .ToUniTask(cancellationToken: ct);
         }
 
-        // 두 CanvasGroup 간 크로스페이드 — interactable/blocksRaycasts 전환 포함.
-        // duration을 생략하면 00_Common.json의 panelFadeDuration을 사용함
-        public static async UniTask CrossFadeGroupsAsync(CanvasGroup from, CanvasGroup to, float? duration = null, CancellationToken ct = default)
-        {
-            float resolvedDuration = duration ?? (await GetCommonSettingsAsync()).panelFadeDuration;
-
-            SetGroupInteractable(to, true);
-
-            UniTask fadeOut = from
-                ? from.DOFade(0f, resolvedDuration).SetEase(Ease.Linear).SetUpdate(true).SetLink(from.gameObject).ToUniTask(cancellationToken: ct)
-                : UniTask.CompletedTask;
-            UniTask fadeIn = to
-                ? to.DOFade(1f, resolvedDuration).SetEase(Ease.Linear).SetUpdate(true).SetLink(to.gameObject).ToUniTask(cancellationToken: ct)
-                : UniTask.CompletedTask;
-            await UniTask.WhenAll(fadeOut, fadeIn);
-
-            SetGroupInteractable(from, false);
-        }
-
         public static void SetGroupInteractable(CanvasGroup group, bool value)
         {
             if (!group) return;

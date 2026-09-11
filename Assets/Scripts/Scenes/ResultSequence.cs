@@ -372,9 +372,14 @@ namespace Scenes
                 _inactivityTimer?.Resume();
 
                 await confirmButton.OnClickAsync(ct);
-                // 크로스페이드 중 재클릭 방지
+                // 페이드 중 재클릭 방지
                 SceneFader.SetGroupInteractable(confirmButtonGroup, false);
-                await SceneFader.CrossFadeGroupsAsync(resultPanel, completePanel, _fadeDuration, ct);
+
+                // 순차 페이드 — resultPanel이 완전히 꺼진 뒤 completePanel이 켜짐
+                SceneFader.SetGroupInteractable(resultPanel, false);
+                await SceneFader.FadeCanvasGroupAsync(resultPanel, 1f, 0f, _fadeDuration, ct);
+                SceneFader.SetGroupInteractable(completePanel, true);
+                await SceneFader.FadeCanvasGroupAsync(completePanel, 0f, 1f, _fadeDuration, ct);
             }
             catch (OperationCanceledException)
             {

@@ -9,6 +9,7 @@ public static class Constants
         public const string Story  = "2_Story";
         public const string Game   = "3_Game";
         public const string Result = "4_Result";
+        public const string Outro  = "5_Outro";
     }
 
     // ── 2. 비디오 파일 경로 ──────────────────────────────────────
