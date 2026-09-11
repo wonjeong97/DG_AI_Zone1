@@ -11,7 +11,8 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 35b45145103e568498fa13c3afd65638, type: 3}
   m_Name: 02_WindData
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier:
+  levelIndex: 1
   nextSceneName: 3_Game
   blockLayout: {fileID: 11400000, guid: baecb7195ffa6f14ba6f9a4f7cad5301, type: 2}
   storyText: "\uBC14\uB78C\uC758 \uBC29\uD5A5\uC5D0 \uB530\uB77C,\n<font=\"GamtanRoadTantan
