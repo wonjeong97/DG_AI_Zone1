@@ -157,7 +157,11 @@ namespace Scenes
         private void OnNextClicked()
         {
             string nextScene = _session && _session.currentLevel ? _session.currentLevel.afterResultScene : Constants.Scenes.Story;
-            if (_session) _session.unlockedLevelIndex++;
+
+            // 이미 해금된 이전 레벨을 다시 플레이한 경우엔 진행도를 건드리지 않는다.
+            // 무조건 +1 하면 재플레이만으로 아직 깨지 않은 레벨까지 해금돼버린다.
+            if (_session && _session.currentLevel)
+                _session.unlockedLevelIndex = Mathf.Max(_session.unlockedLevelIndex, _session.currentLevel.levelIndex + 1);
             SceneFader.FadeAndLoad(nextScene).Forget();
         }
 

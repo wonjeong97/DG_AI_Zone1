@@ -5,6 +5,9 @@ namespace Data
     [CreateAssetMenu(fileName = "LevelData", menuName = "DG/Level Data")]
     public class LevelData : ScriptableObject
     {
+        [Tooltip("진행도 판정용 순번 — StoryManager.levelDataList 내 위치와 일치해야 함 (레벨1=0, 레벨2=1, ...)")]
+        public int levelIndex;
+
         public string nextSceneName;
         public BlockLayoutData blockLayout;
 
