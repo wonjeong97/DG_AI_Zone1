@@ -1,6 +1,9 @@
 using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using VContainer;
+using ZLogger;
 
 namespace Game
 {
@@ -12,6 +15,14 @@ namespace Game
 
         public Transform Content => content;
 
+        private ILogger<BlockZone> _log;
+
+        [Inject]
+        public void Construct(ILogger<BlockZone> log)
+        {
+            _log = log;
+        }
+
         public void OnDrop(PointerEventData e)
         {
             if (!e.pointerDrag || !e.pointerDrag.TryGetComponent<CodingBlock>(out CodingBlock block)) return;
@@ -22,7 +33,8 @@ namespace Game
             var all = new List<CodingBlock>();
             CollectAll(block, all);
 
-            CategoryZone categoryZone = FindObjectOfType<CategoryZone>();
+            // 존 참조는 드롭된 블록이 생성 시 BlockSpawner에게서 받아 들고 있다
+            CategoryZone categoryZone = block.CategoryZone;
 
             foreach (CodingBlock b in all)
             {
@@ -31,7 +43,7 @@ namespace Game
                 b.SetHome(content);
 
                 // 인벤토리로 반입될 때 현재 선택된 카테고리와 다른 경우 비활성화 처리
-                if (categoryZone != null && content == categoryZone.InventoryContent)
+                if (categoryZone && content == categoryZone.InventoryContent)
                 {
                     b.gameObject.SetActive(BlockFactory.GetTabCategory(b.Category) == categoryZone.CurrentCategory);
                 }
@@ -42,11 +54,11 @@ namespace Game
         {
             if (block.Category == BlockCategory.Control)
             {
-                CodingZone codingZone = FindObjectOfType<CodingZone>();
+                CodingZone codingZone = block.CodingZone;
                 if (codingZone)
-                {
                     CodingBlock.ResetControlBlockPosition(block, codingZone.transform);
-                }
+                else if (_log != null)
+                    _log.ZLogWarning($"[BlockZone] {block.name}에 CodingZone이 연결되지 않아 제자리로 되돌릴 수 없습니다.");
                 return;
             }
 
@@ -55,7 +67,7 @@ namespace Game
 
             // 2. ChainOutSocket 자식을 먼저 분리 — 이후 GetComponentsInChildren이 손자 소켓을 잡지 않도록
             ChainOutSocket chainOut = block.GetComponentInChildren<ChainOutSocket>();
-            CodingBlock chainChild = chainOut?.Occupant;
+            CodingBlock chainChild = chainOut ? chainOut.Occupant : null;
             if (chainOut) chainOut.Release();
             if (chainChild) chainChild.transform.SetParent(null, true);
 

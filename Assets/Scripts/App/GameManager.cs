@@ -5,13 +5,13 @@ using Microsoft.Extensions.Logging;
 using Scenes;
 using UnityEngine.SceneManagement;
 using VContainer;
-using Wonjeong.App;
-using Wonjeong.Core;
+using HuliacDev.App;
+using HuliacDev.Core;
 using ZLogger;
 
 namespace App
 {
-    public class GameManager : GameManagerBase<GameManager>
+    public class GameManager : GameManagerBase
     {
         private ISubscriber<InactivityTimeoutEvent> _inactivityTimeoutSubscriber;
         private InactivityTimer _inactivityTimer;

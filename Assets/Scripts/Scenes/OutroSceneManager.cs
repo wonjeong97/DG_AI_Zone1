@@ -6,8 +6,8 @@ using UnityEngine.UI;
 using Microsoft.Extensions.Logging;
 using UnityEngine.Video;
 using VContainer;
-using Wonjeong.App;
-using Wonjeong.Core;
+using HuliacDev.App;
+using HuliacDev.Core;
 using ZLogger;
 
 namespace Scenes

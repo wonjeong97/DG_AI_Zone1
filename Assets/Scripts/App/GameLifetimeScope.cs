@@ -9,9 +9,9 @@ using UnityEngine.SceneManagement;
 using UnityEngine.TextCore.Text;
 using VContainer;
 using VContainer.Unity;
-using Wonjeong.App;
-using Wonjeong.UI;
-using Wonjeong.Utils;
+using HuliacDev.App;
+using HuliacDev.UI;
+using HuliacDev.Utils;
 
 namespace App
 {
@@ -39,6 +39,7 @@ namespace App
             builder.RegisterBuildCallback(container =>
             {
                 FadeManager fadeManager = container.Resolve<FadeManager>();
+                Scenes.SceneFader.RegisterFadeManager(fadeManager);
 
                 // 템플릿 FadeManager가 자체 생성하는 FadeCanvas의 sortingOrder가 기본값(-1)이라
                 // 씬의 UI Canvas(0)보다도 아래에 그려져 페이드 커튼이 화면을 실제로 가리지 못했음.
@@ -67,13 +68,13 @@ namespace App
         {
             try
             {
-                IList<FontAsset> fonts = Addressables
-                    .LoadAssetsAsync<FontAsset>(Constants.ResourcePaths.TmpFontLabel, null)
+                IList<TMP_FontAsset> fonts = Addressables
+                    .LoadAssetsAsync<TMP_FontAsset>(Constants.ResourcePaths.TmpFontLabel, null)
                     .WaitForCompletion();
 
                 if (fonts is null) return;
 
-                foreach (FontAsset font in fonts)
+                foreach (TMP_FontAsset font in fonts)
                     if (font) MaterialReferenceManager.AddFontAsset(font);
             }
             catch (Exception ex)

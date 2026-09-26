@@ -9,8 +9,8 @@ using UnityEngine.UI;
 using Microsoft.Extensions.Logging;
 using UnityEngine.Video;
 using VContainer;
-using Wonjeong.Core;
-using Wonjeong.Utils;
+using HuliacDev.Core;
+using HuliacDev.Utils;
 using ZLogger;
 
 namespace Scenes
@@ -187,7 +187,7 @@ namespace Scenes
         {
             if (_currentLevel == null) return;
             if (_session) _session.currentLevel = _currentLevel;
-            SceneFader.FadeAndLoad(_currentLevel.nextSceneName, logger: _log).Forget();
+            SceneFader.FadeAndLoad(Constants.Scenes.Game, logger: _log).Forget();
         }
     }
 }

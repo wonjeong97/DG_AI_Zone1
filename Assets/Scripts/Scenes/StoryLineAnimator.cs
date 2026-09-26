@@ -4,7 +4,7 @@ using Cysharp.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using Wonjeong.Core;
+using HuliacDev.Core;
 
 namespace Scenes
 {
@@ -32,14 +32,14 @@ namespace Scenes
         {
             if (text == null) return;
 
-            inactivityTimer?.Pause();
+            if (inactivityTimer) inactivityTimer.Pause();
             try
             {
                 await AnimateLinesAsync(text, lineMoveDuration, lineInterval, lineYOffset, skipRequested, token);
             }
             finally
             {
-                inactivityTimer?.Resume();
+                if (inactivityTimer) inactivityTimer.Resume();
             }
         }
 

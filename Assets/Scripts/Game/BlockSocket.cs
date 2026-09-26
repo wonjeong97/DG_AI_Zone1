@@ -22,6 +22,17 @@ namespace Game
         protected void SetOccupant(CodingBlock block) => _occupant = block;
 
         /// <summary>
+        /// 이름으로 직계 자식을 찾아 컴포넌트를 반환한다. 자식이나 컴포넌트가 없으면 null.
+        /// 소켓 자식 이름은 BlockFactory가 Constants.Sockets 상수로 직접 만든 것이라 이름 탐색이 허용된다.
+        /// </summary>
+        public static T FindChildComponent<T>(Transform parent, string childName) where T : Component
+        {
+            Transform child = parent.Find(childName);
+            if (child && child.TryGetComponent(out T component)) return component;
+            return null;
+        }
+
+        /// <summary>
         /// 자식 블록의 In 소켓 앵커 위치가 이 소켓 위치와 겹치도록 anchoredPosition 오프셋을 계산한다.
         /// </summary>
         protected static Vector2 ComputeSnapOffset(CodingBlock block, Component inSocket)
@@ -57,8 +68,12 @@ namespace Game
         /// </summary>
         protected static void MoveToCodingZone(CodingBlock block)
         {
-            CodingZone zone = FindObjectOfType<CodingZone>();
-            if (!zone) return;
+            CodingZone zone = block.CodingZone;
+            if (!zone)
+            {
+                Debug.LogWarning($"[BlockSocket] {block.name}에 CodingZone이 연결되지 않아 코딩 패널로 옮기지 못했습니다.");
+                return;
+            }
 
             block.transform.SetParent(zone.transform, true);
             block.SetHome(zone.transform);

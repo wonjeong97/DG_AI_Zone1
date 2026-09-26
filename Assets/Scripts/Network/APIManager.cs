@@ -1,6 +1,6 @@
 using Cysharp.Threading.Tasks;
 using UnityEngine.SceneManagement;
-using Wonjeong.Network;
+using HuliacDev.Network;
 
 namespace Network
 {

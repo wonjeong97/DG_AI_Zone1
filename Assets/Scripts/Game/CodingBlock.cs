@@ -55,10 +55,62 @@ namespace Game
         private int _homeIndex;
         private Vector2 _homeAnchoredPos;
 
+        // 블록이 속한 씬의 코딩 패널/카테고리 존 — BlockSpawner가 생성 직후 SetZones로 넘겨준다
+        private CodingZone _codingZone;
+        private CategoryZone _categoryZone;
+
+        public CodingZone CodingZone => _codingZone;
+        public CategoryZone CategoryZone => _categoryZone;
+
+        public void SetZones(CodingZone codingZone, CategoryZone categoryZone)
+        {
+            _codingZone = codingZone;
+            _categoryZone = categoryZone;
+        }
+
         private ChainOutSocket[] _cachedChainOutSockets;
         private InnerSocket[] _cachedInnerSockets;
         private ValueOutSocket[] _cachedValueOutSockets;
         private ConditionOutSocket[] _cachedConditionOutSockets;
+
+        // 스냅 후보 소켓 수집 — 후보는 코딩 패널 위의 소켓뿐이므로 씬 전체가 아니라 CodingZone 하위만 본다
+        private void BuildDragCache()
+        {
+            if (!_codingZone)
+            {
+                if (_log != null) _log.ZLogWarning($"[CodingBlock] {name}에 CodingZone이 연결되지 않아 스냅 대상을 찾을 수 없습니다.");
+                _cachedChainOutSockets = System.Array.Empty<ChainOutSocket>();
+                _cachedInnerSockets = System.Array.Empty<InnerSocket>();
+                _cachedValueOutSockets = System.Array.Empty<ValueOutSocket>();
+                _cachedConditionOutSockets = System.Array.Empty<ConditionOutSocket>();
+                return;
+            }
+
+            _cachedChainOutSockets = _codingZone.GetComponentsInChildren<ChainOutSocket>();
+            _cachedInnerSockets = _codingZone.GetComponentsInChildren<InnerSocket>();
+            _cachedValueOutSockets = _codingZone.GetComponentsInChildren<ValueOutSocket>();
+            _cachedConditionOutSockets = _codingZone.GetComponentsInChildren<ConditionOutSocket>();
+        }
+
+        // 드래그 도중이 아닌데 스냅 판정이 호출된 경우(OnBeginDrag가 조기 반환 등)에도 후보를 준비한다
+        private void EnsureDragCache()
+        {
+            if (_cachedChainOutSockets == null) BuildDragCache();
+        }
+
+        /// <summary>
+        /// 코딩 패널과 인벤토리의 모든 블록에서 컴파일 결과 표시(성공/에러)를 지운다.
+        /// </summary>
+        public static void ClearAllErrorHighlights(CodingZone codingZone, CategoryZone categoryZone)
+        {
+            if (codingZone)
+                foreach (CodingBlock b in codingZone.GetComponentsInChildren<CodingBlock>(true))
+                    b.ClearErrorHighlight();
+
+            if (categoryZone && categoryZone.InventoryContent)
+                foreach (CodingBlock b in categoryZone.InventoryContent.GetComponentsInChildren<CodingBlock>(true))
+                    b.ClearErrorHighlight();
+        }
 
         private void ClearDragCache()
         {
@@ -368,7 +420,10 @@ namespace Game
             get
             {
                 if (!_canvas)
-                    _canvas = GetComponentInParent<Canvas>()?.rootCanvas;
+                {
+                    Canvas parentCanvas = GetComponentInParent<Canvas>();
+                    if (parentCanvas) _canvas = parentCanvas.rootCanvas;
+                }
                 return _canvas;
             }
         }
@@ -380,18 +435,14 @@ namespace Game
             // 드래그 시작 시 소켓이 확실히 부착되어 있도록 보장 (스냅 오프셋 기준점 정상화)
             BlockFactory.AttachSockets(this);
 
-            _cachedChainOutSockets = FindObjectsOfType<ChainOutSocket>();
-            _cachedInnerSockets = FindObjectsOfType<InnerSocket>();
-            _cachedValueOutSockets = FindObjectsOfType<ValueOutSocket>();
-            _cachedConditionOutSockets = FindObjectsOfType<ConditionOutSocket>();
+            BuildDragCache();
 
             // 코딩을 다시 건드리기 시작하면 이전 빌드 결과(성공/에러 외곽선)는 더 이상 유효하지 않으므로 정리
-            foreach (CodingBlock b in FindObjectsOfType<CodingBlock>())
-                b.ClearErrorHighlight();
+            ClearAllErrorHighlights(_codingZone, _categoryZone);
 
-            _snapTarget?.ClearSnapHighlight();
+            if (_snapTarget) _snapTarget.ClearSnapHighlight();
             _snapTarget = null;
-            _snapInnerSocket?.ClearSnapHighlight();
+            if (_snapInnerSocket) _snapInnerSocket.ClearSnapHighlight();
             _snapInnerSocket = null;
 
             // 진행 중인 스냅 트윈을 즉시 완료 — 리페런트 후 잔여 틱이 캔버스 좌표계에 적용되어
@@ -424,8 +475,7 @@ namespace Game
 
         private void SpliceOutChild(Action<CodingBlock> acceptToParent)
         {
-            ChainOutSocket myOut = null;
-            transform.Find(Constants.Sockets.ChainOutName)?.TryGetComponent(out myOut);
+            ChainOutSocket myOut = BlockSocket.FindChildComponent<ChainOutSocket>(transform, Constants.Sockets.ChainOutName);
             CodingBlock myChild = myOut ? myOut.Occupant : null;
             if (!myChild) return;
 
@@ -490,8 +540,8 @@ namespace Game
 
             if (newTarget == _snapTarget && newInnerSocket == _snapInnerSocket) return;
 
-            _snapTarget?.ClearSnapHighlight();
-            _snapInnerSocket?.ClearSnapHighlight();
+            if (_snapTarget) _snapTarget.ClearSnapHighlight();
+            if (_snapInnerSocket) _snapInnerSocket.ClearSnapHighlight();
 
             _snapTarget = newTarget;
             _snapInnerSocket = newInnerSocket;
@@ -509,9 +559,9 @@ namespace Game
 
         public void OnEndDrag(PointerEventData e)
         {
-            _snapTarget?.ClearSnapHighlight();
+            if (_snapTarget) _snapTarget.ClearSnapHighlight();
             _snapTarget = null;
-            _snapInnerSocket?.ClearSnapHighlight();
+            if (_snapInnerSocket) _snapInnerSocket.ClearSnapHighlight();
             _snapInnerSocket = null;
             _cg.blocksRaycasts = true;
             IsDragHandled = false;
@@ -588,8 +638,7 @@ namespace Game
         // ChainInSocket 위치 또는 블록 상단 중앙을 스냅 기준점으로 반환
         private bool TryGetChainSnapOrigin(out Vector2 pos)
         {
-            ChainInSocket inSocket = null;
-            transform.Find(Constants.Sockets.ChainInName)?.TryGetComponent(out inSocket);
+            ChainInSocket inSocket = BlockSocket.FindChildComponent<ChainInSocket>(transform, Constants.Sockets.ChainInName);
             if (inSocket)
             {
                 pos = (Vector2)inSocket.transform.position;
@@ -639,12 +688,11 @@ namespace Game
             ChainOutSocket best = null;
             float minSqr = ChainSnapRadius * ChainSnapRadius;
 
-            var candidates = _cachedChainOutSockets ?? FindObjectsOfType<ChainOutSocket>();
-            foreach (ChainOutSocket candidate in candidates)
+            EnsureDragCache();
+            foreach (ChainOutSocket candidate in _cachedChainOutSockets)
             {
                 if (candidate.transform.IsChildOf(transform)) continue;
                 if (!candidate.CanAccept(this)) continue;
-                if (!candidate.GetComponentInParent<CodingZone>()) continue;
 
                 Vector2 delta = myPos - (Vector2)candidate.transform.position;
                 if (delta.y >= 0f) continue;
@@ -673,12 +721,11 @@ namespace Game
             InnerSocket best = null;
             float minSqr = ChainSnapRadius * ChainSnapRadius;
 
-            var candidates = _cachedInnerSockets ?? FindObjectsOfType<InnerSocket>();
-            foreach (InnerSocket candidate in candidates)
+            EnsureDragCache();
+            foreach (InnerSocket candidate in _cachedInnerSockets)
             {
                 if (candidate.transform.IsChildOf(transform)) continue;
                 if (!candidate.CanAccept(this)) continue;
-                if (!candidate.GetComponentInParent<CodingZone>()) continue;
 
                 Vector2 delta = myPos - (Vector2)candidate.transform.position;
                 if (delta.y >= 0f) continue; // 3·4사분면(하단)만 허용
@@ -705,12 +752,11 @@ namespace Game
             ValueOutSocket best = null;
             float minSqr = SnapRadius * SnapRadius;
 
-            var candidates = _cachedValueOutSockets ?? FindObjectsOfType<ValueOutSocket>();
-            foreach (ValueOutSocket candidate in candidates)
+            EnsureDragCache();
+            foreach (ValueOutSocket candidate in _cachedValueOutSockets)
             {
                 if (candidate.transform.IsChildOf(transform)) continue;
                 if (!candidate.IsEmpty) continue;
-                if (!candidate.GetComponentInParent<CodingZone>()) continue;
 
                 CodingBlock targetBlock = candidate.GetComponentInParent<CodingBlock>();
                 if (targetBlock)
@@ -753,12 +799,11 @@ namespace Game
             ConditionOutSocket best = null;
             float minSqr = SnapRadius * SnapRadius;
 
-            var candidates = _cachedConditionOutSockets ?? FindObjectsOfType<ConditionOutSocket>();
-            foreach (ConditionOutSocket candidate in candidates)
+            EnsureDragCache();
+            foreach (ConditionOutSocket candidate in _cachedConditionOutSockets)
             {
                 if (candidate.transform.IsChildOf(transform)) continue;
                 if (!candidate.IsEmpty) continue;
-                if (!candidate.GetComponentInParent<CodingZone>()) continue;
 
                 CodingBlock targetBlock = candidate.GetComponentInParent<CodingBlock>();
                 if (targetBlock)
@@ -834,11 +879,8 @@ namespace Game
         {
             get
             {
-                if (!_inventoryParent)
-                {
-                    var categoryZone = FindObjectOfType<CategoryZone>();
-                    if (categoryZone) _inventoryParent = categoryZone.InventoryContent;
-                }
+                if (!_inventoryParent && _categoryZone)
+                    _inventoryParent = _categoryZone.InventoryContent;
                 return _inventoryParent;
             }
         }
@@ -916,11 +958,10 @@ namespace Game
         {
             if (Category == BlockCategory.Control)
             {
-                CodingZone codingZone = FindObjectOfType<CodingZone>();
-                if (codingZone)
-                {
-                    ResetControlBlockPosition(this, codingZone.transform);
-                }
+                if (_codingZone)
+                    ResetControlBlockPosition(this, _codingZone.transform);
+                else if (_log != null)
+                    _log.ZLogWarning($"[CodingBlock] {name}에 CodingZone이 연결되지 않아 제자리로 되돌릴 수 없습니다.");
                 return;
             }
 
@@ -932,11 +973,10 @@ namespace Game
                 transform.SetParent(targetParent, false);
                 SetHome(targetParent);
 
-                var categoryZone = FindObjectOfType<CategoryZone>();
-                if (categoryZone)
-                {
-                    gameObject.SetActive(BlockFactory.GetTabCategory(Category) == categoryZone.CurrentCategory);
-                }
+                if (_categoryZone)
+                    gameObject.SetActive(BlockFactory.GetTabCategory(Category) == _categoryZone.CurrentCategory);
+                else if (_log != null)
+                    _log.ZLogWarning($"[CodingBlock] {name}에 CategoryZone이 연결되지 않아 탭 필터를 적용하지 못했습니다.");
             }
             else if (_homeParent)
             {
@@ -973,10 +1013,10 @@ namespace Game
         /// </summary>
         private void ReturnHomeOrRelease(PointerEventData e)
         {
-            CodingZone zone = FindObjectOfType<CodingZone>();
+            CodingZone zone = _codingZone;
             if (!zone)
             {
-                _log?.ZLogWarning($"[CodingBlock] CodingZone을 찾을 수 없습니다.");
+                _log?.ZLogWarning($"[CodingBlock] CodingZone이 연결되지 않았습니다.");
                 ReturnToInventory();
                 return;
             }
