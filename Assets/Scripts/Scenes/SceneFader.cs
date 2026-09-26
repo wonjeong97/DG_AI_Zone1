@@ -7,8 +7,8 @@ using DG.Tweening;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.Video;
-using Wonjeong.UI;
-using Wonjeong.Utils;
+using HuliacDev.UI;
+using HuliacDev.Utils;
 using ZLogger;
 
 namespace Scenes

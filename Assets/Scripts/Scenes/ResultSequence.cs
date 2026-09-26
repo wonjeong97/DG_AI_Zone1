@@ -8,8 +8,8 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using VContainer;
-using Wonjeong.Core;
-using Wonjeong.Utils;
+using HuliacDev.Core;
+using HuliacDev.Utils;
 
 namespace Scenes
 {

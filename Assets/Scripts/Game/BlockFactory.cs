@@ -39,12 +39,12 @@ namespace Game
         }
 
         // 한글 라벨용 폰트 — Addressables로 로드 후 캐시.
-        private static UnityEngine.TextCore.Text.FontAsset _labelFont;
+        private static TMPro.TMP_FontAsset _labelFont;
 
-        public static async UniTask<UnityEngine.TextCore.Text.FontAsset> LoadLabelFontAsync()
+        public static async UniTask<TMPro.TMP_FontAsset> LoadLabelFontAsync()
         {
             if (_labelFont) return _labelFont;
-            _labelFont = await Addressables.LoadAssetAsync<UnityEngine.TextCore.Text.FontAsset>(Constants.ResourcePaths.LabelFontKey);
+            _labelFont = await Addressables.LoadAssetAsync<TMPro.TMP_FontAsset>(Constants.ResourcePaths.LabelFontKey);
             return _labelFont;
         }
 
@@ -699,7 +699,7 @@ namespace Game
 
         private static async UniTask AddLabel(GameObject go, string text, int size = 28, float bottom = 0f)
         {
-            UnityEngine.TextCore.Text.FontAsset font = await LoadLabelFontAsync();
+            TMPro.TMP_FontAsset font = await LoadLabelFontAsync();
             GameObject t = new GameObject(Constants.BlockParts.Label, typeof(RectTransform));
             t.SetActive(false);
             t.transform.SetParent(go.transform, false);

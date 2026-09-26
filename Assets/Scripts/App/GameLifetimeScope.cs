@@ -9,9 +9,9 @@ using UnityEngine.SceneManagement;
 using UnityEngine.TextCore.Text;
 using VContainer;
 using VContainer.Unity;
-using Wonjeong.App;
-using Wonjeong.UI;
-using Wonjeong.Utils;
+using HuliacDev.App;
+using HuliacDev.UI;
+using HuliacDev.Utils;
 
 namespace App
 {
@@ -67,13 +67,13 @@ namespace App
         {
             try
             {
-                IList<FontAsset> fonts = Addressables
-                    .LoadAssetsAsync<FontAsset>(Constants.ResourcePaths.TmpFontLabel, null)
+                IList<TMP_FontAsset> fonts = Addressables
+                    .LoadAssetsAsync<TMP_FontAsset>(Constants.ResourcePaths.TmpFontLabel, null)
                     .WaitForCompletion();
 
                 if (fonts is null) return;
 
-                foreach (FontAsset font in fonts)
+                foreach (TMP_FontAsset font in fonts)
                     if (font) MaterialReferenceManager.AddFontAsset(font);
             }
             catch (Exception ex)

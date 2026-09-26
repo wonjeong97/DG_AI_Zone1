@@ -4,7 +4,7 @@ using Cysharp.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using Wonjeong.Core;
+using HuliacDev.Core;
 
 namespace Scenes
 {

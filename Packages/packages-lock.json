@@ -68,6 +68,26 @@
       "dependencies": {},
       "hash": "acc1c7bc9ea34c33b830e40316fca52553878d29"
     },
+    "com.huliacdev.template": {
+      "version": "https://github.com/wonjeong97/Template.git",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {
+        "com.unity.addressables": "1.29.0",
+        "com.unity.inputsystem": "1.19.0",
+        "com.unity.ugui": "1.0.0",
+        "com.unity.modules.audio": "1.0.0",
+        "com.unity.modules.imageconversion": "1.0.0",
+        "com.unity.modules.imgui": "1.0.0",
+        "com.unity.modules.jsonserialize": "1.0.0",
+        "com.unity.modules.unitywebrequest": "1.0.0",
+        "com.unity.modules.unitywebrequestaudio": "1.0.0",
+        "com.unity.modules.video": "1.0.0",
+        "com.unity.test-framework": "1.4.6",
+        "com.unity.textmeshpro": "3.0.9"
+      },
+      "hash": "43b70aebedd437d861602694a054acfd16b34761"
+    },
     "com.unity.2d.sprite": {
       "version": "1.0.0",
       "depth": 0,
@@ -241,8 +261,8 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.textmeshpro": {
-      "version": "4.0.0-pre.2",
-      "depth": 0,
+      "version": "3.0.9",
+      "depth": 1,
       "source": "registry",
       "dependencies": {
         "com.unity.ugui": "1.0.0"
@@ -279,26 +299,6 @@
         "com.unity.modules.jsonserialize": "1.0.0"
       },
       "url": "https://packages.unity.com"
-    },
-    "com.wonjeong.template": {
-      "version": "https://github.com/wonjeong97/Template.git",
-      "depth": 0,
-      "source": "git",
-      "dependencies": {
-        "com.unity.addressables": "1.29.0",
-        "com.unity.inputsystem": "1.19.0",
-        "com.unity.ugui": "1.0.0",
-        "com.unity.modules.audio": "1.0.0",
-        "com.unity.modules.imageconversion": "1.0.0",
-        "com.unity.modules.imgui": "1.0.0",
-        "com.unity.modules.jsonserialize": "1.0.0",
-        "com.unity.modules.unitywebrequest": "1.0.0",
-        "com.unity.modules.unitywebrequestaudio": "1.0.0",
-        "com.unity.modules.video": "1.0.0",
-        "com.unity.test-framework": "1.4.6",
-        "com.unity.textmeshpro": "3.0.9"
-      },
-      "hash": "ba51b0b27610035459e48adbfd32a758d450ff2a"
     },
     "jp.hadashikick.vcontainer": {
       "version": "1.19.0",
