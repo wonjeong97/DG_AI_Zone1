@@ -8,8 +8,7 @@ namespace Game
         // 블록의 '직속' ChainOutSocket — 컨테이너(FlowControl/FuncDef) 내부의 하위 체인 소켓과 혼동 방지
         public static ChainOutSocket OfBlock(CodingBlock block)
         {
-            ChainOutSocket socket = null;
-            block.transform.Find(Constants.Sockets.ChainOutName)?.TryGetComponent(out socket);
+            ChainOutSocket socket = BlockSocket.FindChildComponent<ChainOutSocket>(block.transform, Constants.Sockets.ChainOutName);
             return socket;
         }
 
@@ -66,8 +65,7 @@ namespace Game
         // 자식 블록의 ChainInSocket 앵커 위치가 이 소켓 위치와 일치하도록 오프셋 계산
         internal static Vector2 ComputeChainSnapOffset(CodingBlock block)
         {
-            ChainInSocket inSocket = null;
-            block.transform.Find(Constants.Sockets.ChainInName)?.TryGetComponent(out inSocket);
+            ChainInSocket inSocket = BlockSocket.FindChildComponent<ChainInSocket>(block.transform, Constants.Sockets.ChainInName);
             return ComputeSnapOffset(block, inSocket);
         }
 

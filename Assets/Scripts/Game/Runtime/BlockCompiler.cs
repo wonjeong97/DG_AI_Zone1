@@ -54,9 +54,13 @@ namespace Game.Runtime
         // WalkInnerWithElse가 '만약' 블록 안에서 실제로 만난 '아니면' 블록 — Compile() 1회 호출 동안만 유효
         private static readonly HashSet<CodingBlock> _visitedElseBlocks = new();
 
-        public static CompileResult Compile(CodingZone zone)
+        // 이번 컴파일에서 검사할 블록 전체(코딩 패널 + 인벤토리, 비활성 탭 포함) — Compile 시작 시 한 번 수집
+        private static readonly List<CodingBlock> _allBlocks = new();
+
+        public static CompileResult Compile(CodingZone zone, Transform inventoryContent)
         {
             _visitedElseBlocks.Clear();
+            CollectAllBlocks(zone, inventoryContent);
 
             // '시작하기' 블록은 소켓 계층 어디에나 있을 수 있으므로 전체 탐색
             CodingBlock start = null;
@@ -75,8 +79,7 @@ namespace Game.Runtime
                 return CompileResult.Fail(Constants.CompilerMessages.StartNotFirst, start);
 
             // transform.Find: 직접 자식만 탐색 — 하위 체인 소켓과 혼동 방지
-            ChainOutSocket socket = null;
-            start.transform.Find(Constants.Sockets.ChainOutName)?.TryGetComponent(out socket);
+            ChainOutSocket socket = BlockSocket.FindChildComponent<ChainOutSocket>(start.transform, Constants.Sockets.ChainOutName);
             if (!socket || !socket.Occupant)
                 return CompileResult.Fail(Constants.CompilerMessages.MissingConnectedAfterStart, start);
 
@@ -179,9 +182,8 @@ namespace Game.Runtime
                     if (instr is not null) output.Add(instr);
                 }
 
-                ChainOutSocket socket = null;
-                current.transform.Find(Constants.Sockets.ChainOutName)?.TryGetComponent(out socket);
-                current = socket?.Occupant;
+                ChainOutSocket socket = BlockSocket.FindChildComponent<ChainOutSocket>(current.transform, Constants.Sockets.ChainOutName);
+                current = socket ? socket.Occupant : null;
             }
             return null;
         }
@@ -220,8 +222,7 @@ namespace Game.Runtime
         private static CommandInstruction BuildCommand(CodingBlock block)
         {
             // ValueOutSocket은 CodingZone.OnDrop이 직접 자식으로 붙임
-            ValueOutSocket vos = null;
-            block.transform.Find(Constants.Sockets.ValueOutName)?.TryGetComponent(out vos);
+            ValueOutSocket vos = BlockSocket.FindChildComponent<ValueOutSocket>(block.transform, Constants.Sockets.ValueOutName);
             CodingBlock occupant = vos ? vos.Occupant : null;
             return new CommandInstruction
             {
@@ -314,9 +315,8 @@ namespace Game.Runtime
                     if (instr is not null) output.Add(instr);
                 }
 
-                ChainOutSocket socket = null;
-                current.transform.Find(Constants.Sockets.ChainOutName)?.TryGetComponent(out socket);
-                current = socket?.Occupant;
+                ChainOutSocket socket = BlockSocket.FindChildComponent<ChainOutSocket>(current.transform, Constants.Sockets.ChainOutName);
+                current = socket ? socket.Occupant : null;
             }
 
             return elseMarker;
@@ -403,7 +403,7 @@ namespace Game.Runtime
             foreach (Transform child in flowBlock.transform)
             {
                 if (!child.name.StartsWith(Constants.BlockParts.HeaderPrefix)) continue;
-                child.Find(Constants.Sockets.ValueOutName)?.TryGetComponent(out vos);
+                vos = BlockSocket.FindChildComponent<ValueOutSocket>(child, Constants.Sockets.ValueOutName);
                 if (vos) break;
             }
 
@@ -412,17 +412,15 @@ namespace Game.Runtime
             CodingBlock first = vos.Occupant;
 
             // 조건1의 ConditionOutSocket에 Logic 블록이 연결됐는지 확인
-            ConditionOutSocket firstCondOut = null;
-            first.transform.Find(Constants.Sockets.ConditionOutName)?.TryGetComponent(out firstCondOut);
+            ConditionOutSocket firstCondOut = BlockSocket.FindChildComponent<ConditionOutSocket>(first.transform, Constants.Sockets.ConditionOutName);
 
             if (firstCondOut && firstCondOut.Occupant &&
                 firstCondOut.Occupant.Category == BlockCategory.Logic)
             {
                 CodingBlock logic = firstCondOut.Occupant;
-                ConditionOutSocket logicCondOut = null;
-                logic.transform.Find(Constants.Sockets.ConditionOutName)?.TryGetComponent(out logicCondOut);
+                ConditionOutSocket logicCondOut = BlockSocket.FindChildComponent<ConditionOutSocket>(logic.transform, Constants.Sockets.ConditionOutName);
 
-                CodingBlock right = logicCondOut?.Occupant;
+                CodingBlock right = logicCondOut ? logicCondOut.Occupant : null;
                 return new LogicConditionExpr
                 {
                     Source   = logic,
@@ -517,8 +515,7 @@ namespace Game.Runtime
             foreach (Transform child in block.transform)
             {
                 if (!child.name.StartsWith(Constants.BlockParts.HeaderPrefix)) continue;
-                ValueOutSocket vos = null;
-                child.Find(Constants.Sockets.ValueOutName)?.TryGetComponent(out vos);
+                ValueOutSocket vos = BlockSocket.FindChildComponent<ValueOutSocket>(child, Constants.Sockets.ValueOutName);
                 if (vos && vos.Occupant && int.TryParse(vos.Occupant.name, out int n))
                 {
                     valueSource = vos.Occupant;
@@ -532,16 +529,14 @@ namespace Game.Runtime
         // 시작하기 체인을 따라가며 함수(사용) 블록을 찾음 (완성하기 도달 시 중단)
         private static CodingBlock FindMainChainFunction(CodingBlock start)
         {
-            ChainOutSocket socket = null;
-            start.transform.Find(Constants.Sockets.ChainOutName)?.TryGetComponent(out socket);
-            CodingBlock current = socket?.Occupant;
+            ChainOutSocket socket = BlockSocket.FindChildComponent<ChainOutSocket>(start.transform, Constants.Sockets.ChainOutName);
+            CodingBlock current = socket ? socket.Occupant : null;
             while (current)
             {
                 if (current.Category == BlockCategory.Control) break;
                 if (current.Category == BlockCategory.Function) return current;
-                socket = null;
-                current.transform.Find(Constants.Sockets.ChainOutName)?.TryGetComponent(out socket);
-                current = socket?.Occupant;
+                socket = BlockSocket.FindChildComponent<ChainOutSocket>(current.transform, Constants.Sockets.ChainOutName);
+                current = socket ? socket.Occupant : null;
             }
             return null;
         }
@@ -566,18 +561,15 @@ namespace Game.Runtime
             return false;
         }
 
-        private static List<CodingBlock> FindAllBlocksInScene()
+        // 씬 전체 검색 대신 블록이 놓일 수 있는 두 곳(코딩 패널, 인벤토리)만 모은다.
+        // 인벤토리는 선택되지 않은 탭의 블록이 비활성 상태이므로 비활성까지 포함한다.
+        private static void CollectAllBlocks(CodingZone zone, Transform inventoryContent)
         {
-            var result = new List<CodingBlock>();
-            var activeScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
-            foreach (CodingBlock b in Resources.FindObjectsOfTypeAll<CodingBlock>())
-            {
-                if (b.gameObject.scene == activeScene)
-                {
-                    result.Add(b);
-                }
-            }
-            return result;
+            _allBlocks.Clear();
+            if (zone) _allBlocks.AddRange(zone.GetComponentsInChildren<CodingBlock>(true));
+            if (inventoryContent) _allBlocks.AddRange(inventoryContent.GetComponentsInChildren<CodingBlock>(true));
         }
+
+        private static List<CodingBlock> FindAllBlocksInScene() => _allBlocks;
     }
 }

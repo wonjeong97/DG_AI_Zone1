@@ -39,6 +39,7 @@ namespace App
             builder.RegisterBuildCallback(container =>
             {
                 FadeManager fadeManager = container.Resolve<FadeManager>();
+                Scenes.SceneFader.RegisterFadeManager(fadeManager);
 
                 // 템플릿 FadeManager가 자체 생성하는 FadeCanvas의 sortingOrder가 기본값(-1)이라
                 // 씬의 UI Canvas(0)보다도 아래에 그려져 페이드 커튼이 화면을 실제로 가리지 못했음.

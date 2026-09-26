@@ -677,7 +677,7 @@ namespace Game
             img.preserveAspect = false;
             img.color = Color.clear;
             img.raycastTarget = false;
-            Material useMat = mat ?? SpriteFillMaterial;
+            Material useMat = mat ? mat : SpriteFillMaterial;
             if (useMat) img.material = useMat;
         }
 

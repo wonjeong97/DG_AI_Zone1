@@ -97,7 +97,7 @@ namespace Scenes
             if (questionText)
             {
                 questionText.text = question;
-                if (!string.IsNullOrEmpty(_currentLevelName) && _currentLevelName.Contains("PowerPlantData"))
+                if (Constants.Levels.IsPowerPlant(_currentLevelName))
                     questionText.fontSize = Constants.Questions.PowerPlantQuestionFontSize;
             }
             else
@@ -111,7 +111,7 @@ namespace Scenes
             }
 
             if (compileButton)
-                compileButton.onClick.AddListener(() => CompileAndRun(advanceScene: true).Forget());
+                compileButton.onClick.AddListener(() => StartCompileAndRun(advanceScene: true));
 
             if (storyButton)
                 storyButton.onClick.AddListener(() => storyPanel.Show(
@@ -129,36 +129,47 @@ namespace Scenes
         {
             // 스페이스바: 컴파일 검증만 (채점·실행·씬 전환 없음)
             if (Input.GetKeyDown(KeyCode.Space) && (!compileButton || compileButton.interactable))
-                CompileAndRun(advanceScene: false).Forget();
+                StartCompileAndRun(advanceScene: false);
         }
 
         private void OnDestroy()
         {
-            _cts?.Cancel();
-            _cts?.Dispose();
+            CancelRun();
         }
 
-        private async UniTaskVoid CompileAndRun(bool advanceScene)
+        // 진행 중인 실행을 중단하고 새 CTS로 컴파일·실행을 시작한다
+        private void StartCompileAndRun(bool advanceScene)
         {
-            // 진행 중인 실행 중단
-            _cts?.Cancel();
-            _cts?.Dispose();
+            CancelRun();
             _cts = CancellationTokenSource.CreateLinkedTokenSource(this.GetCancellationTokenOnDestroy());
+            CompileAndRun(advanceScene, _cts).Forget(); // 토큰이 아니라 CTS 객체를 넘긴다
+        }
 
-            if (!codingZone)
-                codingZone = FindObjectOfType<CodingZone>();
+        private void CancelRun()
+        {
+            if (_cts == null) return;
+            _cts.Cancel();
+            _cts.Dispose();
+            _cts = null;
+        }
+
+        private async UniTaskVoid CompileAndRun(bool advanceScene, CancellationTokenSource cts)
+        {
+            // 이후 새 실행이 _cts를 교체·폐기해도 이 흐름은 자기 토큰만 쓴다
+            CancellationToken ct = cts.Token;
 
             if (!codingZone)
             {
-                _log?.ZLogWarning($"[GameSceneManager] CodingZone을 찾을 수 없습니다.");
+                _log?.ZLogWarning($"[GameSceneManager] codingZone이 인스펙터에 연결되지 않았습니다.");
                 return;
             }
 
-            // 이전 에러 하이라이트 초기화 (인벤토리 포함 씬 전체)
-            foreach (CodingBlock b in FindObjectsOfType<CodingBlock>())
-                b.ClearErrorHighlight();
+            CategoryZone categoryZone = blockSpawner ? blockSpawner.CategoryZone : null;
 
-            var result = BlockCompiler.Compile(codingZone);
+            // 이전 에러 하이라이트 초기화 (코딩 패널 + 인벤토리)
+            CodingBlock.ClearAllErrorHighlights(codingZone, categoryZone);
+
+            var result = BlockCompiler.Compile(codingZone, categoryZone ? categoryZone.InventoryContent : null);
 
             // 컴파일 성공 시에만 점수를 계산 — 포매터/로그에 함께 표시
             int? score = result.Success
@@ -170,7 +181,7 @@ namespace Scenes
 
             if (!result.Success)
             {
-                ShowCompileError(result);
+                ShowCompileError(result, categoryZone);
                 return;
             }
 
@@ -180,7 +191,7 @@ namespace Scenes
                 if (advanceScene && compileButton) compileButton.interactable = false;
 
                 // 시작하기 ~ 완성하기 순서로 성공(초록) 하이라이트가 파도타기처럼 순서대로 켜짐 (값 블록 포함)
-                await PlaySuccessWaveAsync(BuildSuccessOrder(codingZone, result.Instructions), _cts.Token);
+                await PlaySuccessWaveAsync(BuildSuccessOrder(codingZone, result.Instructions), ct);
 
                 // 스페이스바: 컴파일 검증까지만 — 채점·실행·씬 전환은 완료 버튼 전용
                 if (!advanceScene)
@@ -205,27 +216,35 @@ namespace Scenes
                 _log?.ZLogInformation($"[GameSceneManager] 점수: {score}점 (기준 시간: {_questionTime})");
 
                 BlockExecutor executor = CreateExecutor(score.Value);
-                await executor.RunAsync(result.Instructions, _cts.Token);
+                await executor.RunAsync(result.Instructions, ct);
             }
             catch (System.OperationCanceledException)
             {
                 // 새 컴파일 요청이나 씬 종료로 취소된 정상 흐름 — 별도 처리 불필요
             }
+            finally
+            {
+                // 필드가 아직 자기 CTS일 때만 정리한다 — 새 실행이 이미 교체했다면 그쪽 CTS를 폐기하면 안 됨
+                if (_cts == cts)
+                {
+                    _cts.Dispose();
+                    _cts = null;
+                }
+            }
         }
 
         // 컴파일 실패 표시 — 문제 블록에 에러 외곽선을 켜고,
         // '사용되지 않은 블록' 오류는 해당 블록이 보이도록 인벤토리 탭까지 전환한다.
-        private static void ShowCompileError(CompileResult result)
+        private static void ShowCompileError(CompileResult result, CategoryZone categoryZone)
         {
             if (result.ErrorBlocks is null) return;
 
             foreach (CodingBlock b in result.ErrorBlocks)
-                b?.ShowErrorHighlight();
+                if (b) b.ShowErrorHighlight();
 
             if (result.ErrorKind != CompileErrorKind.UnusedBlocks) return;
             if (result.ErrorBlocks.Length == 0 || !result.ErrorBlocks[0]) return;
 
-            CategoryZone categoryZone = FindObjectOfType<CategoryZone>();
             if (categoryZone) categoryZone.Select(result.ErrorBlocks[0].Category);
         }
 
