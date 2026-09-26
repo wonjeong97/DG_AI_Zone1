@@ -150,13 +150,13 @@ namespace Scenes
 
             // 확인 버튼이 열리기 전에 파괴됐다면 타이머가 멈춘 채 남는다 —
             // 이미 재개된 상태에서 다시 불러도 카운트만 처음부터 다시 시작할 뿐 부작용이 없다
-            _inactivityTimer?.Resume();
+            if (_inactivityTimer) _inactivityTimer.Resume();
         }
 
-        // 다음 레벨로 진행 — 방금 플레이한 레벨의 afterResultScene을 따라감 (마지막 레벨은 5_Outro)
+        // 다음 레벨로 진행 — 방금 플레이한 레벨의 AfterResultScene을 따라감 (마지막 레벨은 5_Outro)
         private void OnNextClicked()
         {
-            string nextScene = _session && _session.currentLevel ? _session.currentLevel.afterResultScene : Constants.Scenes.Story;
+            string nextScene = _session && _session.currentLevel ? _session.currentLevel.AfterResultScene : Constants.Scenes.Story;
 
             // 이미 해금된 이전 레벨을 다시 플레이한 경우엔 진행도를 건드리지 않는다.
             // 무조건 +1 하면 재플레이만으로 아직 깨지 않은 레벨까지 해금돼버린다.
@@ -255,17 +255,17 @@ namespace Scenes
             => string.Format(Constants.ResultMessages.ResultTextFormat, count, direction, status);
 
         private static bool IsWindLevel(string levelName)
-            => !string.IsNullOrEmpty(levelName) && levelName.Contains("WindData");
+            => Constants.Levels.IsWind(levelName);
 
         private static bool IsHydroLevel(string levelName)
-            => !string.IsNullOrEmpty(levelName) && levelName.Contains("HydroData");
+            => Constants.Levels.IsHydro(levelName);
 
         // TODO: 레벨5(미래에너지) 결과 연출은 기획 미정 — 정해지면 여기에 전용 분기를 추가할 것.
         //       채점은 레벨4와 같은 경로(ScorePowerPlant, 만점 30점)를 쓰지만 함수 블록이 추가되는 레벨이라
         //       결과 텍스트 항목은 따로 정해야 한다. 그때까지 레벨5는 표시할 값이 없어 '-'로 나온다.
         //       (05_FutureEnergyData의 resultTopText도 비어 있어 씬 기본 문구가 그대로 쓰인다)
         private static bool IsPowerPlantLevel(string levelName)
-            => !string.IsNullOrEmpty(levelName) && levelName.Contains("PowerPlantData");
+            => Constants.Levels.IsPowerPlant(levelName);
 
         // 레벨2(풍력) 결과 — 문제로 나온 바람 방향 / 플레이어가 맞춘 풍차 방향 / 반복하기 사용 여부.
         // 반복하기 없이는 컴파일이 막히므로 정상 플레이에서 반복 감지는 항상 ON이다.
@@ -347,7 +347,7 @@ namespace Scenes
             try
             {
                 // 확인 버튼이 열리기 전까지는 입력 없이 연출만 보는 구간 — 비활동 타이머를 멈춘다
-                _inactivityTimer?.Pause();
+                if (_inactivityTimer) _inactivityTimer.Pause();
 
                 await LoadSceneSettingsAsync(ct);
                 _fadeDuration = await SceneFader.GetPanelFadeDurationAsync();
@@ -373,7 +373,7 @@ namespace Scenes
                 SceneFader.SetGroupInteractable(confirmButtonGroup, true);
 
                 // 확인 버튼이 열렸으니 이제부터는 사용자 입력을 기다리는 구간 — 타이머 재개
-                _inactivityTimer?.Resume();
+                if (_inactivityTimer) _inactivityTimer.Resume();
 
                 await confirmButton.OnClickAsync(ct);
                 // 페이드 중 재클릭 방지
@@ -389,7 +389,7 @@ namespace Scenes
             {
                 // 시퀀스 도중 씬 전환(다음 버튼 등)으로 오브젝트가 파괴된 경우 — 정상 종료.
                 // 확인 버튼이 열리기 전에 빠져나갔다면 타이머가 멈춘 채 남으므로 여기서 되돌린다.
-                _inactivityTimer?.Resume();
+                if (_inactivityTimer) _inactivityTimer.Resume();
             }
         }
 

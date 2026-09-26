@@ -12,7 +12,7 @@ namespace Game.Runtime
             if (IsPowerPlant(levelName))
                 return ScorePowerPlant(instructions);
 
-            bool isHydro = !string.IsNullOrEmpty(levelName) && levelName.Contains("HydroData");
+            bool isHydro = Constants.Levels.IsHydro(levelName);
 
             int total = 0;
             foreach (BlockInstruction instr in InstructionTree.Traverse(instructions))
@@ -36,13 +36,13 @@ namespace Game.Runtime
         // 레벨별 최고 점수. 레벨3(수력)은 조건×아니면×순서 3항목을 곱한 점수 체계라 별도 계산식을 쓴다.
         public static int GetMaxScore(string levelName = null)
         {
-            if (!string.IsNullOrEmpty(levelName) && levelName.Contains("HydroData"))
+            if (Constants.Levels.IsHydro(levelName))
                 return Constants.Scores.HydroExactScore
                      * Constants.Scores.HydroElsePlacedScore
                      * Constants.Scores.HydroGateOrderCorrectScore;
 
             // 풍력은 방향 3단계 채점(같은 방향=최고점)뿐이라 개수 점수를 더하지 않는다
-            if (!string.IsNullOrEmpty(levelName) && levelName.Contains("WindData"))
+            if (Constants.Levels.IsWind(levelName))
                 return Constants.Scores.WindDirectionSameScore;
 
             if (IsPowerPlant(levelName))
@@ -145,7 +145,7 @@ namespace Game.Runtime
             {
                 case ValueKind.Direction:
                     string correct = Constants.Questions.GetCorrectDirection(levelName, questionValueKey);
-                    if (!string.IsNullOrEmpty(levelName) && levelName.Contains("WindData"))
+                    if (Constants.Levels.IsWind(levelName))
                         return ScoreWindDirection(cmd.Value, correct);
                     return correct != null && cmd.Value == correct ? Constants.Scores.DirectionCorrectScore : 1;
                 case ValueKind.Angle:
@@ -197,8 +197,7 @@ namespace Game.Runtime
         private const string HydroCloseCommand = "폐쇄하기";
 
         private static bool IsPowerPlant(string levelName) =>
-            !string.IsNullOrEmpty(levelName) &&
-            (levelName.Contains("PowerPlantData") || levelName.Contains("FutureEnergyData"));
+            Constants.Levels.IsPowerPlant(levelName) || Constants.Levels.IsFutureEnergy(levelName);
 
         private const string PowerPlantAndOperator     = "그리고";
         private const string PowerPlantHospitalCommand = "병원 불 켜기";

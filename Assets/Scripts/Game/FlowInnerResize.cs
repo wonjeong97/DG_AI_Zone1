@@ -73,8 +73,7 @@ namespace Game
             ChainOutSocket lastOut = null;
             while (block)
             {
-                ChainOutSocket outSocket = null;
-                block.transform.Find(Constants.Sockets.ChainOutName)?.TryGetComponent(out outSocket);
+                ChainOutSocket outSocket = BlockSocket.FindChildComponent<ChainOutSocket>(block.transform, Constants.Sockets.ChainOutName);
                 if (outSocket) lastOut = outSocket;
                 block = outSocket ? outSocket.Occupant : null;
             }

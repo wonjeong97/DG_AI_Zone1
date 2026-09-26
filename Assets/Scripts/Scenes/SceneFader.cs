@@ -162,12 +162,15 @@ namespace Scenes
             logger?.ZLogInformation($"[SceneFader] 대기 작업 완료.");
         }
 
-        // GameLifetimeScope가 App 하위에 생성한 전역 인스턴스 조회 (없으면 페이드 없이 로드)
+        // GameLifetimeScope가 App 하위에 FadeManager를 만든 직후 등록한다 (씬 전체 검색 대신 참조를 넘겨받음)
+        public static void RegisterFadeManager(FadeManager fadeManager)
+        {
+            _fadeManager = fadeManager;
+        }
+
+        // 등록된 전역 FadeManager 반환 (없으면 페이드 없이 로드)
         private static FadeManager Find(Microsoft.Extensions.Logging.ILogger logger)
         {
-            if (_fadeManager) return _fadeManager;
-
-            _fadeManager = UnityEngine.Object.FindObjectOfType<FadeManager>();
             if (!_fadeManager)
                 logger?.ZLogWarning($"[SceneFader] FadeManager를 찾을 수 없습니다. 페이드 없이 씬을 전환합니다.");
             return _fadeManager;

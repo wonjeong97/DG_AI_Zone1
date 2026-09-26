@@ -1,10 +1,12 @@
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Data;
+using Microsoft.Extensions.Logging;
 using UnityEngine;
 using UnityEngine.UI;
 using VContainer;
 using VContainer.Unity;
+using ZLogger;
 
 namespace Game
 {
@@ -14,34 +16,39 @@ namespace Game
         [SerializeField] private Transform codingContainer;
         [SerializeField] private CategoryZone categoryZone;
 
+        public CategoryZone CategoryZone => categoryZone;
+
         private IObjectResolver _resolver;
+        private ILogger<BlockSpawner> _log;
 
         [Inject]
-        public void Construct(IObjectResolver resolver)
+        public void Construct(IObjectResolver resolver, ILogger<BlockSpawner> log)
         {
             _resolver = resolver;
+            _log = log;
         }
 
         // VerticalLayoutGroup + ContentSizeFitter 체인이 한 프레임 만에 안정화되지 않아 필요한 리빌드 횟수
         private const int LayoutSettlePasses = 2;
 
         private Canvas _rootCanvas;
+        private CodingZone _codingZone;
 
         private void Awake()
         {
-            _rootCanvas = inventoryContainer.GetComponentInParent<Canvas>()?.rootCanvas
-                          ?? GetComponentInParent<Canvas>()?.rootCanvas
-                          ?? FindSceneCanvas();
+            _rootCanvas = RootCanvasOf(inventoryContainer);
+            if (!_rootCanvas) _rootCanvas = RootCanvasOf(transform);
+
+            // codingContainer는 CodingZone이 붙은 코딩 패널 Content — 생성한 블록에 넘겨줄 참조를 여기서 확보
+            if (codingContainer) codingContainer.TryGetComponent(out _codingZone);
         }
 
-        // FindObjectOfType는 DontDestroyOnLoad의 다른 전역 캔버스(FadeManager의 FadeCanvas 등)까지
-        // 뒤지므로, 같은 씬에 속한 캔버스만 대상으로 폴백 탐색
-        private Canvas FindSceneCanvas()
+        // 부모 계층의 Canvas에서 루트 캔버스를 얻는다 (없으면 null)
+        private static Canvas RootCanvasOf(Transform t)
         {
-            foreach (Canvas c in FindObjectsOfType<Canvas>())
-                if (c.gameObject.scene == gameObject.scene)
-                    return c.rootCanvas;
-            return null;
+            if (!t) return null;
+            Canvas canvas = t.GetComponentInParent<Canvas>();
+            return canvas ? canvas.rootCanvas : null;
         }
 
         public async UniTask Spawn(BlockLayoutData layout)
@@ -57,7 +64,12 @@ namespace Game
 
             Clear(inventoryContainer);
 
-            if (layout?.inventoryBlocks is null)
+            if (!_rootCanvas && _log != null)
+                _log.ZLogWarning($"[BlockSpawner] inventoryContainer 상위에 Canvas가 없어 블록 드래그가 동작하지 않습니다.");
+            if (!_codingZone && _log != null)
+                _log.ZLogWarning($"[BlockSpawner] codingContainer에 CodingZone이 없어 블록 스냅·복귀가 동작하지 않습니다.");
+
+            if (!layout || layout.inventoryBlocks is null)
             {
                 if (invGroup) invGroup.alpha = 1f;
                 return;
@@ -66,6 +78,8 @@ namespace Game
             foreach (var entry in layout.inventoryBlocks)
             {
                 GameObject go = await BlockFactory.Create(entry, _rootCanvas, draggable: true);
+                if (go.TryGetComponent<CodingBlock>(out CodingBlock created))
+                    created.SetZones(_codingZone, categoryZone);
                 if (entry.category == BlockCategory.Control)
                     PlaceControlBlock(go, entry.controlRole == ControlRole.Start);
                 else
