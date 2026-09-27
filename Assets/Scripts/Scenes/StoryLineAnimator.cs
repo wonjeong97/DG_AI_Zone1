@@ -103,10 +103,19 @@ namespace Scenes
                 if (!LineHasVisibleChar(textInfo, lineInfo)) continue;
 
                 // 정점 단위 보간이라 트윈 대상이 없으므로 DOVirtual로 진행하고, 스킵 입력이 오면 그 자리에서 Kill한다
-                // (외부 Kill은 await를 정상 완료시키고, 취소 토큰은 트윈을 멈추며 예외로 빠져나간다)
+                // (외부 Kill은 await를 정상 완료시키고, 취소 토큰은 트윈을 멈추며 예외로 빠져나간다).
+                // DOVirtual.Float는 값 전달을 내부 OnUpdate로 구현하므로 .OnUpdate()를 따로 붙이면 보간 콜백이 덮어써진다 —
+                // 스킵 검사도 반드시 보간 콜백 안에서 한다.
                 Tween lineTween = null;
                 lineTween = DOVirtual.Float(0f, 1f, lineMoveDuration, t =>
                     {
+                        if (skipRequested != null && skipRequested())
+                        {
+                            skipped = true;
+                            lineTween.Kill();
+                            return;
+                        }
+
                         float easeT = Mathf.SmoothStep(0f, 1f, t);
                         float yOffset = Mathf.Lerp(-lineYOffset, 0f, easeT);
                         byte alpha = (byte)Mathf.Lerp(0, 255, easeT);
@@ -114,15 +123,7 @@ namespace Scenes
                         ApplyLineVertices(textInfo, lineInfo, cachedVertices, cachedColors, yOffset, alpha);
                         text.UpdateVertexData(TMP_VertexDataUpdateFlags.Vertices | TMP_VertexDataUpdateFlags.Colors32);
                     })
-                    .SetEase(Ease.Linear)
-                    .OnUpdate(() =>
-                    {
-                        if (skipRequested != null && skipRequested())
-                        {
-                            skipped = true;
-                            lineTween.Kill();
-                        }
-                    });
+                    .SetEase(Ease.Linear);
                 await lineTween.ToUniTask(TweenCancelBehaviour.KillAndCancelAwait, token);
 
                 // 해당 줄을 정위치/불투명으로 확정
