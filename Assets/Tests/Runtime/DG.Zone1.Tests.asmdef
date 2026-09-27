@@ -3,6 +3,7 @@
     "rootNamespace": "DG.Zone1.Tests",
     "references": [
         "DG.Zone1",
+        "HuliacDev.Template",
         "UniTask",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
