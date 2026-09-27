@@ -5,15 +5,22 @@ namespace Game
     // 조건 블록의 우측 연결 포인트. 다음 조건/Logic 블록의 ConditionInSocket과 위치를 맞춰 스냅한다.
     public class ConditionOutSocket : BlockSocket
     {
+        /// <summary>
+        /// 조건/Logic 블록을 점유로 기록하고 ConditionInSocket이 이 소켓에 맞도록 스냅시킨다.
+        /// </summary>
         public void Accept(CodingBlock block)
         {
             SetOccupant(block);
-            block.SnapInto(transform, ComputeSnapOffset(block, block.GetComponentInChildren<ConditionInSocket>())).Forget();
+            ConditionInSocket inSocket = FindChildComponent<ConditionInSocket>(block.transform, Constants.Sockets.ConditionInName);
+            block.SnapInto(transform, ComputeSnapOffset(block, inSocket)).Forget();
         }
 
 #if UNITY_EDITOR
         private const float SnapRadius = 120f;
 
+        /// <summary>
+        /// 씬 뷰에 소켓 위치와 스냅 범위를 표시한다.
+        /// </summary>
         private void OnDrawGizmos()
         {
             if (!TryGetComponent(out RectTransform rt)) return;

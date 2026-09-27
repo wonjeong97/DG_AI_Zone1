@@ -1,0 +1,32 @@
+{
+    "name": "DG.Zone1",
+    "rootNamespace": "",
+    "references": [
+        "HuliacDev.Template",
+        "VContainer",
+        "MessagePipe",
+        "MessagePipe.VContainer",
+        "UniTask",
+        "UniTask.DOTween",
+        "UniTask.Addressables",
+        "UniTask.TextMeshPro",
+        "ZLogger.Unity",
+        "ZString",
+        "R3.Unity",
+        "DOTween.Modules",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI",
+        "Unity.InputSystem",
+        "Unity.Addressables",
+        "Unity.ResourceManager"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

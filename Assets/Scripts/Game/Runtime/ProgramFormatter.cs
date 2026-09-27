@@ -17,14 +17,17 @@ namespace Game.Runtime
         private const string EndMarker = "END";
         private const string UnreachedEndMarker = "(완성하기 미연결)";
 
-        // includeEnd: 체인이 완성하기(End)까지 도달했을 때만 END를 출력. 미연결이면 생략.
-        // score: 계산된 최종 점수(컴파일 성공 시에만 값이 있음) — 있으면 코드 뒤에 함께 표시
+        /// <summary>
+        /// 명령 목록을 START…END 코드 문자열로 만든다.
+        /// includeEnd: 체인이 완성하기(End)까지 도달했을 때만 END를 출력(미연결이면 생략).
+        /// score: 계산된 최종 점수(컴파일 성공 시에만 값이 있음) — 있으면 코드 뒤에 함께 표시.
+        /// </summary>
         public static string ToCode(IReadOnlyList<BlockInstruction> program, bool includeEnd, int? score = null)
         {
-            var sb = new StringBuilder();
+            StringBuilder sb = new StringBuilder();
             sb.AppendLine(StartMarker);
 
-            var functions = new List<FunctionInstruction>();
+            List<FunctionInstruction> functions = new List<FunctionInstruction>();
 
             if (program is not null)
             {
@@ -39,7 +42,7 @@ namespace Game.Runtime
 
             if (functions.Count > 0)
             {
-                foreach (var fn in functions)
+                foreach (FunctionInstruction fn in functions)
                 {
                     sb.AppendLine();
                     sb.AppendLine();
@@ -59,8 +62,10 @@ namespace Game.Runtime
             return sb.ToString();
         }
 
-        // 반복/만약 안에 들어간 함수 호출까지 수집한다.
-        // 함수 본문 안의 함수는 수집하지 않는다 — 중첩 함수 정의는 지원 대상이 아니다.
+        /// <summary>
+        /// 반복/만약 안에 들어간 함수 호출까지 수집한다.
+        /// 함수 본문 안의 함수는 수집하지 않는다 — 중첩 함수 정의는 지원 대상이 아니다.
+        /// </summary>
         private static void CollectFunctions(BlockInstruction instr, List<FunctionInstruction> functions)
         {
             if (instr is FunctionInstruction fn)
@@ -74,6 +79,9 @@ namespace Game.Runtime
                     CollectFunctions(child, functions);
         }
 
+        /// <summary>
+        /// 명령 하나를 들여쓰기에 맞춰 코드 줄로 추가한다 (본문이 있으면 재귀).
+        /// </summary>
         private static void Append(StringBuilder sb, BlockInstruction instr, int depth)
         {
             string indent = new string(' ', depth * IndentSize);
@@ -129,6 +137,9 @@ namespace Game.Runtime
             }
         }
 
+        /// <summary>
+        /// 본문의 명령들을 지정 깊이로 추가한다.
+        /// </summary>
         private static void AppendBody(StringBuilder sb, IReadOnlyList<BlockInstruction> body, int depth)
         {
             if (body is null) return;
@@ -136,6 +147,9 @@ namespace Game.Runtime
                 Append(sb, instr, depth);
         }
 
+        /// <summary>
+        /// 조건식을 코드 표기 문자열로 만든다.
+        /// </summary>
         private static string FormatCondition(ConditionExpr cond) => cond switch
         {
             SimpleConditionExpr s => s.Name,
@@ -143,6 +157,9 @@ namespace Game.Runtime
             _                     => "null"
         };
 
+        /// <summary>
+        /// 블록 이름을, 블록이 없으면 대체 이름을 반환한다.
+        /// </summary>
         private static string Name(CodingBlock block, string fallback) => block ? block.name : fallback;
     }
 }

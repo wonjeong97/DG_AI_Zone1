@@ -143,7 +143,7 @@ MonoBehaviour:
   m_text: "\uB77C\uBCA8"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: d0d2f5797b1d2f34ea9ffb7c01ef8fd6, type: 2}
-  m_sharedMaterial: {fileID: 1948369249235228639, guid: d0d2f5797b1d2f34ea9ffb7c01ef8fd6,
+  m_sharedMaterial: {fileID: -119739183008471601, guid: d0d2f5797b1d2f34ea9ffb7c01ef8fd6,
     type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
@@ -184,17 +184,15 @@ MonoBehaviour:
   m_lineSpacingMax: 0
   m_paragraphSpacing: 0
   m_charWidthMaxAdj: 0
-  m_TextWrappingMode: 1
+  m_enableWordWrapping: 0
   m_wordWrappingRatios: 0.4
   m_overflowMode: 0
   m_linkedTextComponent: {fileID: 0}
   parentLinkedComponent: {fileID: 0}
   m_enableKerning: 0
-  m_ActiveFontFeatures: 6e72656b
   m_enableExtraPadding: 0
   checkPaddingRequired: 0
   m_isRichText: 1
-  m_EmojiFallbackSupport: 1
   m_parseCtrlCharacters: 1
   m_isOrthographic: 1
   m_isCullingEnabled: 0
@@ -542,3 +540,10 @@ MonoBehaviour:
   _snapRadius: 120
   _chainSnapRadius: 120
   _snapSeconds: 0.15
+  outlineImage: {fileID: 2255508026915482435}
+  chainHighlightImage: {fileID: 1330578054596403442}
+  valueHighlightImage: {fileID: 108764637018571324}
+  bodyImage: {fileID: 8853347969590355470}
+  labelText: {fileID: 5595693976841169656}
+  footer: {fileID: 0}
+  builtInSockets: []

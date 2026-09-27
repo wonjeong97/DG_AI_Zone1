@@ -403,6 +403,7 @@ public static class Constants
         public const string Outline        = "SpriteOutline";  // 전체 (컴파일 성공/에러)
         public const string ChainHighlight = "ChainHighlight"; // 하단 체인 스냅 영역
         public const string ValueHighlight = "ValueHighlight"; // 우측 값 스냅 영역
+        public const string InnerSnapHighlight = "InnerSnapHighlight"; // InnerSocket이 코드로 만드는 내부 진입 하이라이트
     }
 
     // ── 15. 블록 하이라이트 색상 및 크기 설정 ─────────────────────
@@ -506,13 +507,16 @@ public static class Constants
         // 수력 레벨 (강물 높이 임계값)
         public readonly static string[] HydroLevels = { "1m", "3m", "5m", "8m", "10m" };
 
+        /// <summary>
+        /// 레벨에 맞는 문제(문구·문제 값·정답)를 무작위로 출제한다.
+        /// </summary>
         public static QuestionData GenerateQuestion(string levelName)
         {
             if (Levels.IsWind(levelName))
             {
                 string dir = WindDirections[UnityEngine.Random.Range(0, WindDirections.Length)];
                 string text = $"바람이 <color=yellow>[{dir}]</color>에서 불고 있습니다.\n풍차의 날개 방향이 어디로 향해 있어야 할까요?";
-                string ans = WindAnswers.TryGetValue(dir, out var a) ? a : dir;
+                string ans = WindAnswers.TryGetValue(dir, out string a) ? a : dir;
                 return new QuestionData { QuestionText = text, ValueKey = dir, CorrectAnswer = ans };
             }
             else if (Levels.IsHydro(levelName))
@@ -531,19 +535,22 @@ public static class Constants
             {
                 string time = SolarTimes[UnityEngine.Random.Range(0, SolarTimes.Length)];
                 string text = $"<color=yellow>현재 {time}</color>입니다.\n태양광 패널이 어느 방향으로 향해 있어야 할까요?";
-                string ans = SolarAnswers.TryGetValue(time, out var a) ? a : Directions.East;
+                string ans = SolarAnswers.TryGetValue(time, out string a) ? a : Directions.East;
                 return new QuestionData { QuestionText = text, ValueKey = time, CorrectAnswer = ans };
             }
         }
 
+        /// <summary>
+        /// 문제 값에 대한 정답 방향을 반환한다 (알 수 없으면 null).
+        /// </summary>
         public static string GetCorrectDirection(string levelName, string valueKey)
         {
             if (string.IsNullOrEmpty(valueKey)) return null;
 
             if (Levels.IsWind(levelName))
-                return WindAnswers.TryGetValue(valueKey, out var windAns) ? windAns : valueKey;
+                return WindAnswers.TryGetValue(valueKey, out string windAns) ? windAns : valueKey;
 
-            return SolarAnswers.TryGetValue(valueKey, out var solarAns) ? solarAns : null;
+            return SolarAnswers.TryGetValue(valueKey, out string solarAns) ? solarAns : null;
         }
     }
 
@@ -556,16 +563,33 @@ public static class Constants
         public const string PowerPlantKey   = "PowerPlantData";
         public const string FutureEnergyKey = "FutureEnergyData";
 
+        /// <summary>
+        /// 풍력(레벨2) 레벨인지 확인한다.
+        /// </summary>
         public static bool IsWind(string levelName)         => HasKey(levelName, WindKey);
+        /// <summary>
+        /// 수력(레벨3) 레벨인지 확인한다.
+        /// </summary>
         public static bool IsHydro(string levelName)        => HasKey(levelName, HydroKey);
+        /// <summary>
+        /// 발전소(레벨4) 레벨인지 확인한다.
+        /// </summary>
         public static bool IsPowerPlant(string levelName)   => HasKey(levelName, PowerPlantKey);
+        /// <summary>
+        /// 미래에너지(레벨5) 레벨인지 확인한다.
+        /// </summary>
         public static bool IsFutureEnergy(string levelName) => HasKey(levelName, FutureEnergyKey);
 
+        /// <summary>
+        /// 레벨 에셋 이름에 레벨 종류 키가 들어 있는지 확인한다.
+        /// </summary>
         private static bool HasKey(string levelName, string key)
             => !string.IsNullOrEmpty(levelName) && levelName.Contains(key);
 
-        // LevelData 에셋 이름("02_WindData")의 앞자리 숫자를 레벨 번호(2)로 파싱.
-        // Story/Hint 패널이 진행도가 아닌 실제 로드된 레벨을 기준으로 화면을 고를 때 사용.
+        /// <summary>
+        /// LevelData 에셋 이름("02_WindData")의 앞자리 숫자를 레벨 번호(2)로 파싱한다.
+        /// Story/Hint 패널이 진행도가 아닌 실제 로드된 레벨을 기준으로 화면을 고를 때 사용한다.
+        /// </summary>
         public static int ParseLevelNumber(string levelName)
         {
             if (string.IsNullOrEmpty(levelName)) return 0;

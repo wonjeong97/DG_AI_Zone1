@@ -1,0 +1,26 @@
+{
+    "name": "DG.Zone1.Tests",
+    "rootNamespace": "DG.Zone1.Tests",
+    "references": [
+        "DG.Zone1",
+        "HuliacDev.Template",
+        "UniTask",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

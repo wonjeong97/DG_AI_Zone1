@@ -14,11 +14,27 @@ namespace Game
         public bool IsEmpty => !_occupant;
         public CodingBlock Occupant => _occupant;
 
+        // 이 소켓이 딸린 블록 — 계층을 거슬러 찾는 대신 블록이 소켓을 등록할 때 지정한다
+        public CodingBlock Owner { get; private set; }
+
+        /// <summary>
+        /// 소유 블록을 지정한다 (CodingBlock.RegisterSocket에서만 호출).
+        /// </summary>
+        public void SetOwner(CodingBlock owner) => Owner = owner;
+
+        /// <summary>
+        /// 점유 블록 기록을 비운다.
+        /// </summary>
         public virtual void Release() => _occupant = null;
 
-        // 드래그가 취소되어 블록이 원래 소켓으로 되돌아온 경우 점유 상태만 복구
+        /// <summary>
+        /// 드래그가 취소되어 블록이 원래 소켓으로 되돌아온 경우 점유 상태만 복구한다.
+        /// </summary>
         public void Reoccupy(CodingBlock block) => _occupant = block;
 
+        /// <summary>
+        /// 점유 블록을 기록한다.
+        /// </summary>
         protected void SetOccupant(CodingBlock block) => _occupant = block;
 
         /// <summary>

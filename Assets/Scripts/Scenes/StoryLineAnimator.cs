@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -21,16 +22,20 @@ namespace Scenes
             return pointer != null && pointer.press.wasPressedThisFrame;
         }
 
-        // storyText의 각 줄을 아래에서 위로 올리며 순차적으로 페이드인함. 보이는 문자가 없는 줄(간격용 빈 줄)은
-        // 연출과 대기 없이 즉시 통과함. skipRequested가 true를 반환하면 남은 줄까지 즉시 표시하고 종료함.
-        //
-        // inactivityTimer를 넘기면 연출이 진행되는 동안 비활동 타이머를 멈춤. 입력이 없어도 사용자는
-        // 글을 읽고 있는 구간이라 타임아웃으로 타이틀에 튕기면 안 됨. 스킵이나 씬 전환 취소로 중간에
-        // 빠져나가도 반드시 재개되도록 finally에서 Resume함.
+        /// <summary>
+        /// text의 각 줄을 아래에서 위로 올리며 순차적으로 페이드인한다. 보이는 문자가 없는 줄(간격용 빈 줄)은
+        /// 연출과 대기 없이 즉시 통과하고, skipRequested가 true를 반환하면 남은 줄까지 즉시 표시하고 종료한다.
+        /// inactivityTimer를 넘기면 연출이 진행되는 동안 비활동 타이머를 멈춘다 — 입력이 없어도 사용자는
+        /// 글을 읽고 있는 구간이라 타임아웃으로 타이틀에 튕기면 안 되며, 스킵이나 취소로 빠져나가도 반드시 재개한다.
+        /// </summary>
         public static async UniTask AnimateAsync(TMP_Text text, float lineMoveDuration, float lineInterval, float lineYOffset,
             Func<bool> skipRequested, CancellationToken token, InactivityTimer inactivityTimer = null)
         {
-            if (text == null) return;
+            if (!text)
+            {
+                Debug.LogWarning("[StoryLineAnimator] 연출할 텍스트가 없어 건너뜁니다.");
+                return;
+            }
 
             if (inactivityTimer) inactivityTimer.Pause();
             try
@@ -43,6 +48,9 @@ namespace Scenes
             }
         }
 
+        /// <summary>
+        /// 줄 단위 정점 캐싱 → 전체 숨김 → 줄마다 올라오며 페이드인 → 전체 확정 순서로 연출한다.
+        /// </summary>
         private static async UniTask AnimateLinesAsync(TMP_Text text, float lineMoveDuration, float lineInterval, float lineYOffset, Func<bool> skipRequested, CancellationToken token)
         {
 
@@ -94,21 +102,29 @@ namespace Scenes
                 // 보이는 문자가 없는 줄(간격용 빈 줄)은 연출과 대기 없이 즉시 통과함
                 if (!LineHasVisibleChar(textInfo, lineInfo)) continue;
 
-                float elapsed = 0f;
-                while (elapsed < lineMoveDuration)
-                {
-                    if (skipRequested != null && skipRequested()) { skipped = true; break; }
+                // 정점 단위 보간이라 트윈 대상이 없으므로 DOVirtual로 진행하고, 스킵 입력이 오면 그 자리에서 Kill한다
+                // (외부 Kill은 await를 정상 완료시키고, 취소 토큰은 트윈을 멈추며 예외로 빠져나간다).
+                // DOVirtual.Float는 값 전달을 내부 OnUpdate로 구현하므로 .OnUpdate()를 따로 붙이면 보간 콜백이 덮어써진다 —
+                // 스킵 검사도 반드시 보간 콜백 안에서 한다.
+                Tween lineTween = null;
+                lineTween = DOVirtual.Float(0f, 1f, lineMoveDuration, t =>
+                    {
+                        if (skipRequested != null && skipRequested())
+                        {
+                            skipped = true;
+                            lineTween.Kill();
+                            return;
+                        }
 
-                    float easeT = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / lineMoveDuration));
-                    float yOffset = Mathf.Lerp(-lineYOffset, 0f, easeT);
-                    byte alpha = (byte)Mathf.Lerp(0, 255, easeT);
+                        float easeT = Mathf.SmoothStep(0f, 1f, t);
+                        float yOffset = Mathf.Lerp(-lineYOffset, 0f, easeT);
+                        byte alpha = (byte)Mathf.Lerp(0, 255, easeT);
 
-                    ApplyLineVertices(textInfo, lineInfo, cachedVertices, cachedColors, yOffset, alpha);
-                    text.UpdateVertexData(TMP_VertexDataUpdateFlags.Vertices | TMP_VertexDataUpdateFlags.Colors32);
-
-                    elapsed += Time.deltaTime;
-                    await UniTask.Yield(PlayerLoopTiming.Update, token);
-                }
+                        ApplyLineVertices(textInfo, lineInfo, cachedVertices, cachedColors, yOffset, alpha);
+                        text.UpdateVertexData(TMP_VertexDataUpdateFlags.Vertices | TMP_VertexDataUpdateFlags.Colors32);
+                    })
+                    .SetEase(Ease.Linear);
+                await lineTween.ToUniTask(TweenCancelBehaviour.KillAndCancelAwait, token);
 
                 // 해당 줄을 정위치/불투명으로 확정
                 ApplyLineVertices(textInfo, lineInfo, cachedVertices, cachedColors, 0f, 255);
@@ -121,14 +137,16 @@ namespace Scenes
             }
 
             // 완료 또는 스킵 시 전체를 자연 상태(전체 표시/불투명)로 확정함
-            if (text != null)
+            if (text)
             {
                 text.color = new Color(baseColor.r, baseColor.g, baseColor.b, 1f);
                 text.ForceMeshUpdate();
             }
         }
 
-        // 해당 줄에 렌더링되는(스페이스가 아닌) 문자가 하나라도 있는지 반환함
+        /// <summary>
+        /// 해당 줄에 렌더링되는(스페이스가 아닌) 문자가 하나라도 있는지 반환한다.
+        /// </summary>
         private static bool LineHasVisibleChar(TMP_TextInfo textInfo, TMP_LineInfo lineInfo)
         {
             for (int c = lineInfo.firstCharacterIndex; c <= lineInfo.lastCharacterIndex && c < textInfo.characterCount; c++)
@@ -138,7 +156,9 @@ namespace Scenes
             return false;
         }
 
-        // 한 줄에 속한 문자 정점들에 Y 오프셋과 알파를 적용함(캐싱된 원본 기준)
+        /// <summary>
+        /// 한 줄에 속한 문자 정점들에 Y 오프셋과 알파를 적용한다 (캐싱된 원본 기준).
+        /// </summary>
         private static void ApplyLineVertices(TMP_TextInfo textInfo, TMP_LineInfo lineInfo, Vector3[][] cachedVertices, Color32[][] cachedColors, float yOffset, byte alpha)
         {
             for (int c = lineInfo.firstCharacterIndex; c <= lineInfo.lastCharacterIndex && c < textInfo.characterCount; c++)

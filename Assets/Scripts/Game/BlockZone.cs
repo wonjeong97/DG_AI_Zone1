@@ -15,14 +15,20 @@ namespace Game
 
         public Transform Content => content;
 
-        private ILogger<BlockZone> _log;
+        private ILogger<BlockZone> _logger;
 
+        /// <summary>
+        /// 로거를 주입받는다.
+        /// </summary>
         [Inject]
-        public void Construct(ILogger<BlockZone> log)
+        public void Construct(ILogger<BlockZone> logger)
         {
-            _log = log;
+            _logger = logger;
         }
 
+        /// <summary>
+        /// 드롭된 블록과 거기 붙어 있던 블록 전부를 떼어 content 맨 아래에 차례로 넣는다.
+        /// </summary>
         public void OnDrop(PointerEventData e)
         {
             if (!e.pointerDrag || !e.pointerDrag.TryGetComponent<CodingBlock>(out CodingBlock block)) return;
@@ -30,7 +36,7 @@ namespace Game
             // 시작하기/완성하기는 코딩 패널 전용 — 인벤토리 반입 금지 (거부 시 원래 자리로 복귀)
             if (block.Category == BlockCategory.Control) return;
 
-            var all = new List<CodingBlock>();
+            List<CodingBlock> all = new List<CodingBlock>();
             CollectAll(block, all);
 
             // 존 참조는 드롭된 블록이 생성 시 BlockSpawner에게서 받아 들고 있다
@@ -50,43 +56,51 @@ namespace Game
             }
         }
 
+        /// <summary>
+        /// 블록에 붙은 내부·값·조건·체인 블록을 모두 떼어내며 하위까지 재귀 수집한다 (제어 블록은 제자리로 복귀).
+        /// </summary>
         private void CollectAll(CodingBlock block, List<CodingBlock> all)
         {
             if (block.Category == BlockCategory.Control)
             {
                 CodingZone codingZone = block.CodingZone;
                 if (codingZone)
-                    CodingBlock.ResetControlBlockPosition(block, codingZone.transform);
-                else if (_log != null)
-                    _log.ZLogWarning($"[BlockZone] {block.name}에 CodingZone이 연결되지 않아 제자리로 되돌릴 수 없습니다.");
+                    CodingBlock.ResetControlBlockPosition(block, codingZone);
+                else if (_logger != null)
+                    _logger.ZLogWarning($"[BlockZone] {block.name}에 CodingZone이 연결되지 않아 제자리로 되돌릴 수 없습니다.");
                 return;
             }
 
             // 1. InnerSocket (FlowControl 내부 컨테이너에 들어간 블록) 분리 후 수집
-            DetachAndCollect<InnerSocket>(block, all, includeInactive: true);
+            DetachAndCollect<InnerSocket>(block, all);
 
-            // 2. ChainOutSocket 자식을 먼저 분리 — 이후 GetComponentsInChildren이 손자 소켓을 잡지 않도록
-            ChainOutSocket chainOut = block.GetComponentInChildren<ChainOutSocket>();
+            // 2. 체인으로 이어진 다음 블록 분리 (수집은 이 블록을 넣은 뒤 — 순서 유지)
+            ChainOutSocket chainOut = ChainOutSocket.OfBlock(block);
             CodingBlock chainChild = chainOut ? chainOut.Occupant : null;
             if (chainOut) chainOut.Release();
             if (chainChild) chainChild.transform.SetParent(null, true);
 
             // 3. 이 블록에 붙은 value 블록 분리 후 수집
-            DetachAndCollect<ValueOutSocket>(block, all, includeInactive: false);
+            DetachAndCollect<ValueOutSocket>(block, all);
 
             // 4. 이 블록에 붙은 condition 블록 분리 후 수집
-            DetachAndCollect<ConditionOutSocket>(block, all, includeInactive: false);
+            DetachAndCollect<ConditionOutSocket>(block, all);
 
             all.Add(block);
 
             if (chainChild) CollectAll(chainChild, all);
         }
 
-        // 지정한 종류의 소켓에 물려 있는 블록을 모두 떼어내고 그 하위까지 재귀 수집한다.
-        private void DetachAndCollect<TSocket>(CodingBlock block, List<CodingBlock> all, bool includeInactive)
+        /// <summary>
+        /// 블록에 직접 딸린 지정 종류의 소켓에 물려 있는 블록을 모두 떼어내고 그 하위까지 재귀 수집한다.
+        /// </summary>
+        private void DetachAndCollect<TSocket>(CodingBlock block, List<CodingBlock> all)
             where TSocket : BlockSocket
         {
-            foreach (TSocket socket in block.GetComponentsInChildren<TSocket>(includeInactive))
+            List<TSocket> sockets = new List<TSocket>();
+            block.GetSockets(sockets);
+
+            foreach (TSocket socket in sockets)
             {
                 CodingBlock child = socket.Occupant;
                 if (!child) continue;

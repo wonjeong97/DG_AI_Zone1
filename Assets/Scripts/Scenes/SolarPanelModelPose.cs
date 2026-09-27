@@ -38,13 +38,17 @@ namespace Scenes
         private float _currentYaw;
         private float _currentTilt;
 
+        /// <summary>
+        /// 방향 피벗의 원래 회전값을 기록한다.
+        /// </summary>
         private void Awake()
         {
             CaptureYawRest();
         }
 
-        // Awake가 아직 실행되지 않은 상태(예: 에디터 스크립트로 Play 모드 없이 직접 호출)에서도
-        // yawPivot의 원래 회전값을 안전하게 확보한다.
+        /// <summary>
+        /// Awake가 아직 실행되지 않은 상태(예: 에디터 스크립트로 Play 모드 없이 직접 호출)에서도 yawPivot의 원래 회전값을 안전하게 확보한다.
+        /// </summary>
         private void CaptureYawRest()
         {
             if (_yawRestCaptured || !yawPivot) return;
@@ -52,18 +56,24 @@ namespace Scenes
             _yawRestCaptured = true;
         }
 
-        // 각도 문자열("30도") → tiltPivot local Y. 45도 기준 오프셋. 값 없으면 0(=45도 취급)
+        /// <summary>
+        /// 각도 문자열("30도")을 tiltPivot local Y(45도 기준 오프셋)로 바꾼다. 값이 없으면 0(=45도 취급).
+        /// </summary>
         private static float AngleToTilt(string angle)
             => PanelPoseMath.TryParseAngleDegrees(angle, out int deg) ? deg - BaselineAngle : 0f;
 
-        // 기본 자세 (평평 + 정면) — 연출 시작점.
+        /// <summary>
+        /// 기본 자세(평평 + 정면)로 되돌린다 — 연출 시작점.
+        /// </summary>
         public void SetNeutral()
         {
             SetYaw(0f);
             SetTilt(0f);
         }
 
-        // 값에 맞춰 애니메이션으로 자세 변경 — 방향 → 각도 순차 재생.
+        /// <summary>
+        /// 값에 맞춰 애니메이션으로 자세를 바꾼다 — 방향 → 각도 순차 재생.
+        /// </summary>
         public async UniTask ApplyAsync(string angle, string direction, CancellationToken ct)
         {
             float targetTilt = AngleToTilt(angle);
@@ -75,7 +85,7 @@ namespace Scenes
             await DOVirtual.Float(startYaw, endYaw, animDuration, SetYaw)
                 .SetEase(Ease.InOutQuad)
                 .SetLink(gameObject)
-                .ToUniTask(cancellationToken: ct);
+                .ToUniTask(TweenCancelBehaviour.KillAndCancelAwait, ct);
             SetYaw(targetYaw);
 
             // 2) 각도(tilt) — Planes_Group의 local Y만 돈다. 지지대(Cylinder.007)는 움직이지 않는다.
@@ -83,10 +93,13 @@ namespace Scenes
             await DOVirtual.Float(startTilt, targetTilt, animDuration, SetTilt)
                 .SetEase(Ease.InOutQuad)
                 .SetLink(gameObject)
-                .ToUniTask(cancellationToken: ct);
+                .ToUniTask(TweenCancelBehaviour.KillAndCancelAwait, ct);
             SetTilt(targetTilt);
         }
 
+        /// <summary>
+        /// 원래 회전 위에 월드 Y축 회전을 곱해 방향을 지정한다.
+        /// </summary>
         private void SetYaw(float yaw)
         {
             CaptureYawRest();
@@ -95,6 +108,9 @@ namespace Scenes
             yawPivot.rotation = Quaternion.AngleAxis(yaw, Vector3.up) * _yawRestRotation;
         }
 
+        /// <summary>
+        /// 기울기 피벗의 local Y를 지정한다.
+        /// </summary>
         private void SetTilt(float tilt)
         {
             _currentTilt = tilt;

@@ -39,9 +39,14 @@ namespace Scenes
         private float _intensity;
         private float _phase;
 
+        /// <summary>
+        /// 피스톤의 정지 위치를 기록한다.
+        /// </summary>
         private void Awake() => CaptureRest();
 
-        // Awake 전에 SetNeutral이 불릴 수 있어(스테이지를 켜는 순서에 따라) 안전하게 한 번만 기록한다
+        /// <summary>
+        /// 피스톤의 정지 위치를 한 번만 기록한다 (스테이지를 켜는 순서에 따라 Awake 전에 SetNeutral이 불릴 수 있음).
+        /// </summary>
         private void CaptureRest()
         {
             if (_restCaptured || !piston) return;
@@ -49,6 +54,9 @@ namespace Scenes
             _restCaptured = true;
         }
 
+        /// <summary>
+        /// 현재 강도에 맞는 속도·진폭으로 피스톤을 위아래로 움직인다.
+        /// </summary>
         private void Update()
         {
             if (!piston) return;
@@ -60,7 +68,9 @@ namespace Scenes
             piston.localPosition = _pistonRest + Vector3.up * (amplitude * _intensity * Mathf.Sin(_phase));
         }
 
-        // 기본 상태(정지, 수증기 없음) — 연출 시작점.
+        /// <summary>
+        /// 기본 상태(정지, 수증기 없음)로 되돌린다 — 연출 시작점.
+        /// </summary>
         public void SetNeutral()
         {
             CaptureRest();
@@ -72,7 +82,9 @@ namespace Scenes
             if (piston) piston.localPosition = _pistonRest;
         }
 
-        // 에너지 효율(%)에 맞춰 강도를 올린다. 부족 구간이면 0 — 피스톤도 수증기도 멈춘 채로 둔다.
+        /// <summary>
+        /// 에너지 효율(%)에 맞춰 강도를 올린다. 부족 구간이면 0 — 피스톤도 수증기도 멈춘 채로 둔다.
+        /// </summary>
         public async UniTask ApplyAsync(int percent, CancellationToken ct)
         {
             CaptureRest();
@@ -80,11 +92,13 @@ namespace Scenes
             await DOVirtual.Float(_intensity, target, rampDuration, SetIntensity)
                 .SetEase(Ease.InOutQuad)
                 .SetLink(gameObject)
-                .ToUniTask(cancellationToken: ct);
+                .ToUniTask(TweenCancelBehaviour.KillAndCancelAwait, ct);
             SetIntensity(target);
         }
 
-        // 효율(%) → 연출 강도. 부족/보통 경계는 결과 텍스트와 같은 기준을 쓴다.
+        /// <summary>
+        /// 효율(%)을 연출 강도로 바꾼다. 부족/보통 경계는 결과 텍스트와 같은 기준을 쓴다.
+        /// </summary>
         private static float ToIntensity(int percent)
         {
             float poorCut = Constants.ResultMessages.NormalThresholdPercent;
@@ -92,6 +106,9 @@ namespace Scenes
             return Mathf.Lerp(MinActiveIntensity, 1f, Mathf.InverseLerp(poorCut, MaxPercent, percent));
         }
 
+        /// <summary>
+        /// 연출 강도를 지정하고 수증기 방출량을 맞춘다.
+        /// </summary>
         private void SetIntensity(float intensity)
         {
             _intensity = Mathf.Clamp01(intensity);

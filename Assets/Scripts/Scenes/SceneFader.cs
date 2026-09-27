@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using Cysharp.Text;
 using Cysharp.Threading.Tasks;
 using Data;
 using DG.Tweening;
@@ -23,17 +24,27 @@ namespace Scenes
         // StreamingAssets/Json/00_Common.json — 최초 1회만 로드해 공유(정적 유틸리티라 인스턴스 수명이 앱과 같음)
         private static CommonSettings _commonSettings;
 
+        /// <summary>
+        /// 다음 페이드인이 기다려야 할 작업을 등록한다 (새 씬의 Awake/Start에서 호출).
+        /// </summary>
         public static void RegisterPendingTask(UniTask task)
         {
             _pendingTasks.Enqueue(task);
         }
 
-        // isPrepared·frame>=0만으로는 화면에 노출되는 시점이 너무 일러 부자연스러울 수 있어, 재생 진행률이
-        // minProgress 이상이 될 때까지 대기함(예: 0.05 = 5% 룰). 재생(Play)이 이미 시작된 VideoPlayer에만 사용할 것
-        // — Play가 나중에 호출되는 경우 frame이 계속 -1이라 대기가 끝나지 않음.
-        public static async UniTask WaitUntilVideoProgressAsync(VideoPlayer player, float minProgress, CancellationToken ct)
+        /// <summary>
+        /// 영상 재생 진행률이 minProgress 이상이 될 때까지 기다린다(예: 0.05 = 5% 룰).
+        /// isPrepared·frame>=0만으로는 화면에 노출되는 시점이 너무 일러 부자연스러울 수 있기 때문이다.
+        /// 재생(Play)이 이미 시작된 VideoPlayer에만 사용할 것 — Play가 나중에 호출되면 frame이 계속 -1이라 대기가 끝나지 않는다.
+        /// </summary>
+        public static async UniTask WaitUntilVideoProgressAsync(VideoPlayer player, float minProgress, CancellationToken ct,
+            Microsoft.Extensions.Logging.ILogger logger = null)
         {
-            if (!player) return;
+            if (!player)
+            {
+                LogWarning(logger, "[SceneFader] VideoPlayer가 없어 영상 진행 대기를 건너뜁니다.");
+                return;
+            }
 
             await UniTask.WaitUntil(() =>
             {
@@ -52,21 +63,28 @@ namespace Scenes
         /// 이전 씬 잔상 제거 → URL 지정 → Prepare → 첫 프레임이 실제로 보일 때까지 페이드인을 미루도록 등록 → 재생.
         /// 여러 씬 매니저가 같은 절차를 반복하던 것을 모았다.
         /// </summary>
-        public static void PlayLoopingVideo(VideoPlayer player, string url, CancellationToken ct)
+        public static void PlayLoopingVideo(VideoPlayer player, string url, CancellationToken ct,
+            Microsoft.Extensions.Logging.ILogger logger = null)
         {
-            if (!player) return;
+            if (!player)
+            {
+                LogWarning(logger, "[SceneFader] VideoPlayer가 할당되지 않아 루프 영상을 재생하지 않습니다.");
+                return;
+            }
 
             ClearVideoRenderTexture(player);
             player.url = url;
             player.Prepare();
             RegisterPendingTask(WaitUntilVideoProgressAsync(
-                player, Constants.VideoPaths.MinPlaybackProgressBeforeReveal, ct));
+                player, Constants.VideoPaths.MinPlaybackProgressBeforeReveal, ct, logger));
             player.Play();
         }
 
-        // 씬 전환 직후 VideoPlayer가 사용하는 RenderTexture를 검은색으로 즉시 초기화함.
-        // 여러 씬이 같은 RenderTexture 에셋(예: RobotRenderTexture)을 공유하면 이전 씬에서 그려진 마지막 프레임이
-        // GPU에 남아있어, 새 영상이 실제로 그리기 전까지 이전 씬 잔상이 잠깐 비칠 수 있음
+        /// <summary>
+        /// 씬 전환 직후 VideoPlayer가 사용하는 RenderTexture를 검은색으로 즉시 초기화한다.
+        /// 여러 씬이 같은 RenderTexture 에셋(예: RobotRenderTexture)을 공유하면 이전 씬에서 그려진 마지막 프레임이
+        /// GPU에 남아있어, 새 영상이 실제로 그리기 전까지 이전 씬 잔상이 잠깐 비칠 수 있기 때문이다.
+        /// </summary>
         public static void ClearVideoRenderTexture(VideoPlayer player)
         {
             if (!player || !player.targetTexture) return;
@@ -78,7 +96,10 @@ namespace Scenes
             RenderTexture.active = prev;
         }
 
-        // duration을 생략하면 StreamingAssets/Json/00_Common.json의 sceneTransitionFadeDuration을 사용함
+        /// <summary>
+        /// 페이드아웃 → 씬 로드 → 새 씬의 대기 작업 완료 → 페이드인 순서로 씬을 전환한다.
+        /// duration을 생략하면 StreamingAssets/Json/00_Common.json의 sceneTransitionFadeDuration을 사용한다.
+        /// </summary>
         public static async UniTaskVoid FadeAndLoad(string sceneName, float? duration = null, Microsoft.Extensions.Logging.ILogger logger = null)
         {
             if (_isLoading) return;
@@ -92,8 +113,8 @@ namespace Scenes
                 if (fade) await fade.FadeOutAsync(resolvedDuration);
 
                 // 이전 씬에서 등록됐지만 이 시점까지 대기되지 않은 작업은 폐기됨 — 가시성을 위해 경고 로그
-                if (_pendingTasks.Count > 0)
-                    logger?.ZLogWarning($"[SceneFader] 이전 씬에서 대기되지 않은 작업 {_pendingTasks.Count}개를 폐기합니다.");
+                if (_pendingTasks.Count > 0 && logger != null)
+                    logger.ZLogWarning($"[SceneFader] 이전 씬에서 대기되지 않은 작업 {_pendingTasks.Count}개를 폐기합니다.");
                 _pendingTasks.Clear();
                 SceneManager.LoadScene(sceneName);
 
@@ -113,30 +134,39 @@ namespace Scenes
             }
         }
 
-        // 00_Common.json의 panelFadeDuration — SceneFader의 패널 페이드 헬퍼를 거치지 않고
-        // 직접 지속 시간 값이 필요한 호출부(수동 보간 루프 등)를 위해 공개함
+        /// <summary>
+        /// 00_Common.json의 panelFadeDuration을 반환한다 — 패널 페이드 헬퍼를 거치지 않고
+        /// 직접 지속 시간 값이 필요한 호출부를 위해 공개한다.
+        /// </summary>
         public static async UniTask<float> GetPanelFadeDurationAsync()
         {
             return (await GetCommonSettingsAsync()).panelFadeDuration;
         }
 
-        // 00_Common.json의 storyLineMoveDuration/storyLineInterval/storyLineYOffset —
-        // 한 줄씩 아래에서 위로 올라오며 페이드인되는 텍스트 연출(StoryLineAnimator)에 사용
+        /// <summary>
+        /// 00_Common.json의 storyLineMoveDuration/storyLineInterval/storyLineYOffset을 반환한다 —
+        /// 한 줄씩 아래에서 위로 올라오며 페이드인되는 텍스트 연출(StoryLineAnimator)에 사용한다.
+        /// </summary>
         public static async UniTask<(float moveDuration, float interval, float yOffset)> GetStoryLineSettingsAsync()
         {
             CommonSettings settings = await GetCommonSettingsAsync();
             return (settings.storyLineMoveDuration, settings.storyLineInterval, settings.storyLineYOffset);
         }
 
+        /// <summary>
+        /// 00_Common.json을 최초 1회만 로드해 공유한다.
+        /// </summary>
         private static async UniTask<CommonSettings> GetCommonSettingsAsync()
         {
             _commonSettings ??= await JsonLoader.LoadAsync<CommonSettings>(
-                $"{Constants.ResourcePaths.SceneSettingsFolder}/{Constants.ResourcePaths.CommonSettingsFileName}");
+                ZString.Concat(Constants.ResourcePaths.SceneSettingsFolder, "/", Constants.ResourcePaths.CommonSettingsFileName));
 
             return _commonSettings;
         }
 
-        // 등록된 대기 작업을 각각 개별 타임아웃으로 대기 — 한 작업의 실패/타임아웃이 나머지 작업 대기를 막지 않도록 함
+        /// <summary>
+        /// 등록된 대기 작업을 각각 개별 타임아웃으로 기다린다 — 한 작업의 실패/타임아웃이 나머지 작업 대기를 막지 않도록 한다.
+        /// </summary>
         private static async UniTask AwaitPendingTasks(Microsoft.Extensions.Logging.ILogger logger)
         {
             // 신규 씬의 Start()가 대기 작업을 등록하기까지 부하 상황에서는 1프레임보다 더 걸릴 수 있어,
@@ -146,7 +176,7 @@ namespace Scenes
 
             if (_pendingTasks.Count == 0) return;
 
-            logger?.ZLogInformation($"[SceneFader] {_pendingTasks.Count}개의 대기 작업 완료를 기다립니다...");
+            if (logger != null) logger.ZLogInformation($"[SceneFader] {_pendingTasks.Count}개의 대기 작업 완료를 기다립니다...");
             while (_pendingTasks.Count > 0)
             {
                 UniTask task = _pendingTasks.Dequeue();
@@ -156,31 +186,48 @@ namespace Scenes
                 }
                 catch (Exception ex)
                 {
-                    logger?.ZLogWarning($"[SceneFader] 대기 작업 중 예외 또는 타임아웃 발생 ({ex.Message}). 다음 작업으로 계속합니다.");
+                    LogWarning(logger, ZString.Concat("[SceneFader] 대기 작업 중 예외 또는 타임아웃 발생 (", ex.Message, "). 다음 작업으로 계속합니다."));
                 }
             }
-            logger?.ZLogInformation($"[SceneFader] 대기 작업 완료.");
+            if (logger != null) logger.ZLogInformation($"[SceneFader] 대기 작업 완료.");
         }
 
-        // GameLifetimeScope가 App 하위에 FadeManager를 만든 직후 등록한다 (씬 전체 검색 대신 참조를 넘겨받음)
+        /// <summary>
+        /// GameLifetimeScope가 App 하위에 FadeManager를 만든 직후 등록한다 (씬 전체 검색 대신 참조를 넘겨받음).
+        /// </summary>
         public static void RegisterFadeManager(FadeManager fadeManager)
         {
             _fadeManager = fadeManager;
         }
 
-        // 등록된 전역 FadeManager 반환 (없으면 페이드 없이 로드)
+        /// <summary>
+        /// 등록된 전역 FadeManager를 반환한다 (없으면 페이드 없이 로드하도록 경고).
+        /// </summary>
         private static FadeManager Find(Microsoft.Extensions.Logging.ILogger logger)
         {
             if (!_fadeManager)
-                logger?.ZLogWarning($"[SceneFader] FadeManager를 찾을 수 없습니다. 페이드 없이 씬을 전환합니다.");
+                LogWarning(logger, "[SceneFader] FadeManager가 등록되지 않았습니다. 페이드 없이 씬을 전환합니다.");
             return _fadeManager;
+        }
+
+        /// <summary>
+        /// 로거가 있으면 ZLogger로, 없으면 Unity 콘솔로 경고를 남긴다 (정적 유틸리티라 로거를 선택 인자로 받음).
+        /// </summary>
+        private static void LogWarning(Microsoft.Extensions.Logging.ILogger logger, string message)
+        {
+            if (logger != null) logger.ZLogWarning($"{message}");
+            else Debug.LogWarning(message);
         }
 
         // ── CanvasGroup 페이드 공용 헬퍼 (씬 매니저 간 중복 구현 통합) ──────────
 
-        // 그룹의 alpha를 from→to로 보간. duration을 생략하면 00_Common.json의 panelFadeDuration을 사용함
+        /// <summary>
+        /// 그룹의 alpha를 from→to로 보간한다. duration을 생략하면 00_Common.json의 panelFadeDuration을 사용한다.
+        /// 취소되면 트윈을 멈추고 OperationCanceledException을 던진다.
+        /// </summary>
         public static async UniTask FadeCanvasGroupAsync(CanvasGroup group, float from, float to, float? duration = null, CancellationToken ct = default)
         {
+            // 선택적 패널(씬마다 없을 수 있음)도 같은 호출로 처리하므로 없으면 건너뛴다 — 필수 패널은 호출부가 따로 경고한다
             if (!group) return;
 
             float resolvedDuration = duration ?? (await GetCommonSettingsAsync()).panelFadeDuration;
@@ -189,10 +236,13 @@ namespace Scenes
             await group.DOFade(to, resolvedDuration)
                 .SetEase(Ease.Linear)
                 .SetUpdate(true) // 씬 전환 페이드는 timeScale 0에서도 동작해야 하는 시스템 연출
-                .SetLink(group.gameObject)
-                .ToUniTask(cancellationToken: ct);
+                .SetLink(group.gameObject) // ct가 비어 있는 호출도 있어 파괴 시 자동 Kill을 함께 건다
+                .ToUniTask(TweenCancelBehaviour.KillAndCancelAwait, ct);
         }
 
+        /// <summary>
+        /// 그룹의 상호작용과 레이캐스트 차단을 함께 켜거나 끈다.
+        /// </summary>
         public static void SetGroupInteractable(CanvasGroup group, bool value)
         {
             if (!group) return;
@@ -200,9 +250,11 @@ namespace Scenes
             group.blocksRaycasts = value;
         }
 
-        // 패널 전환은 alpha만 조작하고 GameObject.SetActive는 건드리지 않으므로, 에디터에서 UI 작업 중
-        // 패널을 비활성화한 채로 남겨두고 플레이하면 alpha를 1로 페이드해도 화면에 나타나지 않는다.
-        // 씬 시작 시 이 메서드로 모든 패널의 GameObject를 항상 켜두고, alpha/상호작용만으로 표시 여부를 정규화한다.
+        /// <summary>
+        /// 씬 시작 시 패널 GameObject를 항상 켜두고 alpha/상호작용만으로 표시 여부를 정규화한다.
+        /// 패널 전환은 alpha만 조작하고 SetActive는 건드리지 않으므로, 에디터에서 패널을 꺼둔 채 플레이하면
+        /// alpha를 1로 페이드해도 화면에 나타나지 않는 문제를 막기 위함이다.
+        /// </summary>
         public static void InitializePanelState(CanvasGroup panel, bool isVisible)
         {
             if (!panel) return;

@@ -37,7 +37,9 @@ namespace Data
             }
         }
 
-        // 앱을 껐다 켜면 항상 처음부터 시작하도록 부팅 시점에 진행도 초기화
+        /// <summary>
+        /// 앱을 껐다 켜면 항상 처음부터 시작하도록 부팅 시점에 진행도를 초기화한다.
+        /// </summary>
         public void ResetProgress()
         {
             unlockedLevelIndex = 0;
@@ -46,8 +48,10 @@ namespace Data
             ResetLastResult();
         }
 
-        // 결과 씬 표시용 값 초기화 — 게임 씬 진입 시, 그리고 넘어가기로 실패 처리할 때.
-        // 문제 값(lastQuestionTime)은 결과 씬에서도 계속 쓰이므로 건드리지 않는다.
+        /// <summary>
+        /// 결과 씬 표시용 값을 초기화한다 — 게임 씬 진입 시, 그리고 넘어가기로 실패 처리할 때.
+        /// 문제 값(lastQuestionTime)은 결과 씬에서도 계속 쓰이므로 건드리지 않는다.
+        /// </summary>
         public void ResetLastResult()
         {
             lastScore = 0;

@@ -1,7 +1,11 @@
 using System.Collections.Generic;
+using Cysharp.Text;
+using Microsoft.Extensions.Logging;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using VContainer;
+using ZLogger;
 
 namespace Scenes
 {
@@ -42,19 +46,35 @@ namespace Scenes
             [Constants.Directions.North] = "Image_Wind_North",
         };
 
+        private ILogger<HintPanel> _logger;
+
+        /// <summary>
+        /// 로거를 주입받는다.
+        /// </summary>
+        [Inject]
+        public void Construct(ILogger<HintPanel> logger)
+        {
+            _logger = logger;
+        }
+
+        /// <summary>
+        /// 닫기 버튼에 숨기기 동작을 연결한다.
+        /// </summary>
         private void Awake()
         {
             if (closeButton)
                 closeButton.onClick.AddListener(Hide);
         }
 
-        // levelName: 현재 플레이 중인 레벨의 LevelData 에셋 이름 (예: "02_WindData").
-        // 진행도(unlockedLevelIndex)가 아닌 실제 로드된 레벨을 기준으로 패널을 골라야
-        // testLevel로 특정 레벨을 단독 테스트할 때도 올바른 힌트 패널이 열린다.
+        /// <summary>
+        /// 현재 레벨의 힌트 패널만 켜고 문제 값에 맞는 변형을 표시한다.
+        /// levelName은 현재 플레이 중인 레벨의 LevelData 에셋 이름(예: "02_WindData")으로,
+        /// 진행도가 아닌 실제 로드된 레벨을 기준으로 골라야 testLevel 단독 테스트에서도 올바른 패널이 열린다.
+        /// </summary>
         public void Show(string levelName, string questionValueKey = null)
         {
             int levelNumber = Constants.Levels.ParseLevelNumber(levelName);
-            string targetPanelName = levelNumber > 0 ? $"Level{levelNumber}Panel" : null;
+            string targetPanelName = levelNumber > 0 ? ZString.Concat("Level", levelNumber, "Panel") : null;
 
             foreach (GameObject panel in levelPanels)
             {
@@ -64,22 +84,28 @@ namespace Scenes
             if (level1TimeContainer)
                 level1TimeContainer.gameObject.SetActive(level1TimeContainer.gameObject.name == targetPanelName);
 
-            if (targetPanelName == "Level1Panel")
+            if (levelNumber == 1)
                 ApplyTimeVariant(questionValueKey);
 
-            if (targetPanelName == "Level2Panel")
+            if (levelNumber == 2)
                 ApplyWindVariant(questionValueKey);
 
-            if (targetPanelName == "Level3Panel")
+            if (levelNumber == 3)
                 ApplyMeterText(questionValueKey);
 
             gameObject.SetActive(true);
         }
 
-        // 레벨1 힌트 패널의 시간대 오브젝트 중 현재 문제의 시간과 일치하는 것만 활성화
+        /// <summary>
+        /// 레벨1 힌트 패널의 시간대 오브젝트 중 현재 문제의 시간과 일치하는 것만 활성화한다.
+        /// </summary>
         private void ApplyTimeVariant(string questionValueKey)
         {
-            if (!level1TimeContainer) return;
+            if (!level1TimeContainer)
+            {
+                if (_logger != null) _logger.ZLogWarning($"[HintPanel] level1TimeContainer가 할당되지 않아 시간대 힌트를 고르지 못했습니다.");
+                return;
+            }
 
             string target = questionValueKey != null && TimeVariantNames.TryGetValue(questionValueKey, out string name) ? name : null;
             foreach (Transform child in level1TimeContainer)
@@ -90,10 +116,16 @@ namespace Scenes
             }
         }
 
-        // 레벨2 힌트 패널의 풍향 오브젝트 중 현재 문제의 바람 방향과 일치하는 것만 활성화
+        /// <summary>
+        /// 레벨2 힌트 패널의 풍향 오브젝트 중 현재 문제의 바람 방향과 일치하는 것만 활성화한다.
+        /// </summary>
         private void ApplyWindVariant(string questionValueKey)
         {
-            if (!level2WindContainer) return;
+            if (!level2WindContainer)
+            {
+                if (_logger != null) _logger.ZLogWarning($"[HintPanel] level2WindContainer가 할당되지 않아 풍향 힌트를 고르지 못했습니다.");
+                return;
+            }
 
             string target = questionValueKey != null && WindVariantNames.TryGetValue(questionValueKey, out string name) ? name : null;
             foreach (Transform child in level2WindContainer)
@@ -104,13 +136,20 @@ namespace Scenes
             }
         }
 
-        // 레벨3 힌트 패널의 Text_Meter에 현재 문제의 강물 높이 값을 그대로 표시
+        /// <summary>
+        /// 레벨3 힌트 패널의 Text_Meter에 현재 문제의 강물 높이 값을 그대로 표시한다.
+        /// </summary>
         private void ApplyMeterText(string questionValueKey)
         {
             if (level3MeterText)
                 level3MeterText.text = questionValueKey;
+            else if (_logger != null)
+                _logger.ZLogWarning($"[HintPanel] level3MeterText가 할당되지 않아 강물 높이를 표시하지 못했습니다.");
         }
 
+        /// <summary>
+        /// 힌트 패널을 닫는다.
+        /// </summary>
         private void Hide() => gameObject.SetActive(false);
     }
 }

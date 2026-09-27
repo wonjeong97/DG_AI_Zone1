@@ -79,17 +79,29 @@ namespace Scenes
         // 연출을 쓰지 않는 씬에서는 기존처럼 항상 끝까지 흐르도록 1에서 시작한다.
         private float _flowReach = 1f;
 
+        /// <summary>
+        /// 활성화될 때 현재 개방량을 수문·물줄기에 반영한다.
+        /// </summary>
         private void OnEnable() => ApplyAll();
 
         // 빌드에서는 매 프레임 돌 이유가 없다 — 값이 바뀌는 시점(OnEnable/SetNeutral/ApplyAsync)에만
         // ApplyAll이 불리고, 스케일·MaterialPropertyBlock·파티클 설정은 한 번 넣으면 그대로 유지된다.
         // 에디터에서는 인스펙터로 opening을 직접 만지며 확인하는 용도라 플레이 중에도 계속 반영한다.
 #if UNITY_EDITOR
+        /// <summary>
+        /// 에디터에서 인스펙터로 바꾼 개방량을 매 프레임 반영한다.
+        /// </summary>
         private void Update() => ApplyAll();
+
+        /// <summary>
+        /// 인스펙터 값이 바뀌면 즉시 반영한다.
+        /// </summary>
         private void OnValidate() => ApplyAll();
 #endif
 
-        // 기본 상태(전부 닫힘, 물 없음) — 연출 시작점.
+        /// <summary>
+        /// 기본 상태(전부 닫힘, 물 없음)로 되돌린다 — 연출 시작점.
+        /// </summary>
         public void SetNeutral()
         {
             SetOpeningValue(0f);
@@ -97,13 +109,12 @@ namespace Scenes
             ApplyAll();
         }
 
-        // 에너지 효율(%)에 비례해 수문을 연다 — 0%면 닫힌 채, 100%면 완전 개방.
-        // 수문 4개를 같은 양만큼 여닫는다(레벨3은 수문별 값을 따로 받지 않는다).
-        //
-        // 수문과 물줄기는 서로 다른 곡선으로 움직인다. 수문은 전 구간에 걸쳐 천천히 열리고,
-        // 물은 수문이 조금 열린 뒤에야 마루를 넘어 아래로 내려간다 —
-        // 둘을 같이 움직이면 살짝 열린 순간 물이 이미 토우까지 닿아 있어 뚝 끊기듯 보인다.
-        // 도달 거리는 최종 개방량과 무관하게 항상 1(토우)까지 간다. 조금만 열려도 물은 끝까지 떨어진다.
+        /// <summary>
+        /// 에너지 효율(%)에 비례해 수문을 연다 — 0%면 닫힌 채, 100%면 완전 개방(수문 4개를 같은 양만큼).
+        /// 수문은 전 구간에 걸쳐 천천히 열리고, 물은 수문이 조금 열린 뒤에야 마루를 넘어 내려간다 —
+        /// 둘을 같이 움직이면 살짝 열린 순간 물이 이미 토우까지 닿아 뚝 끊기듯 보이기 때문이다.
+        /// 도달 거리는 최종 개방량과 무관하게 항상 1(토우)까지 간다.
+        /// </summary>
         public async UniTask ApplyAsync(int percent, CancellationToken ct)
         {
             float targetOpening = Mathf.Clamp01(percent / MaxPercent);
@@ -124,13 +135,16 @@ namespace Scenes
                 })
                 .SetEase(Ease.Linear)
                 .SetLink(gameObject)
-                .ToUniTask(cancellationToken: ct);
+                .ToUniTask(TweenCancelBehaviour.KillAndCancelAwait, ct);
 
             SetOpeningValue(targetOpening);
             _flowReach = targetReach;
             ApplyAll();
         }
 
+        /// <summary>
+        /// 모든 수문의 개방량 값을 지정한다.
+        /// </summary>
         private void SetOpeningValue(float opening)
         {
             _currentOpening = opening;
@@ -141,6 +155,9 @@ namespace Scenes
             }
         }
 
+        /// <summary>
+        /// 모든 수문에 현재 개방량과 물줄기 도달 정도를 반영한다.
+        /// </summary>
         public void ApplyAll()
         {
             if (gates == null) return;
@@ -151,6 +168,9 @@ namespace Scenes
             }
         }
 
+        /// <summary>
+        /// 수문 하나의 스케일·거품·포말·물줄기 셰이더 값을 개방량에 맞춘다.
+        /// </summary>
         private void Apply(DamGate g)
         {
             float opening = Mathf.Clamp01(g.opening);
@@ -190,7 +210,7 @@ namespace Scenes
 
             // 두께 - 블렌드셰이프 "Thick" (많이 열릴수록 물이 두꺼워진다)
             if (g.water.TryGetComponent(out SkinnedMeshRenderer smr) &&
-                smr.sharedMesh != null && smr.sharedMesh.blendShapeCount > 0)
+                smr.sharedMesh && smr.sharedMesh.blendShapeCount > 0)
             {
                 float thick = closed ? 0f : Mathf.Lerp(minStreamThickness, 1f, opening);
                 smr.SetBlendShapeWeight(0, thick * 100f);
