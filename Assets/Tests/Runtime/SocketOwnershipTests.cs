@@ -72,6 +72,33 @@ namespace DG.Zone1.Tests
         }
 
         /// <summary>
+        /// Inner 소켓의 수락 판정은 드래그 중 매 프레임 호출되므로 힙 할당이 없어야 한다
+        /// (중첩된 반복하기가 있어 재귀 판정을 거치는 경우 포함).
+        /// </summary>
+        [Test]
+        public void Inner_소켓_수락_판정은_힙_할당이_없다()
+        {
+            CodingBlock outer = BlockTestUtil.MakeBlock(_zone, Constants.BlockLabels.While, BlockCategory.FlowControl, _zone.transform);
+            InnerSocket outerInner = BlockTestUtil.AddInnerSocket(outer);
+            CodingBlock nested = BlockTestUtil.MakeBlock(_zone, Constants.BlockLabels.While, BlockCategory.FlowControl, _zone.transform);
+            BlockTestUtil.AddInnerSocket(nested);
+            CodingBlock cmd = BlockTestUtil.MakeBlock(_zone, "개방하기", BlockCategory.Command, _zone.transform);
+
+            // 드래그 중인 블록(nested) 안에 또 명령이 들어 있어 재귀 판정을 탄다
+            nested.GetSocket<InnerSocket>().Accept(cmd);
+            CodingBlock target = BlockTestUtil.MakeBlock(_zone, Constants.BlockLabels.While, BlockCategory.FlowControl, _zone.transform);
+            InnerSocket targetInner = BlockTestUtil.AddInnerSocket(target);
+
+            targetInner.CanAccept(nested); // JIT 등 최초 호출 비용 제외
+            long before = System.GC.GetAllocatedBytesForCurrentThread();
+            for (int i = 0; i < 100; i++) targetInner.CanAccept(nested);
+            long allocated = System.GC.GetAllocatedBytesForCurrentThread() - before;
+
+            Assert.AreEqual(0, allocated, "드래그 중 매 프레임 호출되는 수락 판정에서 힙 할당이 발생함");
+            Assert.IsTrue(outerInner.CanAccept(nested), "제어 블록이 없는 체인은 받아야 함");
+        }
+
+        /// <summary>
         /// 블록의 직속 체인 소켓은 내부 컨테이너 안 블록의 체인 소켓과 섞이지 않는다.
         /// </summary>
         [Test]

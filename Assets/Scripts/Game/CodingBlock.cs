@@ -110,6 +110,9 @@ namespace Game
         // 등록 순서가 곧 배치 순서라(프리팹 내장 → 코드로 덧붙인 else 분기) 만약/아니면 Inner 순서가 보존된다.
         private readonly List<BlockSocket> _sockets = new();
 
+        // 드래그 중 매 프레임 도는 판정(InnerSocket.CanAccept 등)이 리스트 할당 없이 인덱스로 순회하도록 노출한다
+        public IReadOnlyList<BlockSocket> Sockets => _sockets;
+
         /// <summary>
         /// 프리팹에 들어 있던 소켓을 이 블록 소유로 등록한다.
         /// </summary>
