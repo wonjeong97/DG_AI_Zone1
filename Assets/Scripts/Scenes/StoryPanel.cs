@@ -11,6 +11,7 @@ namespace Scenes
     public class StoryPanel : MonoBehaviour
     {
         [SerializeField] private Image headerImage;
+        [Tooltip("레벨 순서대로(레벨1=0번) 스토리 헤더에 표시할 이미지")]
         [SerializeField] private Sprite[] levelHeaderImages;
         [SerializeField] private GameObject[] levelPanels;
         [Tooltip("레벨 순서대로(레벨1=0번), 각 레벨 패널 안에서 LevelData.storyText를 표시할 텍스트(Text_LevelNStory)")]
@@ -46,20 +47,20 @@ namespace Scenes
         public void Show(string levelName, string storyText = null)
         {
             int levelNumber = Constants.Levels.ParseLevelNumber(levelName);
-            string targetSpriteName = levelNumber > 0 ? ZString.Concat("Level", levelNumber) : null;
             string targetPanelName = levelNumber > 0 ? ZString.Concat("Level", levelNumber, "Panel") : null;
 
-            if (headerImage && levelHeaderImages is not null)
+            // 헤더 이미지는 레벨 순서대로 배열에 들어 있다(레벨1=0번) — 스프라이트 파일명에 의존하지 않는다
+            int headerIndex = levelNumber - 1;
+            Sprite header = levelHeaderImages is not null && headerIndex >= 0 && headerIndex < levelHeaderImages.Length
+                ? levelHeaderImages[headerIndex] : null;
+            if (headerImage && header)
             {
-                foreach (Sprite sprite in levelHeaderImages)
-                {
-                    if (sprite && sprite.name == targetSpriteName)
-                    {
-                        headerImage.sprite = sprite;
-                        headerImage.SetNativeSize();
-                        break;
-                    }
-                }
+                headerImage.sprite = header;
+                headerImage.SetNativeSize();
+            }
+            else if (_logger != null)
+            {
+                _logger.ZLogWarning($"[StoryPanel] 레벨{levelNumber}의 헤더 이미지가 할당되지 않았습니다.");
             }
 
             GameObject targetPanel = null;
