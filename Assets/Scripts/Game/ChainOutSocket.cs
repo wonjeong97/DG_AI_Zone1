@@ -5,27 +5,30 @@ namespace Game
     // 블록 하단 연결 포인트. 자식 블록의 ChainInSocket과 위치를 맞춰 스냅한다.
     public class ChainOutSocket : BlockSocket
     {
-        // 블록의 '직속' ChainOutSocket — 컨테이너(FlowControl/FuncDef) 내부의 하위 체인 소켓과 혼동 방지
+        /// <summary>
+        /// 블록의 '직속' ChainOutSocket을 반환한다 — 컨테이너(FlowControl/FuncDef) 내부의 하위 체인 소켓과 혼동하지 않는다.
+        /// </summary>
         public static ChainOutSocket OfBlock(CodingBlock block)
         {
-            ChainOutSocket socket = BlockSocket.FindChildComponent<ChainOutSocket>(block.transform, Constants.Sockets.ChainOutName);
-            return socket;
+            return block ? block.GetSocket<ChainOutSocket>() : null;
         }
 
-        // cascade 전체가 완료될 수 있는지 재귀 검증
+        /// <summary>
+        /// 들어오는 블록을 받을 수 있는지(제어 블록 위치 제한, 레벨5 함수 체인 제한, cascade 완료 가능 여부) 검증한다.
+        /// </summary>
         public bool CanAccept(CodingBlock incoming)
         {
-            if (incoming != null && incoming.Category == BlockCategory.Control)
+            if (incoming && incoming.Category == BlockCategory.Control)
             {
                 // Inner 컨테이너(InnerSocket 하위) 내부에 위치한 소켓일 경우 Control 블록(완성하기 등) 수락 불가
-                if (GetComponentInParent<InnerSocket>() != null)
+                if (Owner && Owner.IsInsideInnerContainer())
                     return false;
             }
 
             // 레벨 5(함수) 한정 — 메인 체인(시작~완성)에는 함수 블록만 연결 가능
-            if (CodingBlock.RestrictMainChainToFunction && incoming != null)
+            if (CodingBlock.RestrictMainChainToFunction && incoming)
             {
-                CodingBlock owner = GetComponentInParent<CodingBlock>();
+                CodingBlock owner = Owner;
                 if (owner)
                 {
                     bool ownerIsStart   = owner.Category == BlockCategory.Control
@@ -45,6 +48,9 @@ namespace Game
             return CanFit(incoming, Occupant);
         }
 
+        /// <summary>
+        /// 블록을 점유로 기록하고 스냅시키며, 원래 있던 블록은 새 블록 아래로 밀어 붙인다.
+        /// </summary>
         public void Accept(CodingBlock block)
         {
             CodingBlock displaced = Occupant;
@@ -62,7 +68,9 @@ namespace Game
                 MoveToCodingZone(displaced);
         }
 
-        // 자식 블록의 ChainInSocket 앵커 위치가 이 소켓 위치와 일치하도록 오프셋 계산
+        /// <summary>
+        /// 자식 블록의 ChainInSocket 앵커 위치가 이 소켓 위치와 일치하도록 오프셋을 계산한다.
+        /// </summary>
         internal static Vector2 ComputeChainSnapOffset(CodingBlock block)
         {
             ChainInSocket inSocket = BlockSocket.FindChildComponent<ChainInSocket>(block.transform, Constants.Sockets.ChainInName);
@@ -72,6 +80,9 @@ namespace Game
 #if UNITY_EDITOR
         private const float SnapRadius = 120f;
 
+        /// <summary>
+        /// 씬 뷰에 소켓 위치와 스냅 범위를 표시한다.
+        /// </summary>
         private void OnDrawGizmos()
         {
             if (!TryGetComponent(out RectTransform rt)) return;

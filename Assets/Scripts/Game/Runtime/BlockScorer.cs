@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Cysharp.Text;
 
 namespace Game.Runtime
 {
@@ -6,6 +7,9 @@ namespace Game.Runtime
     // 각 Command 블록당 1회 채점 — 반복/조건 내부 블록도 배치 기준으로 1회.
     public static class BlockScorer
     {
+        /// <summary>
+        /// 프로그램 전체를 레벨 규칙에 맞게 채점해 총점을 반환한다.
+        /// </summary>
         public static int ScoreProgram(List<BlockInstruction> instructions, string questionValueKey, string levelName = null)
         {
             // 레벨4/5(발전소·미래에너지)는 명령에 값이 없어 아래 순회 채점과 무관 — 구조/조건/명령 3항목을 더한 별도 채점
@@ -33,7 +37,10 @@ namespace Game.Runtime
         }
 
         // ── 최고 점수 값 조회 (AI 코딩 결과 표시용) ─────────────────
-        // 레벨별 최고 점수. 레벨3(수력)은 조건×아니면×순서 3항목을 곱한 점수 체계라 별도 계산식을 쓴다.
+
+        /// <summary>
+        /// 레벨별 최고 점수를 반환한다. 레벨3(수력)은 조건×아니면×순서 3항목을 곱한 점수 체계라 별도 계산식을 쓴다.
+        /// </summary>
         public static int GetMaxScore(string levelName = null)
         {
             if (Constants.Levels.IsHydro(levelName))
@@ -53,28 +60,40 @@ namespace Game.Runtime
             return Constants.Scores.DirectionCorrectScore + Constants.Scores.CountScore[GetBestCount()];
         }
 
+        /// <summary>
+        /// 문제 값에 대한 정답(최고 점수) 방향을 반환한다.
+        /// </summary>
         public static string GetBestDirection(string questionValueKey, string levelName = null)
             => Constants.Questions.GetCorrectDirection(levelName, questionValueKey);
 
+        /// <summary>
+        /// 가장 높은 점수를 주는 개수 값을 반환한다.
+        /// </summary>
         public static string GetBestCount() => MaxScoreKey(Constants.Scores.CountScore);
 
-        // 프로그램에 반복하기 블록이 있는지 — 레벨2 결과의 '반복 감지' 표시에 사용 (채점에는 반영되지 않음)
+        /// <summary>
+        /// 프로그램에 반복하기 블록이 있는지 확인한다 — 레벨2 결과의 '반복 감지' 표시에 사용 (채점에는 반영되지 않음).
+        /// </summary>
         public static bool ContainsRepeat(List<BlockInstruction> instructions)
             => ContainsType<RepeatInstruction>(instructions);
 
-        // 첫 '만약' 블록에 연결된 조건 높이를 "5m" 형태로 반환 — 레벨3 결과의 '수문 개방 높이'/'조건 감지' 표시용.
-        // 조건 블록이 없거나 높이를 읽을 수 없으면 null (= 조건 감지 OFF).
+        /// <summary>
+        /// 첫 '만약' 블록에 연결된 조건 높이를 "5m" 형태로 반환한다 — 레벨3 결과의 '수문 개방 높이'/'조건 감지' 표시용.
+        /// 조건 블록이 없거나 높이를 읽을 수 없으면 null (= 조건 감지 OFF).
+        /// </summary>
         public static string GetHydroGateHeight(List<BlockInstruction> instructions)
         {
             IfInstruction ifInstr = FindFirst<IfInstruction>(instructions);
             if (ifInstr?.Condition is not SimpleConditionExpr simple) return null;
 
             int meters = ParseMeters(simple.Name);
-            return meters >= 0 ? meters + "m" : null;
+            return meters >= 0 ? ZString.Concat(meters, "m") : null;
         }
 
-        // 첫 '만약' 블록에 연결된 조건식 — 레벨4 결과의 '설정한 조건' 표시용. 만약/조건이 없으면 null.
-        // 결과 텍스트는 폭이 좁아 '그리고'를 가운뎃점으로 줄인다 (디버그 코드 표시는 원문 그대로).
+        /// <summary>
+        /// 첫 '만약' 블록에 연결된 조건식을 반환한다 — 레벨4 결과의 '설정한 조건' 표시용. 만약/조건이 없으면 null.
+        /// 결과 텍스트는 폭이 좁아 '그리고'를 가운뎃점으로 줄인다 (디버그 코드 표시는 원문 그대로).
+        /// </summary>
         public static string GetConditionText(List<BlockInstruction> instructions)
         {
             IfInstruction ifInstr = FindFirst<IfInstruction>(instructions);
@@ -88,7 +107,9 @@ namespace Game.Runtime
             };
         }
 
-        // 반복하기가 '만약' 안에 중첩돼 있는지 — 레벨4 구조 채점과 결과의 '반복 감지'가 같은 기준을 쓴다.
+        /// <summary>
+        /// 반복하기가 '만약' 안에 중첩돼 있는지 확인한다 — 레벨4 구조 채점과 결과의 '반복 감지'가 같은 기준을 쓴다.
+        /// </summary>
         public static bool IsRepeatNestedInIf(List<BlockInstruction> instructions)
         {
             IfInstruction ifInstr = FindFirst<IfInstruction>(instructions);
@@ -96,18 +117,23 @@ namespace Game.Runtime
                 (ContainsType<RepeatInstruction>(ifInstr.Then) || ContainsType<RepeatInstruction>(ifInstr.Else));
         }
 
-        // '병원 불 켜기'가 반복하기 안에 있는지 — 레벨4 명령 채점과 결과의 '병원 전력 유지'가 같은 기준을 쓴다.
+        /// <summary>
+        /// '병원 불 켜기'가 반복하기 안에 있는지 확인한다 — 레벨4 명령 채점과 결과의 '병원 전력 유지'가 같은 기준을 쓴다.
+        /// </summary>
         public static bool IsHospitalCommandInRepeat(List<BlockInstruction> instructions)
         {
             RepeatInstruction repInstr = FindFirst<RepeatInstruction>(instructions);
             return repInstr is not null && ContainsCommandDeep(repInstr.Body, PowerPlantHospitalCommand);
         }
 
+        /// <summary>
+        /// 점수표에서 가장 높은 점수의 키를 반환한다.
+        /// </summary>
         private static string MaxScoreKey(Dictionary<string, int> table)
         {
             string bestKey = null;
             int bestScore = int.MinValue;
-            foreach (var pair in table)
+            foreach (KeyValuePair<string, int> pair in table)
                 if (pair.Value > bestScore)
                 {
                     bestScore = pair.Value;
@@ -117,7 +143,10 @@ namespace Game.Runtime
         }
 
         // ── 프로그램에서 플레이어가 조립한 값 추출 ──────────────────
-        // 같은 타입의 Command가 여러 개면 마지막 값이 남는다.
+
+        /// <summary>
+        /// 프로그램에서 플레이어가 조립한 방향·각도·개수 값을 추출한다 (같은 타입의 Command가 여러 개면 마지막 값).
+        /// </summary>
         public static (string direction, string angle, string count) ExtractValues(List<BlockInstruction> instructions)
         {
             string direction = null, angle = null, count = null;
@@ -137,6 +166,9 @@ namespace Game.Runtime
             return (direction, angle, count);
         }
 
+        /// <summary>
+        /// Command 하나를 연결된 값의 종류에 맞게 채점한다.
+        /// </summary>
         public static int ScoreCommand(CommandInstruction cmd, string questionValueKey, string levelName = null)
         {
             if (cmd.Value is null) return 0;
@@ -147,30 +179,34 @@ namespace Game.Runtime
                     string correct = Constants.Questions.GetCorrectDirection(levelName, questionValueKey);
                     if (Constants.Levels.IsWind(levelName))
                         return ScoreWindDirection(cmd.Value, correct);
-                    return correct != null && cmd.Value == correct ? Constants.Scores.DirectionCorrectScore : 1;
+                    return correct is not null && cmd.Value == correct ? Constants.Scores.DirectionCorrectScore : 1;
                 case ValueKind.Angle:
-                    return Constants.Scores.AngleScore.TryGetValue(cmd.Value, out var angle) ? angle : 0;
+                    return Constants.Scores.AngleScore.TryGetValue(cmd.Value, out int angle) ? angle : 0;
                 case ValueKind.Count:
-                    return Constants.Scores.CountScore.TryGetValue(cmd.Value, out var count) ? count : 0;
+                    return Constants.Scores.CountScore.TryGetValue(cmd.Value, out int count) ? count : 0;
                 default:
                     return 0;
             }
         }
 
-        // 풍력 레벨 방향 채점 — 문제의 정답 방향과 같으면 3점, 정반대면 1점, 그 외는 2점
+        /// <summary>
+        /// 풍력 레벨 방향을 채점한다 — 문제의 정답 방향과 같으면 3점, 정반대면 1점, 그 외는 2점.
+        /// </summary>
         private static int ScoreWindDirection(string chosen, string correct)
         {
-            if (correct != null && chosen == correct)
+            if (correct is not null && chosen == correct)
                 return Constants.Scores.WindDirectionSameScore;
 
-            if (correct != null && Constants.Questions.OppositeDirection.TryGetValue(correct, out var opposite) && chosen == opposite)
+            if (correct is not null && Constants.Questions.OppositeDirection.TryGetValue(correct, out string opposite) && chosen == opposite)
                 return Constants.Scores.WindDirectionOppositeScore;
 
             return Constants.Scores.WindDirectionOtherScore;
         }
 
-        // 수력 레벨 조건 채점 — 만약 블록에 연결한 높이 조건("5m 이상")과 문제 높이("5m")를 비교해
-        // 정확히 같으면 5점, 더 낮게 연결했으면 3점, 더 높게 연결했으면 1점
+        /// <summary>
+        /// 수력 레벨 조건을 채점한다 — 만약 블록에 연결한 높이 조건("5m 이상")과 문제 높이("5m")를 비교해
+        /// 정확히 같으면 5점, 더 낮게 연결했으면 3점, 더 높게 연결했으면 1점.
+        /// </summary>
         private static int ScoreHydroCondition(ConditionExpr condition, string questionValueKey)
         {
             if (condition is not SimpleConditionExpr simple) return 0;
@@ -183,7 +219,9 @@ namespace Game.Runtime
             return chosen < target ? Constants.Scores.HydroLowerScore : Constants.Scores.HydroHigherScore;
         }
 
-        // "5m 이상" / "5m" 등 앞자리 숫자를 미터 값으로 파싱
+        /// <summary>
+        /// "5m 이상" / "5m" 등 앞자리 숫자를 미터 값으로 파싱한다 (실패 시 -1).
+        /// </summary>
         private static int ParseMeters(string text)
         {
             if (string.IsNullOrEmpty(text)) return -1;
@@ -196,13 +234,18 @@ namespace Game.Runtime
         private const string HydroOpenCommand  = "개방하기";
         private const string HydroCloseCommand = "폐쇄하기";
 
+        /// <summary>
+        /// 레벨4(발전소)·레벨5(미래에너지)처럼 발전소 채점 규칙을 쓰는 레벨인지 확인한다.
+        /// </summary>
         private static bool IsPowerPlant(string levelName) =>
             Constants.Levels.IsPowerPlant(levelName) || Constants.Levels.IsFutureEnergy(levelName);
 
         private const string PowerPlantAndOperator     = "그리고";
         private const string PowerPlantHospitalCommand = "병원 불 켜기";
 
-        // 레벨4/5 채점 — 구조(만약 안에 반복하기 중첩 여부) + 조건(단일/그리고/또는) + 명령(반복하기 안 병원 불 켜기 여부) 3항목을 더함
+        /// <summary>
+        /// 레벨4/5를 채점한다 — 구조(만약 안에 반복하기 중첩 여부) + 조건(단일/그리고/또는) + 명령(반복하기 안 병원 불 켜기 여부) 3항목을 더한다.
+        /// </summary>
         private static int ScorePowerPlant(List<BlockInstruction> instructions)
         {
             IfInstruction ifInstr = FindFirst<IfInstruction>(instructions);
@@ -220,7 +263,9 @@ namespace Game.Runtime
             return structureScore + conditionScore + commandScore;
         }
 
-        // 조건 블록 1개만 연결(단순 조건) 5점 / 그리고로 연결 10점 / 또는으로 연결 5점
+        /// <summary>
+        /// 발전소 조건을 채점한다 — 조건 블록 1개만 연결(단순 조건) 5점 / 그리고로 연결 10점 / 또는으로 연결 5점.
+        /// </summary>
         private static int ScorePowerPlantCondition(ConditionExpr condition) => condition switch
         {
             LogicConditionExpr logic when logic.Operator == PowerPlantAndOperator => Constants.Scores.PowerPlantConditionAndScore,
@@ -229,6 +274,9 @@ namespace Game.Runtime
             _ => 0
         };
 
+        /// <summary>
+        /// 전위 순회에서 처음 만나는 지정 타입 명령을 반환한다.
+        /// </summary>
         private static T FindFirst<T>(List<BlockInstruction> instructions) where T : BlockInstruction
         {
             foreach (BlockInstruction instr in InstructionTree.Traverse(instructions))
@@ -236,6 +284,9 @@ namespace Game.Runtime
             return null;
         }
 
+        /// <summary>
+        /// 본문(중첩 포함)에 지정 타입 명령이 있는지 확인한다.
+        /// </summary>
         private static bool ContainsType<T>(List<BlockInstruction> body) where T : BlockInstruction
         {
             foreach (BlockInstruction instr in InstructionTree.Traverse(body))
@@ -243,6 +294,9 @@ namespace Game.Runtime
             return false;
         }
 
+        /// <summary>
+        /// 본문(중첩 포함)에 지정 이름의 Command가 있는지 확인한다.
+        /// </summary>
         private static bool ContainsCommandDeep(List<BlockInstruction> body, string commandName)
         {
             foreach (BlockInstruction instr in InstructionTree.Traverse(body))
@@ -251,8 +305,10 @@ namespace Game.Runtime
             return false;
         }
 
-        // 수력 레벨 개방/폐쇄 순서 채점 — 개방하기가 Then에, 폐쇄하기가 Else에 있어야 정답(5점).
-        // 둘 다 한쪽에 몰려있거나 순서가 반대(폐쇄하기가 Then, 개방하기가 Else)면 1점
+        /// <summary>
+        /// 수력 레벨 개방/폐쇄 순서를 채점한다 — 개방하기가 Then에, 폐쇄하기가 Else에 있어야 정답(5점).
+        /// 둘 다 한쪽에 몰려있거나 순서가 반대(폐쇄하기가 Then, 개방하기가 Else)면 1점.
+        /// </summary>
         private static int ScoreHydroGateOrder(IfInstruction ifInstr)
         {
             bool correctOrder = ContainsCommand(ifInstr.Then, HydroOpenCommand)
@@ -260,6 +316,9 @@ namespace Game.Runtime
             return correctOrder ? Constants.Scores.HydroGateOrderCorrectScore : Constants.Scores.HydroGateOrderWrongScore;
         }
 
+        /// <summary>
+        /// 본문 최상위(중첩 제외)에 지정 이름의 Command가 있는지 확인한다.
+        /// </summary>
         private static bool ContainsCommand(List<BlockInstruction> body, string commandName)
         {
             if (body is null) return false;

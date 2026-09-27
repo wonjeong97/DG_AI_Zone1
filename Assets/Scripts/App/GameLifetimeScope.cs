@@ -12,13 +12,19 @@ using VContainer.Unity;
 using HuliacDev.App;
 using HuliacDev.UI;
 using HuliacDev.Utils;
+using Microsoft.Extensions.Logging;
+using ZLogger;
 
 namespace App
 {
     public class GameLifetimeScope : RootLifetimeScope
     {
         private GameSession _session;
+        private ILogger<GameLifetimeScope> _logger;
 
+        /// <summary>
+        /// 템플릿 기본 등록에 더해 게임 매니저, 체험자 정보, 전역 페이드, 게임 세션, TMP 폰트를 등록한다.
+        /// </summary>
         protected override void Configure(IContainerBuilder builder)
         {
             base.Configure(builder);
@@ -41,11 +47,9 @@ namespace App
                 FadeManager fadeManager = container.Resolve<FadeManager>();
                 Scenes.SceneFader.RegisterFadeManager(fadeManager);
 
-                // 템플릿 FadeManager가 자체 생성하는 FadeCanvas의 sortingOrder가 기본값(-1)이라
-                // 씬의 UI Canvas(0)보다도 아래에 그려져 페이드 커튼이 화면을 실제로 가리지 못했음.
-                // SystemCanvas(30000)를 포함한 모든 UI 위에 그려지도록 여기서 보정
-                Canvas fadeCanvas = fadeManager.GetComponentInChildren<Canvas>(true);
-                if (fadeCanvas) fadeCanvas.sortingOrder = 32000;
+                // 페이드 커튼이 SystemCanvas(30000)를 포함한 모든 UI 위에 그려지도록 페이드 중 sortingOrder를 지정
+                // (템플릿 기본값 999는 SystemCanvas보다 아래)
+                fadeManager.SetSortingOrder(FadeSortingOrder);
             });
 
             // 게임 세션 데이터 — [Inject]로 주입 가능하도록 컨테이너에 등록
@@ -55,8 +59,17 @@ namespace App
             _session.ResetProgress();
             builder.RegisterInstance(_session);
 
-            RegisterTmpFonts();
+            // 폰트 등록 실패를 ZLogger로 남기기 위해 로거를 받을 수 있는 빌드 콜백에서 수행한다.
+            // 빌드 콜백도 루트 스코프 Awake 안에서 실행되므로 첫 씬이 그려지기 전에 끝난다.
+            builder.RegisterBuildCallback(container =>
+            {
+                _logger = container.Resolve<ILogger<GameLifetimeScope>>();
+                RegisterTmpFonts(_logger);
+            });
         }
+
+        // SystemCanvas(30000)보다 위
+        private const int FadeSortingOrder = 32000;
 
         /// <summary>
         /// Addressables로 관리하는 TMP 폰트를 MaterialReferenceManager 캐시에 미리 등록한다.
@@ -64,7 +77,7 @@ namespace App
         /// 등록해 두지 않으면 태그가 해석되지 않고 문자열 그대로 화면에 출력된다.
         /// 첫 씬이 그려지기 전에 끝나야 하므로 동기 로드한다.
         /// </summary>
-        private static void RegisterTmpFonts()
+        private static void RegisterTmpFonts(Microsoft.Extensions.Logging.ILogger logger)
         {
             try
             {
@@ -80,10 +93,13 @@ namespace App
             catch (Exception ex)
             {
                 // 폰트 등록 실패는 치명적이지 않다 — 태그가 해석되지 않을 뿐이므로 부팅은 계속 진행
-                Debug.LogWarning($"[GameLifetimeScope] TMP 폰트 등록 실패: {ex.Message}");
+                if (logger != null) logger.ZLogWarning($"[GameLifetimeScope] TMP 폰트 등록 실패: {ex.Message}");
             }
         }
 
+        /// <summary>
+        /// 씬 로드 이벤트를 구독하고, 이미 로드된 최초 씬에도 주입을 적용한다.
+        /// </summary>
         protected override void Awake()
         {
             base.Awake();
@@ -96,14 +112,19 @@ namespace App
                 OnSceneLoaded(activeScene, LoadSceneMode.Single);
         }
 
+        /// <summary>
+        /// 씬 로드 이벤트 구독을 해제한다.
+        /// </summary>
         protected override void OnDestroy()
         {
             SceneManager.sceneLoaded -= OnSceneLoaded;
             base.OnDestroy();
         }
 
-        // 새로 로드된 씬의 오브젝트에 [Inject] 필드를 주입.
-        // App(DontDestroyOnLoad) 하위는 컨테이너 빌드 시 이미 주입되므로 제외.
+        /// <summary>
+        /// 새로 로드된 씬의 오브젝트에 [Inject]를 주입한다.
+        /// App(DontDestroyOnLoad) 하위는 컨테이너 빌드 시 이미 주입되므로 제외한다.
+        /// </summary>
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
             if (scene == gameObject.scene) return;
@@ -144,7 +165,7 @@ namespace App
             {
                 // fire-and-forget이라 여기서 놓치면 UnobservedException으로만 남는다.
                 // Visitor.json을 읽지 못하면 서버 미사용(기본값)으로 보고 다음 체험자를 위해 초기화한다.
-                Debug.LogWarning($"[GameLifetimeScope] 서버 사용 여부 조회 실패 — 진행도를 초기화합니다: {ex.Message}");
+                if (_logger != null) _logger.ZLogWarning($"[GameLifetimeScope] 서버 사용 여부 조회 실패 — 진행도를 초기화합니다: {ex.Message}");
                 _session.ResetProgress();
                 return;
             }

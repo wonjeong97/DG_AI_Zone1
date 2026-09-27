@@ -6,11 +6,14 @@ namespace Game
     public class InnerBottomSocket : MonoBehaviour
     {
 #if UNITY_EDITOR
+        /// <summary>
+        /// 씬 뷰에 소켓 위치와 이름을 표시한다.
+        /// </summary>
         private void OnDrawGizmos()
         {
             if (!TryGetComponent(out RectTransform rt)) return;
 
-            var color = new Color(0f, 0.8f, 1f);
+            Color color = new Color(0f, 0.8f, 1f);
             SocketGizmos.DrawCross(rt, new Color(0f, 0.8f, 1f, 0.9f), arm: 12f, dotRadius: 5f);
             SocketGizmos.DrawLabel(rt, Constants.Sockets.InnerBottomName, color, yOffset: 18f);
         }

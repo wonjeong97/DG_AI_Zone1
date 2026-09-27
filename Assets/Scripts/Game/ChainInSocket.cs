@@ -6,11 +6,14 @@ namespace Game
     public class ChainInSocket : MonoBehaviour
     {
 #if UNITY_EDITOR
+        /// <summary>
+        /// 씬 뷰에 소켓 위치와 이름을 표시한다.
+        /// </summary>
         private void OnDrawGizmos()
         {
             if (!TryGetComponent(out RectTransform rt)) return;
 
-            var color = new Color(0.4f, 0.6f, 1f);
+            Color color = new Color(0.4f, 0.6f, 1f);
             SocketGizmos.DrawStem(rt, new Color(0.4f, 0.6f, 1f, 0.9f), arm: 10f, dotRadius: 4f, stemScale: 1.5f);
             SocketGizmos.DrawLabel(rt, "InSocket", color, yOffset: -14f);
         }

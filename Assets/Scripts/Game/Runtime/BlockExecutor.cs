@@ -19,6 +19,9 @@ namespace Game.Runtime
 
         public event Action OnComplete;
 
+        /// <summary>
+        /// 프로그램을 순서대로 실행하고, 끝까지 실행되면 OnComplete를 알린다 (취소 시 조용히 중단).
+        /// </summary>
         public async UniTask RunAsync(List<BlockInstruction> program, CancellationToken ct)
         {
             try
@@ -29,9 +32,12 @@ namespace Game.Runtime
             catch (OperationCanceledException) { }
         }
 
+        /// <summary>
+        /// 명령 목록을 순서대로 실행한다 (하나라도 false면 중단).
+        /// </summary>
         private async UniTask<bool> ExecuteList(List<BlockInstruction> list, CancellationToken ct)
         {
-            foreach (var instr in list)
+            foreach (BlockInstruction instr in list)
             {
                 ct.ThrowIfCancellationRequested();
                 if (!await ExecuteOne(instr, ct)) return false;
@@ -39,6 +45,9 @@ namespace Game.Runtime
             return true;
         }
 
+        /// <summary>
+        /// 명령 하나를 종류에 맞게 실행한다 (리프 명령은 OnExecute에 위임).
+        /// </summary>
         private async UniTask<bool> ExecuteOne(BlockInstruction instr, CancellationToken ct)
         {
             OnBlockEnter?.Invoke(instr.Source);
@@ -52,20 +61,29 @@ namespace Game.Runtime
             };
         }
 
+        /// <summary>
+        /// 함수 호출 명령의 본문을 실행한다.
+        /// </summary>
         private async UniTask<bool> ExecuteFunction(FunctionInstruction instr, CancellationToken ct)
         {
             if (instr.Body is null || instr.Body.Count == 0) return true;
             return await ExecuteList(instr.Body, ct);
         }
 
+        /// <summary>
+        /// 조건 평가 결과에 따라 Then 또는 Else 분기를 실행한다.
+        /// </summary>
         private async UniTask<bool> ExecuteIf(IfInstruction instr, CancellationToken ct)
         {
             bool cond   = OnCondition?.Invoke(instr.Condition) ?? false;
-            var  branch = cond ? instr.Then : instr.Else;
+            List<BlockInstruction> branch = cond ? instr.Then : instr.Else;
             if (branch is null || branch.Count == 0) return true;
             return await ExecuteList(branch, ct);
         }
 
+        /// <summary>
+        /// 반복 명령의 본문을 지정 횟수만큼 실행한다 (무한 반복은 1회로 제한).
+        /// </summary>
         private async UniTask<bool> ExecuteRepeat(RepeatInstruction instr, CancellationToken ct)
         {
             // 무한 반복은 이론적 의미만 가짐 — 실제 실행은 1회로 제한 (무한 루프 방지)

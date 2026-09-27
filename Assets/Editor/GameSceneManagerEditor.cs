@@ -9,6 +9,9 @@ namespace Editor
     [CustomEditor(typeof(GameSceneManager))]
     public class GameSceneManagerEditor : UnityEditor.Editor
     {
+        /// <summary>
+        /// testLevel만 드롭다운으로 그리고 나머지 필드는 기본 인스펙터로 그린다.
+        /// </summary>
         public override void OnInspectorGUI()
         {
             serializedObject.Update();
@@ -32,6 +35,9 @@ namespace Editor
             serializedObject.ApplyModifiedProperties();
         }
 
+        /// <summary>
+        /// 프로젝트의 LevelData 에셋 목록을 드롭다운으로 보여주고 선택값을 testLevel에 반영한다.
+        /// </summary>
         private static void DrawTestLevelDropdown(SerializedProperty prop)
         {
             string[] guids = AssetDatabase.FindAssets("t:LevelData");

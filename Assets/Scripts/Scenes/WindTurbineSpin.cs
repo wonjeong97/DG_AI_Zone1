@@ -31,28 +31,37 @@ namespace Scenes
         private float _angle;
         private float _currentSpeed;
 
-        // 결과 연출을 쓰지 않는 씬(전시용 배치 등)에서는 인스펙터 속도로 그냥 돌아간다.
+        /// <summary>
+        /// 결과 연출을 쓰지 않는 씬(전시용 배치 등)에서는 인스펙터 속도로 그냥 돌아가도록 초기 속도를 지정한다.
+        /// </summary>
         private void Awake() => _currentSpeed = speed;
 
+        /// <summary>
+        /// 현재 속도만큼 블레이드 각도를 누적해 두 나셀의 회전을 재구성한다.
+        /// </summary>
         private void Update()
         {
             _angle -= _currentSpeed * Time.deltaTime;
-            var rot = Quaternion.Euler(_angle, FixedYZ, FixedYZ);
+            Quaternion rot = Quaternion.Euler(_angle, FixedYZ, FixedYZ);
             if (cylinder002) cylinder002.localRotation = rot;
             if (cylinder006) cylinder006.localRotation = rot;
         }
 
-        // 기본 상태(정지) — 연출 시작점.
+        /// <summary>
+        /// 기본 상태(정지)로 되돌린다 — 연출 시작점.
+        /// </summary>
         public void SetNeutral() => _currentSpeed = 0f;
 
-        // 에너지 효율(%)에 비례해 회전 속도를 올린다 — 0%면 멈춘 채, 100%면 speed 그대로.
+        /// <summary>
+        /// 에너지 효율(%)에 비례해 회전 속도를 올린다 — 0%면 멈춘 채, 100%면 speed 그대로.
+        /// </summary>
         public async UniTask ApplyAsync(int percent, CancellationToken ct)
         {
             float target = speed * Mathf.Clamp01(percent / MaxPercent);
             await DOVirtual.Float(_currentSpeed, target, rampDuration, v => _currentSpeed = v)
                 .SetEase(Ease.InOutQuad)
                 .SetLink(gameObject)
-                .ToUniTask(cancellationToken: ct);
+                .ToUniTask(TweenCancelBehaviour.KillAndCancelAwait, ct);
             _currentSpeed = target;
         }
     }

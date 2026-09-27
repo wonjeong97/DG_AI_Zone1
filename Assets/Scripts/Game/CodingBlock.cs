@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using Microsoft.Extensions.Logging;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -19,6 +21,19 @@ namespace Game
         [SerializeField] private float _snapRadius = 120f;
         [SerializeField] private float _chainSnapRadius = 120f;
         [SerializeField] private float _snapSeconds = 0.15f;
+
+        // 블록 시각 파츠 — 프리팹마다 깊이가 달라(일부는 Label 하위) 이름 탐색 대신 인스펙터로 연결한다.
+        // 코드로 조립하는 블록은 BlockFactory가 SetParts로 넘겨준다.
+        [Header("Parts")]
+        [SerializeField] private Image outlineImage;
+        [SerializeField] private Image chainHighlightImage;
+        [SerializeField] private Image valueHighlightImage;
+        [SerializeField] private Image bodyImage;
+        [SerializeField] private TMP_Text labelText;
+        [Tooltip("FlowControl 계열 전용 — else 분기를 덧붙일 때 맨 아래로 다시 보낼 푸터")]
+        [SerializeField] private Transform footer;
+        [Tooltip("프리팹에 미리 들어 있는 소켓(헤더 ValueOutSocket, InnerSocket 등) — Awake에서 소유 등록")]
+        [SerializeField] private BlockSocket[] builtInSockets;
 
         // 레벨 5(함수) 한정 — 메인 체인(시작~완성)에는 함수 블록만 연결하도록 제한.
         // GameSceneManager가 레벨 로드 시 레이아웃에 함수 블록이 있으면 true로 설정.
@@ -40,12 +55,20 @@ namespace Game
         public Data.ControlRole ControlRole { get; private set; }
         public bool IsDragHandled { get; private set; }
 
-        private ILogger<CodingBlock> _log;
+        public Image OutlineImage => outlineImage;
+        public Image ValueHighlightImage => valueHighlightImage;
+        public TMP_Text LabelText => labelText;
+        public Transform Footer => footer;
 
+        private ILogger<CodingBlock> _logger;
+
+        /// <summary>
+        /// 로거를 주입받는다.
+        /// </summary>
         [Inject]
-        public void Construct(ILogger<CodingBlock> log)
+        public void Construct(ILogger<CodingBlock> logger)
         {
-            _log = log;
+            _logger = logger;
         }
 
         private Canvas _canvas;
@@ -62,100 +85,178 @@ namespace Game
         public CodingZone CodingZone => _codingZone;
         public CategoryZone CategoryZone => _categoryZone;
 
+        /// <summary>
+        /// 블록이 속한 씬의 코딩 패널과 카테고리 존 참조를 받는다.
+        /// </summary>
         public void SetZones(CodingZone codingZone, CategoryZone categoryZone)
         {
             _codingZone = codingZone;
             _categoryZone = categoryZone;
         }
 
-        private ChainOutSocket[] _cachedChainOutSockets;
-        private InnerSocket[] _cachedInnerSockets;
-        private ValueOutSocket[] _cachedValueOutSockets;
-        private ConditionOutSocket[] _cachedConditionOutSockets;
+        /// <summary>
+        /// 코드로 조립한 블록의 시각 파츠를 연결한다 (프리팹 블록은 인스펙터로 연결됨).
+        /// </summary>
+        public void SetParts(Image outline, Image chainHighlight, Image valueHighlight, Image body)
+        {
+            outlineImage = outline;
+            chainHighlightImage = chainHighlight;
+            valueHighlightImage = valueHighlight;
+            bodyImage = body;
+        }
 
-        // 스냅 후보 소켓 수집 — 후보는 코딩 패널 위의 소켓뿐이므로 씬 전체가 아니라 CodingZone 하위만 본다
+        // ── 소켓 소유 관계 ─────────────────────────────────────────
+        // 이 블록에 직접 딸린 연결부 소켓 — 계층 탐색 대신 생성 시점에 등록해 둔다.
+        // 등록 순서가 곧 배치 순서라(프리팹 내장 → 코드로 덧붙인 else 분기) 만약/아니면 Inner 순서가 보존된다.
+        private readonly List<BlockSocket> _sockets = new();
+
+        /// <summary>
+        /// 프리팹에 들어 있던 소켓을 이 블록 소유로 등록한다.
+        /// </summary>
+        private void Awake()
+        {
+            if (builtInSockets == null) return;
+            foreach (BlockSocket socket in builtInSockets)
+                if (socket) RegisterSocket(socket);
+        }
+
+        /// <summary>
+        /// 소켓을 이 블록 소유로 등록하고 소켓에도 소유 블록을 알려준다.
+        /// </summary>
+        public void RegisterSocket(BlockSocket socket)
+        {
+            if (!socket || _sockets.Contains(socket)) return;
+            _sockets.Add(socket);
+            socket.SetOwner(this);
+        }
+
+        /// <summary>
+        /// 이 블록에 직접 딸린 지정 타입 소켓 중 첫 번째를 반환한다 (없으면 null).
+        /// </summary>
+        public T GetSocket<T>() where T : BlockSocket
+        {
+            foreach (BlockSocket socket in _sockets)
+                if (socket is T typed && typed) return typed;
+            return null;
+        }
+
+        /// <summary>
+        /// 이 블록에 직접 딸린 지정 타입 소켓을 등록 순서대로 results에 추가한다.
+        /// </summary>
+        public void GetSockets<T>(List<T> results) where T : BlockSocket
+        {
+            foreach (BlockSocket socket in _sockets)
+                if (socket is T typed && typed) results.Add(typed);
+        }
+
+        /// <summary>
+        /// 이 블록이 (여러 단계를 거쳐서라도) FlowControl 내부 컨테이너에 들어가 있는지 소켓 관계를 따라 올라가며 확인한다.
+        /// </summary>
+        public bool IsInsideInnerContainer()
+        {
+            CodingBlock current = this;
+            while (current)
+            {
+                Transform parent = current.transform.parent;
+                if (!parent || !parent.TryGetComponent(out BlockSocket parentSocket)) return false;
+                if (parentSocket is InnerSocket) return true;
+                current = parentSocket.Owner;
+            }
+            return false;
+        }
+
+        // ── 스냅 후보 캐시 ─────────────────────────────────────────
+        private readonly List<ChainOutSocket> _chainOutCandidates = new();
+        private readonly List<InnerSocket> _innerCandidates = new();
+        private readonly List<ValueOutSocket> _valueOutCandidates = new();
+        private readonly List<ConditionOutSocket> _conditionOutCandidates = new();
+        private bool _hasDragCache;
+
+        /// <summary>
+        /// 스냅 후보 소켓을 수집한다 — 후보는 코딩 패널 위 블록들의 소켓뿐이다.
+        /// </summary>
         private void BuildDragCache()
         {
+            ClearDragCache();
+            _hasDragCache = true;
+
             if (!_codingZone)
             {
-                if (_log != null) _log.ZLogWarning($"[CodingBlock] {name}에 CodingZone이 연결되지 않아 스냅 대상을 찾을 수 없습니다.");
-                _cachedChainOutSockets = System.Array.Empty<ChainOutSocket>();
-                _cachedInnerSockets = System.Array.Empty<InnerSocket>();
-                _cachedValueOutSockets = System.Array.Empty<ValueOutSocket>();
-                _cachedConditionOutSockets = System.Array.Empty<ConditionOutSocket>();
+                if (_logger != null) _logger.ZLogWarning($"[CodingBlock] {name}에 CodingZone이 연결되지 않아 스냅 대상을 찾을 수 없습니다.");
                 return;
             }
 
-            _cachedChainOutSockets = _codingZone.GetComponentsInChildren<ChainOutSocket>();
-            _cachedInnerSockets = _codingZone.GetComponentsInChildren<InnerSocket>();
-            _cachedValueOutSockets = _codingZone.GetComponentsInChildren<ValueOutSocket>();
-            _cachedConditionOutSockets = _codingZone.GetComponentsInChildren<ConditionOutSocket>();
+            foreach (CodingBlock block in _codingZone.Blocks)
+            {
+                if (!block || !block.gameObject.activeInHierarchy || !_codingZone.Contains(block)) continue;
+
+                block.GetSockets(_chainOutCandidates);
+                block.GetSockets(_innerCandidates);
+                block.GetSockets(_valueOutCandidates);
+                block.GetSockets(_conditionOutCandidates);
+            }
         }
 
-        // 드래그 도중이 아닌데 스냅 판정이 호출된 경우(OnBeginDrag가 조기 반환 등)에도 후보를 준비한다
+        /// <summary>
+        /// 드래그 도중이 아닌데 스냅 판정이 호출된 경우(OnBeginDrag가 조기 반환 등)에도 후보를 준비한다.
+        /// </summary>
         private void EnsureDragCache()
         {
-            if (_cachedChainOutSockets == null) BuildDragCache();
+            if (!_hasDragCache) BuildDragCache();
         }
 
         /// <summary>
         /// 코딩 패널과 인벤토리의 모든 블록에서 컴파일 결과 표시(성공/에러)를 지운다.
         /// </summary>
-        public static void ClearAllErrorHighlights(CodingZone codingZone, CategoryZone categoryZone)
+        public static void ClearAllErrorHighlights(CodingZone codingZone)
         {
-            if (codingZone)
-                foreach (CodingBlock b in codingZone.GetComponentsInChildren<CodingBlock>(true))
-                    b.ClearErrorHighlight();
+            if (!codingZone) return;
 
-            if (categoryZone && categoryZone.InventoryContent)
-                foreach (CodingBlock b in categoryZone.InventoryContent.GetComponentsInChildren<CodingBlock>(true))
-                    b.ClearErrorHighlight();
+            foreach (CodingBlock b in codingZone.Blocks)
+                if (b) b.ClearErrorHighlight();
         }
 
+        /// <summary>
+        /// 드래그 동안 모아 둔 스냅 후보를 비운다.
+        /// </summary>
         private void ClearDragCache()
         {
-            _cachedChainOutSockets = null;
-            _cachedInnerSockets = null;
-            _cachedValueOutSockets = null;
-            _cachedConditionOutSockets = null;
+            _chainOutCandidates.Clear();
+            _innerCandidates.Clear();
+            _valueOutCandidates.Clear();
+            _conditionOutCandidates.Clear();
+            _hasDragCache = false;
         }
 
         // ── 하이라이트 ─────────────────────────────────────────────
         private CodingBlock _snapTarget;
         private InnerSocket _snapInnerSocket;
-        private Image _chainHighlightImg;
-        private Image _valueHighlightImg;
-        private Image _errorHighlightImg;
-        private Image _bodyImg;
         private Color _bodyOriginalColor;
         private bool _bodyColorCached;
-
-        private Image GetOrFindHighlight(ref Image cache, string childName)
-        {
-            if (cache) return cache;
-
-            foreach (Image img in GetComponentsInChildren<Image>(true))
-                if (img.gameObject.name == childName)
-                {
-                    cache = img;
-                    return img;
-                }
-
-            return null;
-        }
 
         private Tweener _snapHighlightTween;
         private Image _activeSnapImage;
 
         // ── 스냅 하이라이트 (드래그 중 연결 가능 지점 표시 — 부드러운 깜빡임 펄스 연출) ──
-        public void ShowChainHighlight() => PlaySnapPulse(ChainHighlight, isVerticalChain: true);
-        public void ShowValueHighlight() => PlaySnapPulse(ValueHighlight, isVerticalChain: false);
 
+        /// <summary>
+        /// 하단 체인 연결 지점에 스냅 하이라이트 펄스를 켠다.
+        /// </summary>
+        public void ShowChainHighlight() => PlaySnapPulse(chainHighlightImage, isVerticalChain: true);
+
+        /// <summary>
+        /// 우측 값 연결 지점에 스냅 하이라이트 펄스를 켠다.
+        /// </summary>
+        public void ShowValueHighlight() => PlaySnapPulse(valueHighlightImage, isVerticalChain: false);
+
+        /// <summary>
+        /// 스냅 하이라이트 펄스를 멈추고 체인·값 하이라이트를 모두 끈다.
+        /// </summary>
         public void ClearSnapHighlight()
         {
             StopSnapPulse();
-            SetHighlight(ChainHighlight, Color.clear);
-            SetHighlight(ValueHighlight, Color.clear);
+            SetHighlight(chainHighlightImage, Color.clear);
+            SetHighlight(valueHighlightImage, Color.clear);
         }
 
         // 만약 블록 — 반복하기와 같은 FlowControl이라 이름으로 구분한다 (조건 스냅 하이라이트 전용 처리).
@@ -164,36 +265,40 @@ namespace Game
         private bool IsIfBlock => Category == BlockCategory.FlowControl
             && (name.Contains(Constants.BlockLabels.If) || name.Contains(Constants.BlockAssets.IfPrefab));
 
+        /// <summary>
+        /// 지정한 하이라이트 이미지를 연결 방향에 맞게 넓힌 뒤 무한 반복 알파 펄스를 재생한다.
+        /// </summary>
         private void PlaySnapPulse(Image img, bool isVerticalChain = false)
         {
-            if (!img) return;
+            if (!img)
+            {
+                if (_logger != null) _logger.ZLogWarning($"[CodingBlock] {name}에 스냅 하이라이트 이미지가 연결되지 않았습니다.");
+                return;
+            }
             if (_activeSnapImage == img && _snapHighlightTween != null && _snapHighlightTween.IsActive()) return;
 
             StopSnapPulse();
 
             float t = Constants.HighlightSettings.OutlineThickness;
             RectTransform rt = img.rectTransform;
-            if (rt)
+            if (isVerticalChain)
             {
-                if (isVerticalChain)
-                {
-                    // ChainHighlight: 좌우(X) 0, 상하(Y) -10~10 확장
-                    rt.offsetMin = new Vector2(0f, -t);
-                    rt.offsetMax = new Vector2(0f, t);
-                }
-                else if (IsIfBlock)
-                {
-                    // 만약 블록의 조건 슬롯: C자 본체로 초록이 흘러내리지 않도록 상하는 확장하지 않고 좌우만 넓힌다.
-                    // 세로 범위는 IfBlock.prefab의 ValueHighlight에 붙은 BlockOutlineIfValue 머티리얼이
-                    // 헤더 높이(UV Y 0.5~1)로 잘라낸다 — 값은 인스펙터에서 조정한다.
-                    rt.offsetMin = new Vector2(-t, 0f);
-                    rt.offsetMax = new Vector2(t, 0f);
-                }
-                else
-                {
-                    rt.offsetMin = new Vector2(-t, -t);
-                    rt.offsetMax = new Vector2(t, t);
-                }
+                // ChainHighlight: 좌우(X) 0, 상하(Y) -10~10 확장
+                rt.offsetMin = new Vector2(0f, -t);
+                rt.offsetMax = new Vector2(0f, t);
+            }
+            else if (IsIfBlock)
+            {
+                // 만약 블록의 조건 슬롯: C자 본체로 초록이 흘러내리지 않도록 상하는 확장하지 않고 좌우만 넓힌다.
+                // 세로 범위는 IfBlock.prefab의 ValueHighlight에 붙은 BlockOutlineIfValue 머티리얼이
+                // 헤더 높이(UV Y 0.5~1)로 잘라낸다 — 값은 인스펙터에서 조정한다.
+                rt.offsetMin = new Vector2(-t, 0f);
+                rt.offsetMax = new Vector2(t, 0f);
+            }
+            else
+            {
+                rt.offsetMin = new Vector2(-t, -t);
+                rt.offsetMax = new Vector2(t, t);
             }
 
             Color baseColor = Constants.HighlightColors.Snap;
@@ -207,6 +312,9 @@ namespace Game
                 .SetLink(gameObject);
         }
 
+        /// <summary>
+        /// 진행 중인 스냅 펄스 트윈을 멈추고 해당 이미지를 투명하게 되돌린다.
+        /// </summary>
         private void StopSnapPulse()
         {
             if (_snapHighlightTween != null && _snapHighlightTween.IsActive())
@@ -225,18 +333,28 @@ namespace Game
         // ── 컴파일 결과 표시 (HighlightMode에 따라 외곽선 또는 블록 색상 틴트) ──
         private Tweener _compileHighlightTween;
 
-        // 에러 — 완전 채도 빨간색으로 N회 깜빡인 뒤 원래 블록 색상으로 되돌아감
+        /// <summary>
+        /// 컴파일 에러 표시 — 완전 채도 빨간색으로 N회 깜빡인 뒤 원래 블록 색상으로 되돌아간다.
+        /// </summary>
         public void ShowErrorHighlight() => PlayErrorBlink();
 
-        // 성공 — 즉시 켜지지 않고 페이드인 (파도타기 연출 시 블록마다 시차를 두고 호출됨)
+        /// <summary>
+        /// 컴파일 성공 표시 — 즉시 켜지지 않고 페이드인한다 (파도타기 연출 시 블록마다 시차를 두고 호출됨).
+        /// </summary>
         public void ShowSuccessHighlight() => PlaySuccessFadeIn();
 
+        /// <summary>
+        /// 진행 중인 컴파일 결과 연출을 멈추고 성공·에러 표시를 지운다.
+        /// </summary>
         public void ClearErrorHighlight()
         {
             StopCompileHighlightTween();
             ApplyCompileHighlight(Color.clear);
         }
 
+        /// <summary>
+        /// HighlightMode에 맞는 대상(외곽선 또는 본체)에 빨간색 깜빡임을 재생한다.
+        /// </summary>
         private void PlayErrorBlink()
         {
             StopCompileHighlightTween();
@@ -247,17 +365,25 @@ namespace Game
 
             if (Mode == HighlightMode.Tint)
             {
-                SetHighlight(Outline, Color.clear);
-                target = BodyImage;
-                if (!target) return;
+                SetHighlight(outlineImage, Color.clear);
+                target = bodyImage;
+                if (!target)
+                {
+                    if (_logger != null) _logger.ZLogWarning($"[CodingBlock] {name}에 본체 이미지가 연결되지 않아 에러 표시를 건너뜁니다.");
+                    return;
+                }
                 CacheBodyOriginalColor();
                 from = _bodyOriginalColor;
             }
             else
             {
                 ResetBodyTint();
-                target = Outline;
-                if (!target) return;
+                target = outlineImage;
+                if (!target)
+                {
+                    if (_logger != null) _logger.ZLogWarning($"[CodingBlock] {name}에 외곽선 이미지가 연결되지 않아 에러 표시를 건너뜁니다.");
+                    return;
+                }
                 SetHighlightRect(target);
                 from = Color.clear;
             }
@@ -272,6 +398,9 @@ namespace Game
                 .OnComplete(() => ApplyCompileHighlight(Color.clear)); // 깜빡임 종료 후 원래 색상으로 복원
         }
 
+        /// <summary>
+        /// HighlightMode에 맞는 대상(외곽선 또는 본체)에 초록색 성공 표시를 페이드인한다.
+        /// </summary>
         private void PlaySuccessFadeIn()
         {
             StopCompileHighlightTween();
@@ -281,39 +410,51 @@ namespace Game
 
             if (Mode == HighlightMode.Tint)
             {
-                SetHighlight(Outline, Color.clear);
-                Image body = BodyImage;
-                if (!body) return;
+                SetHighlight(outlineImage, Color.clear);
+                if (!bodyImage)
+                {
+                    if (_logger != null) _logger.ZLogWarning($"[CodingBlock] {name}에 본체 이미지가 연결되지 않아 성공 표시를 건너뜁니다.");
+                    return;
+                }
                 CacheBodyOriginalColor();
                 Color target = Color.Lerp(_bodyOriginalColor, success, Constants.HighlightSettings.TintStrength);
-                body.color = _bodyOriginalColor;
-                _compileHighlightTween = body.DOColor(target, duration).SetEase(Ease.OutSine).SetLink(gameObject);
+                bodyImage.color = _bodyOriginalColor;
+                _compileHighlightTween = bodyImage.DOColor(target, duration).SetEase(Ease.OutSine).SetLink(gameObject);
             }
             else
             {
                 ResetBodyTint();
-                Image outline = Outline;
-                if (!outline) return;
-                SetHighlightRect(outline);
-                outline.color = Color.clear;
-                _compileHighlightTween = outline.DOColor(success, duration).SetEase(Ease.OutSine).SetLink(gameObject);
+                if (!outlineImage)
+                {
+                    if (_logger != null) _logger.ZLogWarning($"[CodingBlock] {name}에 외곽선 이미지가 연결되지 않아 성공 표시를 건너뜁니다.");
+                    return;
+                }
+                SetHighlightRect(outlineImage);
+                outlineImage.color = Color.clear;
+                _compileHighlightTween = outlineImage.DOColor(success, duration).SetEase(Ease.OutSine).SetLink(gameObject);
             }
         }
 
+        /// <summary>
+        /// HighlightMode에 맞게 외곽선 색 또는 본체 틴트를 즉시 적용한다 (clear면 원래 상태로 복원).
+        /// </summary>
         private void ApplyCompileHighlight(Color color)
         {
             if (Mode == HighlightMode.Tint)
             {
-                SetHighlight(Outline, Color.clear);
+                SetHighlight(outlineImage, Color.clear);
                 ApplyBodyTint(color);
             }
             else
             {
                 ResetBodyTint();
-                SetHighlight(Outline, color);
+                SetHighlight(outlineImage, color);
             }
         }
 
+        /// <summary>
+        /// 진행 중인 컴파일 결과 트윈을 멈춘다.
+        /// </summary>
         private void StopCompileHighlightTween()
         {
             if (_compileHighlightTween != null && _compileHighlightTween.IsActive())
@@ -323,54 +464,41 @@ namespace Game
             }
         }
 
-        private Image ChainHighlight => GetOrFindHighlight(ref _chainHighlightImg, Constants.BlockParts.ChainHighlight);
-        private Image ValueHighlight => GetOrFindHighlight(ref _valueHighlightImg, Constants.BlockParts.ValueHighlight);
-        private Image Outline        => GetOrFindHighlight(ref _errorHighlightImg, Constants.BlockParts.Outline);
-
-        // 블록 본체(스프라이트 또는 단색 Fill) — Sprite/Fill 둘 중 실제 존재하는 쪽을 찾는다
-        private Image BodyImage
-        {
-            get
-            {
-                if (_bodyImg) return _bodyImg;
-                foreach (Image img in GetComponentsInChildren<Image>(true))
-                {
-                    string n = img.gameObject.name;
-                    if (n == Constants.BlockParts.Sprite || n == Constants.BlockParts.Fill || n == Constants.BlockParts.Background)
-                    { _bodyImg = img; break; }
-                }
-                return _bodyImg;
-            }
-        }
-
-        // BodyImage의 원래(하이라이트 적용 전) 색상을 최초 1회만 캐싱
+        /// <summary>
+        /// 본체 이미지의 원래(하이라이트 적용 전) 색상을 최초 1회만 캐싱한다.
+        /// </summary>
         private void CacheBodyOriginalColor()
         {
-            if (_bodyColorCached) return;
-            Image body = BodyImage;
-            if (!body) return;
-            _bodyOriginalColor = body.color;
+            if (_bodyColorCached || !bodyImage) return;
+            _bodyOriginalColor = bodyImage.color;
             _bodyColorCached = true;
         }
 
-        // 원래 색상에서 target 쪽으로 살짝 섞음 (target이 clear면 원래 색상으로 복원)
+        /// <summary>
+        /// 원래 색상에서 target 쪽으로 살짝 섞는다 (target이 clear면 원래 색상으로 복원).
+        /// </summary>
         private void ApplyBodyTint(Color target)
         {
-            Image body = BodyImage;
-            if (!body) return;
+            if (!bodyImage) return;
             CacheBodyOriginalColor();
 
-            body.color = target == Color.clear
+            bodyImage.color = target == Color.clear
                 ? _bodyOriginalColor
                 : Color.Lerp(_bodyOriginalColor, target, Constants.HighlightSettings.TintStrength);
         }
 
+        /// <summary>
+        /// 틴트가 적용된 적이 있으면 본체 색을 원래대로 되돌린다.
+        /// </summary>
         private void ResetBodyTint()
         {
-            if (_bodyColorCached && BodyImage)
-                BodyImage.color = _bodyOriginalColor;
+            if (_bodyColorCached && bodyImage)
+                bodyImage.color = _bodyOriginalColor;
         }
 
+        /// <summary>
+        /// 하이라이트 이미지 색을 바꾸고, 켜는 경우 외곽선 두께만큼 영역을 넓힌다.
+        /// </summary>
         private static void SetHighlight(Image img, Color color)
         {
             if (!img) return;
@@ -378,17 +506,20 @@ namespace Game
             if (color != Color.clear) SetHighlightRect(img);
         }
 
+        /// <summary>
+        /// 하이라이트 이미지를 블록 사방으로 외곽선 두께만큼 넓힌다.
+        /// </summary>
         private static void SetHighlightRect(Image img)
         {
             float t = Constants.HighlightSettings.OutlineThickness;
             RectTransform rt = img.rectTransform;
-            if (rt)
-            {
-                rt.offsetMin = new Vector2(-t, -t);
-                rt.offsetMax = new Vector2(t, t);
-            }
+            rt.offsetMin = new Vector2(-t, -t);
+            rt.offsetMax = new Vector2(t, t);
         }
 
+        /// <summary>
+        /// 블록 메타(카테고리·값 타입·제어 역할)와 드래그 기준 캔버스를 설정한다.
+        /// </summary>
         public void Init(BlockCategory category, Canvas rootCanvas, ValueKind valueKind = ValueKind.None,
             Data.ControlRole controlRole = Data.ControlRole.None)
         {
@@ -400,6 +531,9 @@ namespace Game
             TryGetComponent<CanvasGroup>(out _cg);
         }
 
+        /// <summary>
+        /// 비활성화될 때 펄스를 멈추고 드래그 상태를 초기화한다.
+        /// </summary>
         private void OnDisable()
         {
             StopSnapPulse();
@@ -409,28 +543,24 @@ namespace Game
             ClearDragCache();
         }
 
+        /// <summary>
+        /// 파괴될 때 스냅 펄스 트윈을 정리한다.
+        /// </summary>
         private void OnDestroy()
         {
             StopSnapPulse();
         }
 
-        // 드래그 시점에 캔버스를 다시 확인 (Init이 배치 전 호출될 수 있으므로)
-        private Canvas RootCanvas
-        {
-            get
-            {
-                if (!_canvas)
-                {
-                    Canvas parentCanvas = GetComponentInParent<Canvas>();
-                    if (parentCanvas) _canvas = parentCanvas.rootCanvas;
-                }
-                return _canvas;
-            }
-        }
-
+        /// <summary>
+        /// 드래그를 시작하면 스냅 후보를 모으고, 원래 자리(소켓)에서 떼어 루트 캔버스 최상단으로 옮긴다.
+        /// </summary>
         public void OnBeginDrag(PointerEventData e)
         {
-            if (!RootCanvas) return;
+            if (!_canvas)
+            {
+                if (_logger != null) _logger.ZLogWarning($"[CodingBlock] {name}에 루트 캔버스가 지정되지 않아 드래그할 수 없습니다.");
+                return;
+            }
 
             // 드래그 시작 시 소켓이 확실히 부착되어 있도록 보장 (스냅 오프셋 기준점 정상화)
             BlockFactory.AttachSockets(this);
@@ -438,7 +568,7 @@ namespace Game
             BuildDragCache();
 
             // 코딩을 다시 건드리기 시작하면 이전 빌드 결과(성공/에러 외곽선)는 더 이상 유효하지 않으므로 정리
-            ClearAllErrorHighlights(_codingZone, _categoryZone);
+            ClearAllErrorHighlights(_codingZone);
 
             if (_snapTarget) _snapTarget.ClearSnapHighlight();
             _snapTarget = null;
@@ -468,14 +598,17 @@ namespace Game
                 SpliceOutChild(ins.Accept);
             }
 
-            transform.SetParent(RootCanvas.transform, true);
+            transform.SetParent(_canvas.transform, true);
             transform.SetAsLastSibling();
             _cg.blocksRaycasts = false;
         }
 
+        /// <summary>
+        /// 체인 중간에서 떼어낼 때, 이 블록 아래에 붙어 있던 블록을 원래 부모 소켓에 이어 붙인다.
+        /// </summary>
         private void SpliceOutChild(Action<CodingBlock> acceptToParent)
         {
-            ChainOutSocket myOut = BlockSocket.FindChildComponent<ChainOutSocket>(transform, Constants.Sockets.ChainOutName);
+            ChainOutSocket myOut = GetSocket<ChainOutSocket>();
             CodingBlock myChild = myOut ? myOut.Occupant : null;
             if (!myChild) return;
 
@@ -483,11 +616,14 @@ namespace Game
             acceptToParent(myChild);
         }
 
+        /// <summary>
+        /// 포인터 이동량만큼 블록을 옮기고 스냅 하이라이트를 갱신한다.
+        /// </summary>
         public void OnDrag(PointerEventData e)
         {
-            if (!RootCanvas) return;
+            if (!_canvas) return;
 
-            _rt.anchoredPosition += e.delta / RootCanvas.scaleFactor;
+            _rt.anchoredPosition += e.delta / _canvas.scaleFactor;
             UpdateSnapHighlight();
         }
 
@@ -499,6 +635,9 @@ namespace Game
         private bool PrefersConditionSocket =>
             Category is BlockCategory.Condition or BlockCategory.Logic;
 
+        /// <summary>
+        /// 현재 위치에서 스냅될 대상을 찾아, 바뀐 경우에만 이전 하이라이트를 끄고 새 대상에 켠다.
+        /// </summary>
         private void UpdateSnapHighlight()
         {
             CodingBlock newTarget = null;
@@ -512,14 +651,14 @@ namespace Game
                 {
                     ConditionOutSocket condSocket = FindSnapConditionOutSocket();
                     if (condSocket)
-                        newTarget = condSocket.GetComponentInParent<CodingBlock>();
+                        newTarget = condSocket.Owner;
                 }
 
                 if (!newTarget)
                 {
                     ValueOutSocket socket = FindSnapValueOutSocket();
                     if (socket)
-                        newTarget = socket.GetComponentInParent<CodingBlock>();
+                        newTarget = socket.Owner;
                 }
             }
             else
@@ -530,7 +669,7 @@ namespace Game
                 // 두 범위가 겹치면 더 가까운 쪽 우선
                 if (chainSocket && (!innerSocket || chainSqr <= innerSqr))
                 {
-                    newTarget = chainSocket.GetComponentInParent<CodingBlock>();
+                    newTarget = chainSocket.Owner;
                 }
                 else if (innerSocket)
                 {
@@ -557,6 +696,9 @@ namespace Game
             }
         }
 
+        /// <summary>
+        /// 드래그를 끝내면 가까운 소켓에 붙이고, 붙일 곳이 없으면 코딩 패널에 놓거나 인벤토리로 되돌린다.
+        /// </summary>
         public void OnEndDrag(PointerEventData e)
         {
             if (_snapTarget) _snapTarget.ClearSnapHighlight();
@@ -572,7 +714,7 @@ namespace Game
                 return;
             }
 
-            if (!RootCanvas || transform.parent == RootCanvas.transform)
+            if (!_canvas || transform.parent == _canvas.transform)
                 ReturnHomeOrRelease(e);
 
             ClearDragCache();
@@ -610,7 +752,9 @@ namespace Game
             return false;
         }
 
-        // 소켓 부착 공통 절차 — 드롭 처리 완료 표시 → 소켓 부착 → 대상 소켓에 인계
+        /// <summary>
+        /// 소켓 부착 공통 절차 — 드롭 처리 완료 표시 → 소켓 부착 → 대상 소켓에 인계.
+        /// </summary>
         private bool AttachTo(Action<CodingBlock> accept)
         {
             IsDragHandled = true;
@@ -628,14 +772,18 @@ namespace Game
         // 값을 즉시 소비하고 메인 스레드에서만 쓰이므로 공유해도 안전하다.
         private readonly static Vector3[] _cornerBuffer = new Vector3[4];
 
-        // RectTransform 월드 코너 두 지점의 중점 (변의 중앙)
+        /// <summary>
+        /// RectTransform 월드 코너 두 지점의 중점(변의 중앙)을 반환한다.
+        /// </summary>
         private static Vector2 EdgeCenter(RectTransform rt, int cornerA, int cornerB)
         {
             rt.GetWorldCorners(_cornerBuffer);
             return ((Vector2)_cornerBuffer[cornerA] + (Vector2)_cornerBuffer[cornerB]) * 0.5f;
         }
 
-        // ChainInSocket 위치 또는 블록 상단 중앙을 스냅 기준점으로 반환
+        /// <summary>
+        /// ChainInSocket 위치 또는 블록 상단 중앙을 체인 스냅 기준점으로 반환한다.
+        /// </summary>
         private bool TryGetChainSnapOrigin(out Vector2 pos)
         {
             ChainInSocket inSocket = BlockSocket.FindChildComponent<ChainInSocket>(transform, Constants.Sockets.ChainInName);
@@ -655,10 +803,12 @@ namespace Game
             return false;
         }
 
-        // 가로 연결(값/조건) 기준점 — 해당 In 소켓 위치, 없으면 블록 좌측 중앙
-        private bool TryGetHorizontalSnapOrigin<TInSocket>(out Vector2 pos) where TInSocket : Component
+        /// <summary>
+        /// 가로 연결(값/조건) 기준점으로 해당 In 소켓 위치를, 없으면 블록 좌측 중앙을 반환한다.
+        /// </summary>
+        private bool TryGetHorizontalSnapOrigin<TInSocket>(string socketName, out Vector2 pos) where TInSocket : Component
         {
-            TInSocket inSocket = GetComponentInChildren<TInSocket>();
+            TInSocket inSocket = BlockSocket.FindChildComponent<TInSocket>(transform, socketName);
             if (inSocket)
             {
                 pos = (Vector2)inSocket.transform.position;
@@ -675,8 +825,10 @@ namespace Game
             return false;
         }
 
-        // 이 블록의 ChainInSocket이 후보 ChainOutSocket 반경 안에 있으면 스냅
-        // ChainInSocket이 없는 인벤토리 블록은 블록 상단 중앙을 기준점으로 사용
+        /// <summary>
+        /// 이 블록의 체인 기준점 아래쪽 반경 안에서 가장 가까운 ChainOutSocket을 찾는다
+        /// (ChainInSocket이 없는 인벤토리 블록은 블록 상단 중앙을 기준점으로 사용).
+        /// </summary>
         private ChainOutSocket FindSnapOutSocket(out float bestSqr)
         {
             if (!TryGetChainSnapOrigin(out Vector2 myPos))
@@ -689,7 +841,7 @@ namespace Game
             float minSqr = ChainSnapRadius * ChainSnapRadius;
 
             EnsureDragCache();
-            foreach (ChainOutSocket candidate in _cachedChainOutSockets)
+            foreach (ChainOutSocket candidate in _chainOutCandidates)
             {
                 if (candidate.transform.IsChildOf(transform)) continue;
                 if (!candidate.CanAccept(this)) continue;
@@ -709,7 +861,9 @@ namespace Game
             return best;
         }
 
-        // InnerSocket: 방향 제한 없이 반경 안이면 스냅 (FlowControl 내부 진입)
+        /// <summary>
+        /// 방향 제한 없이 반경 안에서 가장 가까운 InnerSocket(FlowControl 내부 진입)을 찾는다.
+        /// </summary>
         private InnerSocket FindSnapInnerSocket(out float bestSqr)
         {
             if (Category == BlockCategory.Control || !TryGetChainSnapOrigin(out Vector2 myPos))
@@ -722,7 +876,7 @@ namespace Game
             float minSqr = ChainSnapRadius * ChainSnapRadius;
 
             EnsureDragCache();
-            foreach (InnerSocket candidate in _cachedInnerSockets)
+            foreach (InnerSocket candidate in _innerCandidates)
             {
                 if (candidate.transform.IsChildOf(transform)) continue;
                 if (!candidate.CanAccept(this)) continue;
@@ -743,22 +897,22 @@ namespace Game
         }
 
         /// <summary>
-        /// 허용된 블록 조합 규칙에 맞는 우측 연결부 탐색.
+        /// 허용된 블록 조합 규칙에 맞는 우측 값 연결부(ValueOutSocket)를 찾는다.
         /// </summary>
         private ValueOutSocket FindSnapValueOutSocket()
         {
-            if (!TryGetHorizontalSnapOrigin<ValueInSocket>(out Vector2 myPos)) return null;
+            if (!TryGetHorizontalSnapOrigin<ValueInSocket>(Constants.Sockets.ValueInName, out Vector2 myPos)) return null;
 
             ValueOutSocket best = null;
             float minSqr = SnapRadius * SnapRadius;
 
             EnsureDragCache();
-            foreach (ValueOutSocket candidate in _cachedValueOutSockets)
+            foreach (ValueOutSocket candidate in _valueOutCandidates)
             {
                 if (candidate.transform.IsChildOf(transform)) continue;
                 if (!candidate.IsEmpty) continue;
 
-                CodingBlock targetBlock = candidate.GetComponentInParent<CodingBlock>();
+                CodingBlock targetBlock = candidate.Owner;
                 if (targetBlock)
                 {
                     if (Category == BlockCategory.Value)
@@ -791,21 +945,23 @@ namespace Game
             return best;
         }
 
-        // ConditionInSocket 기준으로 가장 가까운 ConditionOutSocket 탐색
+        /// <summary>
+        /// ConditionInSocket 기준으로 가장 가까운 ConditionOutSocket을 찾는다.
+        /// </summary>
         private ConditionOutSocket FindSnapConditionOutSocket()
         {
-            if (!TryGetHorizontalSnapOrigin<ConditionInSocket>(out Vector2 myPos)) return null;
+            if (!TryGetHorizontalSnapOrigin<ConditionInSocket>(Constants.Sockets.ConditionInName, out Vector2 myPos)) return null;
 
             ConditionOutSocket best = null;
             float minSqr = SnapRadius * SnapRadius;
 
             EnsureDragCache();
-            foreach (ConditionOutSocket candidate in _cachedConditionOutSockets)
+            foreach (ConditionOutSocket candidate in _conditionOutCandidates)
             {
                 if (candidate.transform.IsChildOf(transform)) continue;
                 if (!candidate.IsEmpty) continue;
 
-                CodingBlock targetBlock = candidate.GetComponentInParent<CodingBlock>();
+                CodingBlock targetBlock = candidate.Owner;
                 if (targetBlock)
                 {
                     // Logic(그리고/또는)은 Condition 블록의 ConditionOut에 스냅
@@ -828,6 +984,9 @@ namespace Game
             return best;
         }
 
+        /// <summary>
+        /// 소켓의 자식으로 옮긴 뒤 OutBack 이징으로 목표 오프셋까지 미끄러지듯 붙인다.
+        /// </summary>
         public async UniTaskVoid SnapInto(Transform socket, Vector2 targetOffset = default)
         {
             transform.SetParent(socket, true);
@@ -839,12 +998,11 @@ namespace Game
                 Tween tween = null;
                 tween = _rt.DOAnchorPos(targetOffset, SnapSeconds)
                     .SetEase(Ease.OutBack)
-                    .SetLink(gameObject)
                     .OnUpdate(() =>
                     {
                         if (transform.parent != socket) tween.Kill();
                     });
-                await tween.ToUniTask(cancellationToken: destroyCancellationToken);
+                await tween.ToUniTask(TweenCancelBehaviour.KillAndCancelAwait, destroyCancellationToken);
             }
             catch (OperationCanceledException)
             {
@@ -852,7 +1010,7 @@ namespace Game
             }
             catch (Exception ex)
             {
-                _log?.ZLogError(ex, $"SnapInto failed on {name}");
+                if (_logger != null) _logger.ZLogError(ex, $"[CodingBlock] SnapInto failed on {name}");
                 return;
             }
 
@@ -861,6 +1019,9 @@ namespace Game
             _rt.anchoredPosition = targetOffset;
         }
 
+        /// <summary>
+        /// 지정한 부모의 원점에 즉시 배치하고 그곳을 복귀 위치로 기록한다.
+        /// </summary>
         public void PlaceIn(Transform parent)
         {
             transform.SetParent(parent, false);
@@ -870,6 +1031,9 @@ namespace Game
 
         private Transform _inventoryParent;
 
+        /// <summary>
+        /// 인벤토리로 되돌아갈 때 들어갈 부모(인벤토리 Content)를 기록한다.
+        /// </summary>
         public void SetInventoryHome(Transform invParent)
         {
             _inventoryParent = invParent;
@@ -885,6 +1049,9 @@ namespace Game
             }
         }
 
+        /// <summary>
+        /// 드래그 취소 시 되돌아갈 부모를 기록한다.
+        /// </summary>
         public void SetHome(Transform parent)
         {
             _homeParent = parent;
@@ -901,9 +1068,19 @@ namespace Game
             ReleaseAttachedChildren<ChainOutSocket>();
         }
 
+        // 호출마다 리스트를 새로 만들지 않도록 재사용한다 — 재귀(자식 블록 해제)는 다른 블록 인스턴스에서 일어나 버퍼가 겹치지 않는다
+        private readonly List<BlockSocket> _releaseBuffer = new();
+
+        /// <summary>
+        /// 이 블록에 직접 딸린 지정 타입 소켓의 점유 블록을 떼어 인벤토리로 되돌린다.
+        /// </summary>
         private void ReleaseAttachedChildren<TSocket>() where TSocket : BlockSocket
         {
-            foreach (TSocket socket in GetComponentsInChildren<TSocket>(true))
+            _releaseBuffer.Clear();
+            foreach (BlockSocket socket in _sockets)
+                if (socket is TSocket && socket) _releaseBuffer.Add(socket);
+
+            foreach (BlockSocket socket in _releaseBuffer)
             {
                 CodingBlock child = socket.Occupant;
                 if (!child) continue;
@@ -918,7 +1095,7 @@ namespace Game
         /// 시작하기/완성하기 블록을 코딩 패널의 고정 자리(좌상단 / 좌하단)에 배치한다.
         /// 최초 스폰(BlockSpawner)과 인벤토리 반입 시 복귀(ReturnToInventory)가 같은 규칙을 쓰도록 공유한다.
         /// </summary>
-        public static void ApplyControlBlockLayout(RectTransform rt, bool isStart, Transform codingZone)
+        public static void ApplyControlBlockLayout(RectTransform rt, bool isStart, CodingZone codingZone)
         {
             if (!rt) return;
 
@@ -928,9 +1105,9 @@ namespace Game
                 : Constants.CodingZoneLayout.ControlBlockYInset;
 
             // 스크롤 콘텐츠가 뷰포트보다 클 때, 완성하기가 초기 화면(콘텐츠 좌상단 뷰) 안에 보이도록 보정
-            if (!isStart && codingZone is RectTransform content)
+            if (!isStart && codingZone && codingZone.transform is RectTransform content)
             {
-                ScrollRect scroll = content.GetComponentInParent<ScrollRect>();
+                ScrollRect scroll = codingZone.ScrollRect;
                 if (scroll && scroll.viewport)
                 {
                     float overflow = content.rect.height - scroll.viewport.rect.height;
@@ -941,12 +1118,15 @@ namespace Game
             rt.anchoredPosition = new Vector2(Constants.CodingZoneLayout.ControlBlockX, y);
         }
 
-        public static void ResetControlBlockPosition(CodingBlock block, Transform codingZone)
+        /// <summary>
+        /// 시작하기/완성하기 블록을 코딩 패널 직속의 고정 자리로 되돌린다.
+        /// </summary>
+        public static void ResetControlBlockPosition(CodingBlock block, CodingZone codingZone)
         {
             if (!block || !codingZone) return;
 
-            block.transform.SetParent(codingZone, false);
-            block.SetHome(codingZone);
+            block.transform.SetParent(codingZone.transform, false);
+            block.SetHome(codingZone.transform);
 
             ApplyControlBlockLayout(block.transform as RectTransform,
                 block.ControlRole == Data.ControlRole.Start, codingZone);
@@ -954,14 +1134,17 @@ namespace Game
             block.gameObject.SetActive(true);
         }
 
+        /// <summary>
+        /// 붙어 있던 자식 블록까지 모두 떼어 인벤토리의 현재 탭으로 되돌린다 (제어 블록은 코딩 패널 고정 자리로).
+        /// </summary>
         public void ReturnToInventory()
         {
             if (Category == BlockCategory.Control)
             {
                 if (_codingZone)
-                    ResetControlBlockPosition(this, _codingZone.transform);
-                else if (_log != null)
-                    _log.ZLogWarning($"[CodingBlock] {name}에 CodingZone이 연결되지 않아 제자리로 되돌릴 수 없습니다.");
+                    ResetControlBlockPosition(this, _codingZone);
+                else if (_logger != null)
+                    _logger.ZLogWarning($"[CodingBlock] {name}에 CodingZone이 연결되지 않아 제자리로 되돌릴 수 없습니다.");
                 return;
             }
 
@@ -975,20 +1158,27 @@ namespace Game
 
                 if (_categoryZone)
                     gameObject.SetActive(BlockFactory.GetTabCategory(Category) == _categoryZone.CurrentCategory);
-                else if (_log != null)
-                    _log.ZLogWarning($"[CodingBlock] {name}에 CategoryZone이 연결되지 않아 탭 필터를 적용하지 못했습니다.");
+                else if (_logger != null)
+                    _logger.ZLogWarning($"[CodingBlock] {name}에 CategoryZone이 연결되지 않아 탭 필터를 적용하지 못했습니다.");
             }
             else if (_homeParent)
             {
                 transform.SetParent(_homeParent, false);
             }
+            else if (_logger != null)
+            {
+                _logger.ZLogWarning($"[CodingBlock] {name}의 인벤토리·복귀 위치가 모두 없어 제자리에 둡니다.");
+            }
         }
 
+        /// <summary>
+        /// 드래그 시작 전 위치(부모·순서·좌표)로 되돌리고, 떼어냈던 소켓의 점유를 복구한다.
+        /// </summary>
         public void ReturnHome()
         {
             if (!_homeParent) return;
 
-            bool isReturningToInventory = _homeParent.GetComponentInParent<CodingZone>() == null;
+            bool isReturningToInventory = !_codingZone || !_homeParent.IsChildOf(_codingZone.transform);
             if (isReturningToInventory)
             {
                 ReturnToInventory();
@@ -1009,30 +1199,27 @@ namespace Game
         }
 
         /// <summary>
-        /// 포인터 위치가 코딩 영역 내부인지 판별하여 배치 상태를 결정합니다.
+        /// 포인터 위치가 코딩 영역 내부인지 판별하여 코딩 패널에 놓거나 인벤토리로 되돌린다.
         /// </summary>
         private void ReturnHomeOrRelease(PointerEventData e)
         {
             CodingZone zone = _codingZone;
             if (!zone)
             {
-                _log?.ZLogWarning($"[CodingBlock] CodingZone이 연결되지 않았습니다.");
+                if (_logger != null) _logger.ZLogWarning($"[CodingBlock] CodingZone이 연결되지 않았습니다.");
                 ReturnToInventory();
                 return;
             }
 
             if (!zone.TryGetComponent(out RectTransform zoneRect))
-                zoneRect = zone.GetComponentInParent<RectTransform>();
-
-            if (!zoneRect)
             {
-                _log?.ZLogWarning($"[CodingBlock] CodingZone 영역에 RectTransform이 없습니다.");
+                if (_logger != null) _logger.ZLogWarning($"[CodingBlock] CodingZone 영역에 RectTransform이 없습니다.");
                 ReturnToInventory();
                 return;
             }
 
             // 스크롤 존이면 확대된 Content가 아니라 화면에 보이는 Viewport 기준으로 내부 판정
-            ScrollRect scroll = zone.GetComponentInParent<ScrollRect>();
+            ScrollRect scroll = zone.ScrollRect;
             if (scroll && scroll.viewport) zoneRect = scroll.viewport;
 
             bool isInside = RectTransformUtility.RectangleContainsScreenPoint(zoneRect, e.position, e.pressEventCamera);
@@ -1050,6 +1237,9 @@ namespace Game
         }
 
 #if UNITY_EDITOR
+        /// <summary>
+        /// 선택된 블록의 스냅 반경을 씬 뷰에 표시한다.
+        /// </summary>
         private void OnDrawGizmosSelected()
         {
             if (!_rt) TryGetComponent<RectTransform>(out _rt);

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Cysharp.Text;
 using Cysharp.Threading.Tasks;
 using TMPro;
 using UnityEngine;
@@ -22,18 +23,28 @@ namespace Scenes
         private RectTransform _rectTransform;
         private int _currentIndex;
 
+        /// <summary>
+        /// 이미지와 RectTransform 참조를 캐싱한다.
+        /// </summary>
         private void Awake()
         {
-            _image = GetComponent<Image>();
+            if (!TryGetComponent(out _image))
+                Debug.LogError($"[TutorialImageSlider] {name}에 Image가 없습니다.");
             _rectTransform = (RectTransform)transform;
         }
 
+        /// <summary>
+        /// 첫 페이지를 표시한다.
+        /// </summary>
         private void Start()
         {
             _currentIndex = 0;
             UpdatePageAsync().Forget();
         }
 
+        /// <summary>
+        /// 이미지의 오른쪽 절반을 누르면 다음, 왼쪽 절반을 누르면 이전 페이지로 넘긴다.
+        /// </summary>
         public void OnPointerClick(PointerEventData eventData)
         {
             RectTransformUtility.ScreenPointToLocalPointInRectangle(_rectTransform, eventData.position, eventData.pressEventCamera, out Vector2 localPoint);
@@ -45,31 +56,40 @@ namespace Scenes
             else ShowPrevious();
         }
 
+        /// <summary>
+        /// 다음 페이지로 넘긴다 (마지막 다음은 처음).
+        /// </summary>
         private void ShowNext()
         {
             _currentIndex = (_currentIndex + 1) % TotalPages;
             UpdatePageAsync().Forget();
         }
 
+        /// <summary>
+        /// 이전 페이지로 넘긴다 (처음 이전은 마지막).
+        /// </summary>
         private void ShowPrevious()
         {
             _currentIndex = (_currentIndex - 1 + TotalPages) % TotalPages;
             UpdatePageAsync().Forget();
         }
 
+        /// <summary>
+        /// 현재 페이지 번호와 이미지를 갱신한다 (이미지는 페이지별 1회만 로드).
+        /// </summary>
         private async UniTaskVoid UpdatePageAsync()
         {
             int page = _currentIndex + 1;
-            if (pageText) pageText.text = $"튜토리얼 ({page}/{TotalPages})";
+            if (pageText) pageText.text = ZString.Concat("튜토리얼 (", page, "/", TotalPages, ")");
 
             if (!_spriteCache.TryGetValue(page, out Sprite sprite))
             {
-                sprite = await Addressables.LoadAssetAsync<Sprite>($"{Constants.ResourcePaths.TutorialImageAddress}{page}");
+                sprite = await Addressables.LoadAssetAsync<Sprite>(ZString.Concat(Constants.ResourcePaths.TutorialImageAddress, page));
                 _spriteCache[page] = sprite;
             }
 
             // 로딩 중 다른 페이지로 이동했다면(연속 클릭) 결과가 최신 페이지를 덮어쓰지 않도록 방지
-            if (_currentIndex + 1 == page) _image.sprite = sprite;
+            if (_currentIndex + 1 == page && _image) _image.sprite = sprite;
         }
     }
 }

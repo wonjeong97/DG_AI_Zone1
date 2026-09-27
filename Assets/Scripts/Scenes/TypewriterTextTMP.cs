@@ -21,13 +21,21 @@ namespace Scenes
 
         private TMP_Text _text;
 
+        /// <summary>
+        /// 텍스트 컴포넌트를 캐싱하고 처음엔 아무 글자도 보이지 않게 한다.
+        /// </summary>
         private void Awake()
         {
-            _text = GetComponent<TMP_Text>();
-            _text.maxVisibleCharacters = 0;
+            // RequireComponent로 보장되지만 실패 시 그 자리에서 드러나도록 bool 분기로 받는다
+            if (TryGetComponent(out _text))
+                _text.maxVisibleCharacters = 0;
+            else
+                Debug.LogError($"[TypewriterTextTMP] {name}에 TMP_Text가 없습니다.");
         }
 
-        // 재생 전 표시할 전체 텍스트 교체 (리치텍스트 태그 포함 가능)
+        /// <summary>
+        /// 재생 전 표시할 전체 텍스트를 교체한다 (리치텍스트 태그 포함 가능).
+        /// </summary>
         public void SetText(string text)
         {
             _text.text = text;
@@ -35,6 +43,9 @@ namespace Scenes
             _text.ForceMeshUpdate();
         }
 
+        /// <summary>
+        /// 한 글자씩 노출 개수를 늘려 타이핑되듯 보여준다.
+        /// </summary>
         public async UniTask PlayAsync(CancellationToken ct = default)
         {
             _text.ForceMeshUpdate();

@@ -16,7 +16,9 @@ namespace Game
         // (도메인 리로드로 날아가면 다음 호출에서 다시 만들어진다)
         private static GUIStyle _labelStyle;
 
-        // 십자 마커 + 중심 점
+        /// <summary>
+        /// 십자 마커와 중심 점을 그린다.
+        /// </summary>
         public static void DrawCross(RectTransform rt, Color color, float arm, float dotRadius)
         {
             Gizmos.color = color;
@@ -26,7 +28,9 @@ namespace Game
             Gizmos.DrawWireSphere(rt.position, dotRadius);
         }
 
-        // 가로선 + 위로 뻗은 기둥 — 블록 상단에 붙는 체인 In 소켓 전용 마커
+        /// <summary>
+        /// 가로선과 위로 뻗은 기둥을 그린다 — 블록 상단에 붙는 체인 In 소켓 전용 마커.
+        /// </summary>
         public static void DrawStem(RectTransform rt, Color color, float arm, float dotRadius, float stemScale)
         {
             Gizmos.color = color;
@@ -36,7 +40,9 @@ namespace Game
             Gizmos.DrawWireSphere(rt.position, dotRadius);
         }
 
-        // 스냅 감지 범위 — from 방향에서 시계 방향으로 180도(반원)
+        /// <summary>
+        /// 스냅 감지 범위를 from 방향에서 시계 방향으로 180도(반원) 그린다.
+        /// </summary>
         public static void DrawSnapRange(RectTransform rt, Vector3 from, float radius, Color marker, Color range)
         {
             Handles.color = range;
@@ -45,6 +51,9 @@ namespace Game
             Handles.DrawWireArc(rt.position, Vector3.forward, from, 180f, radius);
         }
 
+        /// <summary>
+        /// 소켓 위에 색을 입힌 라벨을 그린다.
+        /// </summary>
         public static void DrawLabel(RectTransform rt, string text, Color color, float yOffset)
         {
             _labelStyle ??= new GUIStyle { fontSize = LabelFontSize };

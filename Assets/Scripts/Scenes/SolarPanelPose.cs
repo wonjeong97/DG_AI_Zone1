@@ -22,6 +22,9 @@ namespace Scenes
         private float _pivotY;       // PanelPivot의 local Y (= Pole 상단 한계)
         private bool _isNorth;       // 북쪽 방향 판정 플래그 (북쪽일 경우 패널 뒷면이 보이므로 기둥 조절 안함)
 
+        /// <summary>
+        /// 기둥과 피벗의 초기 높이 값을 캐싱한다.
+        /// </summary>
         private void Awake()
         {
             if (pole)
@@ -34,11 +37,15 @@ namespace Scenes
                 _pivotY = tiltPivot.localPosition.y;
         }
 
-        // 각도 문자열("30도") → 기울기(local X, 음수). 값 없으면 기본값
+        /// <summary>
+        /// 각도 문자열("30도")을 기울기(local X, 음수)로 바꾼다. 값이 없으면 기본값.
+        /// </summary>
         private static float AngleToTilt(string angle)
             => PanelPoseMath.TryParseAngleDegrees(angle, out int deg) ? -deg : DefaultTilt;
 
-        // 기본 자세 (평평 + 정면) — 연출 시작점. 바닥은 고정.
+        /// <summary>
+        /// 기본 자세(평평 + 정면)로 되돌린다 — 연출 시작점. 바닥은 고정.
+        /// </summary>
         public void SetNeutral()
         {
             _isNorth = false;
@@ -52,7 +59,9 @@ namespace Scenes
             RestorePole();
         }
 
-        // 값에 맞춰 애니메이션으로 자세 변경 — 방향 → 각도 순차 재생.
+        /// <summary>
+        /// 값에 맞춰 애니메이션으로 자세를 바꾼다 — 방향 → 각도 순차 재생.
+        /// </summary>
         public async UniTask ApplyAsync(string angle, string direction, CancellationToken ct)
         {
             _isNorth = (direction == Constants.Directions.North);
@@ -66,17 +75,20 @@ namespace Scenes
             await DOVirtual.Float(startYaw, endYaw, animDuration, y => SetPivot(currentTilt, y))
                 .SetEase(Ease.InOutQuad)
                 .SetLink(gameObject)
-                .ToUniTask(cancellationToken: ct);
+                .ToUniTask(TweenCancelBehaviour.KillAndCancelAwait, ct);
             SetPivot(currentTilt, targetYaw);
 
             // 2) 각도(tilt)
             await DOVirtual.Float(currentTilt, targetTilt, animDuration, x => SetPivot(x, targetYaw))
                 .SetEase(Ease.InOutQuad)
                 .SetLink(gameObject)
-                .ToUniTask(cancellationToken: ct);
+                .ToUniTask(TweenCancelBehaviour.KillAndCancelAwait, ct);
             SetPivot(targetTilt, targetYaw);
         }
 
+        /// <summary>
+        /// 피벗의 현재 기울기를 -180~180 범위로 반환한다.
+        /// </summary>
         private float GetCurrentTilt()
         {
             if (!tiltPivot) return 0f;
@@ -84,6 +96,9 @@ namespace Scenes
             return x > 180f ? x - 360f : x;
         }
 
+        /// <summary>
+        /// 피벗의 기울기·방향을 지정하고 기둥 높이를 맞춘다.
+        /// </summary>
         private void SetPivot(float tilt, float yaw)
         {
             if (tiltPivot)
@@ -104,7 +119,9 @@ namespace Scenes
             }
         }
 
-        // 틸트 각도에 따라 Pole 상단이 패널 아래에 머무르도록 높이를 줄인다.
+        /// <summary>
+        /// 틸트 각도에 따라 Pole 상단이 패널 아래에 머무르도록 높이를 줄인다.
+        /// </summary>
         private void AdjustPole(float tiltDeg)
         {
             if (!pole) return;
@@ -131,6 +148,9 @@ namespace Scenes
             pole.localPosition = p;
         }
 
+        /// <summary>
+        /// 기둥을 원래 높이로 되돌린다.
+        /// </summary>
         private void RestorePole()
         {
             if (!pole) return;

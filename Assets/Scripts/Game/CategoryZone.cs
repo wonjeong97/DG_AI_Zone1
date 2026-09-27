@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.UI;
 using VContainer;
+using VContainer.Unity;
 using ZLogger;
 
 namespace Game
@@ -15,28 +16,42 @@ namespace Game
     {
         [SerializeField] private RectTransform buttonContainer; // 버튼이 담길 컨테이너 (레이아웃 그룹 포함)
         [SerializeField] private Transform inventoryContent;    // 인벤토리 블록들의 부모(Content)
+        [SerializeField] private ScrollRect inventoryScrollRect; // 탭 전환 시 맨 위로 되돌릴 인벤토리 스크롤뷰
 
         public Transform InventoryContent => inventoryContent;
         public BlockCategory CurrentCategory { get; private set; }
 
-        private ILogger<CategoryZone> _log;
+        private ILogger<CategoryZone> _logger;
+        private IObjectResolver _resolver;
 
+        /// <summary>
+        /// 로거와 버튼 생성용 리졸버를 주입받는다.
+        /// </summary>
         [Inject]
-        public void Construct(ILogger<CategoryZone> log)
+        public void Construct(ILogger<CategoryZone> logger, IObjectResolver resolver)
         {
-            _log = log;
+            _logger = logger;
+            _resolver = resolver;
         }
 
         private static GameObject _buttonPrefab;
         private readonly List<(BlockCategory cat, Image fillImg, TMPro.TextMeshProUGUI labelText)> _buttons = new();
 
-        // 인벤토리에 존재하는 카테고리 순서대로 버튼 생성 후 첫 카테고리 활성화
+        /// <summary>
+        /// 인벤토리에 존재하는 카테고리 순서대로 버튼을 생성한 뒤 첫 카테고리를 활성화한다.
+        /// </summary>
         public async UniTask Build(IReadOnlyList<BlockCategory> categories)
         {
+            if (_resolver == null)
+            {
+                Debug.LogError("[CategoryZone] Dependencies were not injected. Check that GameLifetimeScope injects scene root objects on load.");
+                return;
+            }
+
             // 3x2 그리드 레이아웃 — GridLayoutGroup은 buttonContainer에 미리 붙여둔 상태, 값만 코드로 강제한다
             if (!buttonContainer.TryGetComponent<GridLayoutGroup>(out GridLayoutGroup grid))
             {
-                _log?.ZLogWarning($"[CategoryZone] buttonContainer에 GridLayoutGroup이 없습니다.");
+                if (_logger != null) _logger.ZLogWarning($"[CategoryZone] buttonContainer에 GridLayoutGroup이 없습니다.");
                 return;
             }
             grid.cellSize = new Vector2(150f, 52f);
@@ -56,7 +71,7 @@ namespace Game
 
             foreach (BlockCategory cat in categories)
             {
-                var (fillImg, txt) = CreateButton(cat);
+                (Image fillImg, TMPro.TextMeshProUGUI txt) = CreateButton(cat);
                 _buttons.Add((cat, fillImg, txt));
             }
 
@@ -64,6 +79,9 @@ namespace Game
                 Select(categories[0]);
         }
 
+        /// <summary>
+        /// 선택한 카테고리의 블록만 인벤토리에 보이게 하고 버튼 강조 상태를 갱신한다.
+        /// </summary>
         public void Select(BlockCategory cat)
         {
             CurrentCategory = cat;
@@ -73,34 +91,38 @@ namespace Game
 
             // 스크롤이 내려간 상태에서 콘텐츠가 짧은 카테고리로 바뀌면 Content가 범위 밖에 남아
             // 스크롤바 핸들 크기가 0으로 계산되므로, 전환 시 레이아웃 갱신 후 맨 위로 리셋
-            ScrollRect scrollRect = inventoryContent.GetComponentInParent<ScrollRect>();
-            if (scrollRect)
+            if (inventoryScrollRect)
             {
-                LayoutRebuilder.ForceRebuildLayoutImmediate(scrollRect.content);
-                scrollRect.verticalNormalizedPosition = 1f;
+                LayoutRebuilder.ForceRebuildLayoutImmediate(inventoryScrollRect.content);
+                inventoryScrollRect.verticalNormalizedPosition = 1f;
             }
-            else
+            else if (_logger != null)
             {
-                _log?.ZLogWarning($"[CategoryZone] 인벤토리 ScrollRect를 찾지 못해 스크롤 리셋을 건너뜁니다.");
+                _logger.ZLogWarning($"[CategoryZone] inventoryScrollRect가 연결되지 않아 스크롤 리셋을 건너뜁니다.");
             }
 
             foreach ((BlockCategory c, Image fillImg, TMPro.TextMeshProUGUI labelText) in _buttons)
             {
                 bool selected = (c == cat);
-                if (fillImg != null)
+                if (fillImg)
                     fillImg.color = Tint(BlockFactory.GetColor(c), selected);
-                if (labelText != null)
+                if (labelText)
                     labelText.color = selected ? Color.white : new Color(1f, 1f, 1f, 0.55f);
             }
         }
 
-        // 선택: 원색 / 비선택: 어둡게
+        /// <summary>
+        /// 선택된 버튼은 원색, 비선택 버튼은 어둡게 만든 색을 반환한다.
+        /// </summary>
         private static Color Tint(Color baseColor, bool selected)
             => selected ? baseColor : baseColor * 0.55f;
 
+        /// <summary>
+        /// 카테고리 버튼 프리팹을 생성해 라벨·색·클릭 동작을 설정하고 채움 이미지와 라벨을 반환한다.
+        /// </summary>
         private (Image fillImg, TMPro.TextMeshProUGUI labelText) CreateButton(BlockCategory cat)
         {
-            GameObject go = Instantiate(_buttonPrefab, buttonContainer, false);
+            GameObject go = _resolver.Instantiate(_buttonPrefab, buttonContainer, false);
             go.name = cat + "Button";
 
             Image fillImg = null;
@@ -118,9 +140,9 @@ namespace Game
                     ui.Button.onClick.AddListener(() => Select(captured));
                 }
             }
-            else
+            else if (_logger != null)
             {
-                Debug.LogWarning($"[CategoryZone] CategoryButton 프리팹에 CategoryButtonUI 컴포넌트가 없습니다.");
+                _logger.ZLogWarning($"[CategoryZone] CategoryButton 프리팹에 CategoryButtonUI 컴포넌트가 없습니다.");
             }
 
             if (labelText)

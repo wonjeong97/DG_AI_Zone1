@@ -143,7 +143,7 @@ MonoBehaviour:
   m_text: "\uBC18\uBCF5\uD558\uAE30"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: d0d2f5797b1d2f34ea9ffb7c01ef8fd6, type: 2}
-  m_sharedMaterial: {fileID: 1948369249235228639, guid: d0d2f5797b1d2f34ea9ffb7c01ef8fd6,
+  m_sharedMaterial: {fileID: -119739183008471601, guid: d0d2f5797b1d2f34ea9ffb7c01ef8fd6,
     type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
@@ -184,17 +184,15 @@ MonoBehaviour:
   m_lineSpacingMax: 0
   m_paragraphSpacing: 0
   m_charWidthMaxAdj: 0
-  m_TextWrappingMode: 1
+  m_enableWordWrapping: 0
   m_wordWrappingRatios: 0.4
   m_overflowMode: 0
   m_linkedTextComponent: {fileID: 0}
   parentLinkedComponent: {fileID: 0}
   m_enableKerning: 0
-  m_ActiveFontFeatures: 6e72656b
   m_enableExtraPadding: 0
   checkPaddingRequired: 0
   m_isRichText: 1
-  m_EmojiFallbackSupport: 1
   m_parseCtrlCharacters: 1
   m_isOrthographic: 1
   m_isCullingEnabled: 0
@@ -550,6 +548,14 @@ MonoBehaviour:
   _snapRadius: 120
   _chainSnapRadius: 120
   _snapSeconds: 0.15
+  outlineImage: {fileID: 4858301128265670337}
+  chainHighlightImage: {fileID: 5944426155865783820}
+  valueHighlightImage: {fileID: 7067010698169534129}
+  bodyImage: {fileID: 8481985268177007279}
+  labelText: {fileID: 8008539942841838832}
+  footer: {fileID: 6444589881413351659}
+  builtInSockets:
+  - {fileID: 8619834947838284108}
 --- !u!1 &5838455326224493447
 GameObject:
   m_ObjectHideFlags: 0
@@ -833,6 +839,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c26884a908abf4c4c8786e7b0b14711a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  socket: {fileID: 8619834947838284108}
+  bottomSocket: {fileID: 4053191033753066579}
 --- !u!1 &8092737282886640432
 GameObject:
   m_ObjectHideFlags: 0

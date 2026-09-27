@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading;
+using Cysharp.Text;
 using Cysharp.Threading.Tasks;
 using Data;
 using Game;
@@ -31,13 +32,16 @@ namespace Scenes
         [SerializeField] private HighlightMode highlightMode = HighlightMode.Outline;
 
         private GameSession _session;
-        private ILogger<GameSceneManager> _log;
+        private ILogger<GameSceneManager> _logger;
 
+        /// <summary>
+        /// 게임 세션과 로거를 주입받는다.
+        /// </summary>
         [Inject]
-        public void Construct(GameSession session, ILogger<GameSceneManager> log)
+        public void Construct(GameSession session, ILogger<GameSceneManager> logger)
         {
             _session = session;
-            _log = log;
+            _logger = logger;
         }
 
         // 명령 하나를 실행한 것처럼 보이도록 두는 간격 — 3_Game.json 로드 전까지의 폴백 기본값
@@ -51,6 +55,9 @@ namespace Scenes
         private string _currentLevelName;
         private LevelData _currentLevel;
 
+        /// <summary>
+        /// 레벨을 결정해 블록을 스폰하고 문제를 출제한 뒤 버튼 동작을 연결한다.
+        /// </summary>
         private void Start()
         {
             // UI 작업 중 에디터에서 켜둔 채로 남아있어도, 씬 시작 시 팝업 패널(스토리/힌트)은 항상 닫힌 상태로 시작
@@ -79,7 +86,7 @@ namespace Scenes
             BlockLayoutData layout = level ? level.blockLayout : null;
             if (!layout)
             {
-                _log?.ZLogWarning($"[GameSceneManager] No layout. testLevel을 Inspector에 할당하세요.");
+                if (_logger != null) _logger.ZLogWarning($"[GameSceneManager] No layout. testLevel을 Inspector에 할당하세요.");
                 return;
             }
 
@@ -87,7 +94,10 @@ namespace Scenes
             CodingBlock.RestrictMainChainToFunction = HasFunctionBlock(layout);
 
             // 씬 진입 페이드인이 블록 스폰과 카테고리 구성 완료 후에 시작되도록 등록
-            SceneFader.RegisterPendingTask(blockSpawner.Spawn(layout));
+            if (blockSpawner)
+                SceneFader.RegisterPendingTask(blockSpawner.Spawn(layout));
+            else if (_logger != null)
+                _logger.ZLogWarning($"[GameSceneManager] blockSpawner가 할당되지 않아 블록을 생성할 수 없습니다.");
 
             // 레벨별 문제 출제 — Constants.Questions 센터에서 생성
             Constants.Questions.QuestionData issue = Constants.Questions.GenerateQuestion(_currentLevelName);
@@ -100,8 +110,8 @@ namespace Scenes
                 if (Constants.Levels.IsPowerPlant(_currentLevelName))
                     questionText.fontSize = Constants.Questions.PowerPlantQuestionFontSize;
             }
-            else
-                _log?.ZLogWarning($"[GameSceneManager] questionText가 할당되지 않아 문제 텍스트를 표시할 수 없습니다.");
+            else if (_logger != null)
+                _logger.ZLogWarning($"[GameSceneManager] questionText가 할당되지 않아 문제 텍스트를 표시할 수 없습니다.");
 
             // 코딩 완료 없이 넘어가면 결과 씬에서 '-'로 표시되도록 이전 결과 초기화
             if (_session)
@@ -113,31 +123,38 @@ namespace Scenes
             if (compileButton)
                 compileButton.onClick.AddListener(() => StartCompileAndRun(advanceScene: true));
 
-            if (storyButton)
+            if (storyButton && storyPanel)
                 storyButton.onClick.AddListener(() => storyPanel.Show(
                     _currentLevelName,
                     _currentLevel ? _currentLevel.storyText : null));
 
-            if (hintButton)
+            if (hintButton && hintPanel)
                 hintButton.onClick.AddListener(() => hintPanel.Show(_currentLevelName, _questionTime));
 
             if (skipButton)
                 skipButton.onClick.AddListener(SkipToResult);
         }
 
+        /// <summary>
+        /// 스페이스바 입력 시 컴파일 검증만 수행한다 (채점·실행·씬 전환 없음).
+        /// </summary>
         private void Update()
         {
-            // 스페이스바: 컴파일 검증만 (채점·실행·씬 전환 없음)
             if (Input.GetKeyDown(KeyCode.Space) && (!compileButton || compileButton.interactable))
                 StartCompileAndRun(advanceScene: false);
         }
 
+        /// <summary>
+        /// 진행 중인 컴파일·실행을 취소한다.
+        /// </summary>
         private void OnDestroy()
         {
             CancelRun();
         }
 
-        // 진행 중인 실행을 중단하고 새 CTS로 컴파일·실행을 시작한다
+        /// <summary>
+        /// 진행 중인 실행을 중단하고 새 CTS로 컴파일·실행을 시작한다.
+        /// </summary>
         private void StartCompileAndRun(bool advanceScene)
         {
             CancelRun();
@@ -145,6 +162,9 @@ namespace Scenes
             CompileAndRun(advanceScene, _cts).Forget(); // 토큰이 아니라 CTS 객체를 넘긴다
         }
 
+        /// <summary>
+        /// 현재 실행 CTS를 취소·해제한다.
+        /// </summary>
         private void CancelRun()
         {
             if (_cts == null) return;
@@ -153,40 +173,41 @@ namespace Scenes
             _cts = null;
         }
 
+        /// <summary>
+        /// 블록을 컴파일해 결과를 표시하고, 성공하면 파도타기 연출 후 채점·실행·결과 씬 전환까지 진행한다.
+        /// </summary>
         private async UniTaskVoid CompileAndRun(bool advanceScene, CancellationTokenSource cts)
         {
             // 이후 새 실행이 _cts를 교체·폐기해도 이 흐름은 자기 토큰만 쓴다
             CancellationToken ct = cts.Token;
 
-            if (!codingZone)
-            {
-                _log?.ZLogWarning($"[GameSceneManager] codingZone이 인스펙터에 연결되지 않았습니다.");
-                return;
-            }
-
-            CategoryZone categoryZone = blockSpawner ? blockSpawner.CategoryZone : null;
-
-            // 이전 에러 하이라이트 초기화 (코딩 패널 + 인벤토리)
-            CodingBlock.ClearAllErrorHighlights(codingZone, categoryZone);
-
-            var result = BlockCompiler.Compile(codingZone, categoryZone ? categoryZone.InventoryContent : null);
-
-            // 컴파일 성공 시에만 점수를 계산 — 포매터/로그에 함께 표시
-            int? score = result.Success
-                ? BlockScorer.ScoreProgram(result.Instructions, _questionTime, _currentLevelName)
-                : null;
-
-            // 컴파일 결과를 코드 형태로 로그 (실패 시에도 순회된 프로그램을 표시)
-            LogCompileResult(result, score);
-
-            if (!result.Success)
-            {
-                ShowCompileError(result, categoryZone);
-                return;
-            }
-
             try
             {
+                if (!codingZone)
+                {
+                    if (_logger != null) _logger.ZLogWarning($"[GameSceneManager] codingZone이 인스펙터에 연결되지 않았습니다.");
+                    return;
+                }
+
+                // 이전 에러 하이라이트 초기화 (코딩 패널 + 인벤토리)
+                CodingBlock.ClearAllErrorHighlights(codingZone);
+
+                CompileResult result = BlockCompiler.Compile(codingZone);
+
+                // 컴파일 성공 시에만 점수를 계산 — 포매터/로그에 함께 표시
+                int? score = result.Success
+                    ? BlockScorer.ScoreProgram(result.Instructions, _questionTime, _currentLevelName)
+                    : null;
+
+                // 컴파일 결과를 코드 형태로 로그 (실패 시에도 순회된 프로그램을 표시)
+                LogCompileResult(result, score);
+
+                if (!result.Success)
+                {
+                    ShowCompileError(result, blockSpawner ? blockSpawner.CategoryZone : null);
+                    return;
+                }
+
                 // 실행~씬 전환 중 연타 방지 — 파도타기 연출 시작 전에 비활성화 (성공 시 씬을 떠나므로 재활성화 불필요)
                 if (advanceScene && compileButton) compileButton.interactable = false;
 
@@ -196,24 +217,12 @@ namespace Scenes
                 // 스페이스바: 컴파일 검증까지만 — 채점·실행·씬 전환은 완료 버튼 전용
                 if (!advanceScene)
                 {
-                    _log?.ZLogInformation($"[GameSceneManager] 컴파일만 수행 — 씬 전환 없음");
+                    if (_logger != null) _logger.ZLogInformation($"[GameSceneManager] 컴파일만 수행 — 씬 전환 없음");
                     return;
                 }
 
-                if (_session)
-                {
-                    _session.lastScore = score.Value;
-                    _session.lastQuestionTime = _questionTime;
-                    (_session.lastDirection, _session.lastAngle, _session.lastCount) =
-                        BlockScorer.ExtractValues(result.Instructions);
-                    _session.lastRepeatUsed = BlockScorer.ContainsRepeat(result.Instructions);
-                    _session.lastGateHeight = BlockScorer.GetHydroGateHeight(result.Instructions);
-                    _session.lastConditionText = BlockScorer.GetConditionText(result.Instructions);
-                    _session.lastRepeatNested = BlockScorer.IsRepeatNestedInIf(result.Instructions);
-                    _session.lastHospitalInRepeat = BlockScorer.IsHospitalCommandInRepeat(result.Instructions);
-                    _session.hasCodingResult = true;
-                }
-                _log?.ZLogInformation($"[GameSceneManager] 점수: {score}점 (기준 시간: {_questionTime})");
+                SaveResultToSession(result.Instructions, score.Value);
+                if (_logger != null) _logger.ZLogInformation($"[GameSceneManager] 점수: {score}점 (기준 시간: {_questionTime})");
 
                 BlockExecutor executor = CreateExecutor(score.Value);
                 await executor.RunAsync(result.Instructions, ct);
@@ -233,8 +242,32 @@ namespace Scenes
             }
         }
 
-        // 컴파일 실패 표시 — 문제 블록에 에러 외곽선을 켜고,
-        // '사용되지 않은 블록' 오류는 해당 블록이 보이도록 인벤토리 탭까지 전환한다.
+        /// <summary>
+        /// 결과 씬 표시에 쓸 점수와 조립 값들을 게임 세션에 기록한다.
+        /// </summary>
+        private void SaveResultToSession(List<BlockInstruction> instructions, int score)
+        {
+            if (!_session)
+            {
+                if (_logger != null) _logger.ZLogWarning($"[GameSceneManager] GameSession이 주입되지 않아 결과를 저장하지 못했습니다.");
+                return;
+            }
+
+            _session.lastScore = score;
+            _session.lastQuestionTime = _questionTime;
+            (_session.lastDirection, _session.lastAngle, _session.lastCount) = BlockScorer.ExtractValues(instructions);
+            _session.lastRepeatUsed = BlockScorer.ContainsRepeat(instructions);
+            _session.lastGateHeight = BlockScorer.GetHydroGateHeight(instructions);
+            _session.lastConditionText = BlockScorer.GetConditionText(instructions);
+            _session.lastRepeatNested = BlockScorer.IsRepeatNestedInIf(instructions);
+            _session.lastHospitalInRepeat = BlockScorer.IsHospitalCommandInRepeat(instructions);
+            _session.hasCodingResult = true;
+        }
+
+        /// <summary>
+        /// 컴파일 실패를 표시한다 — 문제 블록에 에러 외곽선을 켜고,
+        /// '사용되지 않은 블록' 오류는 해당 블록이 보이도록 인벤토리 탭까지 전환한다.
+        /// </summary>
         private static void ShowCompileError(CompileResult result, CategoryZone categoryZone)
         {
             if (result.ErrorBlocks is null) return;
@@ -248,25 +281,34 @@ namespace Scenes
             if (categoryZone) categoryZone.Select(result.ErrorBlocks[0].Category);
         }
 
-        // 현재는 실행 자체가 로그 재생 연출 — 각 명령을 로그로 남기고 일정 간격으로 진행한 뒤 결과 씬으로 넘어간다.
+        /// <summary>
+        /// 실행기를 만든다 — 현재는 실행 자체가 로그 재생 연출로, 각 명령을 로그로 남기고
+        /// 일정 간격으로 진행한 뒤 결과 씬으로 넘어간다.
+        /// </summary>
         private BlockExecutor CreateExecutor(int score)
         {
-            var executor = new BlockExecutor();
+            BlockExecutor executor = new BlockExecutor();
 
-            executor.OnBlockEnter = block => { if (block) _log?.ZLogInformation($"[GameSceneManager] 블록 실행: {block.name}"); };
+            executor.OnBlockEnter = block =>
+            {
+                if (block && _logger != null) _logger.ZLogInformation($"[GameSceneManager] 블록 실행: {block.name}");
+            };
             executor.OnExecute = async (instr, ct) =>
             {
-                switch (instr)
+                if (_logger != null)
                 {
-                    case CommandInstruction cmd:
-                        _log?.ZLogInformation($"  Command: {cmd.Command}  Value: {cmd.Value ?? "(없음)"}");
-                        break;
-                    case ActionInstruction act:
-                        _log?.ZLogInformation($"  Action: {act.Action}");
-                        break;
-                    case ConditionActionInstruction cond:
-                        _log?.ZLogInformation($"  ConditionAction: {cond.Action}");
-                        break;
+                    switch (instr)
+                    {
+                        case CommandInstruction cmd:
+                            _logger.ZLogInformation($"[GameSceneManager]   Command: {cmd.Command}  Value: {cmd.Value ?? "(없음)"}");
+                            break;
+                        case ActionInstruction act:
+                            _logger.ZLogInformation($"[GameSceneManager]   Action: {act.Action}");
+                            break;
+                        case ConditionActionInstruction cond:
+                            _logger.ZLogInformation($"[GameSceneManager]   ConditionAction: {cond.Action}");
+                            break;
+                    }
                 }
                 await UniTask.Delay(_sceneSettings?.executeStepDelayMs ?? StepDelayMs, cancellationToken: ct);
                 return true;
@@ -276,27 +318,33 @@ namespace Scenes
             executor.OnCondition = _ => false;
             executor.OnComplete += () =>
             {
-                _log?.ZLogInformation($"[GameSceneManager] 실행 완료 — {score}점");
-                SceneFader.FadeAndLoad(Constants.Scenes.Result, logger: _log).Forget();
+                if (_logger != null) _logger.ZLogInformation($"[GameSceneManager] 실행 완료 — {score}점");
+                SceneFader.FadeAndLoad(Constants.Scenes.Result, logger: _logger).Forget();
             };
 
             return executor;
         }
 
-        // 컴파일 결과를 코드 형태(START/…/END)로 로그. 순회 전 실패면 결과 라인만 출력.
+        /// <summary>
+        /// 컴파일 결과를 코드 형태(START/…/END)로 로그에 남긴다. 순회 전 실패면 결과 라인만 출력한다.
+        /// </summary>
         private void LogCompileResult(CompileResult result, int? score)
         {
+            if (_logger == null) return;
+
             string prefix = result.Program is not null
-                ? $"\n{ProgramFormatter.ToCode(result.Program, result.ReachedEnd, score)}\n\n결과: "
+                ? ZString.Concat("\n", ProgramFormatter.ToCode(result.Program, result.ReachedEnd, score), "\n\n결과: ")
                 : "결과: ";
 
             if (result.Success)
-                _log?.ZLogInformation($"{prefix}컴파일 성공");
+                _logger.ZLogInformation($"[GameSceneManager] {prefix}컴파일 성공");
             else
-                _log?.ZLogWarning($"{prefix}컴파일 실패 - {result.Error}");
+                _logger.ZLogWarning($"[GameSceneManager] {prefix}컴파일 실패 - {result.Error}");
         }
 
-        // 레이아웃 인벤토리에 함수/함수 정의 블록이 있는지 (레벨5 판별)
+        /// <summary>
+        /// 레이아웃 인벤토리에 함수/함수 정의 블록이 있는지 확인한다 (레벨5 판별).
+        /// </summary>
         private static bool HasFunctionBlock(BlockLayoutData layout)
         {
             if (layout.inventoryBlocks is not null)
@@ -306,24 +354,29 @@ namespace Scenes
             return false;
         }
 
-        // 넘어가기 — 블록 조립 여부와 무관하게 실패로 처리하고 결과 씬으로 이동
+        /// <summary>
+        /// 블록 조립 여부와 무관하게 실패로 처리하고 결과 씬으로 넘어간다.
+        /// </summary>
         private void SkipToResult()
         {
             if (_session)
             {
                 _session.ResetLastResult();
             }
-            SceneFader.FadeAndLoad(Constants.Scenes.Result, logger: _log).Forget();
+            SceneFader.FadeAndLoad(Constants.Scenes.Result, logger: _logger).Forget();
         }
 
-        // 시작하기 ~ 완성하기 파도타기 순서 — 시작하기 → 프로그램 순서대로(값 블록 포함) → 완성하기
+        /// <summary>
+        /// 파도타기 순서를 만든다 — 시작하기 → 프로그램 순서대로(값 블록 포함) → 완성하기.
+        /// </summary>
         private static List<CodingBlock> BuildSuccessOrder(CodingZone zone, List<BlockInstruction> instructions)
         {
-            var order = new List<CodingBlock>();
+            List<CodingBlock> order = new List<CodingBlock>();
 
             CodingBlock startBlock = null, endBlock = null;
-            foreach (CodingBlock b in zone.GetComponentsInChildren<CodingBlock>())
+            foreach (CodingBlock b in zone.Blocks)
             {
+                if (!b || !b.gameObject.activeInHierarchy || !zone.Contains(b)) continue;
                 if (b.Category != BlockCategory.Control) continue;
                 if (b.ControlRole == Data.ControlRole.Start) startBlock = b;
                 else if (b.ControlRole == Data.ControlRole.End) endBlock = b;
@@ -335,7 +388,9 @@ namespace Scenes
             return order;
         }
 
-        // 프로그램에 포함된 모든 블록(반복/조건 내부 포함)을 실행 순서대로 수집
+        /// <summary>
+        /// 프로그램에 포함된 모든 블록(반복/조건 내부 포함)을 실행 순서대로 수집한다.
+        /// </summary>
         private static void CollectSuccessOrder(List<BlockInstruction> instructions, List<CodingBlock> order)
         {
             foreach (BlockInstruction instr in instructions)
@@ -368,7 +423,9 @@ namespace Scenes
             }
         }
 
-        // 만약 헤더에 연결된 조건 블록(들) 수집 — 그리고/또는(Logic)이면 좌우 조건까지
+        /// <summary>
+        /// 만약 헤더에 연결된 조건 블록(들)을 수집한다 — 그리고/또는(Logic)이면 좌우 조건까지.
+        /// </summary>
         private static void CollectConditionOrder(ConditionExpr condition, List<CodingBlock> order)
         {
             switch (condition)
@@ -377,14 +434,16 @@ namespace Scenes
                     if (simple.Source) order.Add(simple.Source);
                     break;
                 case LogicConditionExpr logic:
-                    if (logic.Left?.Source) order.Add(logic.Left.Source);
+                    if (logic.Left != null && logic.Left.Source) order.Add(logic.Left.Source);
                     if (logic.Source) order.Add(logic.Source);
-                    if (logic.Right?.Source) order.Add(logic.Right.Source);
+                    if (logic.Right != null && logic.Right.Source) order.Add(logic.Right.Source);
                     break;
             }
         }
 
-        // 순서대로 시차를 두고 성공 하이라이트를 켜 파도타기 연출을 만든다
+        /// <summary>
+        /// 순서대로 시차를 두고 성공 하이라이트를 켜 파도타기 연출을 만든다.
+        /// </summary>
         private async UniTask PlaySuccessWaveAsync(List<CodingBlock> order, CancellationToken ct)
         {
             int stepMs = _sceneSettings?.successWaveStepMs ?? Constants.HighlightSettings.SuccessWaveStepMs;
@@ -396,11 +455,13 @@ namespace Scenes
             }
         }
 
-        // 3_Game.json 로드 — 블록 스냅 감도는 CodingBlock이 정적으로 참조하므로 함께 넘긴다
+        /// <summary>
+        /// 3_Game.json을 로드한다 — 블록 스냅 감도는 CodingBlock이 정적으로 참조하므로 함께 넘긴다.
+        /// </summary>
         private async UniTask LoadSceneSettingsAsync()
         {
-            string path = $"{Constants.ResourcePaths.SceneSettingsFolder}/{Constants.Scenes.Game}";
-            _sceneSettings = await JsonLoader.LoadAsync<GameSceneSettings>(path, destroyCancellationToken);
+            string path = ZString.Concat(Constants.ResourcePaths.SceneSettingsFolder, "/", Constants.Scenes.Game);
+            _sceneSettings = await JsonLoader.LoadAsync<GameSceneSettings>(path, destroyCancellationToken, _logger);
             CodingBlock.Settings = _sceneSettings;
         }
     }
