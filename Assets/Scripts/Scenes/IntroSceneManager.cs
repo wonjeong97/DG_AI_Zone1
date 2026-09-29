@@ -3,7 +3,6 @@ using Cysharp.Text;
 using Cysharp.Threading.Tasks;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 using Microsoft.Extensions.Logging;
 using UnityEngine.Video;
 using VContainer;
@@ -18,14 +17,19 @@ namespace Scenes
 
         [SerializeField] private CanvasGroup introPanel;
         [SerializeField] private CanvasGroup tutorialPanel;
-        [SerializeField] private Button introStartButton;
-        [SerializeField] private Button tutorialStartButton;
         [SerializeField] private VideoPlayer robotVideoPlayer;
         [SerializeField] private TMP_Text visitorNameText;
 
         private ILogger<IntroSceneManager> _logger;
         private VisitorInfoProvider _visitorInfoProvider;
         private InactivityTimer _inactivityTimer;
+        private TutorialImageSlider _tutorialSlider;
+
+        // 이름 연출이 끝난 뒤부터 화면 터치로 튜토리얼 패널로 넘어갈 수 있다.
+        // 연출을 스킵한 그 터치가 곧바로 패널 전환까지 일으키지 않도록 허용된 프레임은 건너뛴다.
+        private bool _introTapEnabled;
+        private int _introTapEnabledFrame;
+        private bool _isLoadingStory;
 
         /// <summary>
         /// 로거, 체험자 정보 제공자, 비활동 타이머를 주입받는다.
@@ -40,27 +44,22 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 패널 표시 상태를 정규화하고 버튼·영상·체험자 이름 연출을 시작한다.
+        /// 패널 표시 상태를 정규화하고 튜토리얼 완료 구독·영상·체험자 이름 연출을 시작한다.
         /// </summary>
         private void Start()
         {
             if (!introPanel && _logger != null) _logger.ZLogWarning($"[IntroSceneManager] introPanel이 할당되지 않았습니다.");
             if (!tutorialPanel && _logger != null) _logger.ZLogWarning($"[IntroSceneManager] tutorialPanel이 할당되지 않았습니다.");
-            if (!introStartButton && _logger != null) _logger.ZLogWarning($"[IntroSceneManager] introStartButton이 할당되지 않았습니다.");
-            if (!tutorialStartButton && _logger != null) _logger.ZLogWarning($"[IntroSceneManager] tutorialStartButton이 할당되지 않았습니다.");
             if (!visitorNameText && _logger != null) _logger.ZLogWarning($"[IntroSceneManager] visitorNameText가 할당되지 않았습니다.");
 
             // UI 작업 중 에디터에서 패널을 꺼둔 채 플레이해도 항상 introPanel만 보이는 상태로 시작하도록 정규화
             SceneFader.InitializePanelState(introPanel, true);
             SceneFader.InitializePanelState(tutorialPanel, false);
 
-            if (introStartButton)
-            {
-                introStartButton.onClick.AddListener(OnIntroStartClicked);
-                // 이름 텍스트 연출이 끝나기 전까지는 시작 버튼을 눌러 넘어갈 수 없도록 비활성화
-                introStartButton.interactable = false;
-            }
-            if (tutorialStartButton) tutorialStartButton.onClick.AddListener(OnTutorialStartClicked);
+            // 튜토리얼은 이미지 좌/우 터치로 넘기고, 마지막 페이지에서 다음으로 넘기면 스토리 씬으로 간다
+            if (tutorialPanel) _tutorialSlider = tutorialPanel.GetComponentInChildren<TutorialImageSlider>(true);
+            if (_tutorialSlider) _tutorialSlider.Finished += OnTutorialFinished;
+            else if (_logger != null) _logger.ZLogWarning($"[IntroSceneManager] tutorialPanel 아래에 TutorialImageSlider가 없어 스토리 씬으로 넘어갈 수 없습니다.");
 
             SceneFader.PlayLoopingVideo(robotVideoPlayer, Constants.VideoPaths.RobotUrl, destroyCancellationToken, _logger);
 
@@ -75,7 +74,7 @@ namespace Scenes
         {
             try
             {
-                // visitorNameText 누락은 Start에서 이미 경고했다 — 연출 없이 시작 버튼만 열어 준다
+                // visitorNameText 누락은 Start에서 이미 경고했다 — 연출 없이 화면 터치만 열어 준다
                 if (!visitorNameText) return;
 
                 // 연출 시작 전까지 전체 텍스트가 잠깐 보이지 않도록 미리 숨겨 둠
@@ -109,27 +108,30 @@ namespace Scenes
             }
             finally
             {
-                // 연출이 끝나거나(스킵 포함), visitorNameText 미할당으로 애초에 연출이 없는 경우에도 시작 버튼은 눌러야 함
-                if (introStartButton) introStartButton.interactable = true;
+                // 연출이 끝나거나(스킵 포함), visitorNameText 미할당으로 애초에 연출이 없는 경우에도 화면 터치로 넘어갈 수 있어야 함
+                _introTapEnabled = true;
+                _introTapEnabledFrame = Time.frameCount;
             }
         }
 
         /// <summary>
-        /// 버튼 리스너를 해제한다.
+        /// 이름 연출이 끝난 뒤 화면을 터치하면 튜토리얼 패널로 전환한다 (한 번만).
         /// </summary>
-        private void OnDestroy()
+        private void Update()
         {
-            // Start()에서 등록을 건너뛴 미할당 버튼도 있을 수 있으므로 해제도 동일하게 가드
-            if (introStartButton) introStartButton.onClick.RemoveListener(OnIntroStartClicked);
-            if (tutorialStartButton) tutorialStartButton.onClick.RemoveListener(OnTutorialStartClicked);
+            if (!_introTapEnabled || Time.frameCount == _introTapEnabledFrame) return;
+            if (!StoryLineAnimator.IsPointerPressedThisFrame()) return;
+
+            _introTapEnabled = false;
+            SwitchToTutorialPanelAsync(destroyCancellationToken).Forget();
         }
 
         /// <summary>
-        /// 인트로 시작 버튼 클릭 시 튜토리얼 패널로 전환한다.
+        /// 튜토리얼 완료 구독을 해제한다.
         /// </summary>
-        private void OnIntroStartClicked()
+        private void OnDestroy()
         {
-            SwitchToTutorialPanelAsync(destroyCancellationToken).Forget();
+            if (_tutorialSlider) _tutorialSlider.Finished -= OnTutorialFinished;
         }
 
         /// <summary>
@@ -151,10 +153,12 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 튜토리얼 시작 버튼 클릭 시 스토리 씬으로 넘어간다.
+        /// 튜토리얼 마지막 페이지에서 다음으로 넘기면 스토리 씬으로 넘어간다 (연타로 중복 로드되지 않게 한 번만).
         /// </summary>
-        private void OnTutorialStartClicked()
+        private void OnTutorialFinished()
         {
+            if (_isLoadingStory) return;
+            _isLoadingStory = true;
             SceneFader.FadeAndLoad(Constants.Scenes.Story, logger: _logger).Forget();
         }
     }

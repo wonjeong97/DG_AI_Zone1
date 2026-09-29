@@ -1,0 +1,47 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp(unityMCP/read_console)",
+      "mcp(unityMCP/find_gameobjects)",
+      "mcp(unityMCP/find_in_file)",
+      "mcp(unityMCP/get_sha)",
+      "mcp(unityMCP/validate_script)",
+      "mcp(unityMCP/run_tests)",
+      "mcp(unityMCP/get_test_job)",
+      "mcp(unityMCP/unity_docs)",
+      "mcp(unityMCP/unity_reflect)"
+    ],
+    "deny": [
+      "write_file(*)",
+      "mcp(unityMCP/apply_text_edits)",
+      "mcp(unityMCP/script_apply_edits)",
+      "mcp(unityMCP/create_script)",
+      "mcp(unityMCP/delete_script)",
+      "mcp(unityMCP/execute_code)",
+      "mcp(unityMCP/execute_menu_item)",
+      "mcp(unityMCP/batch_execute)",
+      "mcp(unityMCP/refresh_unity)",
+      "mcp(unityMCP/manage_animation)",
+      "mcp(unityMCP/manage_asset)",
+      "mcp(unityMCP/manage_build)",
+      "mcp(unityMCP/manage_camera)",
+      "mcp(unityMCP/manage_components)",
+      "mcp(unityMCP/manage_editor)",
+      "mcp(unityMCP/manage_gameobject)",
+      "mcp(unityMCP/manage_graphics)",
+      "mcp(unityMCP/manage_material)",
+      "mcp(unityMCP/manage_packages)",
+      "mcp(unityMCP/manage_physics)",
+      "mcp(unityMCP/manage_prefabs)",
+      "mcp(unityMCP/manage_probuilder)",
+      "mcp(unityMCP/manage_scene)",
+      "mcp(unityMCP/manage_script)",
+      "mcp(unityMCP/manage_scriptable_object)",
+      "mcp(unityMCP/manage_shader)",
+      "mcp(unityMCP/manage_texture)",
+      "mcp(unityMCP/manage_tools)",
+      "mcp(unityMCP/manage_ui)",
+      "mcp(unityMCP/manage_vfx)"
+    ]
+  }
+}

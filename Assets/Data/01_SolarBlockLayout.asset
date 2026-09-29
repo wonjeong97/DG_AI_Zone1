@@ -23,7 +23,8 @@ MonoBehaviour:
     chainBlocks: []
     chainSocketOffset: {x: 0, y: 0}
   - category: 1
-    label: "\uD0DC\uC591\uAD11 \uD328\uB110\uC758 \uAC00\uB3D9 \uC218"
+    label: "\uD0DC\uC591\uAD11 \uD328\uB110\uC758 \uAC1C\uC218"
+    controlRole: 0
     valueLabel: 
     valueKind: 2
     innerBlocks: []
@@ -32,6 +33,7 @@ MonoBehaviour:
     chainSocketOffset: {x: 0, y: 0}
   - category: 1
     label: "\uD0DC\uC591\uAD11 \uD328\uB110\uC758 \uBC29\uD5A5"
+    controlRole: 0
     valueLabel: 
     valueKind: 1
     innerBlocks: []
@@ -40,6 +42,7 @@ MonoBehaviour:
     chainSocketOffset: {x: 0, y: 0}
   - category: 2
     label: "\uB3D9\uCABD"
+    controlRole: 0
     valueLabel: 
     valueKind: 1
     innerBlocks: []
@@ -48,6 +51,7 @@ MonoBehaviour:
     chainSocketOffset: {x: 0, y: 0}
   - category: 2
     label: "\uC11C\uCABD"
+    controlRole: 0
     valueLabel: 
     valueKind: 1
     innerBlocks: []
@@ -56,6 +60,7 @@ MonoBehaviour:
     chainSocketOffset: {x: 0, y: 0}
   - category: 2
     label: "\uB0A8\uCABD"
+    controlRole: 0
     valueLabel: 
     valueKind: 1
     innerBlocks: []
@@ -64,6 +69,7 @@ MonoBehaviour:
     chainSocketOffset: {x: 0, y: 0}
   - category: 2
     label: "\uBD81\uCABD"
+    controlRole: 0
     valueLabel: 
     valueKind: 1
     innerBlocks: []
@@ -72,6 +78,7 @@ MonoBehaviour:
     chainSocketOffset: {x: 0, y: 0}
   - category: 2
     label: "20\uAC1C"
+    controlRole: 0
     valueLabel: 
     valueKind: 2
     innerBlocks: []
@@ -80,6 +87,7 @@ MonoBehaviour:
     chainSocketOffset: {x: 0, y: 0}
   - category: 2
     label: "40\uAC1C"
+    controlRole: 0
     valueLabel: 
     valueKind: 2
     innerBlocks: []
@@ -88,6 +96,7 @@ MonoBehaviour:
     chainSocketOffset: {x: 0, y: 0}
   - category: 2
     label: "60\uAC1C"
+    controlRole: 0
     valueLabel: 
     valueKind: 2
     innerBlocks: []

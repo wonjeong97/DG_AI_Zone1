@@ -11,13 +11,14 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 35b45145103e568498fa13c3afd65638, type: 3}
   m_Name: 02_WindData
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   levelIndex: 1
   blockLayout: {fileID: 11400000, guid: baecb7195ffa6f14ba6f9a4f7cad5301, type: 2}
-  storyText: "\uBC14\uB78C\uC758 \uBC29\uD5A5\uC5D0 \uB530\uB77C,\n<font=\"GamtanRoadTantan
-    SDF Outline\">\n\u2022 \uBC14\uB78C\uC758 \uBC29\uD5A5\uC744 \uBC18\uBCF5\uD574
-    \uAC10\uC9C0\uD558\uACE0,\n\u2022 \uD48D\uCC28\uC758 \uBC29\uD5A5\uC774 \uBC14\uB78C\uC5D0
-    \uB9DE\uAC8C \uC6C0\uC9C1\uC774\uAC8C \uD574\uC11C\n</font>\n\uBC1C\uC804\uAE30\uAC00
-    \uC9C0\uC18D\uC801\uC73C\uB85C \uC798 \uC6B4\uC601\uB418\uAC8C \uD574\uBCFC\uAE4C\uC694?\n\n"
-  resultTopText: "\uD574\uC0C1 \uD48D\uCC28\uAC00 \uC791\uB3D9\uB429\uB2C8\uB2E4"
+  storyText: "\uBC14\uB78C\uC774 \uBD80\uB294 \uBC29\uD5A5\uC744 \uC0B4\uD3B4\uBCF4\uC138\uC694.\n<font=\"GamtanRoadTantan
+    SDF Outline\">\n\u2022 \uBC14\uB78C\uC774 \uC5B4\uB514\uC5D0\uC11C \uBD80\uB294\uC9C0
+    \uC54C\uC544\uBCF4\uACE0\n\u2022 \uD48D\uCC28\uB97C \uBC14\uB78C \uCABD\uC73C\uB85C
+    \uB3CC\uB824 \uBCF4\uC138\uC694.\n</font>\n\uBC14\uB78C\uC774 \uBC14\uB014
+    \uB54C\uB9C8\uB2E4 \uD48D\uCC28\uB3C4 \uB530\uB77C \uC6C0\uC9C1\uC774\uAC8C \uCF54\uB529\uD574
+    \uBCFC\uAE4C\uC694?\n\n"
+  resultTopText: "\uD48D\uCC28\uAC00 \uBC14\uB78C\uC744 \uB530\uB77C \uC6C0\uC9C1\uC5EC\uC694"
   goToOutroAfterResult: 0

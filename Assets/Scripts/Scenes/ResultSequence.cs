@@ -332,14 +332,16 @@ namespace Scenes
                 status);
 
         /// <summary>
-        /// 레벨3(수력) 결과 문구를 만든다 — 문제로 나온 강물 높이 / 플레이어가 만약 블록에 연결한 수문 개방 높이.
+        /// 레벨3(수력) 결과 문구를 만든다 — 문제로 나온 강물 높이 / 플레이어가 만약 블록에 연결한 수문 개방 높이 / 아니면 사용 여부.
         /// 조건 감지는 조건 블록 연결 여부 — 조건 없이는 컴파일이 막히므로 정상 플레이에선 항상 ON이다.
+        /// 아니면은 채점 항목이라 빠뜨렸을 때 AI 결과와 달라 보이도록 따로 표시한다.
         /// </summary>
-        private static string BuildHydroResultText(string riverHeight, string gateHeight, string status)
+        private static string BuildHydroResultText(string riverHeight, string gateHeight, bool elseUsed, string status)
             => ZString.Format(Constants.ResultMessages.HydroResultTextFormat,
                 riverHeight,
                 gateHeight,
                 string.IsNullOrEmpty(gateHeight) ? Constants.ResultMessages.DetectedOff : Constants.ResultMessages.DetectedOn,
+                elseUsed ? Constants.ResultMessages.DetectedOn : Constants.ResultMessages.DetectedOff,
                 status);
 
         /// <summary>
@@ -376,7 +378,7 @@ namespace Scenes
                 return BuildWindResultText(_session.lastQuestionTime, _session.lastDirection, _session.lastRepeatUsed, status);
 
             if (Constants.Levels.IsHydro(levelName))
-                return BuildHydroResultText(_session.lastQuestionTime, _session.lastGateHeight, status);
+                return BuildHydroResultText(_session.lastQuestionTime, _session.lastGateHeight, _session.lastElseUsed, status);
 
             if (Constants.Levels.IsPowerPlant(levelName))
                 return BuildPowerPlantResultText(_session.lastConditionText, _session.lastRepeatNested,
@@ -399,6 +401,7 @@ namespace Scenes
             if (Constants.Levels.IsHydro(levelName))
                 return BuildHydroResultText(_session.lastQuestionTime,
                                             _session.lastQuestionTime,
+                                            true,
                                             Constants.ResultMessages.StatusGood);
 
             if (Constants.Levels.IsPowerPlant(levelName))

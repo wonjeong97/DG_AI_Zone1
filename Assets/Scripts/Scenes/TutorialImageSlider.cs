@@ -16,6 +16,9 @@ namespace Scenes
 
         [SerializeField] private TMP_Text pageText;
 
+        // 마지막 페이지에서 다음으로 넘기려 할 때 발생 — 인트로 씬이 스토리 씬으로 넘어가는 신호로 쓴다
+        public event System.Action Finished;
+
         // 페이지별로 1회만 Addressables에서 로드하고 이후에는 캐시에서 반환
         private readonly Dictionary<int, Sprite> _spriteCache = new();
 
@@ -57,20 +60,28 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 다음 페이지로 넘긴다 (마지막 다음은 처음).
+        /// 다음 페이지로 넘긴다 (마지막 페이지에서는 넘기지 않고 Finished를 알린다).
         /// </summary>
         private void ShowNext()
         {
-            _currentIndex = (_currentIndex + 1) % TotalPages;
+            if (_currentIndex == TotalPages - 1)
+            {
+                Finished?.Invoke();
+                return;
+            }
+
+            _currentIndex++;
             UpdatePageAsync().Forget();
         }
 
         /// <summary>
-        /// 이전 페이지로 넘긴다 (처음 이전은 마지막).
+        /// 이전 페이지로 넘긴다 (첫 페이지에서는 넘기지 않는다 — 마지막으로 순회하면 튜토리얼을 건너뛸 수 있으므로).
         /// </summary>
         private void ShowPrevious()
         {
-            _currentIndex = (_currentIndex - 1 + TotalPages) % TotalPages;
+            if (_currentIndex == 0) return;
+
+            _currentIndex--;
             UpdatePageAsync().Forget();
         }
 

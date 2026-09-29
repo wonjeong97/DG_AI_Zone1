@@ -160,8 +160,8 @@ public static class Constants
         // 레벨2(풍력) — 가동 수 블록이 없어 문제 풍향·풍차 방향·반복 감지 여부로 구성한다
         public const string WindResultTextFormat = "감지된 바람 방향: [{0}]\n풍차 방향: [{1}]\n반복 감지: {2}\n\n전력 수급 상태: {3}";
 
-        // 레벨3(수력) — 문제 강물 높이·플레이어가 연결한 수문 개방 높이·조건 감지 여부로 구성한다
-        public const string HydroResultTextFormat = "감지된 강물의 높이: [{0}]\n수문 개방 높이: [{1}]\n조건 감지: {2}\n\n전력 수급 상태: {3}";
+        // 레벨3(수력) — 문제 강물 높이·플레이어가 연결한 수문 개방 높이·조건 감지·아니면 사용 여부로 구성한다
+        public const string HydroResultTextFormat = "감지된 강물의 높이: [{0}]\n수문 개방 높이: [{1}]\n조건 감지: {2}\n수문 닫기 조건(아니면): {3}\n\n전력 수급 상태: {4}";
 
         // 레벨4(발전소) — 값 블록이 없어 채점 3항목(조건식·반복 중첩·병원 명령 위치)을 그대로 보여준다
         public const string PowerPlantResultTextFormat = "상황: [{0}]\n조건: [{1}]\n반복 감지: {2}\n병원 전력 유지: {3}\n\n전력 수급 상태: {4}";
@@ -186,7 +186,7 @@ public static class Constants
 
         // 레벨3(수력) — 강물 높이는 문제로 주어진 값이라 그대로 두고, 수문 개방 높이만 '-'.
         public const string HydroNoResultTextFormat =
-            "감지된 강물의 높이: [{0}]\n수문 개방 높이: -\n조건 감지: " + DetectedOff + "\n\n전력 수급 상태: " + StatusPoor;
+            "감지된 강물의 높이: [{0}]\n수문 개방 높이: -\n조건 감지: " + DetectedOff + "\n수문 닫기 조건(아니면): " + DetectedOff + "\n\n전력 수급 상태: " + StatusPoor;
 
         // 레벨4(발전소) — 상황은 매 판 고정이라 그대로 두고, 플레이어가 만드는 조건/배치만 '-'.
         public const string PowerPlantNoResultText =
@@ -507,6 +507,9 @@ public static class Constants
         // 수력 레벨 (강물 높이 임계값)
         public readonly static string[] HydroLevels = { "1m", "3m", "5m", "8m", "10m" };
 
+        // 수력 레벨 힌트 — 문제 높이를 기준으로 수문을 여닫는 규칙 ({0} = 강물 높이)
+        public const string HydroHintRuleFormat = "물이 [{0}]보다 높으면 → 댐의 문 열기\n물이 [{0}]보다 낮으면 → 댐의 문 닫기";
+
         /// <summary>
         /// 레벨에 맞는 문제(문구·문제 값·정답)를 무작위로 출제한다.
         /// </summary>
@@ -515,26 +518,26 @@ public static class Constants
             if (Levels.IsWind(levelName))
             {
                 string dir = WindDirections[UnityEngine.Random.Range(0, WindDirections.Length)];
-                string text = $"바람이 <color=yellow>[{dir}]</color>에서 불고 있습니다.\n풍차의 날개 방향이 어디로 향해 있어야 할까요?";
+                string text = $"바람이 <color=yellow>[{dir}]</color>에서 계속 불어와요.\n풍차 날개를 어느 쪽으로 돌려야 할까요?";
                 string ans = WindAnswers.TryGetValue(dir, out string a) ? a : dir;
                 return new QuestionData { QuestionText = text, ValueKey = dir, CorrectAnswer = ans };
             }
             else if (Levels.IsHydro(levelName))
             {
                 string height = HydroLevels[UnityEngine.Random.Range(0, HydroLevels.Length)];
-                string text = $"현재 강물의 높이가 <color=yellow>{height}</color>를 넘어가면 안 돼요!\n댐의 문을 어느 조건에 열고 닫아야 할까요?";
+                string text = $"강물이 <color=yellow>[{height}]</color>보다 높아지면 위험해요.\n물이 <color=yellow>[{height}]</color>보다 높아지면 댐의 수문을 어느 조건에 열고 닫아야 할까요?";
                 return new QuestionData { QuestionText = text, ValueKey = height, CorrectAnswer = null };
             }
             else if (Levels.IsPowerPlant(levelName))
             {
                 // 레벨4(발전소) — 레벨1/2처럼 매 판마다 랜덤으로 바뀌지 않고 밤/과부하로 고정된 문제
-                const string text = "현재 <color=yellow>[밤]</color>이고 전기가 <color=yellow>[과부하]</color>입니다.\n놀이 시설의 불을 잠시 끄고 병원의 불은 항상 켜도록 해주세요.";
+                const string text = "지금은 <color=yellow>[밤]</color>이에요! 전기를 너무 많이 사용<color=yellow>[과부하]</color>하고 있어요.\n놀이 시설의 불을 잠시 끄고, 병원의 불은 계속 켜 주세요.";
                 return new QuestionData { QuestionText = text, ValueKey = "밤", CorrectAnswer = null };
             }
             else
             {
                 string time = SolarTimes[UnityEngine.Random.Range(0, SolarTimes.Length)];
-                string text = $"<color=yellow>현재 {time}</color>입니다.\n태양광 패널이 어느 방향으로 향해 있어야 할까요?";
+                string text = $"지금은 <color=yellow>[{time}]</color>예요.\n햇빛을 잘 받으려면\n태양광 패널을 어느 쪽으로 돌려야 할까요?";
                 string ans = SolarAnswers.TryGetValue(time, out string a) ? a : Directions.East;
                 return new QuestionData { QuestionText = text, ValueKey = time, CorrectAnswer = ans };
             }

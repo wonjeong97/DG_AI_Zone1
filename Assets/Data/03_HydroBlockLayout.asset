@@ -25,7 +25,7 @@ MonoBehaviour:
   - category: 3
     label: "\uB9CC\uC57D"
     controlRole: 0
-    valueLabel:
+    valueLabel: 
     valueKind: 0
     innerBlocks: []
     elseBlocks: []
@@ -34,14 +34,14 @@ MonoBehaviour:
   - category: 10
     label: "\uC544\uB2C8\uBA74"
     controlRole: 0
-    valueLabel:
+    valueLabel: 
     valueKind: 0
     innerBlocks: []
     elseBlocks: []
     chainBlocks: []
     chainSocketOffset: {x: 0, y: 0}
   - category: 1
-    label: "\uAC1C\uBC29\uD558\uAE30"
+    label: "\uC218\uBB38 \uC5F4\uAE30"
     controlRole: 0
     valueLabel: 
     valueKind: 0
@@ -50,7 +50,7 @@ MonoBehaviour:
     chainBlocks: []
     chainSocketOffset: {x: 0, y: 0}
   - category: 1
-    label: "\uD3D0\uC1C4\uD558\uAE30"
+    label: "\uC218\uBB38 \uB2EB\uAE30"
     controlRole: 0
     valueLabel: 
     valueKind: 0

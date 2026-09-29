@@ -258,6 +258,7 @@ namespace Scenes
             (_session.lastDirection, _session.lastAngle, _session.lastCount) = BlockScorer.ExtractValues(instructions);
             _session.lastRepeatUsed = BlockScorer.ContainsRepeat(instructions);
             _session.lastGateHeight = BlockScorer.GetHydroGateHeight(instructions);
+            _session.lastElseUsed = BlockScorer.HasHydroElse(instructions);
             _session.lastConditionText = BlockScorer.GetConditionText(instructions);
             _session.lastRepeatNested = BlockScorer.IsRepeatNestedInIf(instructions);
             _session.lastHospitalInRepeat = BlockScorer.IsHospitalCommandInRepeat(instructions);
