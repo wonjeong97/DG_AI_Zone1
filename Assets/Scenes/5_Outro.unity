@@ -489,7 +489,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: -200, y: -200}
+  m_SizeDelta: {x: -120, y: -120}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &170305824
 CanvasRenderer:
@@ -519,11 +519,12 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\uBBF8\uC158\uC744 \uD6CC\uB96D\uD558\uAC8C \uC644\uC218\uD558\uC600\uC2B5\uB2C8\uB2E4!\u200B\r\n\r\n\uC5D0\uD53C\uC18C\uB4DC\uC5D0\uC11C
-    \uC124\uACC4\uD55C \uD0DC\uC591\uAD11, \uD48D\uB825, \uC218\uB825, \uC2A4\uB9C8\uD2B8
-    \uB3C4\uC2DC \uBC1C\uC804\uC18C \uADF8\uB9AC\uACE0 \uBBF8\uB798\uC5D0\uB108\uC9C0
-    \uC5F0\uAD6C\uC18C\uC758 \uC124\uACC4\uAC00 \uC644\uBCBD\uD558\uAC8C \uC735\uD569\uB418\uC5B4,\n\uAE68\uB057\uD558\uACE0
-    \uC548\uC804\uD55C \uC5D0\uB108\uC9C0\uAC00 \uD750\uB974\uAE30 \uC2DC\uC791\uD588\uC2B5\uB2C8\uB2E4!"
+  m_text: "[{name}]\uB2D8 \uCD95\uD558\uD574\uC694. \uBAA8\uB4E0 \uBBF8\uC158 \uC131\uACF5.\n\r\n[{name}]\uB2D8\uC774
+    \uB9CC\uB4E0 \uD0DC\uC591\uAD11, \uD48D\uB825, \uC218\uB825 \uBC1C\uC804, \uC2A4\uB9C8\uD2B8
+    \uB3C4\uC2DC\uBC1C\uC804\uC18C\uC640\n\uC6B0\uB9AC \uB3C4\uC2DC\uC758 \uC5D0\uB108\uC9C0
+    \uC2DC\uC2A4\uD15C\uC774 \uD558\uB098\uB85C \uC5F0\uACB0\uB418\uC5C8\uC5B4\uC694.\r\n\uC774\uC81C
+    \uAE68\uB057\uD558\uACE0 \uC548\uC804\uD55C \uC5D0\uB108\uC9C0\uB85C \uC6B0\uB9AC
+    \uB3C4\uC2DC\uAC00 \uD798\uCC28\uAC8C \uC6C0\uC9C1\uC5EC\uC694."
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: d0d2f5797b1d2f34ea9ffb7c01ef8fd6, type: 2}
   m_sharedMaterial: {fileID: -119739183008471601, guid: d0d2f5797b1d2f34ea9ffb7c01ef8fd6,
@@ -559,7 +560,7 @@ MonoBehaviour:
   m_fontSizeMax: 72
   m_fontStyle: 0
   m_HorizontalAlignment: 1
-  m_VerticalAlignment: 256
+  m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
   m_wordSpacing: 0

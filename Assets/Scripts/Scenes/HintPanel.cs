@@ -23,6 +23,9 @@ namespace Scenes
         [Tooltip("레벨3(수력) 힌트의 강물 높이 텍스트(Text_Meter) — 문제 높이 값을 그대로 표시")]
         [SerializeField] private TMP_Text level3MeterText;
 
+        [Tooltip("레벨3(수력) 힌트의 수문 규칙 문구 텍스트 — 문제 높이 값을 넣어 '높으면 열기 / 낮으면 닫기'를 표시")]
+        [SerializeField] private TMP_Text level3RuleText;
+
         [Tooltip("레벨4(발전소) 힌트 오브젝트를 담은 부모(Level4Panel) — 문제 변형별 토글 로직 추가 시 사용")]
         [SerializeField] private Transform level4PowerPlantContainer;
 
@@ -137,7 +140,7 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 레벨3 힌트 패널의 Text_Meter에 현재 문제의 강물 높이 값을 그대로 표시한다.
+        /// 레벨3 힌트 패널의 Text_Meter에 현재 문제의 강물 높이 값을 그대로 표시하고, 같은 높이로 수문 규칙 문구를 채운다.
         /// </summary>
         private void ApplyMeterText(string questionValueKey)
         {
@@ -145,6 +148,11 @@ namespace Scenes
                 level3MeterText.text = questionValueKey;
             else if (_logger != null)
                 _logger.ZLogWarning($"[HintPanel] level3MeterText가 할당되지 않아 강물 높이를 표시하지 못했습니다.");
+
+            if (level3RuleText)
+                level3RuleText.text = ZString.Format(Constants.Questions.HydroHintRuleFormat, questionValueKey);
+            else if (_logger != null)
+                _logger.ZLogWarning($"[HintPanel] level3RuleText가 할당되지 않아 수문 규칙 문구를 표시하지 못했습니다.");
         }
 
         /// <summary>

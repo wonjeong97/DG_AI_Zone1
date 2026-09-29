@@ -91,6 +91,12 @@ namespace Game.Runtime
         }
 
         /// <summary>
+        /// 첫 '만약' 블록 안에 '아니면'이 놓였는지 확인한다 — 레벨3 결과의 '수문 닫기 조건(아니면)' 표시용.
+        /// </summary>
+        public static bool HasHydroElse(List<BlockInstruction> instructions)
+            => FindFirst<IfInstruction>(instructions)?.HasElseMarker ?? false;
+
+        /// <summary>
         /// 첫 '만약' 블록에 연결된 조건식을 반환한다 — 레벨4 결과의 '설정한 조건' 표시용. 만약/조건이 없으면 null.
         /// 결과 텍스트는 폭이 좁아 '그리고'를 가운뎃점으로 줄인다 (디버그 코드 표시는 원문 그대로).
         /// </summary>
