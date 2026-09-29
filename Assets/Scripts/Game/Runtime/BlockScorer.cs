@@ -237,8 +237,9 @@ namespace Game.Runtime
             return i > 0 && int.TryParse(text.Substring(0, i), out int meters) ? meters : -1;
         }
 
-        private const string HydroOpenCommand  = "개방하기";
-        private const string HydroCloseCommand = "폐쇄하기";
+        // 03_HydroBlockLayout의 블록 라벨과 일치해야 한다 (채점은 블록 이름으로 명령을 구분)
+        private const string HydroOpenCommand  = "수문 열기";
+        private const string HydroCloseCommand = "수문 닫기";
 
         /// <summary>
         /// 레벨4(발전소)·레벨5(미래에너지)처럼 발전소 채점 규칙을 쓰는 레벨인지 확인한다.
@@ -312,8 +313,8 @@ namespace Game.Runtime
         }
 
         /// <summary>
-        /// 수력 레벨 개방/폐쇄 순서를 채점한다 — 개방하기가 Then에, 폐쇄하기가 Else에 있어야 정답(5점).
-        /// 둘 다 한쪽에 몰려있거나 순서가 반대(폐쇄하기가 Then, 개방하기가 Else)면 1점.
+        /// 수력 레벨 개방/폐쇄 순서를 채점한다 — 수문 열기가 Then에, 수문 닫기가 Else에 있어야 정답(5점).
+        /// 둘 다 한쪽에 몰려있거나 순서가 반대(수문 닫기가 Then, 수문 열기가 Else)면 1점.
         /// </summary>
         private static int ScoreHydroGateOrder(IfInstruction ifInstr)
         {
