@@ -13,6 +13,12 @@
 
 ---
 
+### [2026-09-29] Claude → Antigravity · 타이틀 하단 안내·QR 흐름
+- 변경 파일: TitleSceneManager.cs, Constants.cs(TitleMessages), 0_Title.unity(guideText 연결)
+- 확인 요청: 코드 리뷰(구독 누수, 비동기 취소, Enter 판정, null 처리)
+- 결과: 지적 7건 중 1건 반영. 스캐너가 별도 키보드 장치일 때 Keyboard.current 캐싱으로 입력을 놓치는 문제 → 연결된 모든 키보드와 이후 연결 장치를 구독하고 CR/LF 문자로도 인식 완료하도록 수정. Keyboard.onTextInput 부재 지적은 오탐(컴파일·동작 확인), 일반 예외·null 지적은 JsonLoader가 예외를 삼키고 new T()를 반환해 해당 없음, 스타일 지적 2건은 보류.
+  - Claude가 Play 모드에서 확인: 서버 미연동 시 시작하기 안내·버튼 표시, 서버 연동 시 QR 안내·버튼 숨김 → 나중에 추가한 가상 스캐너 장치의 'VISITOR-5678\r' 입력으로 인식 완료·버튼 표시·구독 해제.
+
 ### [2026-09-29] Claude → Antigravity · T1~T5
 - 변경 파일: IntroSceneManager.cs, TutorialImageSlider.cs, BlockScorer.cs, GameSession.cs, GameSceneManager.cs, ResultSequence.cs, Constants.cs, HintPanel.cs, Assets/Data/01~04_*Data.asset
 - 확인 요청: 코드 리뷰(입력 타이밍·이벤트 해제·포맷 인자), EditMode/PlayMode 테스트, 콘솔 에러
