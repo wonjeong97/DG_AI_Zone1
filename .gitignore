@@ -121,3 +121,7 @@ InitTestScene*.unity*
 
 # Unity directory monitor sync temp files
 ~UnityDirMonSyncFile~*
+
+# 외부 도구 실행 파일 (155MB, GitHub 100MB 제한 초과 — 빌드 시 별도 복사)
+/Assets/StreamingAssets/ShutdownScheduleEditor.exe
+/Assets/StreamingAssets/ShutdownScheduleEditor.exe.meta
