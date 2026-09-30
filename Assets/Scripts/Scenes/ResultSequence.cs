@@ -46,6 +46,8 @@ namespace Scenes
 
         [SerializeField] private CanvasGroup resultPanel;
         [SerializeField] private CanvasGroup completePanel;
+        [Tooltip("완료 패널 제목 텍스트 — 결과에 따라 '미션 성공!' / '미션 실패!'로 바뀐다")]
+        [SerializeField] private TMP_Text completeTitleText;
         [SerializeField] private Button nextButton;
         [SerializeField] private CanvasGroup confirmButtonGroup;
         [SerializeField] private Button confirmButton;
@@ -241,6 +243,7 @@ namespace Scenes
             // 레벨마다 채워지는 값이 달라 개별 필드로 판정하지 않고 게임 씬이 세운 플래그를 그대로 쓴다.
             bool hasCoding = _session.hasCodingResult;
             string playerResult;
+            bool isSuccess = false;
 
             if (hasCoding)
             {
@@ -251,6 +254,7 @@ namespace Scenes
                 _playerPercent = Mathf.Clamp(Mathf.FloorToInt(percent), 0, MaxPercent);
 
                 playerResult = BuildPlayerResultText(levelName, status);
+                isSuccess = status != Constants.ResultMessages.StatusPoor;
 
                 // 전력이 부족한 결과는 흑백으로 전환해 시각적으로 구분
                 if (status == Constants.ResultMessages.StatusPoor)
@@ -270,6 +274,11 @@ namespace Scenes
 
             if (playerText) playerText.SetText(playerResult);
             if (aiText) aiText.SetText(BuildAiResultText(levelName));
+
+            if (completeTitleText)
+                completeTitleText.text = isSuccess ? Constants.ResultMessages.MissionSuccess : Constants.ResultMessages.MissionFail;
+            else if (_logger != null)
+                _logger.ZLogWarning($"[ResultSequence] completeTitleText가 할당되지 않아 미션 성공/실패를 표시하지 못했습니다.");
         }
 
         /// <summary>

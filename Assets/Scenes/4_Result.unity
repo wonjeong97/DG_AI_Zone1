@@ -2705,6 +2705,7 @@ MonoBehaviour:
   effCountDuration: 0.8
   resultPanel: {fileID: 1624406949}
   completePanel: {fileID: 1614859083}
+  completeTitleText: {fileID: 818608312}
   nextButton: {fileID: 2101883253}
   confirmButtonGroup: {fileID: 52911260}
   confirmButton: {fileID: 52911257}

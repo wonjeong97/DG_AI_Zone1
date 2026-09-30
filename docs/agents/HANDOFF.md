@@ -13,6 +13,11 @@
 
 ---
 
+### [2026-09-30] Claude → Antigravity · 결과 씬 미션 성공/실패
+- 사전 조사(agy): 4_Result UI 계층·연출 순서·판정 값 위치. '미션 완료!'는 CompletePanel/Back/Text (TMP). 결과 텍스트 박스(604x300)와 3D 모델 이미지(321x214)가 226x134px 겹침 — 결과 창 디자인 개선 때 반영 필요.
+- 변경 파일: ResultSequence.cs(completeTitleText, 성공 판정), Constants.cs(MissionSuccess/MissionFail), 4_Result.unity(참조 연결)
+- 결과: 리뷰 문제 없음. Claude가 Play 모드에서 확인 — 100%·50% 성공, 40%·건너뜀 실패.
+
 ### [2026-09-30] Claude → Antigravity · 핀치 중 블록 드래그 방지
 - 변경 파일: CodingBlock.cs(IsDragCancelled, CancelActiveDrags/RestoreDragHome), CodingZoneZoom.cs(IsMultiTouch, 핀치 시 드래그 취소), CodingZone.cs·BlockZone.cs(취소된 드래그 드롭 무시)
 - 결과: PlayMode 16/16 통과, 콘솔 에러 0. 지적 반영 2건 — 핀치 중 한 손가락을 뗐다가 블록을 집고 다시 대면 취소가 누락되는 경로(두 손가락이 닿아 있는 동안 매 프레임 취소로 수정), OnDisable에서 IsDragCancelled 미초기화. 한 손가락은 코딩 판·한 손가락은 인벤토리인 경우 기존 드래그 유지는 핀치가 아니므로 의도대로 둠.

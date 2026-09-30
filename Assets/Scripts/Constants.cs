@@ -150,6 +150,10 @@ public static class Constants
         public const string StatusGood    = "<color=#0B7A0B>양호</color>";
         public const string AiCodingStart = "AI가 코딩을 시작합니다";
 
+        // 완료 패널 제목 — 전력 수급 상태가 '부족'이면(코딩을 건너뛴 경우 포함) 실패, '보통' 이상이면 성공
+        public const string MissionSuccess = "미션 성공!";
+        public const string MissionFail    = "미션 실패!";
+
         // 최고 점수 대비 비율(%)로 전력 수급 상태를 나눈다 — 미만/이상 경계값
         public const float NormalThresholdPercent = 50f;
         public const float GoodThresholdPercent   = 80f;
