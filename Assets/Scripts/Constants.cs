@@ -113,11 +113,11 @@ public static class Constants
         public const string Control         = "제어";
         public const string Command         = "동작";
         public const string Value           = "변수";
-        public const string FlowControl     = "제어";
+        public const string FlowControl     = "조건";
         public const string ConditionAction = "조건 동작";
         public const string Action          = "동작";
         public const string Logic           = "논리";
-        public const string Condition       = "조건";
+        public const string Condition       = "제어";
         public const string Function        = "함수";
         public const string FunctionDef     = "함수 정의";
         public const string Else            = "아니면";
@@ -137,7 +137,7 @@ public static class Constants
         public const string IfWithoutConditionFormat   = "'{0}' 블록에 조건이 없습니다";
         public const string LogicMissingRightFormat    = "'{0}' 블록의 오른쪽 조건이 비어 있습니다";
         public const string EmptyFlowInnerFormat       = "'{0}' 블록 내부에 최소 1개의 블록이 있어야 합니다";
-        public const string ControlInsideFlowFormat    = "'{0}' 블록은 제어 블록 내부에 넣을 수 없습니다";
+        public const string ControlInsideFlowFormat    = "'{0}' 블록은 조건 블록 내부에 넣을 수 없습니다";
         public const string UnusedBlocksFormat         = "사용되지 않은 블록이 있습니다 ({0}개)";
         public const string ElseOutsideIfFormat        = "'아니면' 블록은 '만약' 블록 안에 있어야 합니다 ({0}개)";
     }

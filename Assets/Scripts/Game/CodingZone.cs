@@ -41,7 +41,7 @@ namespace Game
         /// </summary>
         public void OnDrop(PointerEventData e)
         {
-            if (!e.pointerDrag || !e.pointerDrag.TryGetComponent<CodingBlock>(out CodingBlock block) || block.IsDragHandled) return;
+            if (!e.pointerDrag || !e.pointerDrag.TryGetComponent<CodingBlock>(out CodingBlock block) || block.IsDragHandled || block.IsDragCancelled) return;
 
             // ReturnHome이 블록을 임시로 이전 소켓/슬롯에 돌려놨을 수 있으므로 해제
             if (block.transform.parent.TryGetComponent<ChainOutSocket>(out ChainOutSocket cs))
