@@ -119,11 +119,26 @@ namespace Scenes
         }
 
         /// <summary>
-        /// QR 대기 중 새로 연결된 키보드(스캐너)도 입력을 받도록 구독한다.
+        /// QR 대기 중 연결·재연결된 키보드(스캐너)는 입력을 받도록 구독하고, 빠진 장치는 목록에서 뺀다.
         /// </summary>
         private void OnDeviceChange(InputDevice device, InputDeviceChange change)
         {
-            if (change == InputDeviceChange.Added && device is Keyboard keyboard) SubscribeScanKeyboard(keyboard);
+            if (device is not Keyboard keyboard) return;
+
+            switch (change)
+            {
+                // 스캐너를 다시 꽂으면 Input System은 같은 장치를 Added가 아니라 Reconnected로 알린다
+                case InputDeviceChange.Added:
+                case InputDeviceChange.Reconnected:
+                    SubscribeScanKeyboard(keyboard);
+                    break;
+
+                // 스캐너 케이블이 빠지면 제거된 장치의 키 상태를 매 프레임 읽지 않도록 목록에서 뺀다
+                case InputDeviceChange.Removed:
+                case InputDeviceChange.Disconnected:
+                    UnsubscribeScanKeyboard(keyboard);
+                    break;
+            }
         }
 
         /// <summary>
@@ -134,6 +149,15 @@ namespace Scenes
             if (_scanKeyboards.Contains(keyboard)) return;
             keyboard.onTextInput += OnScanTextInput;
             _scanKeyboards.Add(keyboard);
+        }
+
+        /// <summary>
+        /// 키보드 하나의 문자 입력 구독을 해제한다 (구독하지 않은 장치면 무시).
+        /// </summary>
+        private void UnsubscribeScanKeyboard(Keyboard keyboard)
+        {
+            if (!_scanKeyboards.Remove(keyboard)) return;
+            keyboard.onTextInput -= OnScanTextInput;
         }
 
         /// <summary>
