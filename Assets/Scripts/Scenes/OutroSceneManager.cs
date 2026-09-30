@@ -1,3 +1,5 @@
+using App;
+using Cysharp.Text;
 using Cysharp.Threading.Tasks;
 using MessagePipe;
 using TMPro;
@@ -14,22 +16,26 @@ namespace Scenes
 {
     public class OutroSceneManager : MonoBehaviour
     {
+        private const string VisitorNamePlaceholder = "{name}";
+
         [SerializeField] private Button endButton;
         [SerializeField] private VideoPlayer robotVideoPlayer;
         [SerializeField] private TMP_Text endingText;
 
         private ILogger<OutroSceneManager> _logger;
+        private VisitorInfoProvider _visitorInfoProvider;
         private InactivityTimer _inactivityTimer;
         private IPublisher<MoveIdleEvent> _moveIdlePublisher;
 
         /// <summary>
-        /// 로거, 비활동 타이머, 관람 완료 이벤트 발행자를 주입받는다.
+        /// 로거, 체험자 정보 제공자, 비활동 타이머, 관람 완료 이벤트 발행자를 주입받는다.
         /// </summary>
         [Inject]
-        public void Construct(ILogger<OutroSceneManager> log, InactivityTimer inactivityTimer,
-            IPublisher<MoveIdleEvent> moveIdlePublisher)
+        public void Construct(ILogger<OutroSceneManager> log, VisitorInfoProvider visitorInfoProvider,
+            InactivityTimer inactivityTimer, IPublisher<MoveIdleEvent> moveIdlePublisher)
         {
             _logger = log;
+            _visitorInfoProvider = visitorInfoProvider;
             _inactivityTimer = inactivityTimer;
             _moveIdlePublisher = moveIdlePublisher;
         }
@@ -52,7 +58,7 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 엔딩 텍스트를 한 줄씩 올라오며 페이드인되는 연출로 표시한다.
+        /// "{name}" 플레이스홀더를 체험자 이름으로 치환한 뒤 엔딩 텍스트를 한 줄씩 올라오며 페이드인되는 연출로 표시한다.
         /// </summary>
         private async UniTaskVoid PlayEndingTextAsync(System.Threading.CancellationToken ct)
         {
@@ -68,6 +74,22 @@ namespace Scenes
 
             try
             {
+                if (_visitorInfoProvider != null)
+                {
+                    string visitorName = await _visitorInfoProvider.GetNameAsync(ct);
+
+                    using (Utf16ValueStringBuilder sb = ZString.CreateStringBuilder())
+                    {
+                        sb.Append(endingText.text);
+                        sb.Replace(VisitorNamePlaceholder, visitorName);
+                        endingText.text = sb.ToString();
+                    }
+                }
+                else if (_logger != null)
+                {
+                    _logger.ZLogWarning($"[OutroSceneManager] VisitorInfoProvider가 주입되지 않아 이름을 치환하지 않습니다.");
+                }
+
                 (float moveDuration, float interval, float yOffset) = await SceneFader.GetStoryLineSettingsAsync();
                 await StoryLineAnimator.AnimateAsync(endingText,
                     moveDuration, interval, yOffset,
