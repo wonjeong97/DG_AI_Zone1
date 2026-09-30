@@ -47,15 +47,23 @@ namespace Game
         public static Data.GameSceneSettings Settings { get; set; }
 
         // 스냅 반경은 배율 1 기준 튜닝 값이라, 코딩 패널을 확대/축소하면 소켓 간격과 함께 반경도 같은 비율로 맞춘다
-        private float SnapRadius      => (Settings?.snapRadius        ?? _snapRadius) * CodingZoneZoom;
-        private float ChainSnapRadius => (Settings?.chainSnapRadius   ?? _chainSnapRadius) * CodingZoneZoom;
-        private float CodingZoneZoom  => _codingZone ? _codingZone.transform.localScale.x : 1f;
+        private float SnapRadius      => (Settings?.snapRadius        ?? _snapRadius) * ZoneZoom;
+        private float ChainSnapRadius => (Settings?.chainSnapRadius   ?? _chainSnapRadius) * ZoneZoom;
+        private float ZoneZoom        => _codingZone ? _codingZone.transform.localScale.x : 1f;
         private float SnapSeconds     => Settings?.blockSnapDuration ?? _snapSeconds;
 
         public BlockCategory Category { get; private set; }
         public ValueKind ValueKind { get; private set; }
         public Data.ControlRole ControlRole { get; private set; }
         public bool IsDragHandled { get; private set; }
+
+        // 핀치 때문에 취소된 드래그 — 손가락을 뗄 때 오는 OnDrop/OnEndDrag가 블록을 옮기지 않도록 드롭 처리 쪽에서도 확인한다
+        public bool IsDragCancelled { get; private set; }
+
+        // 지금 집어 든 블록들 — 핀치가 시작되면 모두 드래그 전 자리로 되돌린다 (여러 손가락이 각각 블록을 들 수 있음)
+        private readonly static HashSet<CodingBlock> _activeDrags = new();
+        private readonly static List<CodingBlock> _cancelBuffer = new();
+        private bool _isDragging;
 
         public Image OutlineImage => outlineImage;
         public Image ValueHighlightImage => valueHighlightImage;
@@ -545,6 +553,9 @@ namespace Game
             if (!_cg) TryGetComponent(out _cg);
             if (_cg) _cg.blocksRaycasts = true;
             IsDragHandled = false;
+            IsDragCancelled = false;
+            _isDragging = false;
+            _activeDrags.Remove(this);
             ClearDragCache();
         }
 
@@ -561,6 +572,15 @@ namespace Game
         /// </summary>
         public void OnBeginDrag(PointerEventData e)
         {
+            IsDragCancelled = false;
+
+            // 두 손가락 이상이 닿아 있으면(핀치 중) 블록을 집지 않는다
+            if (CodingZoneZoom.IsMultiTouch)
+            {
+                IsDragCancelled = true;
+                return;
+            }
+
             if (!_canvas)
             {
                 if (_logger != null) _logger.ZLogWarning($"[CodingBlock] {name}에 루트 캔버스가 지정되지 않아 드래그할 수 없습니다.");
@@ -606,6 +626,9 @@ namespace Game
             transform.SetParent(_canvas.transform, true);
             transform.SetAsLastSibling();
             _cg.blocksRaycasts = false;
+
+            _isDragging = true;
+            _activeDrags.Add(this);
         }
 
         /// <summary>
@@ -626,7 +649,7 @@ namespace Game
         /// </summary>
         public void OnDrag(PointerEventData e)
         {
-            if (!_canvas) return;
+            if (!_canvas || IsDragCancelled) return;
 
             _rt.anchoredPosition += e.delta / _canvas.scaleFactor;
             UpdateSnapHighlight();
@@ -716,6 +739,16 @@ namespace Game
         /// </summary>
         public void OnEndDrag(PointerEventData e)
         {
+            // 핀치로 취소된 드래그는 이미 제자리로 돌아갔으므로 손가락을 뗀 위치에 놓지 않는다
+            if (IsDragCancelled)
+            {
+                IsDragCancelled = false;
+                return;
+            }
+
+            _isDragging = false;
+            _activeDrags.Remove(this);
+
             if (_snapTarget) _snapTarget.ClearSnapHighlight();
             _snapTarget = null;
             if (_snapInnerSocket) _snapInnerSocket.ClearSnapHighlight();
@@ -733,6 +766,76 @@ namespace Game
                 ReturnHomeOrRelease(e);
 
             ClearDragCache();
+        }
+
+        /// <summary>
+        /// 핀치가 시작되면 집어 든 블록을 모두 드래그 전 자리로 되돌린다 — 두 손가락 조작이 블록을 옮기지 않게 한다.
+        /// </summary>
+        public static void CancelActiveDrags()
+        {
+            if (_activeDrags.Count == 0) return;
+
+            _cancelBuffer.Clear();
+            _cancelBuffer.AddRange(_activeDrags);
+            foreach (CodingBlock block in _cancelBuffer)
+                if (block) block.CancelDrag();
+            _cancelBuffer.Clear();
+        }
+
+        /// <summary>
+        /// 드래그를 취소하고 드래그 전 자리로 되돌린다. 이후 이 포인터의 OnDrag/OnDrop/OnEndDrag는 무시된다.
+        /// </summary>
+        private void CancelDrag()
+        {
+            _activeDrags.Remove(this);
+            if (!_isDragging) return;
+
+            _isDragging = false;
+            IsDragCancelled = true;
+
+            if (_snapTarget) _snapTarget.ClearSnapHighlight();
+            _snapTarget = null;
+            if (_snapInnerSocket) _snapInnerSocket.ClearSnapHighlight();
+            _snapInnerSocket = null;
+            _cg.blocksRaycasts = true;
+
+            RestoreDragHome();
+            ClearDragCache();
+        }
+
+        /// <summary>
+        /// 드래그 시작 전 자리로 되돌린다. 소켓이었으면 다시 받게(Accept) 해서, 떼어낼 때 위로 이어 붙였던 아래 블록까지 원래 순서로 복원한다.
+        /// </summary>
+        private void RestoreDragHome()
+        {
+            Transform home = _homeParent;
+            if (!home)
+            {
+                ReturnToInventory();
+                return;
+            }
+
+            BlockFactory.AttachSockets(this);
+
+            if (home.TryGetComponent<ChainOutSocket>(out ChainOutSocket chainOut))
+                chainOut.Accept(this);
+            else if (home.TryGetComponent<InnerSocket>(out InnerSocket inner))
+                inner.Accept(this);
+            else if (home.TryGetComponent<ValueOutSocket>(out ValueOutSocket valueOut))
+                valueOut.Accept(this);
+            else if (home.TryGetComponent<ConditionOutSocket>(out ConditionOutSocket conditionOut))
+                conditionOut.Accept(this);
+            else if (_codingZone && home == _codingZone.transform)
+            {
+                transform.SetParent(home, false);
+                transform.SetSiblingIndex(_homeIndex);
+                _rt.anchoredPosition = _homeAnchoredPos;
+            }
+            else
+            {
+                ReturnToInventory();
+                if (transform.parent == home) transform.SetSiblingIndex(_homeIndex);
+            }
         }
 
         /// <summary>

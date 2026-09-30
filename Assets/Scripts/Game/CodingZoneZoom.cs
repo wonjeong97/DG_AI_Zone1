@@ -84,15 +84,22 @@ namespace Game
         }
 
         /// <summary>
-        /// 두 손가락이 코딩 패널 안에서 벌어지거나 좁혀지는 만큼 확대/축소한다.
+        /// 터치스크린에 두 손가락 이상이 닿아 있는지 — 핀치 중에는 블록을 집지 못하게 하는 데 쓴다.
         /// </summary>
-        private void Update()
+        public static bool IsMultiTouch => CountPressedTouches(out _, out _) >= 2;
+
+        /// <summary>
+        /// 눌린 터치 수를 세고, 앞의 두 손가락 위치를 돌려준다.
+        /// </summary>
+        private static int CountPressedTouches(out Vector2 first, out Vector2 second)
         {
+            first = default;
+            second = default;
+
             Touchscreen touchscreen = Touchscreen.current;
-            if (touchscreen == null) return;
+            if (touchscreen == null) return 0;
 
             int pressedCount = 0;
-            Vector2 first = default, second = default;
             foreach (TouchControl touch in touchscreen.touches)
             {
                 if (!touch.press.isPressed) continue;
@@ -101,6 +108,15 @@ namespace Game
                 else if (pressedCount == 1) second = touch.position.ReadValue();
                 pressedCount++;
             }
+            return pressedCount;
+        }
+
+        /// <summary>
+        /// 두 손가락이 코딩 패널 안에서 벌어지거나 좁혀지는 만큼 확대/축소한다.
+        /// </summary>
+        private void Update()
+        {
+            int pressedCount = CountPressedTouches(out Vector2 first, out Vector2 second);
 
             if (pressedCount >= 2)
             {
@@ -113,8 +129,14 @@ namespace Game
                     _isPinching = true;
                     _lastPinchDistance = distance;
                     SetPanEnabled(false);
+
+                    // 첫 손가락이 블록을 집고 있었다면 그 블록은 옮기지 않고 제자리로 돌려놓는다
+                    CodingBlock.CancelActiveDrags();
                     return;
                 }
+
+                // 핀치 도중 한 손가락을 뗀 사이에 남은 손가락으로 블록을 집었을 수 있으므로, 두 손가락이 닿아 있는 동안 계속 되돌린다
+                CodingBlock.CancelActiveDrags();
 
                 if (_lastPinchDistance > 0f)
                     ZoomAt((first + second) * 0.5f, distance / _lastPinchDistance);

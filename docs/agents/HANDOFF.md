@@ -13,6 +13,11 @@
 
 ---
 
+### [2026-09-30] Claude → Antigravity · 핀치 중 블록 드래그 방지
+- 변경 파일: CodingBlock.cs(IsDragCancelled, CancelActiveDrags/RestoreDragHome), CodingZoneZoom.cs(IsMultiTouch, 핀치 시 드래그 취소), CodingZone.cs·BlockZone.cs(취소된 드래그 드롭 무시)
+- 결과: PlayMode 16/16 통과, 콘솔 에러 0. 지적 반영 2건 — 핀치 중 한 손가락을 뗐다가 블록을 집고 다시 대면 취소가 누락되는 경로(두 손가락이 닿아 있는 동안 매 프레임 취소로 수정), OnDisable에서 IsDragCancelled 미초기화. 한 손가락은 코딩 판·한 손가락은 인벤토리인 경우 기존 드래그 유지는 핀치가 아니므로 의도대로 둠.
+  - Claude가 Play 모드에서 확인: 시작→반복→완성 체인에서 반복을 집은 뒤 핀치 취소 시 체인 원래대로 복원, 이어지는 OnDrop/OnEndDrag가 블록을 옮기지 않음, 가상 터치 2개가 닿은 상태에서는 블록을 집지 못함.
+
 ### [2026-09-30] Claude → Antigravity · 코딩 존 확대/축소, 카테고리 이름 맞바꿈
 - 변경 파일: CodingZoneZoom.cs(신규), CodingBlock.cs, FlowInnerResize.cs, Constants.cs, 3_Game.unity(스크롤바 삭제·scrollSensitivity 0·CodingZoneZoom 부착), Board_CategorySelect.png 삭제
 - 사전 조사(agy): 코딩 존 구조와 Content 배율 적용 시 틀어지는 지점 10곳 — 부모 이동 4곳은 OnTransformParentChanged로, 스냅 반경 4곳은 배율 곱으로, 완성하기 초기 위치·FlowInnerResize 높이 계산은 배율 반영으로 수정.

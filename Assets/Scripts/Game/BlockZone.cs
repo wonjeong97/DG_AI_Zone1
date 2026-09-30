@@ -33,6 +33,9 @@ namespace Game
         {
             if (!e.pointerDrag || !e.pointerDrag.TryGetComponent<CodingBlock>(out CodingBlock block)) return;
 
+            // 핀치로 취소된 드래그는 이미 제자리로 돌아갔다
+            if (block.IsDragCancelled) return;
+
             // 시작하기/완성하기는 코딩 패널 전용 — 인벤토리 반입 금지 (거부 시 원래 자리로 복귀)
             if (block.Category == BlockCategory.Control) return;
 
