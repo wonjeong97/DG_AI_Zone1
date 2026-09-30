@@ -46,8 +46,10 @@ namespace Game
         // null이면(다른 씬에서 블록을 쓰거나 로드 전) 인스펙터·Constants 기본값으로 동작한다.
         public static Data.GameSceneSettings Settings { get; set; }
 
-        private float SnapRadius      => Settings?.snapRadius        ?? _snapRadius;
-        private float ChainSnapRadius => Settings?.chainSnapRadius   ?? _chainSnapRadius;
+        // 스냅 반경은 배율 1 기준 튜닝 값이라, 코딩 패널을 확대/축소하면 소켓 간격과 함께 반경도 같은 비율로 맞춘다
+        private float SnapRadius      => (Settings?.snapRadius        ?? _snapRadius) * CodingZoneZoom;
+        private float ChainSnapRadius => (Settings?.chainSnapRadius   ?? _chainSnapRadius) * CodingZoneZoom;
+        private float CodingZoneZoom  => _codingZone ? _codingZone.transform.localScale.x : 1f;
         private float SnapSeconds     => Settings?.blockSnapDuration ?? _snapSeconds;
 
         public BlockCategory Category { get; private set; }
@@ -630,6 +632,16 @@ namespace Game
             UpdateSnapHighlight();
         }
 
+        /// <summary>
+        /// 부모가 바뀌면 크기를 부모 기준 1로 맞춘다 — 확대/축소된 코딩 패널과 인벤토리를 오가도 블록이 놓인 곳의 배율을 따르게 한다.
+        /// 드래그 중(루트 캔버스 직속)에는 들어 올리기 전에 보이던 크기를 그대로 유지한다.
+        /// </summary>
+        private void OnTransformParentChanged()
+        {
+            if (_canvas && transform.parent == _canvas.transform) return;
+            transform.localScale = Vector3.one;
+        }
+
         // 값 계열(Value/Logic/Condition)은 가로 방향으로 붙고, 나머지는 세로 체인으로 붙는다
         private bool SnapsHorizontally =>
             Category is BlockCategory.Value or BlockCategory.Logic or BlockCategory.Condition;
@@ -1113,7 +1125,8 @@ namespace Game
                 ScrollRect scroll = codingZone.ScrollRect;
                 if (scroll && scroll.viewport)
                 {
-                    float overflow = content.rect.height - scroll.viewport.rect.height;
+                    // 확대/축소 중이면 뷰포트에 보이는 콘텐츠 높이가 배율만큼 달라진다
+                    float overflow = content.rect.height - scroll.viewport.rect.height / content.localScale.y;
                     if (overflow > 0f) y += overflow;
                 }
             }

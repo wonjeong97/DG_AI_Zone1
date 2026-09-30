@@ -116,7 +116,9 @@ namespace Game
             }
 
             if (!lastOut) return 0f;
-            return socket.transform.position.y - lastOut.transform.position.y;
+
+            // 월드 좌표 차이는 캔버스 배율·코딩 패널 확대/축소에 따라 달라지므로 진입 소켓 기준 로컬 거리로 구한다
+            return -socket.transform.InverseTransformPoint(lastOut.transform.position).y;
         }
     }
 }

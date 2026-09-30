@@ -13,6 +13,12 @@
 
 ---
 
+### [2026-09-30] Claude → Antigravity · 코딩 존 확대/축소, 카테고리 이름 맞바꿈
+- 변경 파일: CodingZoneZoom.cs(신규), CodingBlock.cs, FlowInnerResize.cs, Constants.cs, 3_Game.unity(스크롤바 삭제·scrollSensitivity 0·CodingZoneZoom 부착), Board_CategorySelect.png 삭제
+- 사전 조사(agy): 코딩 존 구조와 Content 배율 적용 시 틀어지는 지점 10곳 — 부모 이동 4곳은 OnTransformParentChanged로, 스냅 반경 4곳은 배율 곱으로, 완성하기 초기 위치·FlowInnerResize 높이 계산은 배율 반영으로 수정.
+- 결과: PlayMode 16/16 통과, 콘솔 에러 0. 핀치 중 손가락 하나를 뗐다가 다시 대면 배율이 튀는 문제 지적 → 반영. 핀치 첫 손가락이 블록 위면 블록 드래그가 함께 시작되는 점은 알려진 제한으로 남김. 카테고리 이름 지적은 사용자 결정 사항이라 해당 없음.
+  - Claude가 Play 모드에서 확인: 휠 확대 시 커서 아래 지점 고정, 최소 배율(0.514)에서 판이 뷰포트를 채움, 가상 터치 2개를 두 배로 벌려 0.51→1.03 확대 후 이동 복원, 배율 0.51에서도 반복 블록 내부 높이 동일(81/323), 인벤토리 블록이 코딩 존 배율을 따름.
+
 ### [2026-09-29] Claude → Antigravity · T1~T5
 - 변경 파일: IntroSceneManager.cs, TutorialImageSlider.cs, BlockScorer.cs, GameSession.cs, GameSceneManager.cs, ResultSequence.cs, Constants.cs, HintPanel.cs, Assets/Data/01~04_*Data.asset
 - 확인 요청: 코드 리뷰(입력 타이밍·이벤트 해제·포맷 인자), EditMode/PlayMode 테스트, 콘솔 에러
