@@ -525,13 +525,13 @@ public static class Constants
             else if (Levels.IsHydro(levelName))
             {
                 string height = HydroLevels[UnityEngine.Random.Range(0, HydroLevels.Length)];
-                string text = $"강물이 <color=yellow>[{height}]</color>보다 높아지면 위험해요.\n물이 <color=yellow>[{height}]</color>보다 높아지면 댐의 수문을 어느 조건에 열고 닫아야 할까요?";
+                string text = $"강물이 <color=yellow>[{height}]</color>보다 높아지면 위험해요.\n물이 <color=yellow>[{height}]</color>보다 높아지면\n댐의 수문을 어느 조건에 열고 닫아야 할까요?";
                 return new QuestionData { QuestionText = text, ValueKey = height, CorrectAnswer = null };
             }
             else if (Levels.IsPowerPlant(levelName))
             {
                 // 레벨4(발전소) — 레벨1/2처럼 매 판마다 랜덤으로 바뀌지 않고 밤/과부하로 고정된 문제
-                const string text = "지금은 <color=yellow>[밤]</color>이에요! 전기를 너무 많이 사용<color=yellow>[과부하]</color>하고 있어요.\n놀이 시설의 불을 잠시 끄고, 병원의 불은 계속 켜 주세요.";
+                const string text = "지금은 <color=yellow>[밤]</color>이에요!\n전기를 너무 많이 사용<color=yellow>[과부하]</color>하고 있어요.\n놀이 시설의 불을 잠시 끄고, 병원의 불은 계속 켜 주세요.";
                 return new QuestionData { QuestionText = text, ValueKey = "밤", CorrectAnswer = null };
             }
             else
