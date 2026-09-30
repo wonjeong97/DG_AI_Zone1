@@ -25,7 +25,6 @@ namespace Scenes
         [SerializeField] private GameObject[] levelPanels;
         [Tooltip("levelPanels와 같은 순서로, 각 레벨 패널 안에서 LevelData.storyText를 표시할 텍스트")]
         [SerializeField] private TMP_Text[] levelStoryTexts;
-        [SerializeField] private GameObject[] difficultyStars;
         [SerializeField] private Button startButton;
         [SerializeField] private VideoPlayer robotVideoPlayer;
 
@@ -70,13 +69,6 @@ namespace Scenes
                 if (panel) panel.SetActive(false);
 
             int unlockedIndex = Mathf.Clamp(_session ? _session.unlockedLevelIndex : 0, 0, levelDataList.Length - 1);
-
-            // 난이도 표시 — 별 1개만 고정으로 활성화
-            // 잠금 해제된 레벨 수만큼 별을 활성화하던 원래 로직 — 추후 재활성화할 수 있어 남겨둠
-            // for (int i = 0; i < difficultyStars.Length; i++)
-            //     if (difficultyStars[i]) difficultyStars[i].SetActive(i <= unlockedIndex);
-            for (int i = 0; i < difficultyStars.Length; i++)
-                if (difficultyStars[i]) difficultyStars[i].SetActive(i == 0);
 
             for (int i = 0; i < levelButtons.Length; i++)
             {

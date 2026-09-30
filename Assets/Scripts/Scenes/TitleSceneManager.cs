@@ -5,8 +5,12 @@ using Data;
 using DG.Tweening;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
+using System.Text;
 using System.Threading;
+using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using VContainer;
 using HuliacDev.Utils;
@@ -18,12 +22,19 @@ namespace Scenes
     {
         [SerializeField] private Button startButton;
         [SerializeField] private CanvasGroup qrCanvasGroup;
+        [SerializeField] private TMP_Text guideText;
 
         private ILogger<TitleSceneManager> _logger;
         private VisitorInfoProvider _visitorInfoProvider;
 
         // 무한 반복 깜빡임이라 씬을 떠날 때 직접 Kill한다
         private Tween _qrBlinkTween;
+
+        // USB 바코드 스캐너는 키보드처럼 문자를 입력한 뒤 Enter를 보낸다 — Enter 전까지 모은 문자열이 QR 값.
+        // 스캐너는 본체 키보드와 별개의 키보드 장치로 잡히므로 연결된 키보드 전부(나중에 꽂힌 것 포함)를 구독한다.
+        private readonly StringBuilder _scanBuffer = new();
+        private readonly List<Keyboard> _scanKeyboards = new();
+        private bool _isWaitingForQr;
 
         /// <summary>
         /// 로거와 체험자 정보 제공자를 주입받는다.
@@ -36,50 +47,52 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 시작 버튼을 연결하고 서버 연동 여부에 따라 QR 안내를 표시한다.
+        /// 시작 버튼을 연결하고 서버 연동 여부에 따라 하단 안내(QR 인식 또는 시작하기)를 표시한다.
         /// </summary>
         private void Start()
         {
             if (!startButton && _logger != null) _logger.ZLogWarning($"[TitleSceneManager] startButton이 할당되지 않았습니다.");
             if (!qrCanvasGroup && _logger != null) _logger.ZLogWarning($"[TitleSceneManager] qrCanvasGroup이 할당되지 않았습니다.");
+            if (!guideText && _logger != null) _logger.ZLogWarning($"[TitleSceneManager] guideText가 할당되지 않았습니다.");
 
             if (startButton) startButton.onClick.AddListener(OnStartButtonClicked);
 
-            ApplyQrVisibilityAsync(destroyCancellationToken).Forget();
+            ApplyGuideAsync(destroyCancellationToken).Forget();
         }
 
         /// <summary>
-        /// 서버 연동(isServerConnected) 여부에 따라 QR 안내를 표시하고, 표시할 때만 천천히 깜빡이게 한다.
+        /// 서버 연동(isServerConnected)이면 "QR 코드를 인식하여 주세요"를 띄우고 시작 버튼을 숨긴 채 QR 입력을 기다린다.
+        /// 미연동이면 QR 단계 없이 "시작하기를 눌러주세요"와 시작 버튼을 바로 보여준다. 안내는 어느 쪽이든 천천히 깜빡인다.
         /// 페이드 시간은 StreamingAssets/Json/0_Title.json(TitleSceneSettings)에서 읽어와 재빌드 없이 조정한다.
         /// </summary>
-        private async UniTaskVoid ApplyQrVisibilityAsync(CancellationToken ct)
+        private async UniTaskVoid ApplyGuideAsync(CancellationToken ct)
         {
-            // qrCanvasGroup 누락은 Start에서 이미 경고했다
-            if (!qrCanvasGroup) return;
-            if (_visitorInfoProvider == null)
-            {
-                if (_logger != null) _logger.ZLogWarning($"[TitleSceneManager] VisitorInfoProvider가 주입되지 않아 QR 표시 여부를 판단할 수 없습니다.");
-                return;
-            }
-
-            // 서버 연동 여부를 비동기로 확인하는 동안 QR이 잠깐 보였다 꺼지는 플리커를 막기 위해 먼저 숨겨 둠
-            qrCanvasGroup.gameObject.SetActive(false);
+            // 서버 연동 여부를 비동기로 확인하는 동안 안내·버튼이 잠깐 보였다 바뀌는 플리커를 막기 위해 먼저 숨겨 둠
+            if (qrCanvasGroup) qrCanvasGroup.gameObject.SetActive(false);
+            if (startButton) startButton.gameObject.SetActive(false);
 
             try
             {
-                bool isServerConnected = await _visitorInfoProvider.IsServerConnectedAsync(ct);
-                qrCanvasGroup.gameObject.SetActive(isServerConnected);
+                bool isServerConnected = false;
+                if (_visitorInfoProvider != null)
+                    isServerConnected = await _visitorInfoProvider.IsServerConnectedAsync(ct);
+                else if (_logger != null)
+                    _logger.ZLogWarning($"[TitleSceneManager] VisitorInfoProvider가 주입되지 않아 서버 미연동으로 보고 시작하기 안내를 표시합니다.");
 
-                if (isServerConnected)
-                {
-                    string settingsPath = ZString.Concat(Constants.ResourcePaths.SceneSettingsFolder, "/", Constants.Scenes.Title);
-                    TitleSceneSettings sceneSettings = await JsonLoader.LoadAsync<TitleSceneSettings>(settingsPath, ct, _logger);
+                if (isServerConnected) WaitForQr();
+                else ShowStartGuide();
 
-                    _qrBlinkTween = qrCanvasGroup.DOFade(sceneSettings.qrBlinkMinAlpha, sceneSettings.qrFadeDuration)
-                        .SetLoops(-1, LoopType.Yoyo)
-                        .SetEase(Ease.InOutSine)
-                        .SetLink(qrCanvasGroup.gameObject);
-                }
+                // qrCanvasGroup 누락은 Start에서 이미 경고했다
+                if (!qrCanvasGroup) return;
+                qrCanvasGroup.gameObject.SetActive(true);
+
+                string settingsPath = ZString.Concat(Constants.ResourcePaths.SceneSettingsFolder, "/", Constants.Scenes.Title);
+                TitleSceneSettings sceneSettings = await JsonLoader.LoadAsync<TitleSceneSettings>(settingsPath, ct, _logger);
+
+                _qrBlinkTween = qrCanvasGroup.DOFade(sceneSettings.qrBlinkMinAlpha, sceneSettings.qrFadeDuration)
+                    .SetLoops(-1, LoopType.Yoyo)
+                    .SetEase(Ease.InOutSine)
+                    .SetLink(qrCanvasGroup.gameObject);
             }
             catch (OperationCanceledException)
             {
@@ -88,11 +101,144 @@ namespace Scenes
         }
 
         /// <summary>
-        /// QR 깜빡임 트윈과 시작 버튼 리스너를 정리한다.
+        /// QR 안내를 띄우고 키보드(바코드 스캐너) 문자 입력을 받기 시작한다.
+        /// </summary>
+        private void WaitForQr()
+        {
+            if (guideText) guideText.text = Constants.TitleMessages.QrGuide;
+
+            _scanBuffer.Clear();
+            _isWaitingForQr = true;
+
+            foreach (InputDevice device in InputSystem.devices)
+                if (device is Keyboard keyboard) SubscribeScanKeyboard(keyboard);
+            InputSystem.onDeviceChange += OnDeviceChange;
+
+            if (_scanKeyboards.Count == 0 && _logger != null)
+                _logger.ZLogWarning($"[TitleSceneManager] 연결된 키보드(바코드 스캐너)가 없습니다. 장치가 연결되면 QR 입력을 받기 시작합니다.");
+        }
+
+        /// <summary>
+        /// QR 대기 중 연결·재연결된 키보드(스캐너)는 입력을 받도록 구독하고, 빠진 장치는 목록에서 뺀다.
+        /// </summary>
+        private void OnDeviceChange(InputDevice device, InputDeviceChange change)
+        {
+            if (device is not Keyboard keyboard) return;
+
+            switch (change)
+            {
+                // 스캐너를 다시 꽂으면 Input System은 같은 장치를 Added가 아니라 Reconnected로 알린다
+                case InputDeviceChange.Added:
+                case InputDeviceChange.Reconnected:
+                    SubscribeScanKeyboard(keyboard);
+                    break;
+
+                // 스캐너 케이블이 빠지면 제거된 장치의 키 상태를 매 프레임 읽지 않도록 목록에서 뺀다
+                case InputDeviceChange.Removed:
+                case InputDeviceChange.Disconnected:
+                    UnsubscribeScanKeyboard(keyboard);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// 키보드 하나의 문자 입력을 구독한다 (중복 구독 방지).
+        /// </summary>
+        private void SubscribeScanKeyboard(Keyboard keyboard)
+        {
+            if (_scanKeyboards.Contains(keyboard)) return;
+            keyboard.onTextInput += OnScanTextInput;
+            _scanKeyboards.Add(keyboard);
+        }
+
+        /// <summary>
+        /// 키보드 하나의 문자 입력 구독을 해제한다 (구독하지 않은 장치면 무시).
+        /// </summary>
+        private void UnsubscribeScanKeyboard(Keyboard keyboard)
+        {
+            if (!_scanKeyboards.Remove(keyboard)) return;
+            keyboard.onTextInput -= OnScanTextInput;
+        }
+
+        /// <summary>
+        /// 스캐너가 보낸 문자를 모은다. 스캐너가 Enter를 CR/LF 문자로 보내는 경우 그 자리에서 인식을 끝낸다.
+        /// </summary>
+        private void OnScanTextInput(char c)
+        {
+            if (!_isWaitingForQr) return;
+
+            if (c == '\r' || c == '\n') SubmitScan();
+            else if (!char.IsControl(c)) _scanBuffer.Append(c);
+        }
+
+        /// <summary>
+        /// Enter가 문자로 오지 않는 장치를 위해, QR 대기 중 어느 키보드든 Enter 키가 눌리면 인식을 끝낸다.
+        /// </summary>
+        private void Update()
+        {
+            if (!_isWaitingForQr) return;
+
+            foreach (Keyboard keyboard in _scanKeyboards)
+            {
+                if (keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame)
+                {
+                    SubmitScan();
+                    return;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 모은 문자열을 QR 값으로 처리한다 — 비어 있으면(Enter만 들어온 경우) 무시하고 계속 기다린다.
+        /// </summary>
+        private void SubmitScan()
+        {
+            string code = _scanBuffer.ToString();
+            _scanBuffer.Clear();
+            if (!_isWaitingForQr || string.IsNullOrWhiteSpace(code)) return;
+
+            OnQrScanned(code);
+        }
+
+        /// <summary>
+        /// QR 인식이 끝나면 입력 대기를 멈추고 시작하기 안내로 바꾼다.
+        /// </summary>
+        private void OnQrScanned(string code)
+        {
+            StopWaitingForQr();
+            if (_logger != null) _logger.ZLogInformation($"[TitleSceneManager] QR 인식 완료 (길이 {code.Length})");
+
+            // TODO: 서버 연동 시 — code로 체험자 정보·진행도를 조회해 VisitorInfoProvider에 반영할 것.
+            ShowStartGuide();
+        }
+
+        /// <summary>
+        /// 하단 안내를 "시작하기를 눌러주세요"로 바꾸고 시작 버튼을 보여준다.
+        /// </summary>
+        private void ShowStartGuide()
+        {
+            if (guideText) guideText.text = Constants.TitleMessages.StartGuide;
+            if (startButton) startButton.gameObject.SetActive(true);
+        }
+
+        /// <summary>
+        /// 스캐너 문자 입력·장치 연결 구독을 해제한다.
+        /// </summary>
+        private void StopWaitingForQr()
+        {
+            _isWaitingForQr = false;
+            InputSystem.onDeviceChange -= OnDeviceChange;
+            foreach (Keyboard keyboard in _scanKeyboards) keyboard.onTextInput -= OnScanTextInput;
+            _scanKeyboards.Clear();
+        }
+
+        /// <summary>
+        /// QR 깜빡임 트윈, 스캐너 입력 구독, 시작 버튼 리스너를 정리한다.
         /// </summary>
         private void OnDestroy()
         {
             if (_qrBlinkTween != null && _qrBlinkTween.IsActive()) _qrBlinkTween.Kill();
+            StopWaitingForQr();
 
             // Start()에서 등록을 건너뛴 미할당 버튼도 있을 수 있으므로 해제도 동일하게 가드
             if (startButton) startButton.onClick.RemoveListener(OnStartButtonClicked);
