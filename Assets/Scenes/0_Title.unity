@@ -587,6 +587,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   startButton: {fileID: 1065975278}
   qrCanvasGroup: {fileID: 2090881229}
+  guideText: {fileID: 1621645674}
 --- !u!4 &1371204857
 Transform:
   m_ObjectHideFlags: 0

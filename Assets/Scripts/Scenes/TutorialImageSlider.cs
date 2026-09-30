@@ -91,7 +91,7 @@ namespace Scenes
         private async UniTaskVoid UpdatePageAsync()
         {
             int page = _currentIndex + 1;
-            if (pageText) pageText.text = ZString.Concat("튜토리얼 (", page, "/", TotalPages, ")");
+            if (pageText) pageText.text = ZString.Concat("체험 방법(", page, "/", TotalPages, ")");
 
             if (!_spriteCache.TryGetValue(page, out Sprite sprite))
             {

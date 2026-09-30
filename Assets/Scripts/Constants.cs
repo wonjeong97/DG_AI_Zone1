@@ -602,4 +602,11 @@ public static class Constants
             return int.TryParse(prefix, out int levelNumber) ? levelNumber : 0;
         }
     }
+
+    // ── 20. 타이틀 하단 안내 문구 ───────────────────────────────────
+    public static class TitleMessages
+    {
+        public const string QrGuide    = "QR 코드를 인식하여 주세요.";
+        public const string StartGuide = "시작하기를 눌러주세요.";
+    }
 }
