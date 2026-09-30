@@ -341,7 +341,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   blockSpawner: {fileID: 34166380}
-  testLevel: {fileID: 11400000, guid: 73c94be2d13399a4981a5a93321b5c9f, type: 2}
+  testLevel: {fileID: 11400000, guid: 3997d65ce9ac0224491f979e6fb9a6c4, type: 2}
   codingZone: {fileID: 1925272511}
   compileButton: {fileID: 972074847}
   storyButton: {fileID: 1665160553}
@@ -5998,8 +5998,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: -40, y: -40}
+  m_AnchoredPosition: {x: -4, y: 0}
+  m_SizeDelta: {x: -88, y: -60}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &1738341923
 CanvasRenderer:
@@ -6029,9 +6029,10 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "<color=yellow>\uD604\uC7AC \uC624\uC804 10\uC2DC</color>\uC785\uB2C8\uB2E4.\n\uD0DC\uC591\uAD11
-    \uD328\uB110\uC774 \uC5B4\uB290 \uBC29\uD5A5\uC73C\uB85C \uD5A5\uD574 \uC788\uC5B4\uC57C
-    \uD560\uAE4C\uC694?"
+  m_text: "\uC9C0\uAE08\uC740 [\uBC24]\uC774\uC5D0\uC694!\n\uC804\uAE30\uB97C \uB108\uBB34
+    \uB9CE\uC774 \uC0AC\uC6A9(\uACFC\uBD80\uD558)\uD558\uACE0 \uC788\uC5B4\uC694.\n
+    \uB180\uC774 \uC2DC\uC124\uC758 \uBD88\uC740 \uC7A0\uC2DC \uB044\uACE0, \uBCD1\uC6D0\uC758
+    \uBD88\uC740 \uACC4\uC18D \uCF1C \uC8FC\uC138\uC694."
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: d0d2f5797b1d2f34ea9ffb7c01ef8fd6, type: 2}
   m_sharedMaterial: {fileID: -119739183008471601, guid: d0d2f5797b1d2f34ea9ffb7c01ef8fd6,
@@ -6059,12 +6060,12 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 40
+  m_fontSize: 37.95
   m_fontSizeBase: 40
   m_fontWeight: 400
-  m_enableAutoSizing: 0
+  m_enableAutoSizing: 1
   m_fontSizeMin: 18
-  m_fontSizeMax: 72
+  m_fontSizeMax: 44
   m_fontStyle: 0
   m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
@@ -6075,7 +6076,7 @@ MonoBehaviour:
   m_lineSpacingMax: 0
   m_paragraphSpacing: 0
   m_charWidthMaxAdj: 0
-  m_enableWordWrapping: 0
+  m_enableWordWrapping: 1
   m_wordWrappingRatios: 0.4
   m_overflowMode: 0
   m_linkedTextComponent: {fileID: 0}
