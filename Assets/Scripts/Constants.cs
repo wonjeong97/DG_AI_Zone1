@@ -158,17 +158,27 @@ public static class Constants
         public const float NormalThresholdPercent = 50f;
         public const float GoodThresholdPercent   = 80f;
 
-        public const string EfficiencyFormat = "에너지 효율:{0:D2}%";
-        public const string ResultTextFormat = "가동 수: [{0}]\n방향: [{1}]\n\n전력 수급 상태: {2}";
+        // 효율 숫자 — '에너지 효율' 이름표는 배지 이미지 위 고정 텍스트
+        public const string EfficiencyFormat = "{0:D2}%";
 
-        // 레벨2(풍력) — 가동 수 블록이 없어 문제 풍향·풍차 방향·반복 감지 여부로 구성한다
-        public const string WindResultTextFormat = "감지된 바람 방향: [{0}]\n풍차 방향: [{1}]\n반복 감지: {2}\n\n전력 수급 상태: {3}";
+        // 결과 패널 행 이름 (항목 | 값)
+        public const string LabelCount          = "가동수";
+        public const string LabelDirection      = "방향";
+        public const string LabelStatus         = "전력 수급 상태";
+        public const string LabelWindDirection  = "감지된 바람 방향";
+        public const string LabelBladeDirection = "풍차 방향";
+        public const string LabelRepeat         = "반복 감지";
+        public const string LabelRiverHeight    = "감지된 강물의 높이";
+        public const string LabelGateHeight     = "수문 개방 높이";
+        public const string LabelConditionOn    = "조건 감지";
+        public const string LabelElse           = "수문 닫기 조건(아니면)";
+        public const string LabelSituation      = "상황";
+        public const string LabelCondition      = "조건";
+        public const string LabelHospital       = "병원 전력 유지";
 
-        // 레벨3(수력) — 문제 강물 높이·플레이어가 연결한 수문 개방 높이·조건 감지·아니면 사용 여부로 구성한다
-        public const string HydroResultTextFormat = "감지된 강물의 높이: [{0}]\n수문 개방 높이: [{1}]\n조건 감지: {2}\n수문 닫기 조건(아니면): {3}\n\n전력 수급 상태: {4}";
+        // 체험자가 정하지 않은 값(코딩을 건너뛴 경우 등)
+        public const string NoValue = "-";
 
-        // 레벨4(발전소) — 값 블록이 없어 채점 3항목(조건식·반복 중첩·병원 명령 위치)을 그대로 보여준다
-        public const string PowerPlantResultTextFormat = "상황: [{0}]\n조건: [{1}]\n반복 감지: {2}\n병원 전력 유지: {3}\n\n전력 수급 상태: {4}";
         public const string PowerPlantSituation     = "밤 · 전기 과부하";  // 문제가 고정이라 상수
         public const string PowerPlantBestCondition = "전기 과부하 · 밤";  // AI(정답) 조건식
 
@@ -178,23 +188,6 @@ public static class Constants
         // '반복 감지'·'조건 감지' 줄의 ON/OFF 표기
         public const string DetectedOn  = "ON";
         public const string DetectedOff = "OFF";
-
-        // 코딩 미완료(스킵) — 플레이어가 정하는 값만 '-'로 두고, 감지 항목은 OFF로 표시한다.
-        // 발전이 아예 일어나지 않았으므로 전력 수급 상태는 '-'가 아니라 '부족'으로 확정한다.
-        // 레벨1(태양광) — 문제로 주어지는 값이 따로 없어 두 줄 다 '-'.
-        public const string NoResultText = "가동 수: -\n방향: -\n\n전력 수급 상태: " + StatusPoor;
-
-        // 레벨2(풍력) — 바람 방향은 문제로 주어진 값이라 그대로 두고, 풍차 방향만 '-'.
-        public const string WindNoResultTextFormat =
-            "감지된 바람 방향: [{0}]\n풍차 방향: -\n반복 감지: " + DetectedOff + "\n\n전력 수급 상태: " + StatusPoor;
-
-        // 레벨3(수력) — 강물 높이는 문제로 주어진 값이라 그대로 두고, 수문 개방 높이만 '-'.
-        public const string HydroNoResultTextFormat =
-            "감지된 강물의 높이: [{0}]\n수문 개방 높이: -\n조건 감지: " + DetectedOff + "\n수문 닫기 조건(아니면): " + DetectedOff + "\n\n전력 수급 상태: " + StatusPoor;
-
-        // 레벨4(발전소) — 상황은 매 판 고정이라 그대로 두고, 플레이어가 만드는 조건/배치만 '-'.
-        public const string PowerPlantNoResultText =
-            "상황: [" + PowerPlantSituation + "]\n조건: -\n반복 감지: " + DetectedOff + "\n병원 전력 유지: -\n\n전력 수급 상태: " + StatusPoor;
 
         // 'AI가 코딩을 시작합니다' 뒤 말줄임 애니메이션
         public const string AiCodingDots = "...";      // 슬롯 3개 — AiCodingDotCycle과 맞춰야 함

@@ -9,11 +9,17 @@ namespace Data
     [Serializable]
     public class ResultSceneSettings
     {
-        // 결과 텍스트가 한 글자씩 찍히는 간격(초)
-        public float typewriterCharInterval = 0.03f;
+        // 결과 행의 값이 한 글자씩 찍히는 간격(초)
+        public float typewriterCharInterval = 0.06f;
+
+        // 결과 행이 하나씩 나타나는 페이드인 시간(초)
+        public float rowFadeDuration = 0.4f;
 
         // 에너지 효율 0% -> N% 카운트업 시간(초)
-        public float effCountDuration = 0.8f;
+        public float effCountDuration = 1.6f;
+
+        // AI 결과가 모두 나온 뒤 '화면을 터치하면 다음으로 넘어갑니다' 안내를 띄우기까지 기다리는 시간(초)
+        public float touchGuideDelay = 1f;
 
         // 3D 태양광 패널 자세 애니메이션 시간(초) — 방향/각도가 순차 재생되므로 실제 소요는 이 값의 2배
         public float panelPoseDuration = 1.5f;

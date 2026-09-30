@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Text;
 using Cysharp.Threading.Tasks;
@@ -18,9 +19,9 @@ namespace Scenes
 {
     public class ResultSequence : MonoBehaviour
     {
-        [SerializeField] private TypewriterTextTMP playerText;
+        [SerializeField] private ResultRowsView playerRows;
         [SerializeField] private CanvasGroup playerImageGroup;
-        [SerializeField] private TypewriterTextTMP aiText;
+        [SerializeField] private ResultRowsView aiRows;
         [SerializeField] private CanvasGroup aiImageGroup;
         [SerializeField] private CanvasGroup aiResultGroup;
         [SerializeField] private CanvasGroup playerEffGroup;
@@ -49,8 +50,11 @@ namespace Scenes
         [Tooltip("완료 패널 제목 텍스트 — 결과에 따라 '미션 성공!' / '미션 실패!'로 바뀐다")]
         [SerializeField] private TMP_Text completeTitleText;
         [SerializeField] private Button nextButton;
-        [SerializeField] private CanvasGroup confirmButtonGroup;
-        [SerializeField] private Button confirmButton;
+        [Tooltip("결과 연출이 끝나면 하단 중앙에 띄우는 '화면을 터치하면 다음으로 넘어갑니다' 안내")]
+        [SerializeField] private CanvasGroup touchGuideGroup;
+        [SerializeField] private float touchGuideBlinkMinAlpha = 0.35f;
+        [SerializeField] private float touchGuideBlinkDuration = 0.8f;
+        [SerializeField] private float touchGuideDelay = 1f;
         [SerializeField] private CanvasGroup aiStartPanel;
         [SerializeField] private TMP_Text aiStartText;
         [SerializeField] private float aiStartHold = 3f;
@@ -83,6 +87,7 @@ namespace Scenes
         private bool _isHydroStage;            // 수력 스테이지로 연출 중인지 (레벨3)
         private bool _isPlantStage;            // 발전소 스테이지로 연출 중인지 (레벨4)
         private Material _grayscaleInstance;   // 흑백 전환용 머티리얼 인스턴스 (null이면 컬러 유지)
+        private Tween _touchGuideBlinkTween;   // 터치 안내 깜빡임 — 무한 반복이라 직접 Kill한다
 
         // 00_Common.json의 panelFadeDuration 사용 — 로드 전까지의 폴백 기본값
         private float _fadeDuration = 0.5f;
@@ -118,10 +123,10 @@ namespace Scenes
         {
             if (_logger == null) return;
 
-            if (!playerText) _logger.ZLogWarning($"[ResultSequence] playerText가 할당되지 않았습니다.");
-            if (!aiText) _logger.ZLogWarning($"[ResultSequence] aiText가 할당되지 않았습니다.");
+            if (!playerRows) _logger.ZLogWarning($"[ResultSequence] playerRows가 할당되지 않았습니다.");
+            if (!aiRows) _logger.ZLogWarning($"[ResultSequence] aiRows가 할당되지 않았습니다.");
             if (!playerImageGroup) _logger.ZLogWarning($"[ResultSequence] playerImageGroup이 할당되지 않았습니다.");
-            if (!confirmButton) _logger.ZLogWarning($"[ResultSequence] confirmButton이 할당되지 않았습니다.");
+            if (!touchGuideGroup) _logger.ZLogWarning($"[ResultSequence] touchGuideGroup이 할당되지 않았습니다.");
             if (!nextButton) _logger.ZLogWarning($"[ResultSequence] nextButton이 할당되지 않아 다음 씬으로 넘어갈 수 없습니다.");
         }
 
@@ -141,14 +146,14 @@ namespace Scenes
             SceneFader.InitializePanelState(completePanel, false);
 
             // 시퀀스가 순서대로 페이드인하는 것들 — 전부 투명·입력 차단 상태에서 시작.
-            // (플레이어 이미지 → 효율 → AI 시작 안내 → AI 결과/이미지/효율 → 확인 버튼)
+            // (플레이어 이미지 → 효율 → AI 시작 안내 → AI 결과/이미지/효율 → 터치 안내)
             SceneFader.InitializePanelState(playerImageGroup, false);
             SceneFader.InitializePanelState(playerEffGroup, false);
             SceneFader.InitializePanelState(aiStartPanel, false);
             SceneFader.InitializePanelState(aiResultGroup, false);
             SceneFader.InitializePanelState(aiImageGroup, false);
             SceneFader.InitializePanelState(aiEffGroup, false);
-            SceneFader.InitializePanelState(confirmButtonGroup, false);
+            SceneFader.InitializePanelState(touchGuideGroup, false);
 
             // 효율 텍스트는 0%에서 카운트업 — 씬에 남은 값이 페이드인 첫 프레임에 비치지 않도록
             if (playerEffText) playerEffText.text = FormatEfficiency(0);
@@ -174,6 +179,8 @@ namespace Scenes
         /// </summary>
         private void OnDestroy()
         {
+            if (_touchGuideBlinkTween != null && _touchGuideBlinkTween.IsActive()) _touchGuideBlinkTween.Kill();
+
             // 흑백 전환용 머티리얼은 런타임에 new로 만든 인스턴스라 씬 언로드로 회수되지 않는다
             if (_grayscaleInstance)
             {
@@ -184,7 +191,7 @@ namespace Scenes
             if (nextButton)
                 nextButton.onClick.RemoveListener(OnNextClicked);
 
-            // 확인 버튼이 열리기 전에 파괴됐다면 타이머가 멈춘 채 남는다 —
+            // 터치 안내가 뜨기 전에 파괴됐다면 타이머가 멈춘 채 남는다 —
             // 이미 재개된 상태에서 다시 불러도 카운트만 처음부터 다시 시작할 뿐 부작용이 없다
             if (_inactivityTimer) _inactivityTimer.Resume();
         }
@@ -242,7 +249,7 @@ namespace Scenes
             // 코딩 완료(컴파일 성공) 없이 넘어온 경우 값 대신 '-' 표시.
             // 레벨마다 채워지는 값이 달라 개별 필드로 판정하지 않고 게임 씬이 세운 플래그를 그대로 쓴다.
             bool hasCoding = _session.hasCodingResult;
-            string playerResult;
+            List<ResultRow> playerResult;
             bool isSuccess = false;
 
             if (hasCoding)
@@ -253,7 +260,7 @@ namespace Scenes
                 string status = ToStatusText(percent);
                 _playerPercent = Mathf.Clamp(Mathf.FloorToInt(percent), 0, MaxPercent);
 
-                playerResult = BuildPlayerResultText(levelName, status);
+                playerResult = BuildPlayerRows(levelName, status);
                 isSuccess = status != Constants.ResultMessages.StatusPoor;
 
                 // 전력이 부족한 결과는 흑백으로 전환해 시각적으로 구분
@@ -264,16 +271,19 @@ namespace Scenes
             {
                 // 스킵/코딩 미완료 — 효율 0% 고정
                 _playerPercent = 0;
+                // 체험자가 정한 값은 '-', 감지 항목은 OFF, 발전이 일어나지 않았으니 전력 수급 상태는 '부족'.
+                // 문제로 주어진 값(바람 방향·강물 높이·발전소 상황)은 그대로 보여준다.
+                string poor = Constants.ResultMessages.StatusPoor;
                 playerResult =
-                    Constants.Levels.IsWind(levelName)       ? BuildWindNoResultText() :
-                    Constants.Levels.IsHydro(levelName)      ? BuildHydroNoResultText() :
-                    Constants.Levels.IsPowerPlant(levelName) ? Constants.ResultMessages.PowerPlantNoResultText :
-                                                               Constants.ResultMessages.NoResultText;
+                    Constants.Levels.IsWind(levelName)       ? BuildWindRows(_session.lastQuestionTime, null, false, poor) :
+                    Constants.Levels.IsHydro(levelName)      ? BuildHydroRows(_session.lastQuestionTime, null, false, poor) :
+                    Constants.Levels.IsPowerPlant(levelName) ? BuildPowerPlantRows(null, OnOff(false), Constants.ResultMessages.NoValue, poor) :
+                                                               BuildSolarRows(null, null, poor);
                 ApplyGrayscale();
             }
 
-            if (playerText) playerText.SetText(playerResult);
-            if (aiText) aiText.SetText(BuildAiResultText(levelName));
+            if (playerRows) playerRows.SetRows(playerResult);
+            if (aiRows) aiRows.SetRows(BuildAiRows(levelName));
 
             if (completeTitleText)
                 completeTitleText.text = isSuccess ? Constants.ResultMessages.MissionSuccess : Constants.ResultMessages.MissionFail;
@@ -324,119 +334,121 @@ namespace Scenes
                                                                        Constants.ResultMessages.StatusGood;
 
         /// <summary>
-        /// 레벨1(태양광) 결과 문구를 만든다 — 설치 개수 / 패널 방향 / 전력 수급 상태.
+        /// 값이 비었으면 '-'로 바꾼다 (코딩을 건너뛰었거나 값을 읽지 못한 경우).
         /// </summary>
-        private static string BuildResultText(string count, string direction, string status)
-            => ZString.Format(Constants.ResultMessages.ResultTextFormat, count, direction, status);
+        private static string OrNoValue(string value)
+            => string.IsNullOrEmpty(value) ? Constants.ResultMessages.NoValue : value;
 
         /// <summary>
-        /// 레벨2(풍력) 결과 문구를 만든다 — 문제로 나온 바람 방향 / 플레이어가 맞춘 풍차 방향 / 반복하기 사용 여부.
+        /// 감지 여부를 ON/OFF 표기로 바꾼다.
+        /// </summary>
+        private static string OnOff(bool isOn)
+            => isOn ? Constants.ResultMessages.DetectedOn : Constants.ResultMessages.DetectedOff;
+
+        /// <summary>
+        /// 레벨1(태양광) 결과 행 — 설치 개수 / 패널 방향 / 전력 수급 상태.
+        /// </summary>
+        private static List<ResultRow> BuildSolarRows(string count, string direction, string status) => new()
+        {
+            new ResultRow(Constants.ResultMessages.LabelCount, OrNoValue(count)),
+            new ResultRow(Constants.ResultMessages.LabelDirection, OrNoValue(direction)),
+            new ResultRow(Constants.ResultMessages.LabelStatus, status),
+        };
+
+        /// <summary>
+        /// 레벨2(풍력) 결과 행 — 문제로 나온 바람 방향 / 플레이어가 맞춘 풍차 방향 / 반복하기 사용 여부.
         /// 반복하기 없이는 컴파일이 막히므로 정상 플레이에서 반복 감지는 항상 ON이다.
         /// </summary>
-        private static string BuildWindResultText(string windDirection, string bladeDirection, bool repeatUsed, string status)
-            => ZString.Format(Constants.ResultMessages.WindResultTextFormat,
-                windDirection,
-                bladeDirection,
-                repeatUsed ? Constants.ResultMessages.DetectedOn : Constants.ResultMessages.DetectedOff,
-                status);
+        private static List<ResultRow> BuildWindRows(string windDirection, string bladeDirection, bool repeatUsed, string status) => new()
+        {
+            new ResultRow(Constants.ResultMessages.LabelWindDirection, OrNoValue(windDirection)),
+            new ResultRow(Constants.ResultMessages.LabelBladeDirection, OrNoValue(bladeDirection)),
+            new ResultRow(Constants.ResultMessages.LabelRepeat, OnOff(repeatUsed)),
+            new ResultRow(Constants.ResultMessages.LabelStatus, status),
+        };
 
         /// <summary>
-        /// 레벨3(수력) 결과 문구를 만든다 — 문제로 나온 강물 높이 / 플레이어가 만약 블록에 연결한 수문 개방 높이 / 아니면 사용 여부.
+        /// 레벨3(수력) 결과 행 — 문제로 나온 강물 높이 / 플레이어가 만약 블록에 연결한 수문 개방 높이 / 조건·아니면 사용 여부.
         /// 조건 감지는 조건 블록 연결 여부 — 조건 없이는 컴파일이 막히므로 정상 플레이에선 항상 ON이다.
         /// 아니면은 채점 항목이라 빠뜨렸을 때 AI 결과와 달라 보이도록 따로 표시한다.
         /// </summary>
-        private static string BuildHydroResultText(string riverHeight, string gateHeight, bool elseUsed, string status)
-            => ZString.Format(Constants.ResultMessages.HydroResultTextFormat,
-                riverHeight,
-                gateHeight,
-                string.IsNullOrEmpty(gateHeight) ? Constants.ResultMessages.DetectedOff : Constants.ResultMessages.DetectedOn,
-                elseUsed ? Constants.ResultMessages.DetectedOn : Constants.ResultMessages.DetectedOff,
-                status);
+        private static List<ResultRow> BuildHydroRows(string riverHeight, string gateHeight, bool elseUsed, string status) => new()
+        {
+            new ResultRow(Constants.ResultMessages.LabelRiverHeight, OrNoValue(riverHeight)),
+            new ResultRow(Constants.ResultMessages.LabelGateHeight, OrNoValue(gateHeight)),
+            new ResultRow(Constants.ResultMessages.LabelConditionOn, OnOff(!string.IsNullOrEmpty(gateHeight))),
+            new ResultRow(Constants.ResultMessages.LabelElse, OnOff(elseUsed)),
+            new ResultRow(Constants.ResultMessages.LabelStatus, status),
+        };
 
         /// <summary>
-        /// 레벨4(발전소) 결과 문구를 만든다 — 고정 상황 / 플레이어가 만약에 연결한 조건식 / 반복 중첩·병원 명령 위치.
+        /// 레벨4(발전소) 결과 행 — 고정 상황 / 플레이어가 만약에 연결한 조건식 / 반복 중첩·병원 명령 위치.
         /// 뒤 두 항목은 구조·명령 채점과 같은 기준이라 효율 %가 왜 그렇게 나왔는지 화면에서 읽힌다.
+        /// 코딩을 건너뛰면 병원 전력 유지는 판단할 배치가 없으므로 ON/OFF 대신 '-'로 둔다.
         /// </summary>
-        private static string BuildPowerPlantResultText(string condition, bool repeatNested, bool hospitalInRepeat, string status)
-            => ZString.Format(Constants.ResultMessages.PowerPlantResultTextFormat,
-                Constants.ResultMessages.PowerPlantSituation,
-                condition,
-                repeatNested ? Constants.ResultMessages.DetectedOn : Constants.ResultMessages.DetectedOff,
-                hospitalInRepeat ? Constants.ResultMessages.DetectedOn : Constants.ResultMessages.DetectedOff,
-                status);
+        private static List<ResultRow> BuildPowerPlantRows(string condition, string repeatNested, string hospitalInRepeat, string status) => new()
+        {
+            new ResultRow(Constants.ResultMessages.LabelSituation, Constants.ResultMessages.PowerPlantSituation),
+            new ResultRow(Constants.ResultMessages.LabelCondition, OrNoValue(condition)),
+            new ResultRow(Constants.ResultMessages.LabelRepeat, repeatNested),
+            new ResultRow(Constants.ResultMessages.LabelHospital, hospitalInRepeat),
+            new ResultRow(Constants.ResultMessages.LabelStatus, status),
+        };
 
         /// <summary>
-        /// 레벨2(풍력) 스킵 문구에 문제로 주어진 바람 방향을 채워 넣는다.
-        /// 이 분기는 lastQuestionTime이 있을 때만 도달하므로 값이 비어 있을 일은 없다.
+        /// 레벨에 맞는 플레이어 결과 행을 세션 값으로 만든다.
         /// </summary>
-        private string BuildWindNoResultText()
-            => ZString.Format(Constants.ResultMessages.WindNoResultTextFormat, _session.lastQuestionTime);
-
-        /// <summary>
-        /// 레벨3(수력) 스킵 문구에 문제로 주어진 강물 높이를 채워 넣는다.
-        /// </summary>
-        private string BuildHydroNoResultText()
-            => ZString.Format(Constants.ResultMessages.HydroNoResultTextFormat, _session.lastQuestionTime);
-
-        /// <summary>
-        /// 레벨에 맞는 플레이어 결과 문구를 세션 값으로 만든다.
-        /// </summary>
-        private string BuildPlayerResultText(string levelName, string status)
+        private List<ResultRow> BuildPlayerRows(string levelName, string status)
         {
             if (Constants.Levels.IsWind(levelName))
-                return BuildWindResultText(_session.lastQuestionTime, _session.lastDirection, _session.lastRepeatUsed, status);
+                return BuildWindRows(_session.lastQuestionTime, _session.lastDirection, _session.lastRepeatUsed, status);
 
             if (Constants.Levels.IsHydro(levelName))
-                return BuildHydroResultText(_session.lastQuestionTime, _session.lastGateHeight, _session.lastElseUsed, status);
+                return BuildHydroRows(_session.lastQuestionTime, _session.lastGateHeight, _session.lastElseUsed, status);
 
             if (Constants.Levels.IsPowerPlant(levelName))
-                return BuildPowerPlantResultText(_session.lastConditionText, _session.lastRepeatNested,
-                                                 _session.lastHospitalInRepeat, status);
+                return BuildPowerPlantRows(_session.lastConditionText, OnOff(_session.lastRepeatNested),
+                                           OnOff(_session.lastHospitalInRepeat), status);
 
-            return BuildResultText(_session.lastCount, _session.lastDirection, status);
+            return BuildSolarRows(_session.lastCount, _session.lastDirection, status);
         }
 
         /// <summary>
-        /// AI 결과 문구를 만든다 — AI는 항상 정답(풍력은 정답 방향, 수력은 문제와 같은 높이)이다.
+        /// AI 결과 행을 만든다 — AI는 항상 정답(풍력은 정답 방향, 수력은 문제와 같은 높이)이다.
         /// </summary>
-        private string BuildAiResultText(string levelName)
+        private List<ResultRow> BuildAiRows(string levelName)
         {
+            string good = Constants.ResultMessages.StatusGood;
+
             if (Constants.Levels.IsWind(levelName))
-                return BuildWindResultText(_session.lastQuestionTime,
-                                           BlockScorer.GetBestDirection(_session.lastQuestionTime, levelName),
-                                           true,
-                                           Constants.ResultMessages.StatusGood);
+                return BuildWindRows(_session.lastQuestionTime,
+                                     BlockScorer.GetBestDirection(_session.lastQuestionTime, levelName), true, good);
 
             if (Constants.Levels.IsHydro(levelName))
-                return BuildHydroResultText(_session.lastQuestionTime,
-                                            _session.lastQuestionTime,
-                                            true,
-                                            Constants.ResultMessages.StatusGood);
+                return BuildHydroRows(_session.lastQuestionTime, _session.lastQuestionTime, true, good);
 
             if (Constants.Levels.IsPowerPlant(levelName))
-                return BuildPowerPlantResultText(Constants.ResultMessages.PowerPlantBestCondition,
-                                                 true, true, Constants.ResultMessages.StatusGood);
+                return BuildPowerPlantRows(Constants.ResultMessages.PowerPlantBestCondition, OnOff(true), OnOff(true), good);
 
-            return BuildResultText(BlockScorer.GetBestCount(),
-                                   BlockScorer.GetBestDirection(_session.lastQuestionTime, levelName),
-                                   Constants.ResultMessages.StatusGood);
+            return BuildSolarRows(BlockScorer.GetBestCount(),
+                                  BlockScorer.GetBestDirection(_session.lastQuestionTime, levelName), good);
         }
 
         /// <summary>
-        /// 플레이어 결과 → AI 결과 → 확인 버튼 → 완료 패널 순서의 결과 연출 전체를 진행한다.
+        /// 플레이어 결과 → AI 결과 → 터치 안내 → 완료 패널 순서의 결과 연출 전체를 진행한다.
         /// </summary>
         private async UniTaskVoid PlaySequence()
         {
             CancellationToken ct = destroyCancellationToken;
             try
             {
-                // 확인 버튼이 열리기 전까지는 입력 없이 연출만 보는 구간 — 비활동 타이머를 멈춘다
+                // 터치 안내가 뜨기 전까지는 입력 없이 연출만 보는 구간 — 비활동 타이머를 멈춘다
                 if (_inactivityTimer) _inactivityTimer.Pause();
 
                 await LoadSceneSettingsAsync(ct);
                 _fadeDuration = await SceneFader.GetPanelFadeDurationAsync();
 
-                if (playerText) await playerText.PlayAsync(ct);
+                if (playerRows) await playerRows.PlayAsync(ct);
                 await SceneFader.FadeCanvasGroupAsync(playerImageGroup, 0f, 1f, _fadeDuration, ct);
                 await PlayPlayerStageAsync(ct);
                 await PlayEfficiencyAsync(playerEffGroup, playerEffText, _playerPercent, ct);
@@ -448,21 +460,22 @@ namespace Scenes
                 if (aiResultGroup)
                     await SceneFader.FadeCanvasGroupAsync(aiResultGroup, 0f, 1f, _fadeDuration, ct);
 
-                if (aiText) await aiText.PlayAsync(ct);
+                if (aiRows) await aiRows.PlayAsync(ct);
                 await SceneFader.FadeCanvasGroupAsync(aiImageGroup, 0f, 1f, _fadeDuration, ct);
                 await PlayAiStageAsync(ct);
                 await PlayEfficiencyAsync(aiEffGroup, aiEffText, MaxPercent, ct);
 
-                await SceneFader.FadeCanvasGroupAsync(confirmButtonGroup, 0f, 1f, _fadeDuration, ct);
-                SceneFader.SetGroupInteractable(confirmButtonGroup, true);
+                // AI 결과를 읽을 틈을 준 뒤 안내를 띄운다
+                float guideDelay = _sceneSettings?.touchGuideDelay ?? touchGuideDelay;
+                await UniTask.Delay(TimeSpan.FromSeconds(guideDelay), cancellationToken: ct);
+                await ShowTouchGuideAsync(ct);
 
-                // 확인 버튼이 열렸으니 이제부터는 사용자 입력을 기다리는 구간 — 타이머 재개
+                // 안내가 떴으니 이제부터는 사용자 입력을 기다리는 구간 — 타이머 재개
                 if (_inactivityTimer) _inactivityTimer.Resume();
 
-                if (!confirmButton) return;
-                await confirmButton.OnClickAsync(ct);
-                // 페이드 중 재클릭 방지
-                SceneFader.SetGroupInteractable(confirmButtonGroup, false);
+                // 화면 아무 곳이나 새로 누르면 완료 화면으로 넘어간다
+                await UniTask.WaitUntil(StoryLineAnimator.IsPointerPressedThisFrame, cancellationToken: ct);
+                HideTouchGuide();
 
                 // 순차 페이드 — resultPanel이 완전히 꺼진 뒤 completePanel이 켜짐
                 SceneFader.SetGroupInteractable(resultPanel, false);
@@ -473,7 +486,7 @@ namespace Scenes
             catch (OperationCanceledException)
             {
                 // 시퀀스 도중 씬 전환(다음 버튼 등)으로 오브젝트가 파괴된 경우 — 정상 종료.
-                // 확인 버튼이 열리기 전에 빠져나갔다면 타이머가 멈춘 채 남으므로 여기서 되돌린다.
+                // 터치 안내가 뜨기 전에 빠져나갔다면 타이머가 멈춘 채 남으므로 여기서 되돌린다.
                 if (_inactivityTimer) _inactivityTimer.Resume();
             }
         }
@@ -611,8 +624,16 @@ namespace Scenes
             _sceneSettings = await JsonLoader.LoadAsync<ResultSceneSettings>(path, ct, _logger);
             if (_sceneSettings is null) return;
 
-            if (playerText) playerText.CharInterval = _sceneSettings.typewriterCharInterval;
-            if (aiText) aiText.CharInterval = _sceneSettings.typewriterCharInterval;
+            if (playerRows)
+            {
+                playerRows.CharInterval = _sceneSettings.typewriterCharInterval;
+                playerRows.RowFadeDuration = _sceneSettings.rowFadeDuration;
+            }
+            if (aiRows)
+            {
+                aiRows.CharInterval = _sceneSettings.typewriterCharInterval;
+                aiRows.RowFadeDuration = _sceneSettings.rowFadeDuration;
+            }
             if (playerPanelPose) playerPanelPose.AnimDuration = _sceneSettings.panelPoseDuration;
             if (aiPanelPose) aiPanelPose.AnimDuration = _sceneSettings.panelPoseDuration;
             if (playerTurbineSpin) playerTurbineSpin.RampDuration = _sceneSettings.turbineSpinDuration;
@@ -693,6 +714,29 @@ namespace Scenes
                 .SetEase(Ease.OutQuad)
                 .ToUniTask(TweenCancelBehaviour.KillAndCancelAwait, ct);
             text.text = FormatEfficiency(target);
+        }
+
+        /// <summary>
+        /// 하단 중앙의 '화면을 터치하면 다음으로 넘어갑니다' 안내를 띄우고 천천히 깜빡이게 한다.
+        /// </summary>
+        private async UniTask ShowTouchGuideAsync(CancellationToken ct)
+        {
+            if (!touchGuideGroup) return;
+
+            await SceneFader.FadeCanvasGroupAsync(touchGuideGroup, 0f, 1f, _fadeDuration, ct);
+            _touchGuideBlinkTween = touchGuideGroup.DOFade(touchGuideBlinkMinAlpha, touchGuideBlinkDuration)
+                .SetLoops(-1, LoopType.Yoyo)
+                .SetEase(Ease.InOutSine)
+                .SetLink(touchGuideGroup.gameObject);
+        }
+
+        /// <summary>
+        /// 터치 안내의 깜빡임을 멈추고 숨긴다.
+        /// </summary>
+        private void HideTouchGuide()
+        {
+            if (_touchGuideBlinkTween != null && _touchGuideBlinkTween.IsActive()) _touchGuideBlinkTween.Kill();
+            if (touchGuideGroup) touchGuideGroup.alpha = 0f;
         }
 
         /// <summary>
