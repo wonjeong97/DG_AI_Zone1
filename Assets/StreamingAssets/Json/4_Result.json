@@ -1,6 +1,8 @@
 {
-  "typewriterCharInterval": 0.03,
-  "effCountDuration": 0.8,
+  "typewriterCharInterval": 0.06,
+  "rowFadeDuration": 0.4,
+  "effCountDuration": 1.6,
+  "touchGuideDelay": 1.0,
   "panelPoseDuration": 1.5,
   "turbineSpinDuration": 1.5,
   "damOpenDuration": 3.0,

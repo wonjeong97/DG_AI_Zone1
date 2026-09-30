@@ -38,6 +38,9 @@ namespace Scenes
         /// </summary>
         public void SetText(string text)
         {
+            // 꺼진 채 복제된 오브젝트는 Awake 전에 불릴 수 있다
+            if (!_text && !TryGetComponent(out _text)) return;
+
             _text.text = text;
             _text.maxVisibleCharacters = 0;
             _text.ForceMeshUpdate();

@@ -115,6 +115,7 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 - `docs/agents/TASKS.md`: 작업 보드. 작업을 시작할 때 담당과 상태를 갱신한다.
 - `docs/agents/HANDOFF.md`: 다른 에이전트에게 넘기거나 검증 결과를 받을 때 변경 파일, 확인 요청 사항, 결과를 기록한다.
+- `docs/agents/REVIEW_ITEMS.md`: SW 수정 검토사항(PDF)과 기획자 전달 사항의 항목별 진행 현황·결정 사항. 검토사항 작업을 시작하기 전에 읽고, 끝내면 상태를 갱신한다.
 - 작업 단위마다 커밋한다. 다른 에이전트가 커밋하지 않은 변경은 건드리지 않는다.
 
 ### 스킬 관리

@@ -13,6 +13,17 @@
 
 ---
 
+### [2026-09-30] Claude → Antigravity · 결과 씬 새 디자인(피그마 에피소드1-6)
+- 변경 파일: ResultRowsView.cs·ResultRowView.cs(신규), ResultSequence.cs, Constants.cs(행 이름 상수, 결과 포맷 문자열 제거), ResultSceneSettings.cs·4_Result.json(rowFadeDuration, touchGuideDelay, 속도 조정), TypewriterTextTMP.cs(SetText 방어), 4_Result.unity(패널 재구성·확인 버튼→터치 안내), UI 리소스(Row_Result·Badge_Efficiency·Line_ResultDivider 추가, Panel_ResultPlayer/AI 교체), docs/design/Result_Episode1-6.png(시안)
+- 결과: agy 리뷰 4건 중 3건 반영 — 발전소 스킵 시 병원 전력 유지 '-' 복원, 행 컴포넌트 지연 조회·TypewriterTextTMP.SetText 방어, 행 높이 계산에 padding 반영·음수 방지. 취소 외 예외 시 타이머 재개는 기존 구조라 보류.
+  - Claude가 Play 모드에서 확인: 태양광 3행·수력 5행 배치, % 숫자와 배지 겹침 해소, 부족 시 흑백, 터치 시 완료 패널(미션 실패!) 전환, 효율 카운트 약 1.5초, AI 100% 후 약 1.1초 뒤 터치 안내.
+  - 값 '-'가 위로 치우치는 문제: 행 텍스트 세로 정렬이 Midline(Geometry, 보이는 글자 기준)이라 타이프라이터가 글자를 숨긴 채(maxVisibleCharacters=0) 계산한 위치가 남았음 → Middle(줄 높이 기준)로 변경해 해결.
+
+### [2026-09-30] Claude → Antigravity · 결과 씬 미션 성공/실패
+- 사전 조사(agy): 4_Result UI 계층·연출 순서·판정 값 위치. '미션 완료!'는 CompletePanel/Back/Text (TMP). 결과 텍스트 박스(604x300)와 3D 모델 이미지(321x214)가 226x134px 겹침 — 결과 창 디자인 개선 때 반영 필요.
+- 변경 파일: ResultSequence.cs(completeTitleText, 성공 판정), Constants.cs(MissionSuccess/MissionFail), 4_Result.unity(참조 연결)
+- 결과: 리뷰 문제 없음. Claude가 Play 모드에서 확인 — 100%·50% 성공, 40%·건너뜀 실패.
+
 ### [2026-09-30] Claude → Antigravity · 핀치 중 블록 드래그 방지
 - 변경 파일: CodingBlock.cs(IsDragCancelled, CancelActiveDrags/RestoreDragHome), CodingZoneZoom.cs(IsMultiTouch, 핀치 시 드래그 취소), CodingZone.cs·BlockZone.cs(취소된 드래그 드롭 무시)
 - 결과: PlayMode 16/16 통과, 콘솔 에러 0. 지적 반영 2건 — 핀치 중 한 손가락을 뗐다가 블록을 집고 다시 대면 취소가 누락되는 경로(두 손가락이 닿아 있는 동안 매 프레임 취소로 수정), OnDisable에서 IsDragCancelled 미초기화. 한 손가락은 코딩 판·한 손가락은 인벤토리인 경우 기존 드래그 유지는 핀치가 아니므로 의도대로 둠.
