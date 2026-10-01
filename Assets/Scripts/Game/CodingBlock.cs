@@ -1291,33 +1291,6 @@ namespace Game
         }
 
         /// <summary>
-        /// 드래그 시작 전 위치(부모·순서·좌표)로 되돌리고, 떼어냈던 소켓의 점유를 복구한다.
-        /// </summary>
-        public void ReturnHome()
-        {
-            if (!_homeParent) return;
-
-            bool isReturningToInventory = !_codingZone || !_homeParent.IsChildOf(_codingZone.transform);
-            if (isReturningToInventory)
-            {
-                ReturnToInventory();
-                return;
-            }
-
-            transform.SetParent(_homeParent, false);
-            transform.SetSiblingIndex(_homeIndex);
-            if (!_rt) TryGetComponent(out _rt);
-            if (_rt) _rt.anchoredPosition = _homeAnchoredPos;
-
-            if (_homeParent.TryGetComponent<ValueOutSocket>(out ValueOutSocket vos))
-                vos.Reoccupy(this);
-            else if (_homeParent.TryGetComponent<ConditionOutSocket>(out ConditionOutSocket condOut))
-                condOut.Reoccupy(this);
-            else if (_homeParent.TryGetComponent<ChainOutSocket>(out ChainOutSocket cos))
-                cos.Reoccupy(this);
-        }
-
-        /// <summary>
         /// 포인터 위치가 코딩 영역 내부인지 판별하여 코딩 패널에 놓거나 인벤토리로 되돌린다.
         /// </summary>
         private void ReturnHomeOrRelease(PointerEventData e)

@@ -80,7 +80,7 @@ namespace Scenes
         private string CurrentLevelName => _session && _session.currentLevel ? _session.currentLevel.name : null;
 
         // 셰이더 프로퍼티 조회 비용을 줄이기 위한 ID 캐시
-        private static readonly int GrayscaleAmountId = Shader.PropertyToID("_GrayscaleAmount");
+        private readonly static int GrayscaleAmountId = Shader.PropertyToID("_GrayscaleAmount");
 
         private int _playerPercent;
         private bool _isWindStage;             // 풍력 스테이지로 연출 중인지 (레벨2)

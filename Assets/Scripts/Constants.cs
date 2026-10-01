@@ -92,14 +92,14 @@ public static class Constants
         public const int PowerPlantCommandInRepeatScore = 10;
         public const int PowerPlantCommandOtherScore    = 5;
 
-        public static readonly System.Collections.Generic.Dictionary<string, int> AngleScore = new()
+        public readonly static System.Collections.Generic.Dictionary<string, int> AngleScore = new()
         {
             ["30도"] = 3,
             ["45도"] = 5,
             ["60도"] = 1,
         };
 
-        public static readonly System.Collections.Generic.Dictionary<string, int> CountScore = new()
+        public readonly static System.Collections.Generic.Dictionary<string, int> CountScore = new()
         {
             ["20개"] = 1,
             ["40개"] = 3,
@@ -393,7 +393,6 @@ public static class Constants
         public const string Sprite       = "Sprite";
         public const string Fill         = "Fill";
         public const string Background   = "Background"; // ㄷ자(FlowControl/FuncDef) 프리팹의 본체 이미지 — Sprite/Fill 대신 이 이름을 씀
-        public const string Slot         = "Slot";
         public const string EmptyIndicator = "EmptyIndicator";
 
         // 하이라이트 오버레이 — 렌더 순서상 블록 본체보다 앞(sibling 0~2)에 놓인다

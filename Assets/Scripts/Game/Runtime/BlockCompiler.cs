@@ -64,7 +64,7 @@ namespace Game.Runtime
     public static class BlockCompiler
     {
         // WalkInnerWithElse가 '만약' 블록 안에서 실제로 만난 '아니면' 블록 — Compile() 1회 호출 동안만 유효
-        private static readonly HashSet<CodingBlock> _visitedElseBlocks = new();
+        private readonly static HashSet<CodingBlock> _visitedElseBlocks = new();
 
         // 이번 컴파일에서 검사할 블록 전체(코딩 패널 + 인벤토리, 비활성 탭 포함) — CodingZone이 관리하는 목록
         private static IReadOnlyList<CodingBlock> _allBlocks = System.Array.Empty<CodingBlock>();

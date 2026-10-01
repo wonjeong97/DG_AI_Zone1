@@ -32,7 +32,7 @@ namespace Scenes
         [Tooltip("레벨5(미래 에너지) 힌트 오브젝트를 담은 부모(Level5Panel) — 문제 변형별 토글 로직 추가 시 사용")]
         [SerializeField] private Transform level5FutureEnergyContainer;
 
-        private static readonly Dictionary<string, string> TimeVariantNames = new()
+        private readonly static Dictionary<string, string> TimeVariantNames = new()
         {
             ["아침 8시"]  = "8AM",
             ["오전 10시"] = "10AM",
@@ -41,7 +41,7 @@ namespace Scenes
             ["오후 4시"]  = "4PM",
         };
 
-        private static readonly Dictionary<string, string> WindVariantNames = new()
+        private readonly static Dictionary<string, string> WindVariantNames = new()
         {
             [Constants.Directions.East]  = "Image_Wind_East",
             [Constants.Directions.West]  = "Image_Wind_West",

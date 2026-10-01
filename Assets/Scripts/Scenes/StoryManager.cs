@@ -49,7 +49,7 @@ namespace Scenes
         private LevelData _currentLevel;
 
         // 선택된 레벨 버튼이 storyPanel로 옮겨가 고정되는 위치 — 스토리 패널과 함께 보이도록 함
-        private static readonly Vector2 SelectedLevelButtonPosition = new(-513f, -75f);
+        private readonly static Vector2 SelectedLevelButtonPosition = new(-513f, -75f);
 
         /// <summary>
         /// 레벨 선택 화면을 초기화하고 해금 상태에 맞춰 레벨 버튼을 활성화한다.
