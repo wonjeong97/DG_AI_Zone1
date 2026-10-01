@@ -13,6 +13,11 @@
 
 ---
 
+### [2026-10-01 22:40] Claude → Antigravity · 씬별 카메라 후처리 정리
+- 변경 파일: Assets/Scenes/0_Title.unity, 1_Intro.unity, 2_Story.unity, 5_Outro.unity (Main Camera Post Processing 끔)
+- 확인 요청: 모든 씬·프리팹에 m_RenderPostProcessing: 1 이 남았는지, 4_Result 렌더텍스처 카메라 8개의 Clear Flags·배경 알파, 이 카메라들의 후처리를 끈 채 두는 것이 맞는지
+- 결과: 통과. 후처리 켜진 카메라 0개. 4_Result 카메라 8개는 SolidColor·알파 0으로 3D 모델을 UI 위에 합성하며, URP 14 후처리는 알파를 1로 덮어써 검은 박스가 생기고 프로젝트에 Volume도 없으므로 끈 채 유지가 맞다는 의견.
+
 ### [2026-10-01] Claude → Antigravity · 블록 탭 이름 변경·탭 라벨 겹침 (#60)
 - 변경 파일: Constants.cs(Condition "숫자·정보", Command "움직이기"), CategoryZone.cs(셀 180×52, 열 간격 32), CategoryButton.prefab(라벨 폭 128·왼쪽 정렬·줄바꿈 끔), GamtanRoadTantan SDF.asset(Dynamic 아틀라스 글자 추가), 1_Intro.unity(직업 이름 "신재생에너지 전문가", 사용자 편집), CHANGELOG.md, REVIEW_ITEMS.md
 - 결과: 통과(콘솔 에러 0, validate_script 이상 없음, 버튼 내부 합계 180 = 셀 180, 2열 총폭 408 ≤ 컨테이너 494, 인트로 {name}·color 태그 정상, CHANGELOG·REVIEW_ITEMS 반영 확인). 첫 호출은 확인 범위가 넓어 5분 제한에 걸려 둘로 나눠 다시 실행.
