@@ -13,6 +13,11 @@
 
 ---
 
+### [2026-10-01] Claude → Antigravity · T7 감사 결과 반영 (refactor/skill-audit-fixes)
+- 변경 파일: ResultSequence.cs(일반 예외 시 비활동 타이머 재개), CodingBlock.cs·BlockSocket.cs·BlockFactory.cs·CategoryButtonUI.cs·CodingZone.cs·Constants.cs(미사용 코드 삭제), CodingSlot.cs(삭제), static readonly 13곳 순서, CodingZoneZoom.cs(휠 0 비교), CodingBlock.cs(드래그 스냅 진입 소켓 캐싱·IsRepeat), BlockCompiler.cs(IsRepeat 사용), LevelData.cs(LevelKind)·01~05_*Data.asset(kind)·BlockScorer.cs·GameSceneManager.cs·ResultSequence.cs·BlockScorerTests.cs(레벨 판별을 kind로), CHANGELOG.md
+- 확인 요청: 단계별 diff 리뷰(삭제 심볼 잔여 참조, 예외 분기 순서, 진입 소켓 캐시가 쓰이기 전 채워지는지, IsRepeat 동치, LevelKind와 기존 이름 판별 동치·레벨5 경로·null 기본값, LevelData 에셋 누락)
+- 결과: 통과(2회 호출, 8개 항목 모두 통과). Claude가 Unity 생성 csproj를 dotnet build로 컴파일 확인 — DG.Zone1·Tests·Editor 오류 0, C# 경고 0. Zone1 에디터가 MCP에 연결되어 있지 않아(MCP 서버에는 Zone4만 연결) PlayMode 테스트·Play 모드 확인은 하지 못함.
+
 ### [2026-10-01] Claude → Antigravity · T7 프로젝트 전체 스킬 준수·최적화 감사
 - 변경 파일: 없음(읽기 전용 감사). agy 6건 병렬(CodingBlock / BlockFactory·Spawner / 존·소켓 / 컴파일러·채점 / 결과·게임 씬 / 타이틀·스토리 씬), Claude는 grep 기반 규칙 점검과 App·Data·Network·Constants·씬 레이캐스트 직접 검토.
 - 결과: agy 지적을 코드로 확인해 확정·오탐을 나눔.
