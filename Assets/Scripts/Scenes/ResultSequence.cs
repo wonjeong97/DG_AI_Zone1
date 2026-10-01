@@ -489,6 +489,12 @@ namespace Scenes
                 // 터치 안내가 뜨기 전에 빠져나갔다면 타이머가 멈춘 채 남으므로 여기서 되돌린다.
                 if (_inactivityTimer) _inactivityTimer.Resume();
             }
+            catch (Exception ex)
+            {
+                // 연출 도중 예기치 않은 오류 — 타이머가 멈춘 채 남으면 체험자가 떠나도 타이틀로 돌아가지 않는다
+                if (_logger != null) _logger.ZLogError(ex, $"[ResultSequence] 결과 연출 중 오류가 발생해 비활동 타이머를 재개합니다.");
+                if (_inactivityTimer) _inactivityTimer.Resume();
+            }
         }
 
         /// <summary>
