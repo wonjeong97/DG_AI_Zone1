@@ -13,6 +13,18 @@
 
 ---
 
+### [2026-10-01] Claude → Antigravity · T7 프로젝트 전체 스킬 준수·최적화 감사
+- 변경 파일: 없음(읽기 전용 감사). agy 6건 병렬(CodingBlock / BlockFactory·Spawner / 존·소켓 / 컴파일러·채점 / 결과·게임 씬 / 타이틀·스토리 씬), Claude는 grep 기반 규칙 점검과 App·Data·Network·Constants·씬 레이캐스트 직접 검토.
+- 결과: agy 지적을 코드로 확인해 확정·오탐을 나눔.
+  - 확정(규칙): `static readonly` 순서 13곳, GetComponentInChildren/InParent 2곳(IntroSceneManager:60, CodingZoneZoom:54), 로거 미주입 컴포넌트의 Debug.Log 12곳, `Mathf.Approximately(wheel, 0f)`(CodingZoneZoom:80), GameSession SO를 런타임 상태 저장소로 사용, 표시 전용 TMP 텍스트 Raycast Target 켜짐(3_Game 약 22개 등), ResultRowsView가 IObjectResolver 대신 Instantiate.
+  - 확정(최적화): 드래그 중 매 이벤트 `transform.Find`+TryGetComponent·`name.Contains`(CodingBlock 스냅 탐색), FlowInnerResize.LateUpdate 매 프레임 체인 순회·형제 TryGetComponent.
+  - 확정(정리): 죽은 코드 CodingBlock.ReturnHome·CodingSlot·BlockFactory.CreateEmptyCodingSlot·CategoryButtonUI.SetReferences, 스냅 대상 선정 로직 중복(UpdateSnapHighlight/TrySnapToSocket), 레벨 종류를 에셋 이름으로 판별(Constants.Levels.IsXxx 22곳).
+  - 확정(버그): ResultSequence.PlaySequence에서 취소 외 예외 시 비활동 타이머가 멈춘 채 남음(이전 리뷰에서 보류한 건).
+  - 잠재(현재 데이터로 재현 불가): 함수 정의 안 함수 블록 시 무한 재귀(레벨5 함수 블록 1개라 불가), 만약 안 아니면 2개 통과(레벨3 아니면 1개).
+  - 오탐: 씬 매니저의 GameManagerBase 상속 요구(GameManagerBase는 DontDestroyOnLoad 싱글톤), ReturnHome InnerSocket 누락(호출처 없음), SnapInto Kill 후 좌표 튐(1135줄 가드), 드롭 시 parent null(드래그 중 부모는 캔버스), typeof(RectTransform)로 만든 오브젝트의 TryGetComponent 반환값 미검사.
+  - 결정 필요: 미션 실패여도 다음 레벨 해금(ResultSequence.OnNextClicked) — 기획 확인.
+  - 스킬 문서 보완 필요: 1번 "씬/전역 매니저는 GameManagerBase 상속" 문구가 싱글톤과 충돌, 23번 예시가 `private static readonly` 순서.
+
 ### [2026-10-01] Claude → Antigravity · 블록 탭 이름 변경·탭 라벨 겹침 (#60)
 - 변경 파일: Constants.cs(Condition "숫자·정보", Command "움직이기"), CategoryZone.cs(셀 180×52, 열 간격 32), CategoryButton.prefab(라벨 폭 128·왼쪽 정렬·줄바꿈 끔), GamtanRoadTantan SDF.asset(Dynamic 아틀라스 글자 추가), 1_Intro.unity(직업 이름 "신재생에너지 전문가", 사용자 편집), CHANGELOG.md, REVIEW_ITEMS.md
 - 결과: 통과(콘솔 에러 0, validate_script 이상 없음, 버튼 내부 합계 180 = 셀 180, 2열 총폭 408 ≤ 컨테이너 494, 인트로 {name}·color 태그 정상, CHANGELOG·REVIEW_ITEMS 반영 확인). 첫 호출은 확인 범위가 넓어 5분 제한에 걸려 둘로 나눠 다시 실행.

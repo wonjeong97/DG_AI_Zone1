@@ -15,6 +15,7 @@
 | T6 | 게임 씬 도움말 버튼 문구를 '힌트'로 복원 | Claude | 완료 | Canvas/Top/Button_Hint 텍스트 |
 | T4 | 수력 결과 '수문 닫기 조건(아니면)' ON/OFF (기획 A-9) | Claude | 완료 | 플레이어/AI/스킵 문구 |
 | T5 | 레벨1~4 storyText 오타·\r 정리 | Claude | 완료 | 마침표 위치, 줄바꿈 통일 |
+| T7 | 프로젝트 전체 스킬 준수·최적화·리팩터링 감사 | Claude + Antigravity | 완료(수정 대기) | 위반·개선 목록 작성(HANDOFF), 수정 범위는 사용자 결정 |
 
 ## 완료
 
