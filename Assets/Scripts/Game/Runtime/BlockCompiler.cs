@@ -275,7 +275,7 @@ namespace Game.Runtime
             List<InnerSocket> inners = new List<InnerSocket>();
             block.GetSockets(inners);
 
-            bool isRepeat = block.name.Contains(Constants.BlockLabels.RepeatKeyword);
+            bool isRepeat = block.IsRepeat;
 
             if (isRepeat)
             {
