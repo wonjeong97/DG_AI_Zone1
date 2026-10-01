@@ -13,6 +13,12 @@
 
 ---
 
+### [2026-10-01] Claude → Antigravity · 블록 탭 이름 변경·탭 라벨 겹침 (#60)
+- 변경 파일: Constants.cs(Condition "숫자·정보", Command "움직이기"), CategoryZone.cs(셀 180×52, 열 간격 32), CategoryButton.prefab(라벨 폭 128·왼쪽 정렬·줄바꿈 끔), GamtanRoadTantan SDF.asset(Dynamic 아틀라스 글자 추가), 1_Intro.unity(직업 이름 "신재생에너지 전문가", 사용자 편집), CHANGELOG.md, REVIEW_ITEMS.md
+- 결과: 통과(콘솔 에러 0, validate_script 이상 없음, 버튼 내부 합계 180 = 셀 180, 2열 총폭 408 ≤ 컨테이너 494, 인트로 {name}·color 태그 정상, CHANGELOG·REVIEW_ITEMS 반영 확인). 첫 호출은 확인 범위가 넓어 5분 제한에 걸려 둘로 나눠 다시 실행.
+  - 추가 지적 2건 보류: 프리팹 루트 sizeDelta(138×42)와 셀 크기 불일치는 이전부터 있었고 런타임에 그리드가 강제함, 그리드 정렬 여백은 총폭을 408로 유지해 이전과 동일.
+  - Claude가 Play 모드(3_Game)에서 확인: 탭 4개 모두 ColorBox와 글자 사이 8px, 한 줄, 버튼 안에 들어옴(숫자·정보는 오른쪽 끝까지 9px 여유). 옛 탭 이름('제어'/'동작')을 쓰는 씬·프리팹·에셋·JSON 없음(ripgrep).
+
 ### [2026-09-30] Claude → Antigravity · 결과 씬 새 디자인(피그마 에피소드1-6)
 - 변경 파일: ResultRowsView.cs·ResultRowView.cs(신규), ResultSequence.cs, Constants.cs(행 이름 상수, 결과 포맷 문자열 제거), ResultSceneSettings.cs·4_Result.json(rowFadeDuration, touchGuideDelay, 속도 조정), TypewriterTextTMP.cs(SetText 방어), 4_Result.unity(패널 재구성·확인 버튼→터치 안내), UI 리소스(Row_Result·Badge_Efficiency·Line_ResultDivider 추가, Panel_ResultPlayer/AI 교체), docs/design/Result_Episode1-6.png(시안)
 - 결과: agy 리뷰 4건 중 3건 반영 — 발전소 스킵 시 병원 전력 유지 '-' 복원, 행 컴포넌트 지연 조회·TypewriterTextTMP.SetText 방어, 행 높이 계산에 padding 반영·음수 방지. 취소 외 예외 시 타이머 재개는 기존 구조라 보류.
