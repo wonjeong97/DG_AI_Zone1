@@ -54,8 +54,8 @@ namespace Game
                 if (_logger != null) _logger.ZLogWarning($"[CategoryZone] buttonContainer에 GridLayoutGroup이 없습니다.");
                 return;
             }
-            grid.cellSize = new Vector2(150f, 52f);
-            grid.spacing = new Vector2(92f, 12f);
+            grid.cellSize = new Vector2(180f, 52f);
+            grid.spacing = new Vector2(32f, 12f);
             grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
             grid.constraintCount = 2;
             grid.padding = new RectOffset(8, 8, 4, 4);

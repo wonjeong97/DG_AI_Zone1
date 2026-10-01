@@ -111,13 +111,13 @@ public static class Constants
     public static class CategoryNames
     {
         public const string Control         = "제어";
-        public const string Command         = "동작";
+        public const string Command         = "움직이기";
         public const string Value           = "변수";
         public const string FlowControl     = "조건";
         public const string ConditionAction = "조건 동작";
         public const string Action          = "동작";
         public const string Logic           = "논리";
-        public const string Condition       = "제어";
+        public const string Condition       = "숫자·정보";
         public const string Function        = "함수";
         public const string FunctionDef     = "함수 정의";
         public const string Else            = "아니면";
