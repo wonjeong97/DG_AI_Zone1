@@ -10,6 +10,7 @@
 
 ## 완료
 
+- [x] 프로젝트 설정 정리: Player Settings Version을 수정일 26.10.1로 — 담당: Claude / 검증: Antigravity (2026-10-01)
 - [x] 씬별 카메라 후처리 정리: UI 전용 씬(0_Title·1_Intro·2_Story·5_Outro) 후처리 끔, 4_Result의 3D 렌더텍스처 카메라 8개는 투명 배경 유지를 위해 끈 채 유지 — 담당: Claude / 검증: Antigravity (2026-10-01)
 - [x] 게임 씬 도움말 버튼 문구를 '힌트'로 복원 — 담당: Claude (2026-09-29)
 - [x] 레벨1~4 storyText 오타·\r 정리 — 담당: Claude (2026-09-29)

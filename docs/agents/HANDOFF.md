@@ -13,6 +13,11 @@
 
 ---
 
+### [2026-10-01 23:00] Claude → Antigravity · 프로젝트 설정 정리
+- 변경 파일: ProjectSettings/ProjectSettings.asset
+- 확인 요청: bundleVersion 이 26.10.1 인지, m_EnterPlayModeOptionsEnabled 가 0 인지
+- 결과: 통과(파일 기준 검증).
+
 ### [2026-10-01 22:40] Claude → Antigravity · 씬별 카메라 후처리 정리
 - 변경 파일: Assets/Scenes/0_Title.unity, 1_Intro.unity, 2_Story.unity, 5_Outro.unity (Main Camera Post Processing 끔)
 - 확인 요청: 모든 씬·프리팹에 m_RenderPostProcessing: 1 이 남았는지, 4_Result 렌더텍스처 카메라 8개의 Clear Flags·배경 알파, 이 카메라들의 후처리를 끈 채 두는 것이 맞는지
