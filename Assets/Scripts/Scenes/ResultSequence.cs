@@ -77,7 +77,7 @@ namespace Scenes
 
         private const int MaxPercent = 100;
 
-        private string CurrentLevelName => _session && _session.currentLevel ? _session.currentLevel.name : null;
+        private LevelKind CurrentLevelKind => _session && _session.currentLevel ? _session.currentLevel.kind : LevelKind.Solar;
 
         // 셰이더 프로퍼티 조회 비용을 줄이기 위한 ID 캐시
         private readonly static int GrayscaleAmountId = Shader.PropertyToID("_GrayscaleAmount");
@@ -218,14 +218,14 @@ namespace Scenes
         /// </summary>
         private void ApplyLevelStage()
         {
-            string levelName = CurrentLevelName;
-            _isWindStage = Constants.Levels.IsWind(levelName);
-            _isHydroStage = Constants.Levels.IsHydro(levelName);
+            LevelKind kind = CurrentLevelKind;
+            _isWindStage = kind == LevelKind.Wind;
+            _isHydroStage = kind == LevelKind.Hydro;
             // TODO: 레벨5(미래에너지) 결과 연출은 기획 미정 — 정해지면 여기에 전용 분기를 추가할 것.
             //       채점은 레벨4와 같은 경로(ScorePowerPlant, 만점 30점)를 쓰지만 함수 블록이 추가되는 레벨이라
             //       결과 텍스트 항목은 따로 정해야 한다. 그때까지 레벨5는 표시할 값이 없어 '-'로 나온다.
             //       (05_FutureEnergyData의 resultTopText도 비어 있어 씬 기본 문구가 그대로 쓰인다)
-            _isPlantStage = Constants.Levels.IsPowerPlant(levelName);
+            _isPlantStage = kind == LevelKind.PowerPlant;
 
             if (solarStage) solarStage.SetActive(!_isWindStage && !_isHydroStage && !_isPlantStage);
             if (windStage) windStage.SetActive(_isWindStage);
@@ -244,7 +244,7 @@ namespace Scenes
                 return;
             }
 
-            string levelName = CurrentLevelName;
+            LevelKind kind = CurrentLevelKind;
 
             // 코딩 완료(컴파일 성공) 없이 넘어온 경우 값 대신 '-' 표시.
             // 레벨마다 채워지는 값이 달라 개별 필드로 판정하지 않고 게임 씬이 세운 플래그를 그대로 쓴다.
@@ -255,12 +255,12 @@ namespace Scenes
             if (hasCoding)
             {
                 // 최고 점수 대비 비율로 전력 수급 상태 판정
-                int maxScore = BlockScorer.GetMaxScore(levelName);
+                int maxScore = BlockScorer.GetMaxScore(kind);
                 float percent = maxScore > 0 ? _session.lastScore * 100f / maxScore : 0f;
                 string status = ToStatusText(percent);
                 _playerPercent = Mathf.Clamp(Mathf.FloorToInt(percent), 0, MaxPercent);
 
-                playerResult = BuildPlayerRows(levelName, status);
+                playerResult = BuildPlayerRows(kind, status);
                 isSuccess = status != Constants.ResultMessages.StatusPoor;
 
                 // 전력이 부족한 결과는 흑백으로 전환해 시각적으로 구분
@@ -275,15 +275,15 @@ namespace Scenes
                 // 문제로 주어진 값(바람 방향·강물 높이·발전소 상황)은 그대로 보여준다.
                 string poor = Constants.ResultMessages.StatusPoor;
                 playerResult =
-                    Constants.Levels.IsWind(levelName)       ? BuildWindRows(_session.lastQuestionTime, null, false, poor) :
-                    Constants.Levels.IsHydro(levelName)      ? BuildHydroRows(_session.lastQuestionTime, null, false, poor) :
-                    Constants.Levels.IsPowerPlant(levelName) ? BuildPowerPlantRows(null, OnOff(false), Constants.ResultMessages.NoValue, poor) :
-                                                               BuildSolarRows(null, null, poor);
+                    kind == LevelKind.Wind       ? BuildWindRows(_session.lastQuestionTime, null, false, poor) :
+                    kind == LevelKind.Hydro      ? BuildHydroRows(_session.lastQuestionTime, null, false, poor) :
+                    kind == LevelKind.PowerPlant ? BuildPowerPlantRows(null, OnOff(false), Constants.ResultMessages.NoValue, poor) :
+                                                   BuildSolarRows(null, null, poor);
                 ApplyGrayscale();
             }
 
             if (playerRows) playerRows.SetRows(playerResult);
-            if (aiRows) aiRows.SetRows(BuildAiRows(levelName));
+            if (aiRows) aiRows.SetRows(BuildAiRows(kind));
 
             if (completeTitleText)
                 completeTitleText.text = isSuccess ? Constants.ResultMessages.MissionSuccess : Constants.ResultMessages.MissionFail;
@@ -398,15 +398,15 @@ namespace Scenes
         /// <summary>
         /// 레벨에 맞는 플레이어 결과 행을 세션 값으로 만든다.
         /// </summary>
-        private List<ResultRow> BuildPlayerRows(string levelName, string status)
+        private List<ResultRow> BuildPlayerRows(LevelKind kind, string status)
         {
-            if (Constants.Levels.IsWind(levelName))
+            if (kind == LevelKind.Wind)
                 return BuildWindRows(_session.lastQuestionTime, _session.lastDirection, _session.lastRepeatUsed, status);
 
-            if (Constants.Levels.IsHydro(levelName))
+            if (kind == LevelKind.Hydro)
                 return BuildHydroRows(_session.lastQuestionTime, _session.lastGateHeight, _session.lastElseUsed, status);
 
-            if (Constants.Levels.IsPowerPlant(levelName))
+            if (kind == LevelKind.PowerPlant)
                 return BuildPowerPlantRows(_session.lastConditionText, OnOff(_session.lastRepeatNested),
                                            OnOff(_session.lastHospitalInRepeat), status);
 
@@ -416,22 +416,22 @@ namespace Scenes
         /// <summary>
         /// AI 결과 행을 만든다 — AI는 항상 정답(풍력은 정답 방향, 수력은 문제와 같은 높이)이다.
         /// </summary>
-        private List<ResultRow> BuildAiRows(string levelName)
+        private List<ResultRow> BuildAiRows(LevelKind kind)
         {
             string good = Constants.ResultMessages.StatusGood;
 
-            if (Constants.Levels.IsWind(levelName))
+            if (kind == LevelKind.Wind)
                 return BuildWindRows(_session.lastQuestionTime,
-                                     BlockScorer.GetBestDirection(_session.lastQuestionTime, levelName), true, good);
+                                     BlockScorer.GetBestDirection(_session.lastQuestionTime, kind), true, good);
 
-            if (Constants.Levels.IsHydro(levelName))
+            if (kind == LevelKind.Hydro)
                 return BuildHydroRows(_session.lastQuestionTime, _session.lastQuestionTime, true, good);
 
-            if (Constants.Levels.IsPowerPlant(levelName))
+            if (kind == LevelKind.PowerPlant)
                 return BuildPowerPlantRows(Constants.ResultMessages.PowerPlantBestCondition, OnOff(true), OnOff(true), good);
 
             return BuildSolarRows(BlockScorer.GetBestCount(),
-                                  BlockScorer.GetBestDirection(_session.lastQuestionTime, levelName), good);
+                                  BlockScorer.GetBestDirection(_session.lastQuestionTime, kind), good);
         }
 
         /// <summary>
@@ -558,7 +558,7 @@ namespace Scenes
             }
 
             if (aiPanelPose)
-                await aiPanelPose.ApplyAsync(null, BlockScorer.GetBestDirection(_session ? _session.lastQuestionTime : null, CurrentLevelName), ct);
+                await aiPanelPose.ApplyAsync(null, BlockScorer.GetBestDirection(_session ? _session.lastQuestionTime : null, CurrentLevelKind), ct);
             else
                 WarnMissingStage(nameof(aiPanelPose));
         }

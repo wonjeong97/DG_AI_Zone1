@@ -509,22 +509,22 @@ public static class Constants
         /// <summary>
         /// 레벨에 맞는 문제(문구·문제 값·정답)를 무작위로 출제한다.
         /// </summary>
-        public static QuestionData GenerateQuestion(string levelName)
+        public static QuestionData GenerateQuestion(Data.LevelKind kind)
         {
-            if (Levels.IsWind(levelName))
+            if (kind == Data.LevelKind.Wind)
             {
                 string dir = WindDirections[UnityEngine.Random.Range(0, WindDirections.Length)];
                 string text = $"바람이 <color=yellow>[{dir}]</color>에서 계속 불어와요.\n풍차 날개를 어느 쪽으로 돌려야 할까요?";
                 string ans = WindAnswers.TryGetValue(dir, out string a) ? a : dir;
                 return new QuestionData { QuestionText = text, ValueKey = dir, CorrectAnswer = ans };
             }
-            else if (Levels.IsHydro(levelName))
+            else if (kind == Data.LevelKind.Hydro)
             {
                 string height = HydroLevels[UnityEngine.Random.Range(0, HydroLevels.Length)];
                 string text = $"강물이 <color=yellow>[{height}]</color>보다 높아지면 위험해요.\n물이 <color=yellow>[{height}]</color>보다 높아지면\n댐의 수문을 어느 조건에 열고 닫아야 할까요?";
                 return new QuestionData { QuestionText = text, ValueKey = height, CorrectAnswer = null };
             }
-            else if (Levels.IsPowerPlant(levelName))
+            else if (kind == Data.LevelKind.PowerPlant)
             {
                 // 레벨4(발전소) — 레벨1/2처럼 매 판마다 랜덤으로 바뀌지 않고 밤/과부하로 고정된 문제
                 const string text = "지금은 <color=yellow>[밤]</color>이에요!\n전기를 너무 많이 사용<color=yellow>[과부하]</color>하고 있어요.\n놀이 시설의 불을 잠시 끄고, 병원의 불은 계속 켜 주세요.";
@@ -542,11 +542,11 @@ public static class Constants
         /// <summary>
         /// 문제 값에 대한 정답 방향을 반환한다 (알 수 없으면 null).
         /// </summary>
-        public static string GetCorrectDirection(string levelName, string valueKey)
+        public static string GetCorrectDirection(Data.LevelKind kind, string valueKey)
         {
             if (string.IsNullOrEmpty(valueKey)) return null;
 
-            if (Levels.IsWind(levelName))
+            if (kind == Data.LevelKind.Wind)
                 return WindAnswers.TryGetValue(valueKey, out string windAns) ? windAns : valueKey;
 
             return SolarAnswers.TryGetValue(valueKey, out string solarAns) ? solarAns : null;
@@ -554,37 +554,9 @@ public static class Constants
     }
 
     // ── 19. 레벨 이름 규칙 ─────────────────────────────────────────
+    // 레벨 종류는 LevelData.kind(Data.LevelKind)로 판별한다 — 여기에는 레벨 번호 파싱만 남는다
     public static class Levels
     {
-        // LevelData 에셋 이름("02_WindData")에 들어 있는 레벨 종류 키
-        public const string WindKey         = "WindData";
-        public const string HydroKey        = "HydroData";
-        public const string PowerPlantKey   = "PowerPlantData";
-        public const string FutureEnergyKey = "FutureEnergyData";
-
-        /// <summary>
-        /// 풍력(레벨2) 레벨인지 확인한다.
-        /// </summary>
-        public static bool IsWind(string levelName)         => HasKey(levelName, WindKey);
-        /// <summary>
-        /// 수력(레벨3) 레벨인지 확인한다.
-        /// </summary>
-        public static bool IsHydro(string levelName)        => HasKey(levelName, HydroKey);
-        /// <summary>
-        /// 발전소(레벨4) 레벨인지 확인한다.
-        /// </summary>
-        public static bool IsPowerPlant(string levelName)   => HasKey(levelName, PowerPlantKey);
-        /// <summary>
-        /// 미래에너지(레벨5) 레벨인지 확인한다.
-        /// </summary>
-        public static bool IsFutureEnergy(string levelName) => HasKey(levelName, FutureEnergyKey);
-
-        /// <summary>
-        /// 레벨 에셋 이름에 레벨 종류 키가 들어 있는지 확인한다.
-        /// </summary>
-        private static bool HasKey(string levelName, string key)
-            => !string.IsNullOrEmpty(levelName) && levelName.Contains(key);
-
         /// <summary>
         /// LevelData 에셋 이름("02_WindData")의 앞자리 숫자를 레벨 번호(2)로 파싱한다.
         /// Story/Hint 패널이 진행도가 아닌 실제 로드된 레벨을 기준으로 화면을 고를 때 사용한다.

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Cysharp.Text;
+using Data;
 
 namespace Game.Runtime
 {
@@ -10,19 +11,19 @@ namespace Game.Runtime
         /// <summary>
         /// 프로그램 전체를 레벨 규칙에 맞게 채점해 총점을 반환한다.
         /// </summary>
-        public static int ScoreProgram(List<BlockInstruction> instructions, string questionValueKey, string levelName = null)
+        public static int ScoreProgram(List<BlockInstruction> instructions, string questionValueKey, LevelKind kind = LevelKind.Solar)
         {
             // 레벨4/5(발전소·미래에너지)는 명령에 값이 없어 아래 순회 채점과 무관 — 구조/조건/명령 3항목을 더한 별도 채점
-            if (IsPowerPlant(levelName))
+            if (IsPowerPlant(kind))
                 return ScorePowerPlant(instructions);
 
-            bool isHydro = Constants.Levels.IsHydro(levelName);
+            bool isHydro = kind == LevelKind.Hydro;
 
             int total = 0;
             foreach (BlockInstruction instr in InstructionTree.Traverse(instructions))
             {
                 if (instr is CommandInstruction cmd)
-                    total += ScoreCommand(cmd, questionValueKey, levelName);
+                    total += ScoreCommand(cmd, questionValueKey, kind);
                 else if (isHydro && instr is IfInstruction ifInstr)
                 {
                     int conditionScore = ScoreHydroCondition(ifInstr.Condition, questionValueKey);
@@ -41,18 +42,18 @@ namespace Game.Runtime
         /// <summary>
         /// 레벨별 최고 점수를 반환한다. 레벨3(수력)은 조건×아니면×순서 3항목을 곱한 점수 체계라 별도 계산식을 쓴다.
         /// </summary>
-        public static int GetMaxScore(string levelName = null)
+        public static int GetMaxScore(LevelKind kind = LevelKind.Solar)
         {
-            if (Constants.Levels.IsHydro(levelName))
+            if (kind == LevelKind.Hydro)
                 return Constants.Scores.HydroExactScore
                      * Constants.Scores.HydroElsePlacedScore
                      * Constants.Scores.HydroGateOrderCorrectScore;
 
             // 풍력은 방향 3단계 채점(같은 방향=최고점)뿐이라 개수 점수를 더하지 않는다
-            if (Constants.Levels.IsWind(levelName))
+            if (kind == LevelKind.Wind)
                 return Constants.Scores.WindDirectionSameScore;
 
-            if (IsPowerPlant(levelName))
+            if (IsPowerPlant(kind))
                 return Constants.Scores.PowerPlantStructureNestedScore
                      + Constants.Scores.PowerPlantConditionAndScore
                      + Constants.Scores.PowerPlantCommandInRepeatScore;
@@ -63,8 +64,8 @@ namespace Game.Runtime
         /// <summary>
         /// 문제 값에 대한 정답(최고 점수) 방향을 반환한다.
         /// </summary>
-        public static string GetBestDirection(string questionValueKey, string levelName = null)
-            => Constants.Questions.GetCorrectDirection(levelName, questionValueKey);
+        public static string GetBestDirection(string questionValueKey, LevelKind kind = LevelKind.Solar)
+            => Constants.Questions.GetCorrectDirection(kind, questionValueKey);
 
         /// <summary>
         /// 가장 높은 점수를 주는 개수 값을 반환한다.
@@ -175,15 +176,15 @@ namespace Game.Runtime
         /// <summary>
         /// Command 하나를 연결된 값의 종류에 맞게 채점한다.
         /// </summary>
-        public static int ScoreCommand(CommandInstruction cmd, string questionValueKey, string levelName = null)
+        public static int ScoreCommand(CommandInstruction cmd, string questionValueKey, LevelKind kind = LevelKind.Solar)
         {
             if (cmd.Value is null) return 0;
 
             switch (cmd.ValueKind)
             {
                 case ValueKind.Direction:
-                    string correct = Constants.Questions.GetCorrectDirection(levelName, questionValueKey);
-                    if (Constants.Levels.IsWind(levelName))
+                    string correct = Constants.Questions.GetCorrectDirection(kind, questionValueKey);
+                    if (kind == LevelKind.Wind)
                         return ScoreWindDirection(cmd.Value, correct);
                     return correct is not null && cmd.Value == correct ? Constants.Scores.DirectionCorrectScore : 1;
                 case ValueKind.Angle:
@@ -244,8 +245,8 @@ namespace Game.Runtime
         /// <summary>
         /// 레벨4(발전소)·레벨5(미래에너지)처럼 발전소 채점 규칙을 쓰는 레벨인지 확인한다.
         /// </summary>
-        private static bool IsPowerPlant(string levelName) =>
-            Constants.Levels.IsPowerPlant(levelName) || Constants.Levels.IsFutureEnergy(levelName);
+        private static bool IsPowerPlant(LevelKind kind) =>
+            kind is LevelKind.PowerPlant or LevelKind.FutureEnergy;
 
         private const string PowerPlantAndOperator     = "그리고";
         private const string PowerPlantHospitalCommand = "병원 불 켜기";

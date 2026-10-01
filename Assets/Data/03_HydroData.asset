@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: 03_HydroData
   m_EditorClassIdentifier: 
   levelIndex: 2
+  kind: 2
   blockLayout: {fileID: 11400000, guid: 55cda33418a7d344397108c22fa051d3, type: 2}
   storyText: "\uAC15\uBB3C\uC758 \uC591\uC744 \uD655\uC778\uD558\uBA74\uC11C \uD544\uC694\uD55C
     \uACBD\uC6B0 \uC218\uBB38\uC744 \uC5F4\uC5B4\uC57C \uD574\uC694.\n<font=\"GamtanRoadTantan
