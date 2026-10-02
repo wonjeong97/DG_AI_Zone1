@@ -33,4 +33,4 @@ MonoBehaviour:
     correctAnswer: 
     hintObjectName: 
   hintRuleFormat: 
-  goToOutroAfterResult: 1
+  goToOutroAfterResult: 0
