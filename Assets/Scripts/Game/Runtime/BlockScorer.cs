@@ -54,9 +54,9 @@ namespace Game.Runtime
                 return Constants.Scores.WindDirectionSameScore;
 
             if (IsPowerPlant(kind))
-                return Constants.Scores.PowerPlantStructureNestedScore
+                return Constants.Scores.PowerPlantAmusementOffScore
                      + Constants.Scores.PowerPlantConditionAndScore
-                     + Constants.Scores.PowerPlantCommandInRepeatScore;
+                     + Constants.Scores.PowerPlantHospitalKeptScore;
 
             return Constants.Scores.DirectionCorrectScore + Constants.Scores.CountScore[GetBestCount()];
         }
@@ -118,22 +118,27 @@ namespace Game.Runtime
         }
 
         /// <summary>
-        /// 반복하기가 '만약' 안에 중첩돼 있는지 확인한다 — 레벨4 구조 채점과 결과의 '반복 감지'가 같은 기준을 쓴다.
+        /// '놀이시설 불 끄기'가 첫 '만약' 안(중첩 포함)에 있고 함정 '놀이시설 불 켜기'를 쓰지 않았는지 확인한다 —
+        /// 레벨4 놀이시설 채점과 결과의 '놀이시설 전력 차단'이 같은 기준을 쓴다.
         /// </summary>
-        public static bool IsRepeatNestedInIf(List<BlockInstruction> instructions)
+        public static bool IsAmusementPowerCut(List<BlockInstruction> instructions)
         {
             IfInstruction ifInstr = FindFirst<IfInstruction>(instructions);
-            return ifInstr is not null &&
-                (ContainsType<RepeatInstruction>(ifInstr.Then) || ContainsType<RepeatInstruction>(ifInstr.Else));
+            return ifInstr is not null
+                && ContainsCommandDeep(ifInstr.Then, PowerPlantAmusementOffCommand)
+                && !ContainsCommandDeep(instructions, PowerPlantAmusementOnCommand);
         }
 
         /// <summary>
-        /// '병원 불 켜기'가 반복하기 안에 있는지 확인한다 — 레벨4 명령 채점과 결과의 '병원 전력 유지'가 같은 기준을 쓴다.
+        /// '병원 불 켜기'가 반복하기 안에 있고 함정 '병원 불 끄기'를 쓰지 않았는지 확인한다 —
+        /// 레벨4 병원 채점과 결과의 '병원 전력 유지'가 같은 기준을 쓴다. 반복하기가 만약 안이든 밖이든 상관없다.
         /// </summary>
-        public static bool IsHospitalCommandInRepeat(List<BlockInstruction> instructions)
+        public static bool IsHospitalPowerKept(List<BlockInstruction> instructions)
         {
             RepeatInstruction repInstr = FindFirst<RepeatInstruction>(instructions);
-            return repInstr is not null && ContainsCommandDeep(repInstr.Body, PowerPlantHospitalCommand);
+            return repInstr is not null
+                && ContainsCommandDeep(repInstr.Body, PowerPlantHospitalOnCommand)
+                && !ContainsCommandDeep(instructions, PowerPlantHospitalOffCommand);
         }
 
         /// <summary>
@@ -250,27 +255,33 @@ namespace Game.Runtime
         private static bool IsPowerPlant(LevelKind kind) =>
             kind is LevelKind.PowerPlant or LevelKind.FutureEnergy;
 
-        private const string PowerPlantAndOperator     = "그리고";
-        private const string PowerPlantHospitalCommand = "병원 불 켜기";
+        private const string PowerPlantAndOperator = "그리고";
+
+        // 04_PowerPlantBlockLayout의 블록 라벨과 일치해야 한다 (채점은 블록 이름으로 명령을 구분). 켜기·끄기 중 하나씩은 함정 블록
+        private const string PowerPlantAmusementOffCommand = "놀이시설 불 끄기";
+        private const string PowerPlantAmusementOnCommand  = "놀이시설 불 켜기";
+        private const string PowerPlantHospitalOnCommand   = "병원 불 켜기";
+        private const string PowerPlantHospitalOffCommand  = "병원 불 끄기";
 
         /// <summary>
-        /// 레벨4/5를 채점한다 — 구조(만약 안에 반복하기 중첩 여부) + 조건(단일/그리고/또는) + 명령(반복하기 안 병원 불 켜기 여부) 3항목을 더한다.
+        /// 레벨4/5를 채점한다 — 놀이시설(만약 안에서 끄기) + 조건(단일/그리고/또는) + 병원(반복하기 안에서 켜기) 3항목을 더한다.
+        /// 함정 블록(놀이시설 불 켜기·병원 불 끄기)을 쓰면 관련 항목이 감점된다.
         /// </summary>
         private static int ScorePowerPlant(List<BlockInstruction> instructions)
         {
             IfInstruction ifInstr = FindFirst<IfInstruction>(instructions);
 
-            int structureScore = IsRepeatNestedInIf(instructions)
-                ? Constants.Scores.PowerPlantStructureNestedScore
-                : Constants.Scores.PowerPlantStructureOtherScore;
+            int amusementScore = IsAmusementPowerCut(instructions)
+                ? Constants.Scores.PowerPlantAmusementOffScore
+                : Constants.Scores.PowerPlantAmusementOtherScore;
 
             int conditionScore = ifInstr is not null ? ScorePowerPlantCondition(ifInstr.Condition) : 0;
 
-            int commandScore = IsHospitalCommandInRepeat(instructions)
-                ? Constants.Scores.PowerPlantCommandInRepeatScore
-                : Constants.Scores.PowerPlantCommandOtherScore;
+            int hospitalScore = IsHospitalPowerKept(instructions)
+                ? Constants.Scores.PowerPlantHospitalKeptScore
+                : Constants.Scores.PowerPlantHospitalOtherScore;
 
-            return structureScore + conditionScore + commandScore;
+            return amusementScore + conditionScore + hospitalScore;
         }
 
         /// <summary>
