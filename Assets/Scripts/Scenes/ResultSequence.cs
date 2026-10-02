@@ -435,66 +435,84 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 플레이어 결과 → AI 결과 → 터치 안내 → 완료 패널 순서의 결과 연출 전체를 진행한다.
+        /// 비활동 타이머를 멈춘 채 결과 연출 전체를 진행한다.
         /// </summary>
         private async UniTaskVoid PlaySequence()
         {
-            CancellationToken ct = destroyCancellationToken;
+            await RunWithTimerPausedAsync(_inactivityTimer, PlaySequenceStepsAsync, destroyCancellationToken, ex =>
+            {
+                if (_logger != null) _logger.ZLogError(ex, $"[ResultSequence] 결과 연출 중 오류가 발생해 비활동 타이머를 재개합니다.");
+            });
+        }
+
+        /// <summary>
+        /// 비활동 타이머를 멈춘 채 연출을 진행하고, 취소나 오류로 중간에 빠져나가도 타이머를 다시 켠다.
+        /// </summary>
+        public static async UniTask RunWithTimerPausedAsync(InactivityTimer timer, Func<CancellationToken, UniTask> steps,
+            CancellationToken ct, Action<Exception> onError = null)
+        {
             try
             {
                 // 터치 안내가 뜨기 전까지는 입력 없이 연출만 보는 구간 — 비활동 타이머를 멈춘다
-                if (_inactivityTimer) _inactivityTimer.Pause();
-
-                await LoadSceneSettingsAsync(ct);
-                _fadeDuration = await SceneFader.GetPanelFadeDurationAsync();
-
-                if (playerRows) await playerRows.PlayAsync(ct);
-                await SceneFader.FadeCanvasGroupAsync(playerImageGroup, 0f, 1f, _fadeDuration, ct);
-                await PlayPlayerStageAsync(ct);
-                await PlayEfficiencyAsync(playerEffGroup, playerEffText, _playerPercent, ct);
-                await FadeToGrayscaleAsync(ct);
-
-                await PlayAiStartAsync(ct);
-
-                // AI 시작 안내가 사라진 뒤 AI 결과 패널 페이드인 → 연출 시작
-                if (aiResultGroup)
-                    await SceneFader.FadeCanvasGroupAsync(aiResultGroup, 0f, 1f, _fadeDuration, ct);
-
-                if (aiRows) await aiRows.PlayAsync(ct);
-                await SceneFader.FadeCanvasGroupAsync(aiImageGroup, 0f, 1f, _fadeDuration, ct);
-                await PlayAiStageAsync(ct);
-                await PlayEfficiencyAsync(aiEffGroup, aiEffText, MaxPercent, ct);
-
-                // AI 결과를 읽을 틈을 준 뒤 안내를 띄운다
-                float guideDelay = _sceneSettings?.touchGuideDelay ?? touchGuideDelay;
-                await UniTask.Delay(TimeSpan.FromSeconds(guideDelay), cancellationToken: ct);
-                await ShowTouchGuideAsync(ct);
-
-                // 안내가 떴으니 이제부터는 사용자 입력을 기다리는 구간 — 타이머 재개
-                if (_inactivityTimer) _inactivityTimer.Resume();
-
-                // 화면 아무 곳이나 새로 누르면 완료 화면으로 넘어간다
-                await UniTask.WaitUntil(StoryLineAnimator.IsPointerPressedThisFrame, cancellationToken: ct);
-                HideTouchGuide();
-
-                // 순차 페이드 — resultPanel이 완전히 꺼진 뒤 completePanel이 켜짐
-                SceneFader.SetGroupInteractable(resultPanel, false);
-                await SceneFader.FadeCanvasGroupAsync(resultPanel, 1f, 0f, _fadeDuration, ct);
-                SceneFader.SetGroupInteractable(completePanel, true);
-                await SceneFader.FadeCanvasGroupAsync(completePanel, 0f, 1f, _fadeDuration, ct);
+                if (timer) timer.Pause();
+                await steps(ct);
             }
             catch (OperationCanceledException)
             {
                 // 시퀀스 도중 씬 전환(다음 버튼 등)으로 오브젝트가 파괴된 경우 — 정상 종료.
                 // 터치 안내가 뜨기 전에 빠져나갔다면 타이머가 멈춘 채 남으므로 여기서 되돌린다.
-                if (_inactivityTimer) _inactivityTimer.Resume();
+                if (timer) timer.Resume();
             }
             catch (Exception ex)
             {
                 // 연출 도중 예기치 않은 오류 — 타이머가 멈춘 채 남으면 체험자가 떠나도 타이틀로 돌아가지 않는다
-                if (_logger != null) _logger.ZLogError(ex, $"[ResultSequence] 결과 연출 중 오류가 발생해 비활동 타이머를 재개합니다.");
-                if (_inactivityTimer) _inactivityTimer.Resume();
+                onError?.Invoke(ex);
+                if (timer) timer.Resume();
             }
+        }
+
+        /// <summary>
+        /// 플레이어 결과 → AI 결과 → 터치 안내 → 완료 패널 순서의 결과 연출 전체를 진행한다.
+        /// </summary>
+        private async UniTask PlaySequenceStepsAsync(CancellationToken ct)
+        {
+            await LoadSceneSettingsAsync(ct);
+            _fadeDuration = await SceneFader.GetPanelFadeDurationAsync();
+
+            if (playerRows) await playerRows.PlayAsync(ct);
+            await SceneFader.FadeCanvasGroupAsync(playerImageGroup, 0f, 1f, _fadeDuration, ct);
+            await PlayPlayerStageAsync(ct);
+            await PlayEfficiencyAsync(playerEffGroup, playerEffText, _playerPercent, ct);
+            await FadeToGrayscaleAsync(ct);
+
+            await PlayAiStartAsync(ct);
+
+            // AI 시작 안내가 사라진 뒤 AI 결과 패널 페이드인 → 연출 시작
+            if (aiResultGroup)
+                await SceneFader.FadeCanvasGroupAsync(aiResultGroup, 0f, 1f, _fadeDuration, ct);
+
+            if (aiRows) await aiRows.PlayAsync(ct);
+            await SceneFader.FadeCanvasGroupAsync(aiImageGroup, 0f, 1f, _fadeDuration, ct);
+            await PlayAiStageAsync(ct);
+            await PlayEfficiencyAsync(aiEffGroup, aiEffText, MaxPercent, ct);
+
+            // AI 결과를 읽을 틈을 준 뒤 안내를 띄운다
+            float guideDelay = _sceneSettings?.touchGuideDelay ?? touchGuideDelay;
+            await UniTask.Delay(TimeSpan.FromSeconds(guideDelay), cancellationToken: ct);
+            await ShowTouchGuideAsync(ct);
+
+            // 안내가 떴으니 이제부터는 사용자 입력을 기다리는 구간 — 타이머 재개
+            if (_inactivityTimer) _inactivityTimer.Resume();
+
+            // 화면 아무 곳이나 새로 누르면 완료 화면으로 넘어간다
+            await UniTask.WaitUntil(StoryLineAnimator.IsPointerPressedThisFrame, cancellationToken: ct);
+            HideTouchGuide();
+
+            // 순차 페이드 — resultPanel이 완전히 꺼진 뒤 completePanel이 켜짐
+            SceneFader.SetGroupInteractable(resultPanel, false);
+            await SceneFader.FadeCanvasGroupAsync(resultPanel, 1f, 0f, _fadeDuration, ct);
+            SceneFader.SetGroupInteractable(completePanel, true);
+            await SceneFader.FadeCanvasGroupAsync(completePanel, 0f, 1f, _fadeDuration, ct);
         }
 
         /// <summary>
