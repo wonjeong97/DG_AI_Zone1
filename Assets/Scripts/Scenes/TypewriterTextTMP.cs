@@ -1,7 +1,10 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using TMPro;
 using UnityEngine;
+using VContainer;
+using ZLogger;
 
 namespace Scenes
 {
@@ -20,17 +23,33 @@ namespace Scenes
         }
 
         private TMP_Text _text;
+        private ILogger<TypewriterTextTMP> _logger;
 
         /// <summary>
-        /// 텍스트 컴포넌트를 캐싱하고 처음엔 아무 글자도 보이지 않게 한다.
+        /// 로거를 주입받는다.
+        /// </summary>
+        [Inject]
+        public void Construct(ILogger<TypewriterTextTMP> logger)
+        {
+            _logger = logger;
+        }
+
+        /// <summary>
+        /// 텍스트 컴포넌트를 캐싱하고 처음엔 아무 글자도 보이지 않게 한다 (씬 주입은 Awake 뒤라 실패 로그는 Start에서 남긴다).
         /// </summary>
         private void Awake()
         {
-            // RequireComponent로 보장되지만 실패 시 그 자리에서 드러나도록 bool 분기로 받는다
             if (TryGetComponent(out _text))
                 _text.maxVisibleCharacters = 0;
-            else
-                Debug.LogError($"[TypewriterTextTMP] {name}에 TMP_Text가 없습니다.");
+        }
+
+        /// <summary>
+        /// 텍스트 컴포넌트를 찾지 못했으면 로그를 남긴다 — RequireComponent로 보장되지만 실패 시 그 자리에서 드러나게 한다.
+        /// </summary>
+        private void Start()
+        {
+            if (!_text && _logger != null)
+                _logger.ZLogError($"[TypewriterTextTMP] {name}에 TMP_Text가 없습니다.");
         }
 
         /// <summary>
@@ -39,7 +58,11 @@ namespace Scenes
         public void SetText(string text)
         {
             // 꺼진 채 복제된 오브젝트는 Awake 전에 불릴 수 있다
-            if (!_text && !TryGetComponent(out _text)) return;
+            if (!_text && !TryGetComponent(out _text))
+            {
+                if (_logger != null) _logger.ZLogError($"[TypewriterTextTMP] {name}에 TMP_Text가 없어 텍스트를 바꾸지 못했습니다.");
+                return;
+            }
 
             _text.text = text;
             _text.maxVisibleCharacters = 0;

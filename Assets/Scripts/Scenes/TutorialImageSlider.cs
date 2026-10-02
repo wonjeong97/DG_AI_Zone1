@@ -1,11 +1,14 @@
 using System.Collections.Generic;
 using Cysharp.Text;
 using Cysharp.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using TMPro;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using VContainer;
+using ZLogger;
 
 namespace Scenes
 {
@@ -25,14 +28,23 @@ namespace Scenes
         private Image _image;
         private RectTransform _rectTransform;
         private int _currentIndex;
+        private ILogger<TutorialImageSlider> _logger;
 
         /// <summary>
-        /// 이미지와 RectTransform 참조를 캐싱한다.
+        /// 로거를 주입받는다.
+        /// </summary>
+        [Inject]
+        public void Construct(ILogger<TutorialImageSlider> logger)
+        {
+            _logger = logger;
+        }
+
+        /// <summary>
+        /// 이미지와 RectTransform 참조를 캐싱한다 (씬 주입은 Awake 뒤라 실패 로그는 Start에서 남긴다).
         /// </summary>
         private void Awake()
         {
-            if (!TryGetComponent(out _image))
-                Debug.LogError($"[TutorialImageSlider] {name}에 Image가 없습니다.");
+            TryGetComponent(out _image);
             _rectTransform = (RectTransform)transform;
         }
 
@@ -41,6 +53,9 @@ namespace Scenes
         /// </summary>
         private void Start()
         {
+            if (!_image && _logger != null)
+                _logger.ZLogError($"[TutorialImageSlider] {name}에 Image가 없습니다.");
+
             _currentIndex = 0;
             UpdatePageAsync().Forget();
         }

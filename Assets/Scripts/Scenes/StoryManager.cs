@@ -183,7 +183,7 @@ namespace Scenes
                     (float moveDuration, float interval, float yOffset) = await SceneFader.GetStoryLineSettingsAsync();
                     await StoryLineAnimator.AnimateAsync(storyText,
                         moveDuration, interval, yOffset,
-                        StoryLineAnimator.IsPointerPressedThisFrame, ct, _inactivityTimer);
+                        StoryLineAnimator.IsPointerPressedThisFrame, ct, _inactivityTimer, _logger);
                 }
 
                 if (startButton) startButton.interactable = true;

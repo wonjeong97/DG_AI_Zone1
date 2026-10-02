@@ -6,6 +6,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using HuliacDev.Core;
+using ZLogger;
 
 namespace Scenes
 {
@@ -27,13 +28,16 @@ namespace Scenes
         /// 연출과 대기 없이 즉시 통과하고, skipRequested가 true를 반환하면 남은 줄까지 즉시 표시하고 종료한다.
         /// inactivityTimer를 넘기면 연출이 진행되는 동안 비활동 타이머를 멈춘다 — 입력이 없어도 사용자는
         /// 글을 읽고 있는 구간이라 타임아웃으로 타이틀에 튕기면 안 되며, 스킵이나 취소로 빠져나가도 반드시 재개한다.
+        /// 정적 유틸리티라 호출부의 logger로 로그를 남기고, logger가 없을 때만 Unity 콘솔로 대체 출력한다.
         /// </summary>
         public static async UniTask AnimateAsync(TMP_Text text, float lineMoveDuration, float lineInterval, float lineYOffset,
-            Func<bool> skipRequested, CancellationToken token, InactivityTimer inactivityTimer = null)
+            Func<bool> skipRequested, CancellationToken token, InactivityTimer inactivityTimer = null,
+            Microsoft.Extensions.Logging.ILogger logger = null)
         {
             if (!text)
             {
-                Debug.LogWarning("[StoryLineAnimator] 연출할 텍스트가 없어 건너뜁니다.");
+                if (logger != null) logger.ZLogWarning($"[StoryLineAnimator] 연출할 텍스트가 없어 건너뜁니다.");
+                else Debug.LogWarning("[StoryLineAnimator] 연출할 텍스트가 없어 건너뜁니다.");
                 return;
             }
 

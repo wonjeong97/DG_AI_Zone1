@@ -1184,6 +1184,21 @@ namespace Game
         }
 
         /// <summary>
+        /// 안전망 — 소켓 없는 블록(완성하기 등)이 들어와 밀려났는데 넘길 소켓이 없을 때 코딩 패널 직속으로 옮긴다.
+        /// </summary>
+        public void MoveToCodingZone()
+        {
+            if (!_codingZone)
+            {
+                if (_logger != null) _logger.ZLogWarning($"[CodingBlock] {name}에 CodingZone이 연결되지 않아 코딩 패널로 옮기지 못했습니다.");
+                return;
+            }
+
+            transform.SetParent(_codingZone.transform, true);
+            SetHome(_codingZone.transform);
+        }
+
+        /// <summary>
         /// 드래그 취소 시 되돌아갈 부모를 기록한다.
         /// </summary>
         public void SetHome(Transform parent)

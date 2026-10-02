@@ -208,7 +208,7 @@ namespace Game
             if (nextOut)
                 nextOut.Accept(displaced);
             else
-                MoveToCodingZone(displaced);
+                displaced.MoveToCodingZone();
         }
 
         /// <summary>

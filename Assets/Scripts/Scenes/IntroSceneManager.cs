@@ -100,7 +100,7 @@ namespace Scenes
                 (float moveDuration, float interval, float yOffset) = await SceneFader.GetStoryLineSettingsAsync();
                 await StoryLineAnimator.AnimateAsync(visitorNameText,
                     moveDuration, interval, yOffset,
-                    StoryLineAnimator.IsPointerPressedThisFrame, ct, _inactivityTimer);
+                    StoryLineAnimator.IsPointerPressedThisFrame, ct, _inactivityTimer, _logger);
             }
             catch (System.OperationCanceledException)
             {

@@ -72,22 +72,5 @@ namespace Game
 
             return CanFit(displaced, nextOut.Occupant);
         }
-
-        /// <summary>
-        /// 안전망 — 소켓 없는 블록(완성하기 등)이 들어와 밀려난 블록을 넘길 곳이 없을 때
-        /// 코딩존 직속으로 되돌린다.
-        /// </summary>
-        protected static void MoveToCodingZone(CodingBlock block)
-        {
-            CodingZone zone = block.CodingZone;
-            if (!zone)
-            {
-                Debug.LogWarning($"[BlockSocket] {block.name}에 CodingZone이 연결되지 않아 코딩 패널로 옮기지 못했습니다.");
-                return;
-            }
-
-            block.transform.SetParent(zone.transform, true);
-            block.SetHome(zone.transform);
-        }
     }
 }

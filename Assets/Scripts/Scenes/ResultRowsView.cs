@@ -1,8 +1,12 @@
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using UnityEngine;
 using UnityEngine.UI;
+using VContainer;
+using VContainer.Unity;
+using ZLogger;
 
 namespace Scenes
 {
@@ -35,6 +39,18 @@ namespace Scenes
         [SerializeField] private float rowFadeDuration = 0.4f;
 
         private readonly List<ResultRowView> _rows = new();
+        private IObjectResolver _resolver;
+        private ILogger<ResultRowsView> _logger;
+
+        /// <summary>
+        /// 행 복제에 쓸 리졸버와 로거를 주입받는다 — 리졸버로 복제해야 행에도 로거가 주입된다.
+        /// </summary>
+        [Inject]
+        public void Construct(IObjectResolver resolver, ILogger<ResultRowsView> logger)
+        {
+            _resolver = resolver;
+            _logger = logger;
+        }
 
         // 4_Result.json의 typewriterCharInterval로 덮어쓴다
         public float CharInterval { get; set; } = 0.06f;
@@ -51,9 +67,15 @@ namespace Scenes
         /// </summary>
         public void SetRows(IReadOnlyList<ResultRow> rows)
         {
+            if (_resolver == null)
+            {
+                Debug.LogError("[ResultRowsView] Dependencies were not injected. Check that GameLifetimeScope injects scene root objects on load.");
+                return;
+            }
+
             if (!container || !rowTemplate)
             {
-                Debug.LogWarning($"[ResultRowsView] {name}에 container 또는 rowTemplate이 할당되지 않았습니다.");
+                if (_logger != null) _logger.ZLogWarning($"[ResultRowsView] {name}에 container 또는 rowTemplate이 할당되지 않았습니다.");
                 return;
             }
 
@@ -65,7 +87,7 @@ namespace Scenes
             float rowHeight = ComputeRowHeight(rows.Count);
             foreach (ResultRow row in rows)
             {
-                ResultRowView view = Instantiate(rowTemplate, container, false);
+                ResultRowView view = _resolver.Instantiate(rowTemplate, container, false);
                 // 복제본은 템플릿처럼 꺼진 채 생성되므로, Awake(컴포넌트 캐싱)가 돌도록 먼저 켠다
                 view.gameObject.SetActive(true);
                 view.Group.alpha = 0f;
