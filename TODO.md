@@ -6,8 +6,6 @@
 
 ## 진행 중
 
-- [ ] 감사 후속 2차(ZLogger 전환, SerializeField 연결, Raycast Target, FlowInnerResize, 스냅 선정 통합) — 브랜치 refactor/audit-followups, PR 남음 — 담당: Claude / 검증: Antigravity
-
 ## 할 일
 
 - [ ] (최종 영상 확정 후) 영상 오디오 트랙 제거 — 지금 Robot_260728.webm에 Unity가 지원하지 않는 Opus 오디오 트랙이 있어 인트로 재생 때 콘솔 에러가 남. 영상이 교체될 수 있어 최종 영상본이 정해지면 그 파일에서 ffmpeg -an으로 트랙을 지운다
@@ -15,6 +13,7 @@
 
 ## 완료
 
+- [x] 감사 후속 2차(ZLogger 전환, SerializeField 연결, Raycast Target, FlowInnerResize·Fitter 충돌 수정, 스냅 선정 통합) — PR #63, 리뷰·PlayMode 22/22 통과 — 담당: Claude / 검증: Antigravity (2026-10-02)
 - [x] (기획 확인) 미션 실패여도 다음 레벨이 열리는 동작 — 의도대로 유지, ResultSequence.OnNextClicked에 주석 (2026-10-02)
 - [x] 문제 문구·후보 값·정답·힌트 그림을 Constants.Questions·HintPanel에서 LevelData(SO)로 옮기기 — PR #62, 리뷰·PlayMode 22/22 통과 — 담당: Claude / 검증: Antigravity (2026-10-02)
 - [x] 스킬 준수 감사 1차 반영(타이머 버그와 회귀 테스트, 미사용 코드, 제어자 순서, 드래그 핫패스, LevelKind) — PR #61, 리뷰·PlayMode 19/19 통과 — 담당: Claude / 검증: Antigravity (2026-10-02)

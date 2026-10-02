@@ -22,6 +22,7 @@
   - FlowInnerResize가 여백을 뺀 자식 합을 매 프레임 써서 블록 루트의 ContentSizeFitter와 서로 덮어쓰던 기존 문제(매 프레임 레이아웃 재빌드)를 발견해 수정.
   - 기존 문제: Robot_260728.webm의 Opus 오디오 트랙 코덱 에러 — 최종 영상 확정 후 처리(TODO).
   - Play 중 TMP 동적 아틀라스에 추가된 폰트 에셋 변경과 테스트 실행 때 바뀐 EditorSettings.asset은 되돌림.
+  - 병합 전 PR #63 최종 리뷰(agy, 테스트 재실행 없이): 버그 없음, 개선 사항 없음. Claude 리뷰도 동일.
 
 ### [2026-10-02 11:06] Claude → Antigravity · 문제 데이터를 LevelData(SO)로 이전 (refactor/question-data-to-leveldata)
 - 변경 파일: LevelData.cs(questionFormat·questionOptions·hintRuleFormat, 조회 메서드), 01~05_*Data.asset(값 이전), Constants.cs(Questions 삭제, 정반대 방향 표는 Directions.Opposite), BlockScorer.cs(정답을 인자로 받음), GameSceneManager.cs(LevelData로 출제), ResultSequence.cs(CurrentCorrectAnswer), HintPanel.cs(힌트 그림 이름을 LevelData에서 읽음), BlockScorerTests.cs, LevelQuestionDataTests.cs(신규 3개)
