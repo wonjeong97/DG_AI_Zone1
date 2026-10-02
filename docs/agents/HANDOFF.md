@@ -13,6 +13,14 @@
 
 ---
 
+### [2026-10-02 18:00] Claude → Antigravity · 결과 씬 레벨5 연구소 연출·스테이지 카메라·양호 기준 75% (feat/result-lab-stage)
+- 변경 파일: LabLightGlow.cs(신규 — 부족 꺼짐 / 보통 weakIntensity 0.16 + 펄린 흔들림·불규칙 순간 꺼짐 / 양호 strongIntensity 8, 조명 배열이 비면 자식 조명 수집), ResultSequence.cs(labStage·playerLabGlow·aiLabGlow, FutureEnergy일 때 LabStage), ResultSceneSettings.cs·4_Result.json(labLightDuration), Constants.cs(GoodThresholdPercent 80→75), 4_Result.unity(LabStage — Prefab_Lab ×2 배율 10, 점광원 Light_B039 타워 그림자 Soft·Light_B044·B046 앞 육각 건물 그림자 없음 range 0.22, 색 (1,0.8,0), 카메라 2개 / 스테이지 카메라 10개 위치), LabLightGlowTests.cs(3개), CHANGELOG.md, TODO.md
+- 확인 요청: 연출 패턴·생명주기·깜빡임 상한, 레벨1~4 판정 불변(75~79% 효율 없음), 씬 참조·저장 상태·오버라이드, 자세별 렌더 잘림, 단계별 표시 구분, 테스트
+- 결과: 통과(agy 4회 — 초기 구현 5개·조명 단계 6개·리뷰 반영 5개 항목). 추가로 관점별 리뷰 워크플로(리뷰어 5 + 발견당 반박 검증 2)를 돌려 확정된 것 반영: 풍차 프리팹 인스턴스 날개 회전 오버라이드 8개(카메라 맞춤 중 회전을 되돌리며 생긴 float 1 ULP 차이) 제거, 뒷줄 건물에 가려진 조명 2개를 앞 건물로 이동, 테스트 private 필드 리플렉션 제거(unity-stack-scaffold 9·13번), HANDOFF·CHANGELOG 이동. 기각: 스테이징된 스크린샷·labStage null 대비(현재 씬에 발생 조건 없음). PlayMode 40/40(Claude 실행), 콘솔 에러 0.
+  - Claude가 직접 찾은 것: 발전소 피스톤(진폭 0.02 × 배율 10 = 월드 ±0.2)이 꽉 맞춘 카메라에서 위로 17% 잘림 → 피스톤 이동 범위 포함해 재조정.
+  - 조명 세기: 창문 너머 실내 벽이 조명과 가까워 세기 0.3에서도 포화 — 240x160 렌더 비교로 보통 0.16·양호 8 결정, 파란 성분이 있으면 흰색으로 날아가 색을 (1,0.8,0)으로.
+  - 렌더 확인: Temp/review/poses_all.png(자세 40장), lab_v2_tiers.png(조명 단계). 깜빡임은 실행 중 동작이라 테스트(흔들림·상한)로만 확인, Play 확인은 못 함.
+
 ### [2026-10-02 17:15] Claude → Antigravity · 레벨5 채점·결과 행·컴파일 규칙 (feat/level5-blocks)
 - 변경 파일: BlockScorer.cs(레벨5 채점 분리: GetEnergiesInFunction·UsesFunction, IsPowerPlant 삭제), Constants.cs(FutureEnergyBlockScore·LabelFunctionUsed·FunctionDefNotPlaced, 함수 관련 옛 문구 삭제), GameSession.cs·GameSceneManager.cs(세션 값, RestrictMainChainToFunction·HasFunctionBlock 삭제), ResultSequence.cs(BuildFutureEnergyRows), BlockCompiler.cs(함수 호출 시 함수 정의가 코딩 영역에 없으면 실패, 메인 체인 함수 필수·빈 정의 에러 삭제), ChainOutSocket.cs·CodingBlock.cs(레벨5 체인 제한 삭제), CategoryZone.cs(Select가 탭 카테고리로 정규화), 05 레이아웃(풍차 → 풍력)·05 데이터(문구 통일), 테스트(채점 1·컴파일 3), CHANGELOG.md, TODO.md, REVIEW_ITEMS.md
 - 확인 요청: 채점 분기·함수 안 에너지 집계·결과 행·세션, 잔여 심볼, 새 컴파일 검사와 탭 전환, 재귀 가능성, 테스트

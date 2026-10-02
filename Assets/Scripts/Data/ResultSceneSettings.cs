@@ -34,6 +34,9 @@ namespace Data
         // 발전소 피스톤·수증기 강도 램프업 시간(초) — 레벨4 결과 스테이지
         public float plantPumpDuration = 1.5f;
 
+        // 연구소 건물 안 조명이 밝아지는 시간(초) — 레벨5 결과 스테이지. 꺼진 상태에서 효율에 비례한 밝기까지
+        public float labLightDuration = 1.5f;
+
         // 'AI가 코딩을 시작합니다' 안내를 띄워 두는 시간(초)
         public float aiStartHold = 3f;
 
