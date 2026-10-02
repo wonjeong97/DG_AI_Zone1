@@ -87,21 +87,24 @@ public static class Constants
         public const int HydroGateOrderCorrectScore = 5;
         public const int HydroGateOrderWrongScore   = 1;
 
-        // 레벨4/5(발전소·미래에너지) 놀이시설 채점 — '놀이시설 불 끄기'가 만약 안에 있고 함정 '놀이시설 불 켜기'를 쓰지 않았으면 10점, 그 외 5점.
+        // 레벨4(발전소) 놀이시설 채점 — '놀이시설 불 끄기'가 만약 안에 있고 함정 '놀이시설 불 켜기'를 쓰지 않았으면 10점, 그 외 5점.
         // 반복하기 위치는 보지 않는다 — 병원 반복을 만약 안에 넣든 밖에 두든 문제(놀이시설은 잠시 끄고 병원은 계속 켜기)에 맞는 답이다.
         public const int PowerPlantAmusementOffScore   = 10;
         public const int PowerPlantAmusementOtherScore = 5;
 
-        // 레벨4/5 조건 채점 — 조건 블록 1개만 연결 5점 / 그리고로 두 조건 모두 연결 10점 / 또는으로 연결 5점.
+        // 레벨4 조건 채점 — 조건 블록 1개만 연결 5점 / 그리고로 두 조건 모두 연결 10점 / 또는으로 연결 5점.
         // 함정 조건(낮·전기 여유)이 하나라도 들어가면 0점
         public const int PowerPlantConditionSingleScore = 5;
         public const int PowerPlantConditionAndScore    = 10;
         public const int PowerPlantConditionOrScore     = 5;
         public const int PowerPlantConditionTrapScore   = 0;
 
-        // 레벨4/5 병원 채점 — '병원 불 켜기'가 반복하기 블록 안에 있고 함정 '병원 불 끄기'를 쓰지 않았으면 10점, 그 외 5점
+        // 레벨4 병원 채점 — '병원 불 켜기'가 반복하기 블록 안에 있고 함정 '병원 불 끄기'를 쓰지 않았으면 10점, 그 외 5점
         public const int PowerPlantHospitalKeptScore  = 10;
         public const int PowerPlantHospitalOtherScore = 5;
+
+        // 레벨5(미래에너지) 채점 — '미래 에너지 만들기' 함수 안에 넣은 에너지 블록 1개당 점수 (4개 모두 넣으면 100%)
+        public const int FutureEnergyBlockScore = 1;
 
         public readonly static System.Collections.Generic.Dictionary<string, int> AngleScore = new()
         {
@@ -188,6 +191,7 @@ public static class Constants
         public const string LabelCondition      = "조건";
         public const string LabelAmusement      = "놀이시설 끄기 조건(만약)";
         public const string LabelHospital       = "병원 전력 유지";
+        public const string LabelFunctionUsed   = "함수 사용";
 
         // 체험자가 정하지 않은 값(코딩을 건너뛴 경우 등)
         public const string NoValue = "-";

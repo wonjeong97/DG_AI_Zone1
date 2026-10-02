@@ -50,7 +50,7 @@ MonoBehaviour:
     chainBlocks: []
     chainSocketOffset: {x: 0, y: 0}
   - category: 1
-    label: "\uD48D\uCC28"
+    label: "\uD48D\uB825"
     controlRole: 0
     valueLabel: 
     valueKind: 0

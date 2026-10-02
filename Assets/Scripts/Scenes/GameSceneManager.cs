@@ -283,6 +283,8 @@ namespace Scenes
             _session.lastConditionText = BlockScorer.GetConditionText(instructions);
             _session.lastAmusementPowerCut = BlockScorer.IsAmusementPowerCut(instructions);
             _session.lastHospitalPowerKept = BlockScorer.IsHospitalPowerKept(instructions);
+            _session.lastFunctionUsed = BlockScorer.UsesFunction(instructions);
+            _session.lastEnergiesInFunction = BlockScorer.GetEnergiesInFunction(instructions);
             _session.hasCodingResult = true;
         }
 

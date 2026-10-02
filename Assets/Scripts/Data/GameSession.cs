@@ -20,6 +20,8 @@ namespace Data
         [System.NonSerialized] public string lastConditionText;  // 레벨4 결과의 '설정한 조건' — 만약에 연결한 조건식
         [System.NonSerialized] public bool lastAmusementPowerCut; // 레벨4 결과의 '놀이시설 끄기 조건(만약)'
         [System.NonSerialized] public bool lastHospitalPowerKept; // 레벨4 결과의 '병원 전력 유지'
+        [System.NonSerialized] public bool lastFunctionUsed;      // 레벨5 결과의 '함수 사용'
+        [System.NonSerialized] public System.Collections.Generic.List<string> lastEnergiesInFunction; // 레벨5 결과의 에너지별 ON/OFF — 함수 안에 넣은 에너지 이름
 
         // 컴파일에 성공해 채점까지 끝난 결과인지 — 넘어가기/미완료와 구분한다.
         // 레벨마다 채워지는 값이 달라 개별 필드로 판정하면 분기가 계속 늘고,
@@ -67,6 +69,8 @@ namespace Data
             lastConditionText = null;
             lastAmusementPowerCut = false;
             lastHospitalPowerKept = false;
+            lastFunctionUsed = false;
+            lastEnergiesInFunction = null;
             hasCodingResult = false;
         }
     }

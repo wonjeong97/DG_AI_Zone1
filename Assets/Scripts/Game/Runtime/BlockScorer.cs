@@ -13,9 +13,13 @@ namespace Game.Runtime
         /// </summary>
         public static int ScoreProgram(List<BlockInstruction> instructions, string questionValueKey, string correctAnswer, LevelKind kind = LevelKind.Solar)
         {
-            // 레벨4/5(발전소·미래에너지)는 명령에 값이 없어 아래 순회 채점과 무관 — 구조/조건/명령 3항목을 더한 별도 채점
-            if (IsPowerPlant(kind))
+            // 레벨4(발전소)는 명령에 값이 없어 아래 순회 채점과 무관 — 놀이시설/조건/병원 3항목을 더한 별도 채점
+            if (kind == LevelKind.PowerPlant)
                 return ScorePowerPlant(instructions);
+
+            // 레벨5(미래에너지)는 함수 안에 넣은 에너지 블록 수로 채점
+            if (kind == LevelKind.FutureEnergy)
+                return GetEnergiesInFunction(instructions).Count * Constants.Scores.FutureEnergyBlockScore;
 
             bool isHydro = kind == LevelKind.Hydro;
 
@@ -53,7 +57,10 @@ namespace Game.Runtime
             if (kind == LevelKind.Wind)
                 return Constants.Scores.WindDirectionSameScore;
 
-            if (IsPowerPlant(kind))
+            if (kind == LevelKind.FutureEnergy)
+                return FutureEnergyCommands.Length * Constants.Scores.FutureEnergyBlockScore;
+
+            if (kind == LevelKind.PowerPlant)
                 return Constants.Scores.PowerPlantAmusementOffScore
                      + Constants.Scores.PowerPlantConditionAndScore
                      + Constants.Scores.PowerPlantHospitalKeptScore;
@@ -178,6 +185,37 @@ namespace Game.Runtime
                 && !ContainsCommandDeep(instructions, PowerPlantHospitalOffCommand);
         }
 
+        // 05_FutureEnergyBlockLayout의 에너지 블록 라벨과 일치해야 한다 — 결과 화면 행 이름으로도 쓴다
+        private readonly static string[] FutureEnergyCommands = { "태양광", "풍력", "수력 발전", "스마트 도시 발전소" };
+
+        /// <summary>
+        /// 레벨5 에너지 블록 이름 목록 — 결과 화면이 이 순서대로 행을 만든다.
+        /// </summary>
+        public static IReadOnlyList<string> FutureEnergyNames => FutureEnergyCommands;
+
+        /// <summary>
+        /// 프로그램에서 함수를 호출했는지 확인한다 — 레벨5 결과의 '함수 사용' 표시용.
+        /// </summary>
+        public static bool UsesFunction(List<BlockInstruction> instructions)
+            => ContainsType<FunctionInstruction>(instructions);
+
+        /// <summary>
+        /// 호출한 함수 안(함수 정의 블록 안)에 들어 있는 레벨5 에너지 블록 이름을 모은다 — 레벨5 채점과 결과의 에너지별 ON/OFF가 같은 기준을 쓴다.
+        /// </summary>
+        public static List<string> GetEnergiesInFunction(List<BlockInstruction> instructions)
+        {
+            List<string> found = new List<string>();
+            foreach (BlockInstruction instr in InstructionTree.Traverse(instructions))
+            {
+                if (instr is not FunctionInstruction fn) continue;
+
+                foreach (string energy in FutureEnergyCommands)
+                    if (!found.Contains(energy) && ContainsCommandDeep(fn.Body, energy))
+                        found.Add(energy);
+            }
+            return found;
+        }
+
         /// <summary>
         /// 점수표에서 가장 높은 점수의 키를 반환한다.
         /// </summary>
@@ -286,12 +324,6 @@ namespace Game.Runtime
         private const string HydroOpenCommand  = "수문 열기";
         private const string HydroCloseCommand = "수문 닫기";
 
-        /// <summary>
-        /// 레벨4(발전소)·레벨5(미래에너지)처럼 발전소 채점 규칙을 쓰는 레벨인지 확인한다.
-        /// </summary>
-        private static bool IsPowerPlant(LevelKind kind) =>
-            kind is LevelKind.PowerPlant or LevelKind.FutureEnergy;
-
         private const string PowerPlantAndOperator = "그리고";
 
         // 04_PowerPlantBlockLayout의 블록 라벨과 일치해야 한다 (채점은 블록 이름으로 명령을 구분). 켜기·끄기 중 하나씩은 함정 블록
@@ -305,7 +337,7 @@ namespace Game.Runtime
         private const string PowerPlantSpareCondition = "전기 여유";
 
         /// <summary>
-        /// 레벨4/5를 채점한다 — 놀이시설(만약 안에서 끄기) + 조건(단일/그리고/또는) + 병원(반복하기 안에서 켜기) 3항목을 더한다.
+        /// 레벨4를 채점한다 — 놀이시설(만약 안에서 끄기) + 조건(단일/그리고/또는) + 병원(반복하기 안에서 켜기) 3항목을 더한다.
         /// 함정 블록(놀이시설 불 켜기·병원 불 끄기·낮·전기 여유)을 쓰면 관련 항목이 감점된다.
         /// </summary>
         private static int ScorePowerPlant(List<BlockInstruction> instructions)
