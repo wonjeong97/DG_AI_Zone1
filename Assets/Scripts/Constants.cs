@@ -178,10 +178,10 @@ public static class Constants
         public const string LabelWindDirection  = "감지된 바람 방향";
         public const string LabelBladeDirection = "풍차 방향";
         public const string LabelRepeat         = "반복 감지";
-        public const string LabelRiverHeight    = "감지된 강물의 높이";
         public const string LabelGateHeight     = "수문 개방 높이";
         public const string LabelConditionOn    = "조건 감지";
         public const string LabelElse           = "수문 닫기 조건(아니면)";
+        public const string LabelGateOrder      = "수문 열기·닫기 순서";
         public const string LabelSituation      = "상황";
         public const string LabelCondition      = "조건";
         public const string LabelHospital       = "병원 전력 유지";
@@ -198,6 +198,10 @@ public static class Constants
         // '반복 감지'·'조건 감지' 줄의 ON/OFF 표기
         public const string DetectedOn  = "ON";
         public const string DetectedOff = "OFF";
+
+        // '수문 열기·닫기 순서' 줄 — 수문 열기가 만약 안, 수문 닫기가 아니면 안에 있으면 정상
+        public const string GateOrderCorrect = "정상";
+        public const string GateOrderWrong   = "오류";
 
         // 'AI가 코딩을 시작합니다' 뒤 말줄임 애니메이션
         public const string AiCodingDots = "...";      // 슬롯 3개 — AiCodingDotCycle과 맞춰야 함

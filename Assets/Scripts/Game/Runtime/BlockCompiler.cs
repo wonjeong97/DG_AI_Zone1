@@ -503,8 +503,8 @@ namespace Game.Runtime
         }
 
         /// <summary>
-        /// 내부가 비어 있는 제어 블록(반복하기/만약)을 찾는다.
-        /// 만약 블록은 Then만 검사한다 — else 분기는 비워 둘 수 있다.
+        /// 내부가 비어 있는 제어 블록(반복하기/만약/아니면)을 찾는다.
+        /// 아니면은 놓았을 때만 검사한다 — 아니면 블록 없이 만약만 쓰는 것은 허용한다.
         /// </summary>
         private static CodingBlock FindFlowControlWithEmptyInner(List<BlockInstruction> instructions)
         {
@@ -516,6 +516,8 @@ namespace Game.Runtime
                         return rep.Source;
                     case IfInstruction ifInstr when ifInstr.Then is null || ifInstr.Then.Count == 0:
                         return ifInstr.Source;
+                    case IfInstruction ifInstr when ifInstr.HasElseMarker && (ifInstr.Else is null || ifInstr.Else.Count == 0):
+                        return ifInstr.ElseMarkerSource;
                 }
             }
             return null;

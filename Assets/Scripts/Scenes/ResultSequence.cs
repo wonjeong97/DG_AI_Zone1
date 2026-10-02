@@ -283,11 +283,11 @@ namespace Scenes
                 // 스킵/코딩 미완료 — 효율 0% 고정
                 _playerPercent = 0;
                 // 체험자가 정한 값은 '-', 감지 항목은 OFF, 발전이 일어나지 않았으니 전력 수급 상태는 '부족'.
-                // 문제로 주어진 값(바람 방향·강물 높이·발전소 상황)은 그대로 보여준다.
+                // 문제로 주어진 값(바람 방향·발전소 상황)은 그대로 보여준다.
                 string poor = Constants.ResultMessages.StatusPoor;
                 playerResult =
                     kind == LevelKind.Wind       ? BuildWindRows(_session.lastQuestionTime, null, false, poor) :
-                    kind == LevelKind.Hydro      ? BuildHydroRows(_session.lastQuestionTime, null, false, poor) :
+                    kind == LevelKind.Hydro      ? BuildHydroRows(null, false, Constants.ResultMessages.NoValue, poor) :
                     kind == LevelKind.PowerPlant ? BuildPowerPlantRows(null, OnOff(false), Constants.ResultMessages.NoValue, poor) :
                                                    BuildSolarRows(null, null, poor);
                 ApplyGrayscale();
@@ -381,18 +381,25 @@ namespace Scenes
         };
 
         /// <summary>
-        /// 레벨3(수력) 결과 행 — 문제로 나온 강물 높이 / 플레이어가 만약 블록에 연결한 수문 개방 높이 / 조건·아니면 사용 여부.
+        /// 레벨3(수력) 결과 행 — 플레이어가 만약 블록에 연결한 수문 개방 높이 / 조건·아니면 사용 여부 / 수문 열기·닫기 순서.
         /// 조건 감지는 조건 블록 연결 여부 — 조건 없이는 컴파일이 막히므로 정상 플레이에선 항상 ON이다.
-        /// 아니면은 채점 항목이라 빠뜨렸을 때 AI 결과와 달라 보이도록 따로 표시한다.
+        /// 아니면과 수문 열기·닫기 순서는 채점 항목이라 틀렸을 때 AI 결과와 달라 보이도록 따로 표시한다.
+        /// 코딩을 건너뛰면 수문 순서는 판단할 배치가 없으므로 정상/오류 대신 '-'로 둔다.
         /// </summary>
-        private static List<ResultRow> BuildHydroRows(string riverHeight, string gateHeight, bool elseUsed, string status) => new()
+        private static List<ResultRow> BuildHydroRows(string gateHeight, bool elseUsed, string gateOrder, string status) => new()
         {
-            new ResultRow(Constants.ResultMessages.LabelRiverHeight, OrNoValue(riverHeight)),
             new ResultRow(Constants.ResultMessages.LabelGateHeight, OrNoValue(gateHeight)),
             new ResultRow(Constants.ResultMessages.LabelConditionOn, OnOff(!string.IsNullOrEmpty(gateHeight))),
             new ResultRow(Constants.ResultMessages.LabelElse, OnOff(elseUsed)),
+            new ResultRow(Constants.ResultMessages.LabelGateOrder, gateOrder),
             new ResultRow(Constants.ResultMessages.LabelStatus, status),
         };
+
+        /// <summary>
+        /// 수문 열기·닫기 순서가 맞았는지를 정상/오류 표기로 바꾼다.
+        /// </summary>
+        private static string GateOrderText(bool isCorrect)
+            => isCorrect ? Constants.ResultMessages.GateOrderCorrect : Constants.ResultMessages.GateOrderWrong;
 
         /// <summary>
         /// 레벨4(발전소) 결과 행 — 고정 상황 / 플레이어가 만약에 연결한 조건식 / 반복 중첩·병원 명령 위치.
@@ -417,7 +424,8 @@ namespace Scenes
                 return BuildWindRows(_session.lastQuestionTime, _session.lastDirection, _session.lastRepeatUsed, status);
 
             if (kind == LevelKind.Hydro)
-                return BuildHydroRows(_session.lastQuestionTime, _session.lastGateHeight, _session.lastElseUsed, status);
+                return BuildHydroRows(_session.lastGateHeight, _session.lastElseUsed,
+                                      GateOrderText(_session.lastGateOrderCorrect), status);
 
             if (kind == LevelKind.PowerPlant)
                 return BuildPowerPlantRows(_session.lastConditionText, OnOff(_session.lastRepeatNested),
@@ -437,7 +445,7 @@ namespace Scenes
                 return BuildWindRows(_session.lastQuestionTime, CurrentCorrectAnswer, true, good);
 
             if (kind == LevelKind.Hydro)
-                return BuildHydroRows(_session.lastQuestionTime, _session.lastQuestionTime, true, good);
+                return BuildHydroRows(_session.lastQuestionTime, true, GateOrderText(true), good);
 
             if (kind == LevelKind.PowerPlant)
                 return BuildPowerPlantRows(Constants.ResultMessages.PowerPlantBestCondition, OnOff(true), OnOff(true), good);

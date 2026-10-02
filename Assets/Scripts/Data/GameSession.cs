@@ -16,6 +16,7 @@ namespace Data
         [System.NonSerialized] public bool lastRepeatUsed;   // 레벨2 결과의 '반복 감지' 표시용
         [System.NonSerialized] public string lastGateHeight; // 레벨3 결과의 '수문 개방 높이' — null이면 조건 감지 OFF
         [System.NonSerialized] public bool lastElseUsed;     // 레벨3 결과의 '수문 닫기 조건(아니면)' 표시용
+        [System.NonSerialized] public bool lastGateOrderCorrect; // 레벨3 결과의 '수문 열기·닫기 순서' 표시용
         [System.NonSerialized] public string lastConditionText;  // 레벨4 결과의 '설정한 조건' — 만약에 연결한 조건식
         [System.NonSerialized] public bool lastRepeatNested;     // 레벨4 결과의 '반복 감지' — 반복하기가 만약 안에 중첩
         [System.NonSerialized] public bool lastHospitalInRepeat; // 레벨4 결과의 '병원 전력 유지'
@@ -62,6 +63,7 @@ namespace Data
             lastRepeatUsed = false;
             lastGateHeight = null;
             lastElseUsed = false;
+            lastGateOrderCorrect = false;
             lastConditionText = null;
             lastRepeatNested = false;
             lastHospitalInRepeat = false;

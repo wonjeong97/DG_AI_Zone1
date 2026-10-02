@@ -163,5 +163,61 @@ namespace DG.Zone1.Tests
             Assert.AreEqual(1, body.Count);
             Assert.AreSame(cmd, body[0].Source);
         }
+
+        /// <summary>
+        /// 만약 안에 아니면을 놓고 그 아래를 비워 두면 아니면 블록을 지목하며 실패한다.
+        /// </summary>
+        [Test]
+        public void 아니면_아래가_비어_있으면_아니면_블록을_지목하며_실패한다()
+        {
+            CodingBlock elseBlock = BuildIfElse(out _, out _);
+
+            CompileResult result = BlockCompiler.Compile(_zone);
+
+            Assert.IsFalse(result.Success, "빈 아니면이 컴파일에 성공함");
+            CollectionAssert.AreEquivalent(new[] { elseBlock }, result.ErrorBlocks);
+        }
+
+        /// <summary>
+        /// 아니면 아래에 블록이 있으면 성공하고, 아니면 앞뒤 블록이 각각 Then·Else로 읽힌다.
+        /// </summary>
+        [Test]
+        public void 아니면_아래에_블록이_있으면_Else로_읽힌다()
+        {
+            CodingBlock elseBlock = BuildIfElse(out CodingBlock open, out CodingBlock close);
+            ChainOutSocket.OfBlock(elseBlock).Accept(close);
+
+            CompileResult result = BlockCompiler.Compile(_zone);
+
+            Assert.IsTrue(result.Success, result.Error);
+            IfInstruction ifInstr = result.Instructions[0] as IfInstruction;
+            Assert.IsNotNull(ifInstr, "첫 명령이 만약이 아님");
+            Assert.IsTrue(ifInstr.HasElseMarker);
+            Assert.AreEqual(1, ifInstr.Then.Count);
+            Assert.AreSame(open, ifInstr.Then[0].Source);
+            Assert.AreEqual(1, ifInstr.Else.Count);
+            Assert.AreSame(close, ifInstr.Else[0].Source);
+        }
+
+        /// <summary>
+        /// 시작하기 → 만약(5m 이상){ 수문 열기 → 아니면 } → 완성하기 를 조립한다. 수문 닫기는 아직 잇지 않는다.
+        /// </summary>
+        private CodingBlock BuildIfElse(out CodingBlock open, out CodingBlock close)
+        {
+            CodingBlock ifBlock = BlockTestUtil.MakeBlock(_zone, Constants.BlockLabels.If, BlockCategory.FlowControl, _inventory);
+            ValueOutSocket conditionSlot = BlockTestUtil.AddConditionSocket(ifBlock);
+            InnerSocket inner = BlockTestUtil.AddInnerSocket(ifBlock);
+            CodingBlock condition = BlockTestUtil.MakeBlock(_zone, "5m 이상", BlockCategory.Condition, _inventory);
+            CodingBlock elseBlock = BlockTestUtil.MakeBlock(_zone, Constants.BlockLabels.Else, BlockCategory.Else, _inventory);
+            open = BlockTestUtil.MakeBlock(_zone, "수문 열기", BlockCategory.Command, _inventory);
+            close = BlockTestUtil.MakeBlock(_zone, "수문 닫기", BlockCategory.Command, _inventory);
+
+            ChainOutSocket.OfBlock(_start).Accept(ifBlock);
+            conditionSlot.Accept(condition);
+            inner.Accept(open);
+            ChainOutSocket.OfBlock(open).Accept(elseBlock);
+            ChainOutSocket.OfBlock(ifBlock).Accept(_end);
+            return elseBlock;
+        }
     }
 }
