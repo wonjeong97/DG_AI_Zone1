@@ -13,6 +13,13 @@
 
 ---
 
+### [2026-10-02 10:16] Claude · T7 감사 반영 Unity 검증 (refactor/skill-audit-fixes, main 병합 후)
+- 변경 파일: 없음(검증만). main 병합(8d3fb8a) 뒤 Zone1 에디터에서 확인.
+- 확인 요청: 컴파일·콘솔 에러, PlayMode·EditMode 테스트
+- 결과: 통과. Claude가 직접 실행 — agy 실행 파일이 이 PC에서 없어져(`AppData\Local\agy\bin` 없음) 대신 실행함. 컴파일 에러 0, PlayMode 16/16 통과, EditMode 테스트 0개, 콘솔은 MCP WebSocket 경고 1건뿐.
+  - MCP run_tests(PlayMode)가 실행 중에 EditorSettings.asset을 `m_EnterPlayModeOptionsEnabled: 1`로 저장하고 메모리에서만 되돌림 → 메모리 값 False 확인 후 파일을 git checkout으로 되돌림.
+  - 블록 드래그 스냅과 레벨별 결과 화면은 Play 모드에서 직접 조작해 보지 않음(테스트는 컴파일·채점·소켓 점유만 다룸).
+
 ### [2026-10-01 23:00] Claude → Antigravity · 프로젝트 설정 정리
 - 변경 파일: ProjectSettings/ProjectSettings.asset
 - 확인 요청: bundleVersion 이 26.10.1 인지, m_EnterPlayModeOptionsEnabled 가 0 인지

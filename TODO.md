@@ -6,7 +6,7 @@
 
 ## 진행 중
 
-- [ ] 스킬 준수 감사 1차 반영(타이머 버그, 미사용 코드, 제어자 순서, 드래그 핫패스, LevelKind) — 브랜치 refactor/skill-audit-fixes, 리뷰·빌드 통과, PlayMode 테스트·Play 확인 남음 — 담당: Claude / 검증: Antigravity
+- [ ] 스킬 준수 감사 1차 반영(타이머 버그, 미사용 코드, 제어자 순서, 드래그 핫패스, LevelKind) — 브랜치 refactor/skill-audit-fixes, 리뷰·컴파일·PlayMode 16/16 통과, 블록 드래그·레벨별 결과 화면 직접 확인과 PR 남음 — 담당: Claude / 검증: Antigravity
 
 ## 할 일
 
