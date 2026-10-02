@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading;
+using App;
 using Cysharp.Text;
 using Cysharp.Threading.Tasks;
 using Data;
@@ -7,6 +8,7 @@ using Game;
 using Game.Runtime;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using TMPro;
 using VContainer;
@@ -54,6 +56,7 @@ namespace Scenes
         private GameSceneSettings _sceneSettings;
 
         private CancellationTokenSource _cts;
+        private GameInputActions _input; // 디버그 단축키(Space) — 컴파일 검증
         private string _questionTime;
         private string _correctAnswer; // 방향 문제의 정답 블록 라벨 — 정답 방향이 없는 레벨은 null
         private string _currentLevelName;
@@ -150,20 +153,41 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 스페이스바 입력 시 컴파일 검증만 수행한다 (채점·실행·씬 전환 없음).
+        /// 디버그 단축키(Space) 입력을 받기 시작한다.
         /// </summary>
-        private void Update()
+        private void OnEnable()
         {
-            if (Input.GetKeyDown(KeyCode.Space) && (!compileButton || compileButton.interactable))
+            _input ??= new GameInputActions();
+            _input.Debug.Shortcut.performed += OnDebugShortcut;
+            _input.Debug.Enable();
+        }
+
+        /// <summary>
+        /// 디버그 단축키 입력을 멈춘다.
+        /// </summary>
+        private void OnDisable()
+        {
+            if (_input == null) return;
+            _input.Debug.Shortcut.performed -= OnDebugShortcut;
+            _input.Debug.Disable();
+        }
+
+        /// <summary>
+        /// 디버그 단축키(Space) — 컴파일 검증만 수행한다 (채점·실행·씬 전환 없음).
+        /// </summary>
+        private void OnDebugShortcut(InputAction.CallbackContext _)
+        {
+            if (!compileButton || compileButton.interactable)
                 StartCompileAndRun(advanceScene: false);
         }
 
         /// <summary>
-        /// 진행 중인 컴파일·실행을 취소한다.
+        /// 진행 중인 컴파일·실행을 취소하고 입력 액션을 해제한다.
         /// </summary>
         private void OnDestroy()
         {
             CancelRun();
+            _input?.Dispose();
         }
 
         /// <summary>

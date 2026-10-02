@@ -1,11 +1,13 @@
 using System;
 using System.Threading;
+using App;
 using Cysharp.Text;
 using Cysharp.Threading.Tasks;
 using Data;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using Microsoft.Extensions.Logging;
 using UnityEngine.Video;
@@ -31,6 +33,7 @@ namespace Scenes
 
         private GameSession _session;
         private ILogger<StoryManager> _logger;
+        private GameInputActions _input; // 디버그 단축키(Space) — 모든 레벨 해금
         private InactivityTimer _inactivityTimer;
         private SoundManager _soundManager;
 
@@ -71,32 +74,78 @@ namespace Scenes
             foreach (GameObject panel in levelPanels)
                 if (panel) panel.SetActive(false);
 
-            int unlockedIndex = Mathf.Clamp(_session ? _session.unlockedLevelIndex : 0, 0, levelDataList.Length - 1);
-
             for (int i = 0; i < levelButtons.Length; i++)
             {
                 if (!levelButtons[i]) continue;
 
                 int btnIndex = i;
                 levelButtons[i].onClick.AddListener(() => OnLevelButtonClicked(btnIndex));
-
-                if (i <= unlockedIndex)
-                {
-                    levelButtons[i].interactable = true;
-                    if (levelButtons[i].image) levelButtons[i].image.material = null;
-                }
-                else
-                {
-                    levelButtons[i].interactable = false;
-                    if (levelButtons[i].image)
-                        levelButtons[i].image.material = UiEffects.GrayscaleMaterial;
-                }
             }
+
+            ApplyUnlockedLevels(Mathf.Clamp(_session ? _session.unlockedLevelIndex : 0, 0, levelDataList.Length - 1));
 
             if (startButton) startButton.onClick.AddListener(OnStartClicked);
 
             // 로봇 영상 — 진입과 동시에 루프 재생 (isLooping은 컴포넌트에 설정됨)
             SceneFader.PlayLoopingVideo(robotVideoPlayer, Constants.VideoPaths.RobotUrl, destroyCancellationToken, _logger);
+        }
+
+        /// <summary>
+        /// 해금된 레벨(unlockedIndex까지)의 버튼만 누를 수 있게 하고, 잠긴 레벨은 흑백으로 표시한다.
+        /// </summary>
+        private void ApplyUnlockedLevels(int unlockedIndex)
+        {
+            for (int i = 0; i < levelButtons.Length; i++)
+            {
+                if (!levelButtons[i]) continue;
+
+                bool unlocked = i <= unlockedIndex;
+                levelButtons[i].interactable = unlocked;
+                if (levelButtons[i].image)
+                    levelButtons[i].image.material = unlocked ? null : UiEffects.GrayscaleMaterial;
+            }
+        }
+
+        /// <summary>
+        /// 디버그 단축키(Space) 입력을 받기 시작한다.
+        /// </summary>
+        private void OnEnable()
+        {
+            _input ??= new GameInputActions();
+            _input.Debug.Shortcut.performed += OnDebugShortcut;
+            _input.Debug.Enable();
+        }
+
+        /// <summary>
+        /// 디버그 단축키 입력을 멈춘다.
+        /// </summary>
+        private void OnDisable()
+        {
+            if (_input == null) return;
+            _input.Debug.Shortcut.performed -= OnDebugShortcut;
+            _input.Debug.Disable();
+        }
+
+        /// <summary>
+        /// 입력 액션을 해제한다.
+        /// </summary>
+        private void OnDestroy()
+        {
+            _input?.Dispose();
+        }
+
+        /// <summary>
+        /// 디버그 단축키(Space) — 모든 레벨을 해금하고 버튼을 바로 갱신한다.
+        /// 레벨을 고른 뒤(스토리 화면)에는 선택된 버튼이 다시 눌리지 않도록 무시한다.
+        /// </summary>
+        private void OnDebugShortcut(InputAction.CallbackContext _)
+        {
+            if (_currentLevel) return;
+
+            int lastIndex = levelDataList.Length - 1;
+            if (_session) _session.unlockedLevelIndex = lastIndex;
+            ApplyUnlockedLevels(lastIndex);
+            if (_logger != null) _logger.ZLogInformation($"[StoryManager] 디버그 단축키로 모든 레벨을 해금했습니다.");
         }
 
         /// <summary>
