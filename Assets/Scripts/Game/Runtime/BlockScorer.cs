@@ -263,9 +263,13 @@ namespace Game.Runtime
         private const string PowerPlantHospitalOnCommand   = "병원 불 켜기";
         private const string PowerPlantHospitalOffCommand  = "병원 불 끄기";
 
+        // 조건 함정 블록 — 문제 상황(밤·전기 과부하)의 반대
+        private const string PowerPlantDayCondition   = "낮";
+        private const string PowerPlantSpareCondition = "전기 여유";
+
         /// <summary>
         /// 레벨4/5를 채점한다 — 놀이시설(만약 안에서 끄기) + 조건(단일/그리고/또는) + 병원(반복하기 안에서 켜기) 3항목을 더한다.
-        /// 함정 블록(놀이시설 불 켜기·병원 불 끄기)을 쓰면 관련 항목이 감점된다.
+        /// 함정 블록(놀이시설 불 켜기·병원 불 끄기·낮·전기 여유)을 쓰면 관련 항목이 감점된다.
         /// </summary>
         private static int ScorePowerPlant(List<BlockInstruction> instructions)
         {
@@ -285,15 +289,32 @@ namespace Game.Runtime
         }
 
         /// <summary>
-        /// 발전소 조건을 채점한다 — 조건 블록 1개만 연결(단순 조건) 5점 / 그리고로 연결 10점 / 또는으로 연결 5점.
+        /// 발전소 조건을 채점한다 — 함정 조건(낮·전기 여유)이 하나라도 있으면 0점,
+        /// 그 외 조건 블록 1개만 연결(단순 조건) 5점 / 그리고로 연결 10점 / 또는으로 연결 5점.
         /// </summary>
         private static int ScorePowerPlantCondition(ConditionExpr condition) => condition switch
         {
+            _ when HasTrapCondition(condition) => Constants.Scores.PowerPlantConditionTrapScore,
             LogicConditionExpr logic when logic.Operator == PowerPlantAndOperator => Constants.Scores.PowerPlantConditionAndScore,
             LogicConditionExpr => Constants.Scores.PowerPlantConditionOrScore,
             SimpleConditionExpr => Constants.Scores.PowerPlantConditionSingleScore,
             _ => 0
         };
+
+        /// <summary>
+        /// 조건식에 함정 조건 블록(낮·전기 여유)이 들어 있는지 확인한다.
+        /// </summary>
+        private static bool HasTrapCondition(ConditionExpr condition) => condition switch
+        {
+            SimpleConditionExpr s => IsTrapCondition(s.Name),
+            LogicConditionExpr l => IsTrapCondition(l.Left?.Name) || IsTrapCondition(l.Right?.Name),
+            _ => false
+        };
+
+        /// <summary>
+        /// 조건 블록 이름이 함정 조건인지 확인한다.
+        /// </summary>
+        private static bool IsTrapCondition(string name) => name is PowerPlantDayCondition or PowerPlantSpareCondition;
 
         /// <summary>
         /// 전위 순회에서 처음 만나는 지정 타입 명령을 반환한다.

@@ -131,16 +131,54 @@ namespace DG.Zone1.Tests
         }
 
         /// <summary>
+        /// 레벨4 조건은 그리고 10점 / 또는·단일 5점이고, 함정 조건(낮·전기 여유)이 하나라도 들어가면 0점이다.
+        /// </summary>
+        [Test]
+        public void 발전소_조건에_함정_조건이_들어가면_0점이다()
+        {
+            Assert.AreEqual(Constants.Scores.PowerPlantConditionAndScore, PlantConditionScore(Logic("전기 과부하", "그리고", "밤")));
+            Assert.AreEqual(Constants.Scores.PowerPlantConditionOrScore, PlantConditionScore(Logic("전기 과부하", "또는", "밤")));
+            Assert.AreEqual(Constants.Scores.PowerPlantConditionSingleScore, PlantConditionScore(new SimpleConditionExpr { Name = "밤" }));
+
+            Assert.AreEqual(Constants.Scores.PowerPlantConditionTrapScore, PlantConditionScore(Logic("전기 과부하", "그리고", "낮")), "그리고 + 낮");
+            Assert.AreEqual(Constants.Scores.PowerPlantConditionTrapScore, PlantConditionScore(Logic("전기 여유", "또는", "밤")), "또는 + 전기 여유");
+            Assert.AreEqual(Constants.Scores.PowerPlantConditionTrapScore, PlantConditionScore(new SimpleConditionExpr { Name = "낮" }), "낮 단독");
+        }
+
+        /// <summary>
+        /// 놀이시설·병원 항목을 만점으로 두고 조건만 바꾼 프로그램의 조건 점수를 구한다.
+        /// </summary>
+        private static int PlantConditionScore(ConditionExpr condition)
+        {
+            List<BlockInstruction> program = new List<BlockInstruction>
+                { PlantIfWith(condition, Cmd("놀이시설 불 끄기")), Repeat(Cmd("병원 불 켜기")) };
+            return BlockScorer.ScoreProgram(program, null, null, LevelKind.PowerPlant)
+                 - Constants.Scores.PowerPlantAmusementOffScore
+                 - Constants.Scores.PowerPlantHospitalKeptScore;
+        }
+
+        /// <summary>
+        /// 두 조건을 논리 블록으로 이은 조건식을 만든다.
+        /// </summary>
+        private static LogicConditionExpr Logic(string left, string op, string right) => new LogicConditionExpr
+        {
+            Operator = op,
+            Left = new SimpleConditionExpr { Name = left },
+            Right = new SimpleConditionExpr { Name = right }
+        };
+
+        /// <summary>
         /// '전기 과부하 그리고 밤' 조건의 만약 블록을 만든다.
         /// </summary>
-        private static IfInstruction PlantIf(params BlockInstruction[] then) => new IfInstruction
+        private static IfInstruction PlantIf(params BlockInstruction[] then)
+            => PlantIfWith(Logic("전기 과부하", "그리고", "밤"), then);
+
+        /// <summary>
+        /// 지정 조건의 만약 블록을 만든다.
+        /// </summary>
+        private static IfInstruction PlantIfWith(ConditionExpr condition, params BlockInstruction[] then) => new IfInstruction
         {
-            Condition = new LogicConditionExpr
-            {
-                Operator = "그리고",
-                Left = new SimpleConditionExpr { Name = "전기 과부하" },
-                Right = new SimpleConditionExpr { Name = "밤" }
-            },
+            Condition = condition,
             Then = new List<BlockInstruction>(then),
             Else = new List<BlockInstruction>()
         };

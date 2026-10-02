@@ -50,7 +50,25 @@ MonoBehaviour:
     chainBlocks: []
     chainSocketOffset: {x: 0, y: 0}
   - category: 7
+    label: "\uC804\uAE30 \uC5EC\uC720"
+    controlRole: 0
+    valueLabel: 
+    valueKind: 0
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
+  - category: 7
     label: "\uBC24"
+    controlRole: 0
+    valueLabel: 
+    valueKind: 5
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
+  - category: 7
+    label: "\uB0AE"
     controlRole: 0
     valueLabel: 
     valueKind: 5

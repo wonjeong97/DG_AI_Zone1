@@ -92,10 +92,12 @@ public static class Constants
         public const int PowerPlantAmusementOffScore   = 10;
         public const int PowerPlantAmusementOtherScore = 5;
 
-        // 레벨4/5 조건 채점 — 조건 블록 1개만 연결 5점 / 그리고로 두 조건 모두 연결 10점 / 또는으로 연결 5점
+        // 레벨4/5 조건 채점 — 조건 블록 1개만 연결 5점 / 그리고로 두 조건 모두 연결 10점 / 또는으로 연결 5점.
+        // 함정 조건(낮·전기 여유)이 하나라도 들어가면 0점
         public const int PowerPlantConditionSingleScore = 5;
         public const int PowerPlantConditionAndScore    = 10;
         public const int PowerPlantConditionOrScore     = 5;
+        public const int PowerPlantConditionTrapScore   = 0;
 
         // 레벨4/5 병원 채점 — '병원 불 켜기'가 반복하기 블록 안에 있고 함정 '병원 불 끄기'를 쓰지 않았으면 10점, 그 외 5점
         public const int PowerPlantHospitalKeptScore  = 10;
