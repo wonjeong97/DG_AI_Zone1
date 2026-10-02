@@ -12,7 +12,7 @@ namespace Scenes
     // 발전소 PowerPlantPump(피스톤)와 같은 자리에 대응한다.
     public class LabLightGlow : MonoBehaviour
     {
-        [Tooltip("건물 안에 둔 조명들 — 모두 같은 세기로 켜진다")]
+        [Tooltip("건물 안에 둔 조명들 — 모두 같은 세기로 켜진다. 비워 두면 자식 오브젝트의 조명을 모두 쓴다")]
         [SerializeField] private Light[] lights;
 
         // 창문 너머 실내 벽이 조명과 가까워 낮은 세기에서도 금방 밝아진다 — 보통은 창문 몇 개만 흐리게 보이는
@@ -124,11 +124,12 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 조명 세기를 모든 조명에 반영한다 — 0이면 조명을 꺼 그림자 계산도 하지 않는다.
+        /// 조명 세기를 모든 조명에 반영한다 — 조명 배열이 비어 있으면 자식 조명을 모아 쓰고, 0이면 조명을 꺼 그림자 계산도 하지 않는다.
         /// </summary>
         private void ApplyIntensity(float intensity)
         {
-            if (lights == null) return;
+            if (lights == null || lights.Length == 0)
+                lights = GetComponentsInChildren<Light>(true);
 
             foreach (Light l in lights)
             {

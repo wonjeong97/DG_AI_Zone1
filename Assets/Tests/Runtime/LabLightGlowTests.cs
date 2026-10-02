@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.Reflection;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using NUnit.Framework;
@@ -22,7 +21,7 @@ namespace DG.Zone1.Tests
         private LabLightGlow _glow;
 
         /// <summary>
-        /// 조명 1개를 가진 연구소 조명 컴포넌트를 만든다 (조명 배열은 인스펙터 전용 필드라 리플렉션으로 넣는다).
+        /// 조명 1개를 가진 연구소 조명 컴포넌트를 만든다 (조명 배열을 비워 두면 같은 오브젝트·자식의 조명을 쓴다).
         /// </summary>
         [SetUp]
         public void SetUp()
@@ -30,8 +29,6 @@ namespace DG.Zone1.Tests
             _go = new GameObject("LabLightGlowTests");
             _light = _go.AddComponent<Light>();
             _glow = _go.AddComponent<LabLightGlow>();
-            typeof(LabLightGlow).GetField("lights", BindingFlags.NonPublic | BindingFlags.Instance)
-                .SetValue(_glow, new[] { _light });
             _glow.RampDuration = 0.01f;
         }
 
