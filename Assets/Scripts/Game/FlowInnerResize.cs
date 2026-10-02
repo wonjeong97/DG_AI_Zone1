@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
+using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.UI;
 using VContainer;
@@ -22,6 +24,13 @@ namespace Game
         private float         _socketOffset;
         private float         _bottomSocketOffset;
         private ILogger<FlowInnerResize> _logger;
+
+        // 부모(블록)의 레이아웃 대상 자식 — 매 프레임 자식마다 GetComponent하지 않도록 모아 두고, 자식 수가 바뀌면 다시 모은다
+        private readonly List<LayoutElement> _siblingLayouts = new();
+        private int _cachedChildCount = -1;
+
+        // 매 프레임 도는 높이 계산 구간 — Deep Profile 없이도 Profiler에서 따로 보이도록 표시한다
+        private readonly static ProfilerMarker LateUpdateMarker = new ProfilerMarker("FlowInnerResize.LateUpdate");
 
         /// <summary>
         /// 로거를 주입받는다 (블록 생성 직후 BlockSpawner가 블록 계층 전체에 주입).
@@ -62,11 +71,23 @@ namespace Game
 
         /// <summary>
         /// 내부 체인 길이에 맞춰 Inner 높이와 부모(블록) 전체 높이를 갱신한다.
+        /// 블록이 붙을 때 스냅 트윈이 여러 프레임에 걸쳐 위치를 옮기고 안쪽 블록 높이도 바뀌므로 매 프레임 확인한다.
         /// </summary>
         private void LateUpdate()
         {
             if (!_le || !socket) return;
 
+            using (LateUpdateMarker.Auto())
+            {
+                UpdateHeights();
+            }
+        }
+
+        /// <summary>
+        /// Inner 높이를 체인 길이에 맞추고, 부모(블록) 전체 높이를 레이아웃 자식들의 선호 높이 합으로 맞춘다.
+        /// </summary>
+        private void UpdateHeights()
+        {
             // 블록이 하나라도 들어오면 마지막 블록의 ChainOutSocket이 InnerBottomSocket 위치에
             // 오도록 높이를 계산 (ChainHeight − 위쪽 소켓 오프셋 + 아래쪽 소켓 오프셋)
             float innerTarget = socket.Occupant
@@ -91,14 +112,24 @@ namespace Game
         /// </summary>
         private float SumChildPreferredHeights()
         {
+            // 블록 생성 중 else 헤더·Inner가 비동기로 덧붙거나 드래그 시작 때 소켓이 붙으면 자식 수가 바뀌므로 그때만 다시 모은다
+            if (_cachedChildCount != _parentRt.childCount) CacheSiblingLayouts();
+
             float total = 0f;
-            for (int i = 0; i < _parentRt.childCount; i++)
-            {
-                Transform child = _parentRt.GetChild(i);
-                if (!child.TryGetComponent<LayoutElement>(out LayoutElement le) || le.ignoreLayout) continue;
-                total += le.preferredHeight;
-            }
+            foreach (LayoutElement le in _siblingLayouts)
+                if (le && !le.ignoreLayout) total += le.preferredHeight;
             return total;
+        }
+
+        /// <summary>
+        /// 부모(블록)의 직계 자식 중 LayoutElement가 있는 것을 모아 둔다.
+        /// </summary>
+        private void CacheSiblingLayouts()
+        {
+            _siblingLayouts.Clear();
+            for (int i = 0; i < _parentRt.childCount; i++)
+                if (_parentRt.GetChild(i).TryGetComponent(out LayoutElement le)) _siblingLayouts.Add(le);
+            _cachedChildCount = _parentRt.childCount;
         }
 
         /// <summary>
