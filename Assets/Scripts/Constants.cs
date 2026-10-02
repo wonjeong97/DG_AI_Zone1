@@ -170,7 +170,7 @@ public static class Constants
 
         // 최고 점수 대비 비율(%)로 전력 수급 상태를 나눈다 — 미만/이상 경계값
         public const float NormalThresholdPercent = 50f;
-        public const float GoodThresholdPercent   = 80f;
+        public const float GoodThresholdPercent   = 75f;
 
         // 효율 숫자 — '에너지 효율' 이름표는 배지 이미지 위 고정 텍스트
         public const string EfficiencyFormat = "{0:D2}%";

@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -10,10 +11,12 @@ using UnityEngine.TestTools;
 namespace DG.Zone1.Tests
 {
     /// <summary>
-    /// 레벨5 결과 연구소 조명이 효율(%)에 비례해 밝아지고, 0%·기본 상태에서는 꺼져 있는지 검증한다.
+    /// 레벨5 결과 연구소 조명이 전력 수급 단계(부족 꺼짐·보통 약하게 깜빡임·양호 강하게)대로 켜지는지 검증한다.
     /// </summary>
     public class LabLightGlowTests
     {
+        private const int FlickerSampleFrames = 30;
+
         private GameObject _go;
         private Light _light;
         private LabLightGlow _glow;
@@ -42,18 +45,19 @@ namespace DG.Zone1.Tests
         }
 
         /// <summary>
-        /// 효율이 높을수록 밝고, 50%는 100%의 절반 밝기다. 기본 상태로 되돌리면 꺼진다.
+        /// 양호(75% 이상)는 75%든 100%든 같은 강한 밝기로 켜지고, 기본 상태로 되돌리면 꺼진다.
         /// </summary>
         [UnityTest]
-        public IEnumerator 효율에_비례해_밝아지고_기본_상태에서는_꺼진다() => UniTask.ToCoroutine(async () =>
+        public IEnumerator 양호는_강하게_켜지고_기본_상태에서는_꺼진다() => UniTask.ToCoroutine(async () =>
         {
             await _glow.ApplyAsync(100, CancellationToken.None).AwaitWithRealtimeTimeout();
-            float full = _light.intensity;
-            Assert.IsTrue(_light.enabled, "100%인데 조명이 꺼져 있음");
-            Assert.Greater(full, 0f);
+            float strong = _light.intensity;
+            Assert.IsTrue(_light.enabled, "양호인데 조명이 꺼져 있음");
+            Assert.Greater(strong, 0f);
 
-            await _glow.ApplyAsync(50, CancellationToken.None).AwaitWithRealtimeTimeout();
-            Assert.AreEqual(full * 0.5f, _light.intensity, 0.001f, "50%가 100%의 절반 밝기가 아님");
+            await _glow.ApplyAsync(75, CancellationToken.None).AwaitWithRealtimeTimeout();
+            await UniTask.Yield();
+            Assert.AreEqual(strong, _light.intensity, 0.001f, "75%(양호)가 100%와 다른 밝기");
 
             _glow.SetNeutral();
             Assert.IsFalse(_light.enabled, "기본 상태인데 조명이 켜져 있음");
@@ -61,16 +65,45 @@ namespace DG.Zone1.Tests
         });
 
         /// <summary>
-        /// 효율 0%면 조명은 켜지지 않는다.
+        /// 부족(50% 미만)이면 조명은 켜지지 않는다.
         /// </summary>
         [UnityTest]
-        public IEnumerator 효율_0이면_조명이_꺼진_채로_있다() => UniTask.ToCoroutine(async () =>
+        public IEnumerator 부족이면_조명이_꺼진_채로_있다() => UniTask.ToCoroutine(async () =>
         {
             _glow.SetNeutral();
-            await _glow.ApplyAsync(0, CancellationToken.None).AwaitWithRealtimeTimeout();
+            await _glow.ApplyAsync(25, CancellationToken.None).AwaitWithRealtimeTimeout();
+            await UniTask.Yield();
 
             Assert.IsFalse(_light.enabled);
             Assert.AreEqual(0f, _light.intensity);
+        });
+
+        /// <summary>
+        /// 보통(50% 이상 75% 미만)은 양호보다 약하게 켜지고, 프레임마다 밝기가 흔들리되 약한 밝기를 넘지 않는다.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator 보통은_약하게_켜져_불안정하게_깜빡인다() => UniTask.ToCoroutine(async () =>
+        {
+            await _glow.ApplyAsync(100, CancellationToken.None).AwaitWithRealtimeTimeout();
+            float strong = _light.intensity;
+
+            await _glow.ApplyAsync(50, CancellationToken.None).AwaitWithRealtimeTimeout();
+            float weak = _light.intensity;
+            Assert.Greater(weak, 0f, "보통인데 조명이 꺼져 있음");
+            Assert.Less(weak, strong, "보통이 양호만큼 밝음");
+
+            HashSet<float> samples = new HashSet<float>();
+            for (int i = 0; i < FlickerSampleFrames; i++)
+            {
+                await UniTask.Yield();
+                Assert.LessOrEqual(_light.intensity, weak + 0.001f, "깜빡임이 보통 밝기를 넘어섬");
+                samples.Add(_light.intensity);
+            }
+            Assert.Greater(samples.Count, 1, "보통인데 밝기가 흔들리지 않음");
+
+            _glow.SetNeutral();
+            await UniTask.Yield();
+            Assert.IsFalse(_light.enabled, "기본 상태로 되돌린 뒤에도 깜빡임이 남아 조명이 켜짐");
         });
     }
 }

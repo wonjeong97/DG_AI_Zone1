@@ -2147,7 +2147,7 @@ Light:
   serializedVersion: 10
   m_Type: 2
   m_Shape: 0
-  m_Color: {r: 1, g: 0.78, b: 0.2, a: 1}
+  m_Color: {r: 1, g: 0.8, b: 0, a: 1}
   m_Intensity: 0
   m_Range: 0.84
   m_SpotAngle: 30
@@ -2377,8 +2377,13 @@ MonoBehaviour:
   - {fileID: 464679598}
   - {fileID: 1649609972}
   - {fileID: 1308838990}
-  maxIntensity: 10
+  weakIntensity: 0.16
+  strongIntensity: 8
   rampDuration: 1.5
+  flickerSpeed: 9
+  flickerDepth: 0.6
+  dropoutInterval: {x: 0.4, y: 1.6}
+  dropoutDuration: {x: 0.04, y: 0.14}
 --- !u!1 &557529920
 GameObject:
   m_ObjectHideFlags: 0
@@ -3391,8 +3396,13 @@ MonoBehaviour:
   - {fileID: 968181566}
   - {fileID: 832195724}
   - {fileID: 1263855001}
-  maxIntensity: 10
+  weakIntensity: 0.16
+  strongIntensity: 8
   rampDuration: 1.5
+  flickerSpeed: 9
+  flickerDepth: 0.6
+  dropoutInterval: {x: 0.4, y: 1.6}
+  dropoutDuration: {x: 0.04, y: 0.14}
 --- !u!1001 &750047379
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3900,7 +3910,7 @@ Light:
   serializedVersion: 10
   m_Type: 2
   m_Shape: 0
-  m_Color: {r: 1, g: 0.78, b: 0.2, a: 1}
+  m_Color: {r: 1, g: 0.8, b: 0, a: 1}
   m_Intensity: 0
   m_Range: 0.43
   m_SpotAngle: 30
@@ -4189,7 +4199,7 @@ Light:
   serializedVersion: 10
   m_Type: 2
   m_Shape: 0
-  m_Color: {r: 1, g: 0.78, b: 0.2, a: 1}
+  m_Color: {r: 1, g: 0.8, b: 0, a: 1}
   m_Intensity: 0
   m_Range: 0.84
   m_SpotAngle: 30
@@ -5454,7 +5464,7 @@ Light:
   serializedVersion: 10
   m_Type: 2
   m_Shape: 0
-  m_Color: {r: 1, g: 0.78, b: 0.2, a: 1}
+  m_Color: {r: 1, g: 0.8, b: 0, a: 1}
   m_Intensity: 0
   m_Range: 0.35
   m_SpotAngle: 30
@@ -5699,7 +5709,7 @@ Light:
   serializedVersion: 10
   m_Type: 2
   m_Shape: 0
-  m_Color: {r: 1, g: 0.78, b: 0.2, a: 1}
+  m_Color: {r: 1, g: 0.8, b: 0, a: 1}
   m_Intensity: 0
   m_Range: 0.35
   m_SpotAngle: 30
@@ -6709,7 +6719,7 @@ Light:
   serializedVersion: 10
   m_Type: 2
   m_Shape: 0
-  m_Color: {r: 1, g: 0.78, b: 0.2, a: 1}
+  m_Color: {r: 1, g: 0.8, b: 0, a: 1}
   m_Intensity: 0
   m_Range: 0.43
   m_SpotAngle: 30
