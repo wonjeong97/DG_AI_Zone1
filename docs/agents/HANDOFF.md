@@ -13,6 +13,36 @@
 
 ---
 
+### [2026-10-02 15:08] Claude → Antigravity · 외곽선·스냅 하이라이트 셰이더화 (feat/level5-question)
+- 변경 파일: Shaders/UIBlockOutline.shader(신규, 9-slice 대응 팽창·보일 영역·원본 영역), Game/BlockOutlineMesh.cs(신규), Tests/Runtime/BlockOutlineMeshTests.cs(신규 2개), CodingBlock.cs(이미지 확장·IsIfBlock·SetHighlightRect 삭제), BlockFactory.cs(머티리얼 Outline*·스프라이트별 안쪽 머티리얼), InnerSocket.cs(안쪽 하이라이트를 외곽선과 같은 크기로), Constants.cs, 블록 프리팹 11개, 머티리얼(BlockOutline·BottomFlow·RightCondition 신규, Bottom·Right·IfValue 셰이더·값 변경, BlockOutlineFull 삭제), UISpriteFill.shader 삭제, GraphicsSettings Always Included 교체, CHANGELOG.md, TODO.md
+- 확인 요청: 셰이더 대응식·영역, 메시 경계 추출·확장·캔버스 채널, 안쪽 하이라이트 생성, 삭제 심볼 잔존, 렌더 결과, validate_script
+- 결과: 통과(리뷰 3회 — 마지막은 사용자 스크린샷 요청 3건 반영분). PlayMode 27/27(Claude 실행), 콘솔 에러 0.
+  - 사용자 요청: 체인=블록 아래 가장자리와 돌기만, ㄷ자 안쪽=머리 아래 선이 팔 모서리까지·팔 따라 내려가지 않게, 값 칸=오른쪽 옆면과 소켓만. 아트 가장자리를 픽셀로 측정해 머티리얼 값을 정했고 미리보기 씬 렌더로 확인(Temp/review/snap_v2.png).
+  - 처음 셰이더는 칸(quad)별 UV 비율로 샘플링해 9-slice 경계 근처(ㄷ자 머리 아래 돌기)에서 두께가 블록 길이에 따라 3~12px로 달라짐 → 사각형 기준 좌표에서 샘플링하고 9-slice 대응식으로 UV를 구하도록 바꿈. Unity UI가 uv0.zw를 셰이더로 넘기는 것은 미리보기 씬 실험으로 확인.
+  - agy가 지적한 'ㄷ자 안쪽 공간의 빨간 띠'는 안쪽 공간 가장자리의 정상 테두리(아트 확인), '깊은 자식에 OnTransformParentChanged 미전달'은 Unity 문서상 간접 부모 변경도 전달돼 반영하지 않음.
+  - 미리보기·Play 중 TMP 동적 아틀라스 글리프가 폰트 에셋에 저장된 것은 되돌림. SaveAssetIfDirty로 ProjectSettings가 저장되지 않아 GraphicsSettings.asset은 파일을 직접 수정(메모리 값과 일치).
+
+### [2026-10-02 14:13] Claude → Antigravity · 시작하기→완성하기 직결 에러 (feat/level5-question)
+- 변경 파일: BlockCompiler.cs(WalkChain 직후 reachedEnd && program 비었으면 실패, 시작하기·완성하기 지목), Constants.cs(EmptyBetweenStartEnd), BlockCompilerTests.cs(직결 실패 테스트, 미사용 움직이기 테스트에 코딩 영역 방치 블록 추가), CHANGELOG.md, TODO.md
+- 확인 요청: 직결 시 항상 에러·블록 있으면 에러 없음, 레벨5 등 검사 순서, ErrorBlocks 2개 처리, 테스트
+- 결과: 통과. PlayMode 25/25(Claude 실행). 에러 메시지 단언 추가 제안은 ErrorBlocks(시작·완성 2개) 단언으로 이미 구분돼 반영하지 않음.
+  - 레벨5는 ChainOutSocket.CanAccept가 시작하기 뒤에 완성하기를 붙이지 못하게 해 이 경우가 생기지 않음.
+
+### [2026-10-02 14:03] Claude → Antigravity · 움직이기 블록 사용 선택화 (feat/level5-question)
+- 변경 파일: BlockCompiler.cs(IsExecutable에서 Command 제외), BlockCompilerTests.cs(미사용 오류 테스트를 FlowControl로, 움직이기 블록 미사용 성공 테스트 2개 추가), CHANGELOG.md, TODO.md
+- 확인 요청: Command만 빠졌는지, Command 0개 프로그램의 채점·결과 경로, 코딩 영역에 떠 있는 Command 영향, 테스트 유효성
+- 결과: 통과. 테스트 보강 제안(Command 0개·코딩 영역 방치 블록)을 반영해 테스트 1개 추가, PlayMode 25/25(Claude 실행).
+  - 레벨1은 이제 시작하기→완성하기만 이어도 컴파일 성공 → 0점·전력 부족·미션 실패, 결과 값은 '-'. 레벨2~5는 만약·반복하기 안이 비면 여전히 에러.
+  - 작업 중 사용자 미커밋 변경(04_PowerPlantData goToOutroAfterResult, 05_FutureEnergyData storyText·resultTopText)은 건드리지 않고 커밋에서 제외.
+  - 테스트 후 EditorSettings.asset은 SaveAssets 없이 메모리 값만 끄고 되돌림(폰트 에셋 동반 저장 방지).
+
+### [2026-10-02 13:44] Claude → Antigravity · 레벨5 문제 문구 교체 (feat/level5-question)
+- 변경 파일: 05_FutureEnergyData.asset(questionFormat 고정 문구, questionOptions를 태양광 시간 5개 → '미래 에너지' 1개·정답 없음), LevelQuestionDataTests.cs(레벨5 제외 삭제), CHANGELOG.md, TODO.md
+- 확인 요청: 고정 문구 표시, 채점·결과·힌트 패널 예외 경로, 화면 변화, 테스트 제외 삭제 안전성
+- 결과: 통과. 수정할 사항 없음. PlayMode 23/23(Claude 실행).
+  - 화면 변화: 결과 씬 AI 행 패널 방향이 '-'로, AI 태양광 패널이 정면(yaw 0) 유지 — 레벨5 결과 연출은 기획 전(ResultSequence TODO)이라 태양광 화면을 임시로 쓰는 중.
+  - 테스트 후 EditorSettings.asset과, SaveAssets로 함께 저장된 TMP 동적 아틀라스 글리프(GamtanRoadTantan SDF.asset)는 되돌림.
+
 ### [2026-10-02 13:37] Claude → Antigravity · 인트로·튜토리얼 터치 클릭음 (feat/sfx)
 - 변경 파일: IntroSceneManager.cs(인트로 패널 → 튜토리얼 패널 전환 터치), TutorialImageSlider.cs(다음·이전 페이지, 마지막 페이지에서 다음), Constants.cs(주석), CHANGELOG.md(2026-10-02로 이동)
 - 확인 요청: 기대 동작 일치, 소리 중복·누락, SoundManager 주입, validate_script

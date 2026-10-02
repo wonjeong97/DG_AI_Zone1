@@ -23,24 +23,12 @@ MonoBehaviour:
     \uD65C\uC6A9\uD574 \uB3C4\uC2DC \uC804\uCCB4\uAC00 \uD6A8\uC728\uC801\uC73C\uB85C
     \uB3CC\uC544\uAC00\uAC8C \uD574\uC8FC\uC138\uC694!"
   resultTopText: 
-  questionFormat: "\uC9C0\uAE08\uC740 <color=yellow>[{0}]</color>\uC608\uC694.\n\uD587\uBE5B\uC744
-    \uC798 \uBC1B\uC73C\uB824\uBA74\n\uD0DC\uC591\uAD11 \uD328\uB110\uC744 \uC5B4\uB290
-    \uCABD\uC73C\uB85C \uB3CC\uB824\uC57C \uD560\uAE4C\uC694?"
+  questionFormat: "\uBBF8\uB798 \uC5D0\uB108\uC9C0\uB97C \uB9CC\uB4E4\uAE30 \uD568\uC218\uBD80\uD130
+    \uC5EC\uB7EC\uAC00\uC9C0 \uC5D0\uB108\uC9C0\uB97C \uBAA8\uC544\uBCF4\uC138\uC694.\n\uADF8\uB9AC\uACE0
+    \uD55C \uC904 \uD568\uC218\uB97C \uD55C\uBC88\uC5D0 \uC0AC\uC6A9 \uD574\uBCF4\uC138\uC694."
   questionOptions:
-  - value: "\uC544\uCE68 8\uC2DC"
-    correctAnswer: "\uB3D9\uCABD"
-    hintObjectName: 
-  - value: "\uC624\uC804 10\uC2DC"
-    correctAnswer: "\uB3D9\uCABD"
-    hintObjectName: 
-  - value: "\uC815\uC624"
-    correctAnswer: "\uB0A8\uCABD"
-    hintObjectName: 
-  - value: "\uC624\uD6C4 2\uC2DC"
-    correctAnswer: "\uC11C\uCABD"
-    hintObjectName: 
-  - value: "\uC624\uD6C4 4\uC2DC"
-    correctAnswer: "\uC11C\uCABD"
+  - value: "\uBBF8\uB798 \uC5D0\uB108\uC9C0"
+    correctAnswer: 
     hintObjectName: 
   hintRuleFormat: 
   goToOutroAfterResult: 1

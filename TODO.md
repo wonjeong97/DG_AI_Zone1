@@ -9,12 +9,14 @@
 ## 할 일
 
 - [ ] (최종 영상 확정 후) 영상 오디오 트랙 제거 — 지금 Robot_260728.webm에 Unity가 지원하지 않는 Opus 오디오 트랙이 있어 인트로 재생 때 콘솔 에러가 남. 영상이 교체될 수 있어 최종 영상본이 정해지면 그 파일에서 ffmpeg -an으로 트랙을 지운다
-- [ ] (기획 확인) 레벨5(미래에너지) 문제 — 지금은 임시로 태양광 문제(시간대·방향 정답)를 내지만 블록은 발전소 블록이라 방향 블록이 없음. 정해지면 05_FutureEnergyData 문제 데이터를 바꾸고 LevelQuestionDataTests의 레벨5 제외를 지울 것
 
 ## 완료
 
+- [x] 컴파일 외곽선·스냅 하이라이트를 셰이더로 블록 모양 둘레에 일정 두께로 그리기(9-slice 정확 대응, 체인=아래 가장자리·값=오른쪽 옆면·ㄷ자 안쪽=머리 아래 가장자리) — 리뷰·PlayMode 27/27 통과 — 담당: Claude / 검증: Antigravity (2026-10-02)
+- [x] 시작하기→완성하기만 이으면(사이에 블록 없음) 컴파일 에러, 두 블록 빨간 점멸 — 리뷰·PlayMode 25/25 통과 — 담당: Claude / 검증: Antigravity (2026-10-02)
+- [x] 움직이기(Command) 블록은 사용하지 않아도 컴파일 통과(미사용 블록 에러에서 제외), 리뷰·PlayMode 25/25 통과 — 담당: Claude / 검증: Antigravity (2026-10-02)
+- [x] 레벨5(미래에너지) 문제 문구 교체 — 임시 태양광 문제를 기획 문구로 바꾸고 LevelQuestionDataTests의 레벨5 제외 삭제, 리뷰·PlayMode 23/23 통과 — 담당: Claude / 검증: Antigravity (2026-10-02)
 - [x] 효과음 8종 연결(블록 장착, 버튼 클릭(인트로·튜토리얼 터치 포함), 코딩 경고·완료, 게임 시작, 힌트·미션 다시보기, 미션 성공·실패) — 리뷰·PlayMode 23/23 통과, Play 모드 청취 확인은 남음 — 담당: Claude / 검증: Antigravity (2026-10-02)
-
 - [x] 감사 후속 2차(ZLogger 전환, SerializeField 연결, Raycast Target, FlowInnerResize·Fitter 충돌 수정, 스냅 선정 통합) — PR #63, 리뷰·PlayMode 22/22 통과 — 담당: Claude / 검증: Antigravity (2026-10-02)
 - [x] (기획 확인) 미션 실패여도 다음 레벨이 열리는 동작 — 의도대로 유지, ResultSequence.OnNextClicked에 주석 (2026-10-02)
 - [x] 문제 문구·후보 값·정답·힌트 그림을 Constants.Questions·HintPanel에서 LevelData(SO)로 옮기기 — PR #62, 리뷰·PlayMode 22/22 통과 — 담당: Claude / 검증: Antigravity (2026-10-02)
