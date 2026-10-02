@@ -207,6 +207,7 @@ namespace Scenes
         {
             string nextScene = _session && _session.currentLevel ? _session.currentLevel.AfterResultScene : Constants.Scenes.Story;
 
+            // 미션 성공·실패와 상관없이 다음 레벨을 연다(기획 확인, 2026-10-02).
             // 이미 해금된 이전 레벨을 다시 플레이한 경우엔 진행도를 건드리지 않는다.
             // 무조건 +1 하면 재플레이만으로 아직 깨지 않은 레벨까지 해금돼버린다.
             if (_session && _session.currentLevel)

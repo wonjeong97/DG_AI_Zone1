@@ -17,13 +17,13 @@ namespace Scenes
 
         [SerializeField] private CanvasGroup introPanel;
         [SerializeField] private CanvasGroup tutorialPanel;
+        [SerializeField] private TutorialImageSlider tutorialSlider;
         [SerializeField] private VideoPlayer robotVideoPlayer;
         [SerializeField] private TMP_Text visitorNameText;
 
         private ILogger<IntroSceneManager> _logger;
         private VisitorInfoProvider _visitorInfoProvider;
         private InactivityTimer _inactivityTimer;
-        private TutorialImageSlider _tutorialSlider;
 
         // 이름 연출이 끝난 뒤부터 화면 터치로 튜토리얼 패널로 넘어갈 수 있다.
         // 연출을 스킵한 그 터치가 곧바로 패널 전환까지 일으키지 않도록 허용된 프레임은 건너뛴다.
@@ -57,9 +57,8 @@ namespace Scenes
             SceneFader.InitializePanelState(tutorialPanel, false);
 
             // 튜토리얼은 이미지 좌/우 터치로 넘기고, 마지막 페이지에서 다음으로 넘기면 스토리 씬으로 간다
-            if (tutorialPanel) _tutorialSlider = tutorialPanel.GetComponentInChildren<TutorialImageSlider>(true);
-            if (_tutorialSlider) _tutorialSlider.Finished += OnTutorialFinished;
-            else if (_logger != null) _logger.ZLogWarning($"[IntroSceneManager] tutorialPanel 아래에 TutorialImageSlider가 없어 스토리 씬으로 넘어갈 수 없습니다.");
+            if (tutorialSlider) tutorialSlider.Finished += OnTutorialFinished;
+            else if (_logger != null) _logger.ZLogWarning($"[IntroSceneManager] tutorialSlider가 할당되지 않아 스토리 씬으로 넘어갈 수 없습니다.");
 
             SceneFader.PlayLoopingVideo(robotVideoPlayer, Constants.VideoPaths.RobotUrl, destroyCancellationToken, _logger);
 
@@ -100,7 +99,7 @@ namespace Scenes
                 (float moveDuration, float interval, float yOffset) = await SceneFader.GetStoryLineSettingsAsync();
                 await StoryLineAnimator.AnimateAsync(visitorNameText,
                     moveDuration, interval, yOffset,
-                    StoryLineAnimator.IsPointerPressedThisFrame, ct, _inactivityTimer);
+                    StoryLineAnimator.IsPointerPressedThisFrame, ct, _inactivityTimer, _logger);
             }
             catch (System.OperationCanceledException)
             {
@@ -131,7 +130,7 @@ namespace Scenes
         /// </summary>
         private void OnDestroy()
         {
-            if (_tutorialSlider) _tutorialSlider.Finished -= OnTutorialFinished;
+            if (tutorialSlider) tutorialSlider.Finished -= OnTutorialFinished;
         }
 
         /// <summary>

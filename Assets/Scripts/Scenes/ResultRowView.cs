@@ -1,6 +1,9 @@
+using Microsoft.Extensions.Logging;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using VContainer;
+using ZLogger;
 
 namespace Scenes
 {
@@ -13,14 +16,24 @@ namespace Scenes
 
         private CanvasGroup _group;
         private LayoutElement _layout;
+        private ILogger<ResultRowView> _logger;
+
+        /// <summary>
+        /// 로거를 주입받는다 (ResultRowsView가 리졸버로 복제할 때 주입된다).
+        /// </summary>
+        [Inject]
+        public void Construct(ILogger<ResultRowView> logger)
+        {
+            _logger = logger;
+        }
 
         // 상위 오브젝트가 꺼진 상태에서 복제되면 Awake가 늦게 돌 수 있어, 처음 쓸 때 가져온다
         public CanvasGroup Group
         {
             get
             {
-                if (!_group && !TryGetComponent(out _group))
-                    Debug.LogError($"[ResultRowView] {name}에 CanvasGroup이 없습니다.");
+                if (!_group && !TryGetComponent(out _group) && _logger != null)
+                    _logger.ZLogError($"[ResultRowView] {name}에 CanvasGroup이 없습니다.");
                 return _group;
             }
         }
@@ -29,8 +42,8 @@ namespace Scenes
         {
             get
             {
-                if (!_layout && !TryGetComponent(out _layout))
-                    Debug.LogError($"[ResultRowView] {name}에 LayoutElement가 없습니다.");
+                if (!_layout && !TryGetComponent(out _layout) && _logger != null)
+                    _logger.ZLogError($"[ResultRowView] {name}에 LayoutElement가 없습니다.");
                 return _layout;
             }
         }
@@ -43,10 +56,10 @@ namespace Scenes
         public void Set(string label, string value)
         {
             if (labelText) labelText.text = label;
-            else Debug.LogWarning($"[ResultRowView] {name}에 labelText가 할당되지 않았습니다.");
+            else if (_logger != null) _logger.ZLogWarning($"[ResultRowView] {name}에 labelText가 할당되지 않았습니다.");
 
             if (valueText) valueText.SetText(value);
-            else Debug.LogWarning($"[ResultRowView] {name}에 valueText가 할당되지 않았습니다.");
+            else if (_logger != null) _logger.ZLogWarning($"[ResultRowView] {name}에 valueText가 할당되지 않았습니다.");
         }
     }
 }

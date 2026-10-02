@@ -1,8 +1,11 @@
+using Microsoft.Extensions.Logging;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 using UnityEngine.UI;
+using VContainer;
+using ZLogger;
 
 namespace Game
 {
@@ -18,6 +21,9 @@ namespace Game
         [Tooltip("마우스 휠 한 칸당 배율 변화 비율")]
         [SerializeField] private float wheelZoomStep = 1.1f;
 
+        [Tooltip("코딩 패널이 속한 루트 캔버스 — Screen Space Overlay가 아니면 이 캔버스의 카메라로 터치 좌표를 변환한다")]
+        [SerializeField] private Canvas rootCanvas;
+
         private ScrollRect _scrollRect;
         private RectTransform _content;
         private RectTransform _viewport;
@@ -30,14 +36,25 @@ namespace Game
         private bool _defaultHorizontal;
         private bool _defaultVertical;
 
+        private ILogger<CodingZoneZoom> _logger;
+
         /// <summary>
-        /// 스크롤뷰의 Content·Viewport와 좌표 변환에 쓸 카메라를 캐싱한다.
+        /// 로거를 주입받는다.
         /// </summary>
-        private void Awake()
+        [Inject]
+        public void Construct(ILogger<CodingZoneZoom> logger)
+        {
+            _logger = logger;
+        }
+
+        /// <summary>
+        /// 스크롤뷰의 Content·Viewport와 좌표 변환에 쓸 카메라를 캐싱한다 (씬 주입은 Awake 뒤라 실패 로그를 남기도록 Start에서 한다).
+        /// </summary>
+        private void Start()
         {
             if (!TryGetComponent(out _scrollRect))
             {
-                Debug.LogError($"[CodingZoneZoom] {name}에 ScrollRect가 없습니다.");
+                if (_logger != null) _logger.ZLogError($"[CodingZoneZoom] {name}에 ScrollRect가 없습니다.");
                 enabled = false;
                 return;
             }
@@ -46,14 +63,19 @@ namespace Game
             _viewport = _scrollRect.viewport ? _scrollRect.viewport : (RectTransform)transform;
             if (!_content)
             {
-                Debug.LogError($"[CodingZoneZoom] {name}의 ScrollRect에 Content가 지정되지 않았습니다.");
+                if (_logger != null) _logger.ZLogError($"[CodingZoneZoom] {name}의 ScrollRect에 Content가 지정되지 않았습니다.");
                 enabled = false;
                 return;
             }
 
-            Canvas canvas = GetComponentInParent<Canvas>();
-            if (canvas && canvas.rootCanvas.renderMode != RenderMode.ScreenSpaceOverlay)
-                _eventCamera = canvas.rootCanvas.worldCamera;
+            if (!rootCanvas)
+            {
+                if (_logger != null) _logger.ZLogWarning($"[CodingZoneZoom] rootCanvas가 할당되지 않아 Screen Space Overlay 기준으로 터치 좌표를 변환합니다.");
+            }
+            else if (rootCanvas.rootCanvas.renderMode != RenderMode.ScreenSpaceOverlay)
+            {
+                _eventCamera = rootCanvas.rootCanvas.worldCamera;
+            }
 
             _defaultHorizontal = _scrollRect.horizontal;
             _defaultVertical = _scrollRect.vertical;
