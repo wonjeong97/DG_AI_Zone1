@@ -13,6 +13,13 @@
 
 ---
 
+### [2026-10-02 15:38] Claude → Antigravity · 레벨3 수문 순서 결과 행·빈 아니면 에러 (feat/hydro-gate-order-result)
+- 변경 파일: BlockScorer.cs(IsHydroGateOrderCorrect 공개, 채점과 공용), GameSession.cs(lastGateOrderCorrect), GameSceneManager.cs, ResultSequence.cs(수력 행: 개방 높이/조건 감지/아니면/수문 열기·닫기 순서/상태, 강물 높이 행 제거, 건너뜀은 순서 '-'), Constants.cs(LabelGateOrder·GateOrderCorrect/Wrong, LabelRiverHeight 삭제), BlockCompiler.cs(빈 아니면 → 아니면 블록 지목 실패), BlockScorerTests.cs·BlockCompilerTests.cs(테스트 3개), BlockTestUtil.cs(AddConditionSocket), CHANGELOG.md, TODO.md, REVIEW_ITEMS.md
+- 확인 요청: 행 순서·AI·건너뜀 값, 순서 판정과 채점 기준 일치, 세션 초기화, LabelRiverHeight 잔존, 빈 아니면 검사와 switch 순서, 새 테스트의 실제 컴파일 경로 추적
+- 결과: 통과(9개 항목, 버그 없음). PlayMode 30/30(Claude 실행), 콘솔 에러 0. 첫 리뷰 요청은 agy가 run_tests를 기다리다 5분 제한에 걸려 빈 결과 → 테스트 금지로 다시 맡김.
+  - 리뷰 근거의 줄 번호 일부가 실제와 달랐으나 판단 내용은 코드로 확인해 맞음.
+  - 두 번째 PlayMode 실행이 27/30에서 ExitPlayModeTask 오류로 멈추고 InitTestScene이 남음(VContainer FadeManager 등록 충돌). 사용자가 씬을 다시 연 뒤 임시 씬을 지우고 재실행해 통과. 원인은 MCP 테스트 러너가 켠 Enter Play Mode Options로 추정(확인 못 함).
+
 ### [2026-10-02 15:08] Claude → Antigravity · 외곽선·스냅 하이라이트 셰이더화 (feat/level5-question)
 - 변경 파일: Shaders/UIBlockOutline.shader(신규, 9-slice 대응 팽창·보일 영역·원본 영역), Game/BlockOutlineMesh.cs(신규), Tests/Runtime/BlockOutlineMeshTests.cs(신규 2개), CodingBlock.cs(이미지 확장·IsIfBlock·SetHighlightRect 삭제), BlockFactory.cs(머티리얼 Outline*·스프라이트별 안쪽 머티리얼), InnerSocket.cs(안쪽 하이라이트를 외곽선과 같은 크기로), Constants.cs, 블록 프리팹 11개, 머티리얼(BlockOutline·BottomFlow·RightCondition 신규, Bottom·Right·IfValue 셰이더·값 변경, BlockOutlineFull 삭제), UISpriteFill.shader 삭제, GraphicsSettings Always Included 교체, CHANGELOG.md, TODO.md
 - 확인 요청: 셰이더 대응식·영역, 메시 경계 추출·확장·캔버스 채널, 안쪽 하이라이트 생성, 삭제 심볼 잔존, 렌더 결과, validate_script
