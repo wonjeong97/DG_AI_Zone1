@@ -64,6 +64,62 @@ namespace DG.Zone1.Tests
         }
 
         /// <summary>
+        /// 수문 열기가 만약 안, 수문 닫기가 아니면 안에 있을 때만 순서가 맞고, 결과 표시 값이 순서 채점과 일치한다.
+        /// 아니면을 넣어 높이·조건·아니면이 모두 AI와 같아도 순서가 틀리면 결과에서 구분된다.
+        /// </summary>
+        [Test]
+        public void 수문_열기_닫기_순서는_만약에_열기_아니면에_닫기일_때만_정상이다()
+        {
+            List<BlockInstruction> correct = GateProgram(new[] { "수문 열기" }, true, new[] { "수문 닫기" });
+            Assert.IsTrue(BlockScorer.IsHydroGateOrderCorrect(correct));
+            Assert.AreEqual(BlockScorer.GetMaxScore(LevelKind.Hydro),
+                BlockScorer.ScoreProgram(correct, "5m", null, LevelKind.Hydro));
+
+            List<BlockInstruction>[] wrongs =
+            {
+                GateProgram(new[] { "수문 열기" }, false, new string[0]),
+                GateProgram(new[] { "수문 닫기" }, false, new string[0]),
+                GateProgram(new[] { "수문 닫기", "수문 열기" }, false, new string[0]),
+                GateProgram(new[] { "수문 닫기", "수문 열기" }, true, new string[0]),
+                GateProgram(new[] { "수문 닫기" }, true, new[] { "수문 열기" }),
+            };
+            foreach (List<BlockInstruction> wrong in wrongs)
+                Assert.IsFalse(BlockScorer.IsHydroGateOrderCorrect(wrong));
+
+            // 아니면은 넣었지만 비어 있음 — 아니면 ON, 순서만 오류
+            Assert.IsTrue(BlockScorer.HasHydroElse(wrongs[3]));
+            Assert.AreEqual(Constants.Scores.HydroExactScore * Constants.Scores.HydroElsePlacedScore * Constants.Scores.HydroGateOrderWrongScore,
+                BlockScorer.ScoreProgram(wrongs[3], "5m", null, LevelKind.Hydro));
+
+            Assert.IsFalse(BlockScorer.IsHydroGateOrderCorrect(new List<BlockInstruction>()), "만약 블록이 없으면 오류");
+        }
+
+        /// <summary>
+        /// "5m 이상" 조건의 만약 블록에 지정한 수문 명령을 넣은 프로그램을 만든다.
+        /// </summary>
+        private static List<BlockInstruction> GateProgram(string[] thenCommands, bool hasElse, string[] elseCommands) => new List<BlockInstruction>
+        {
+            new IfInstruction
+            {
+                Condition = new SimpleConditionExpr { Name = "5m 이상" },
+                Then = Commands(thenCommands),
+                Else = Commands(elseCommands),
+                HasElseMarker = hasElse
+            }
+        };
+
+        /// <summary>
+        /// 값 없는 명령 노드 목록을 만든다.
+        /// </summary>
+        private static List<BlockInstruction> Commands(string[] names)
+        {
+            List<BlockInstruction> list = new List<BlockInstruction>();
+            foreach (string name in names)
+                list.Add(new CommandInstruction { Command = name });
+            return list;
+        }
+
+        /// <summary>
         /// 단순 조건 하나만 가진 만약 블록 프로그램을 만든다.
         /// </summary>
         private static List<BlockInstruction> IfProgram(string conditionName) => new List<BlockInstruction>

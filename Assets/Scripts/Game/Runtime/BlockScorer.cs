@@ -92,6 +92,15 @@ namespace Game.Runtime
             => FindFirst<IfInstruction>(instructions)?.HasElseMarker ?? false;
 
         /// <summary>
+        /// 첫 '만약' 블록의 수문 열기·닫기 순서가 맞는지 확인한다 — 레벨3 순서 채점과 결과의 '수문 열기·닫기 순서'가 같은 기준을 쓴다.
+        /// </summary>
+        public static bool IsHydroGateOrderCorrect(List<BlockInstruction> instructions)
+        {
+            IfInstruction ifInstr = FindFirst<IfInstruction>(instructions);
+            return ifInstr is not null && IsHydroGateOrderCorrect(ifInstr);
+        }
+
+        /// <summary>
         /// 첫 '만약' 블록에 연결된 조건식을 반환한다 — 레벨4 결과의 '설정한 조건' 표시용. 만약/조건이 없으면 null.
         /// 결과 텍스트는 폭이 좁아 '그리고'를 가운뎃점으로 줄인다 (디버그 코드 표시는 원문 그대로).
         /// </summary>
@@ -311,11 +320,16 @@ namespace Game.Runtime
         /// 둘 다 한쪽에 몰려있거나 순서가 반대(수문 닫기가 Then, 수문 열기가 Else)면 1점.
         /// </summary>
         private static int ScoreHydroGateOrder(IfInstruction ifInstr)
-        {
-            bool correctOrder = ContainsCommand(ifInstr.Then, HydroOpenCommand)
-                              && ContainsCommand(ifInstr.Else, HydroCloseCommand);
-            return correctOrder ? Constants.Scores.HydroGateOrderCorrectScore : Constants.Scores.HydroGateOrderWrongScore;
-        }
+            => IsHydroGateOrderCorrect(ifInstr)
+                ? Constants.Scores.HydroGateOrderCorrectScore
+                : Constants.Scores.HydroGateOrderWrongScore;
+
+        /// <summary>
+        /// 수문 열기가 Then 최상위에, 수문 닫기가 Else 최상위에 있는지 확인한다.
+        /// </summary>
+        private static bool IsHydroGateOrderCorrect(IfInstruction ifInstr)
+            => ContainsCommand(ifInstr.Then, HydroOpenCommand)
+            && ContainsCommand(ifInstr.Else, HydroCloseCommand);
 
         /// <summary>
         /// 본문 최상위(중첩 제외)에 지정 이름의 Command가 있는지 확인한다.
