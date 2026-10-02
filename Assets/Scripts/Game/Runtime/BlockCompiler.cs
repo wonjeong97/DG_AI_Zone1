@@ -152,7 +152,7 @@ namespace Game.Runtime
                     ZString.Format(Constants.CompilerMessages.ElseOutsideIfFormat, misplacedElse.Length),
                     misplacedElse, program, reachedEnd);
 
-            // 씬의 모든 실행 블록(Command, FlowControl 등 — 인벤토리·방치 블록 포함)이 프로그램에 포함돼야 함
+            // 씬의 모든 실행 블록(FlowControl, Action 등 — 인벤토리·방치 블록 포함)이 프로그램에 포함돼야 함 (움직이기는 제외)
             CodingBlock[] unused = FindUnusedExecutableBlocks(program);
             if (unused.Length > 0)
                 return CompileResult.Fail(
@@ -408,7 +408,7 @@ namespace Game.Runtime
         }
 
         /// <summary>
-        /// 프로그램에 포함되지 않은 실행 블록(Command, FlowControl 등)을 찾는다 — 인벤토리·코딩존 방치 블록 모두 대상.
+        /// 프로그램에 포함되지 않은 실행 블록(FlowControl, Action 등)을 찾는다 — 인벤토리·코딩존 방치 블록 모두 대상.
         /// </summary>
         private static CodingBlock[] FindUnusedExecutableBlocks(List<BlockInstruction> program)
         {
@@ -427,10 +427,10 @@ namespace Game.Runtime
 
         /// <summary>
         /// 실행 흐름에 반드시 편입돼야 하는 카테고리인지 확인한다 (값·조건·제어 블록은 단독으로 남아도 무방).
+        /// 움직이기(Command) 블록은 쓰지 않아도 된다 — 빠진 만큼 채점에서 점수를 받지 못할 뿐이다.
         /// </summary>
         private static bool IsExecutable(BlockCategory category) =>
-            category is BlockCategory.Command
-                     or BlockCategory.FlowControl
+            category is BlockCategory.FlowControl
                      or BlockCategory.Action
                      or BlockCategory.ConditionAction;
 

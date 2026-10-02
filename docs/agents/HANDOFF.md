@@ -13,6 +13,14 @@
 
 ---
 
+### [2026-10-02 14:03] Claude → Antigravity · 움직이기 블록 사용 선택화 (feat/level5-question)
+- 변경 파일: BlockCompiler.cs(IsExecutable에서 Command 제외), BlockCompilerTests.cs(미사용 오류 테스트를 FlowControl로, 움직이기 블록 미사용 성공 테스트 2개 추가), CHANGELOG.md, TODO.md
+- 확인 요청: Command만 빠졌는지, Command 0개 프로그램의 채점·결과 경로, 코딩 영역에 떠 있는 Command 영향, 테스트 유효성
+- 결과: 통과. 테스트 보강 제안(Command 0개·코딩 영역 방치 블록)을 반영해 테스트 1개 추가, PlayMode 25/25(Claude 실행).
+  - 레벨1은 이제 시작하기→완성하기만 이어도 컴파일 성공 → 0점·전력 부족·미션 실패, 결과 값은 '-'. 레벨2~5는 만약·반복하기 안이 비면 여전히 에러.
+  - 작업 중 사용자 미커밋 변경(04_PowerPlantData goToOutroAfterResult, 05_FutureEnergyData storyText·resultTopText)은 건드리지 않고 커밋에서 제외.
+  - 테스트 후 EditorSettings.asset은 SaveAssets 없이 메모리 값만 끄고 되돌림(폰트 에셋 동반 저장 방지).
+
 ### [2026-10-02 13:44] Claude → Antigravity · 레벨5 문제 문구 교체 (feat/level5-question)
 - 변경 파일: 05_FutureEnergyData.asset(questionFormat 고정 문구, questionOptions를 태양광 시간 5개 → '미래 에너지' 1개·정답 없음), LevelQuestionDataTests.cs(레벨5 제외 삭제), CHANGELOG.md, TODO.md
 - 확인 요청: 고정 문구 표시, 채점·결과·힌트 패널 예외 경로, 화면 변화, 테스트 제외 삭제 안전성

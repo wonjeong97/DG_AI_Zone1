@@ -91,7 +91,7 @@ namespace DG.Zone1.Tests
         public void 인벤토리에_남은_실행_블록은_미사용_오류로_분류된다()
         {
             CodingBlock used = BlockTestUtil.MakeBlock(_zone, "개방하기", BlockCategory.Command, _inventory);
-            CodingBlock unused = BlockTestUtil.MakeBlock(_zone, "폐쇄하기", BlockCategory.Command, _inventory);
+            CodingBlock unused = BlockTestUtil.MakeBlock(_zone, Constants.BlockLabels.While, BlockCategory.FlowControl, _inventory);
             unused.gameObject.SetActive(false); // 선택되지 않은 탭
 
             ChainOutSocket.OfBlock(_start).Accept(used);
@@ -102,6 +102,43 @@ namespace DG.Zone1.Tests
             Assert.IsFalse(result.Success);
             Assert.AreEqual(CompileErrorKind.UnusedBlocks, result.ErrorKind);
             CollectionAssert.Contains(result.ErrorBlocks, unused);
+        }
+
+        /// <summary>
+        /// 움직이기(Command) 블록은 인벤토리에 남아 있어도 컴파일에 성공한다.
+        /// </summary>
+        [Test]
+        public void 인벤토리에_남은_움직이기_블록은_오류가_아니다()
+        {
+            CodingBlock used = BlockTestUtil.MakeBlock(_zone, "개방하기", BlockCategory.Command, _inventory);
+            CodingBlock unused = BlockTestUtil.MakeBlock(_zone, "폐쇄하기", BlockCategory.Command, _inventory);
+            unused.gameObject.SetActive(false); // 선택되지 않은 탭
+
+            ChainOutSocket.OfBlock(_start).Accept(used);
+            ChainOutSocket.OfBlock(used).Accept(_end);
+
+            CompileResult result = BlockCompiler.Compile(_zone);
+
+            Assert.IsTrue(result.Success, result.Error);
+            Assert.AreEqual(1, result.Instructions.Count);
+        }
+
+        /// <summary>
+        /// 움직이기 블록을 하나도 연결하지 않고 시작하기와 완성하기만 이어도 컴파일에 성공한다
+        /// (코딩 영역에 연결되지 않고 떠 있는 움직이기 블록도 오류가 아니다).
+        /// </summary>
+        [Test]
+        public void 움직이기_블록_없이_시작하기와_완성하기만_이어도_성공한다()
+        {
+            BlockTestUtil.MakeBlock(_zone, "개방하기", BlockCategory.Command, _zone.transform); // 코딩 영역에 방치
+            BlockTestUtil.MakeBlock(_zone, "폐쇄하기", BlockCategory.Command, _inventory);
+
+            ChainOutSocket.OfBlock(_start).Accept(_end);
+
+            CompileResult result = BlockCompiler.Compile(_zone);
+
+            Assert.IsTrue(result.Success, result.Error);
+            Assert.AreEqual(0, result.Instructions.Count);
         }
 
         /// <summary>

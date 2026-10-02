@@ -12,6 +12,7 @@
 
 ## 완료
 
+- [x] 움직이기(Command) 블록은 사용하지 않아도 컴파일 통과(미사용 블록 에러에서 제외), 리뷰·PlayMode 25/25 통과 — 담당: Claude / 검증: Antigravity (2026-10-02)
 - [x] 레벨5(미래에너지) 문제 문구 교체 — 임시 태양광 문제를 기획 문구로 바꾸고 LevelQuestionDataTests의 레벨5 제외 삭제, 리뷰·PlayMode 23/23 통과 — 담당: Claude / 검증: Antigravity (2026-10-02)
 - [x] 효과음 8종 연결(블록 장착, 버튼 클릭(인트로·튜토리얼 터치 포함), 코딩 경고·완료, 게임 시작, 힌트·미션 다시보기, 미션 성공·실패) — 리뷰·PlayMode 23/23 통과, Play 모드 청취 확인은 남음 — 담당: Claude / 검증: Antigravity (2026-10-02)
 - [x] 감사 후속 2차(ZLogger 전환, SerializeField 연결, Raycast Target, FlowInnerResize·Fitter 충돌 수정, 스냅 선정 통합) — PR #63, 리뷰·PlayMode 22/22 통과 — 담당: Claude / 검증: Antigravity (2026-10-02)
