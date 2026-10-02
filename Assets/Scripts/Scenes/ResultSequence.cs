@@ -31,11 +31,12 @@ namespace Scenes
         [SerializeField] private TextMeshProUGUI aiEffText;
         // 레벨별 3D 결과 스테이지 — 모델과 전용 카메라(RenderTexture 공유)를 통째로 켜고 끈다.
         // 모든 스테이지의 카메라가 같은 RT를 노리므로 반드시 한 스테이지만 활성 상태여야 한다.
-        // 전용 모델이 없는 레벨(1·5)은 태양광 스테이지를 그대로 쓴다.
+        // 레벨1은 태양광 스테이지, 레벨5는 연구소 스테이지를 쓴다.
         [SerializeField] private GameObject solarStage;
         [SerializeField] private GameObject windStage;
         [SerializeField] private GameObject hydroStage;
         [SerializeField] private GameObject plantStage;
+        [SerializeField] private GameObject labStage;
         [SerializeField] private SolarPanelModelPose playerPanelPose;
         [SerializeField] private SolarPanelModelPose aiPanelPose;
         [SerializeField] private WindTurbineSpin playerTurbineSpin;
@@ -44,6 +45,8 @@ namespace Scenes
         [SerializeField] private DamGateFlow aiDamGates;
         [SerializeField] private PowerPlantPump playerPlantPump;
         [SerializeField] private PowerPlantPump aiPlantPump;
+        [SerializeField] private LabLightGlow playerLabGlow;
+        [SerializeField] private LabLightGlow aiLabGlow;
         [SerializeField] private float effCountDuration = 0.8f;
 
         [SerializeField] private CanvasGroup resultPanel;
@@ -94,6 +97,7 @@ namespace Scenes
         private bool _isWindStage;             // 풍력 스테이지로 연출 중인지 (레벨2)
         private bool _isHydroStage;            // 수력 스테이지로 연출 중인지 (레벨3)
         private bool _isPlantStage;            // 발전소 스테이지로 연출 중인지 (레벨4)
+        private bool _isLabStage;              // 연구소 스테이지로 연출 중인지 (레벨5)
         private Material _grayscaleInstance;   // 흑백 전환용 머티리얼 인스턴스 (null이면 컬러 유지)
         private Tween _touchGuideBlinkTween;   // 터치 안내 깜빡임 — 무한 반복이라 직접 Kill한다
         private string _missionResultSound;    // 완료 패널(미션 성공/실패)이 뜰 때 낼 효과음 — 게임 결과 없이 진입하면 null
@@ -181,6 +185,8 @@ namespace Scenes
             if (aiDamGates) aiDamGates.SetNeutral();
             if (playerPlantPump) playerPlantPump.SetNeutral();
             if (aiPlantPump) aiPlantPump.SetNeutral();
+            if (playerLabGlow) playerLabGlow.SetNeutral();
+            if (aiLabGlow) aiLabGlow.SetNeutral();
         }
 
         /// <summary>
@@ -225,21 +231,21 @@ namespace Scenes
 
         /// <summary>
         /// 레벨에 맞는 3D 스테이지만 남긴다 — 풍력(레벨2)은 풍차, 수력(레벨3)은 댐,
-        /// 발전소(레벨4)는 발전소 건물, 나머지는 태양광 패널.
+        /// 발전소(레벨4)는 발전소 건물, 미래에너지(레벨5)는 연구소, 나머지는 태양광 패널.
         /// </summary>
         private void ApplyLevelStage()
         {
             LevelKind kind = CurrentLevelKind;
             _isWindStage = kind == LevelKind.Wind;
             _isHydroStage = kind == LevelKind.Hydro;
-            // TODO: 레벨5(미래에너지) 3D 결과 연출은 기획 미정 — 정해지면 여기에 전용 분기를 추가할 것.
-            //       그때까지 레벨5는 태양광 스테이지를 그대로 쓴다 (결과 행은 BuildFutureEnergyRows).
             _isPlantStage = kind == LevelKind.PowerPlant;
+            _isLabStage = kind == LevelKind.FutureEnergy;
 
-            if (solarStage) solarStage.SetActive(!_isWindStage && !_isHydroStage && !_isPlantStage);
+            if (solarStage) solarStage.SetActive(!_isWindStage && !_isHydroStage && !_isPlantStage && !_isLabStage);
             if (windStage) windStage.SetActive(_isWindStage);
             if (hydroStage) hydroStage.SetActive(_isHydroStage);
             if (plantStage) plantStage.SetActive(_isPlantStage);
+            if (labStage) labStage.SetActive(_isLabStage);
         }
 
         /// <summary>
@@ -555,8 +561,8 @@ namespace Scenes
 
         /// <summary>
         /// 플레이어 스테이지 연출을 재생한다 — 태양광은 패널 방향, 풍력은 풍차 회전 속도,
-        /// 수력은 댐 수문 개방량, 발전소는 피스톤·수증기 강도.
-        /// 셋 다 에너지 효율(%)을 연출 강도로 쓴다(발전소만 부족 구간을 정지로 잘라낸다).
+        /// 수력은 댐 수문 개방량, 발전소는 피스톤·수증기 강도, 연구소는 건물 안 조명 밝기.
+        /// 모두 에너지 효율(%)을 연출 강도로 쓴다(발전소만 부족 구간을 정지로 잘라낸다).
         /// </summary>
         private async UniTask PlayPlayerStageAsync(CancellationToken ct)
         {
@@ -578,6 +584,13 @@ namespace Scenes
             {
                 if (playerPlantPump) await playerPlantPump.ApplyAsync(_playerPercent, ct);
                 else WarnMissingStage(nameof(playerPlantPump));
+                return;
+            }
+
+            if (_isLabStage)
+            {
+                if (playerLabGlow) await playerLabGlow.ApplyAsync(_playerPercent, ct);
+                else WarnMissingStage(nameof(playerLabGlow));
                 return;
             }
 
@@ -610,6 +623,13 @@ namespace Scenes
             {
                 if (aiPlantPump) await aiPlantPump.ApplyAsync(MaxPercent, ct);
                 else WarnMissingStage(nameof(aiPlantPump));
+                return;
+            }
+
+            if (_isLabStage)
+            {
+                if (aiLabGlow) await aiLabGlow.ApplyAsync(MaxPercent, ct);
+                else WarnMissingStage(nameof(aiLabGlow));
                 return;
             }
 
@@ -704,6 +724,8 @@ namespace Scenes
             if (aiDamGates) aiDamGates.OpenDuration = _sceneSettings.damOpenDuration;
             if (playerPlantPump) playerPlantPump.RampDuration = _sceneSettings.plantPumpDuration;
             if (aiPlantPump) aiPlantPump.RampDuration = _sceneSettings.plantPumpDuration;
+            if (playerLabGlow) playerLabGlow.RampDuration = _sceneSettings.labLightDuration;
+            if (aiLabGlow) aiLabGlow.RampDuration = _sceneSettings.labLightDuration;
         }
 
         /// <summary>
