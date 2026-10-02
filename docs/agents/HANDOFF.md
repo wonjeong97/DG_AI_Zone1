@@ -19,6 +19,7 @@
 - 결과: 통과. Claude가 직접 실행 — agy 실행 파일이 이 PC에서 없어져(`AppData\Local\agy\bin` 없음) 대신 실행함. 컴파일 에러 0, PlayMode 16/16 통과, EditMode 테스트 0개, 콘솔은 MCP WebSocket 경고 1건뿐.
   - MCP run_tests(PlayMode)가 실행 중에 EditorSettings.asset을 `m_EnterPlayModeOptionsEnabled: 1`로 저장하고 메모리에서만 되돌림 → 메모리 값 False 확인 후 파일을 git checkout으로 되돌림.
   - 블록 드래그 스냅과 레벨별 결과 화면은 Play 모드에서 직접 조작해 보지 않음(테스트는 컴파일·채점·소켓 점유만 다룸).
+  - 10:18 agy 복구(1.2.14) 후 agy 재확인: 콘솔 에러 0, validate_script(CodingBlock·BlockScorer·ResultSequence·LevelData) 에러·경고 0, 03_HydroData kind 2 — 통과.
 
 ### [2026-10-01 23:00] Claude → Antigravity · 프로젝트 설정 정리
 - 변경 파일: ProjectSettings/ProjectSettings.asset
