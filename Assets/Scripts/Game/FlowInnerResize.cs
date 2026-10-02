@@ -23,6 +23,10 @@ namespace Game
         private RectTransform _parentRt;
         private float         _socketOffset;
         private float         _bottomSocketOffset;
+
+        // 부모(블록)에 세로 ContentSizeFitter가 있으면 레이아웃 그룹 여백까지 포함한 높이를 Fitter가 정한다.
+        // 여기서 자식 합(여백 제외)을 또 써 넣으면 Fitter가 매번 되돌리면서 매 프레임 레이아웃이 다시 빌드된다.
+        private bool          _parentFitsHeight;
         private ILogger<FlowInnerResize> _logger;
 
         // 부모(블록)의 레이아웃 대상 자식 — 매 프레임 자식마다 GetComponent하지 않도록 모아 두고, 자식 수가 바뀌면 다시 모은다
@@ -59,6 +63,8 @@ namespace Game
             TryGetComponent<RectTransform>(out _rt);
             if (transform.parent)
                 transform.parent.TryGetComponent<RectTransform>(out _parentRt);
+            _parentFitsHeight = _parentRt && _parentRt.TryGetComponent(out ContentSizeFitter fitter)
+                                && fitter.verticalFit != ContentSizeFitter.FitMode.Unconstrained;
 
             if (socket && socket.TryGetComponent<RectTransform>(out RectTransform srt))
                 _socketOffset = -srt.anchoredPosition.y;
@@ -84,7 +90,7 @@ namespace Game
         }
 
         /// <summary>
-        /// Inner 높이를 체인 길이에 맞추고, 부모(블록) 전체 높이를 레이아웃 자식들의 선호 높이 합으로 맞춘다.
+        /// Inner 높이를 체인 길이에 맞추고, 부모(블록)에 세로 Fitter가 없을 때만 부모 높이를 레이아웃 자식들의 선호 높이 합으로 맞춘다.
         /// </summary>
         private void UpdateHeights()
         {
@@ -101,7 +107,7 @@ namespace Game
                 if (_parentRt) LayoutRebuilder.MarkLayoutForRebuild(_parentRt);
             }
 
-            if (!_parentRt) return;
+            if (!_parentRt || _parentFitsHeight) return;
             float totalHeight = SumChildPreferredHeights();
             if (!Mathf.Approximately(_parentRt.sizeDelta.y, totalHeight))
                 _parentRt.sizeDelta = new Vector2(_parentRt.sizeDelta.x, totalHeight);
