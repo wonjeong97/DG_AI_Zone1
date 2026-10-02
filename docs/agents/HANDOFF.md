@@ -13,6 +13,13 @@
 
 ---
 
+### [2026-10-02 16:40] Claude → Antigravity · 반복하기(무한) 라벨·레벨4 힌트 문구 (feat/repeat-infinite-label)
+- 변경 파일: 02·04·05 BlockLayout(반복 블록 라벨 '반복하기(무한)'), BlockFactory.cs(GetFlowKind 키워드 포함 판별), ProgramFormatter.cs(반복 출력 중복 방지), Constants.cs(주석), 3_Game.unity(HintPanel/Board/Level4Panel에 Level3Panel/Text_Rule 복제 → 문구 '만약에 밤 그리고 과부하 이면 / 놀이 시설은 끄고, 병원은 계속 전기 켜기', Image_PowerPlant 1277x722@y0 → 939x531@y40), CHANGELOG.md, TODO.md, REVIEW_ITEMS.md
+- 확인 요청: 라벨 변경 후 FlowKind·IsRepeat·컴파일러·출력, 정확 일치 비교 잔존 / 씬 계층·문구·비율·겹침·HintPanel 덮어쓰기·fileID 중복
+- 결과: 통과(라벨 6개 항목·힌트 4개 항목, 버그 없음). PlayMode 33/33(Claude 실행), 콘솔 에러 0.
+  - 힌트 확인: 비활성 HintPanel·Level4Panel을 잠시 켜 씬 뷰로 캡처(Temp/review/hint_level4_scene.png) 후 원래대로 끄고 저장. 게임 뷰 캡처는 Overlay UI가 잡히지 않아 씬 뷰 사용. Play 모드에서 직접 보는 확인은 하지 않음.
+  - 씬의 testLevel 변경(사용자 작업)은 커밋에서 제외.
+
 ### [2026-10-02 16:25] Claude → Antigravity · 레벨4 놀이시설 행 이름·실행 불가 블록 제외 (feat/powerplant-reachability)
 - 변경 파일: BlockScorer.cs(IsAmusementPowerCut에 도달 가능 판정, CollectReachable 신규: 무한 반복 뒤 같은·바깥 목록 블록 도달 불가, 아니면 있는 만약은 두 분기 모두 안 끝날 때만 막음), Constants.cs(LabelAmusement '놀이시설 끄기 조건(만약)'), GameSession.cs·ResultSequence.cs(주석), BlockScorerTests.cs(테스트 1개), CHANGELOG.md, TODO.md, REVIEW_ITEMS.md
 - 확인 요청: 도달 판정 규칙과 단락 평가 없음, 정답 형태 3개 true·무한 반복 뒤 2개 false, 다른 레벨 영향, 테스트 기대값, switch 지역 변수
