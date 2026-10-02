@@ -95,6 +95,109 @@ namespace DG.Zone1.Tests
         }
 
         /// <summary>
+        /// 레벨4는 병원 반복하기를 만약 안에 넣든 밖에 두든 만점이고, 함정 블록을 쓰거나 놀이시설 불 끄기를 만약 밖에 두면 관련 항목이 감점된다.
+        /// </summary>
+        [Test]
+        public void 발전소는_반복하기_위치와_상관없이_만점이고_함정_블록은_감점된다()
+        {
+            int max = BlockScorer.GetMaxScore(LevelKind.PowerPlant);
+            int and = Constants.Scores.PowerPlantConditionAndScore;
+
+            List<BlockInstruction> nested = new List<BlockInstruction>
+                { PlantIf(Cmd("놀이시설 불 끄기"), Repeat(Cmd("병원 불 켜기"))) };
+            Assert.AreEqual(max, BlockScorer.ScoreProgram(nested, null, null, LevelKind.PowerPlant), "반복하기를 만약 안에 중첩");
+
+            List<BlockInstruction> repeatOutside = new List<BlockInstruction>
+                { PlantIf(Cmd("놀이시설 불 끄기")), Repeat(Cmd("병원 불 켜기")) };
+            Assert.AreEqual(max, BlockScorer.ScoreProgram(repeatOutside, null, null, LevelKind.PowerPlant), "반복하기를 만약 밖에 둠");
+            Assert.IsTrue(BlockScorer.IsAmusementPowerCut(repeatOutside));
+            Assert.IsTrue(BlockScorer.IsHospitalPowerKept(repeatOutside));
+
+            List<BlockInstruction> amusementOnTrap = new List<BlockInstruction>
+                { PlantIf(Cmd("놀이시설 불 끄기")), Cmd("놀이시설 불 켜기"), Repeat(Cmd("병원 불 켜기")) };
+            Assert.IsFalse(BlockScorer.IsAmusementPowerCut(amusementOnTrap));
+            Assert.AreEqual(Constants.Scores.PowerPlantAmusementOtherScore + and + Constants.Scores.PowerPlantHospitalKeptScore,
+                BlockScorer.ScoreProgram(amusementOnTrap, null, null, LevelKind.PowerPlant), "함정 놀이시설 불 켜기");
+
+            List<BlockInstruction> hospitalOffTrap = new List<BlockInstruction>
+                { PlantIf(Cmd("놀이시설 불 끄기")), Repeat(Cmd("병원 불 켜기"), Cmd("병원 불 끄기")) };
+            Assert.IsFalse(BlockScorer.IsHospitalPowerKept(hospitalOffTrap));
+            Assert.AreEqual(Constants.Scores.PowerPlantAmusementOffScore + and + Constants.Scores.PowerPlantHospitalOtherScore,
+                BlockScorer.ScoreProgram(hospitalOffTrap, null, null, LevelKind.PowerPlant), "함정 병원 불 끄기");
+
+            List<BlockInstruction> amusementOutsideIf = new List<BlockInstruction>
+                { PlantIf(Repeat(Cmd("병원 불 켜기"))), Cmd("놀이시설 불 끄기") };
+            Assert.IsFalse(BlockScorer.IsAmusementPowerCut(amusementOutsideIf), "놀이시설 불 끄기가 만약 밖");
+        }
+
+        /// <summary>
+        /// 레벨4 조건은 그리고 10점 / 또는·단일 5점이고, 함정 조건(낮·전기 여유)이 하나라도 들어가면 0점이다.
+        /// </summary>
+        [Test]
+        public void 발전소_조건에_함정_조건이_들어가면_0점이다()
+        {
+            Assert.AreEqual(Constants.Scores.PowerPlantConditionAndScore, PlantConditionScore(Logic("전기 과부하", "그리고", "밤")));
+            Assert.AreEqual(Constants.Scores.PowerPlantConditionOrScore, PlantConditionScore(Logic("전기 과부하", "또는", "밤")));
+            Assert.AreEqual(Constants.Scores.PowerPlantConditionSingleScore, PlantConditionScore(new SimpleConditionExpr { Name = "밤" }));
+
+            Assert.AreEqual(Constants.Scores.PowerPlantConditionTrapScore, PlantConditionScore(Logic("전기 과부하", "그리고", "낮")), "그리고 + 낮");
+            Assert.AreEqual(Constants.Scores.PowerPlantConditionTrapScore, PlantConditionScore(Logic("전기 여유", "또는", "밤")), "또는 + 전기 여유");
+            Assert.AreEqual(Constants.Scores.PowerPlantConditionTrapScore, PlantConditionScore(new SimpleConditionExpr { Name = "낮" }), "낮 단독");
+        }
+
+        /// <summary>
+        /// 놀이시설·병원 항목을 만점으로 두고 조건만 바꾼 프로그램의 조건 점수를 구한다.
+        /// </summary>
+        private static int PlantConditionScore(ConditionExpr condition)
+        {
+            List<BlockInstruction> program = new List<BlockInstruction>
+                { PlantIfWith(condition, Cmd("놀이시설 불 끄기")), Repeat(Cmd("병원 불 켜기")) };
+            return BlockScorer.ScoreProgram(program, null, null, LevelKind.PowerPlant)
+                 - Constants.Scores.PowerPlantAmusementOffScore
+                 - Constants.Scores.PowerPlantHospitalKeptScore;
+        }
+
+        /// <summary>
+        /// 두 조건을 논리 블록으로 이은 조건식을 만든다.
+        /// </summary>
+        private static LogicConditionExpr Logic(string left, string op, string right) => new LogicConditionExpr
+        {
+            Operator = op,
+            Left = new SimpleConditionExpr { Name = left },
+            Right = new SimpleConditionExpr { Name = right }
+        };
+
+        /// <summary>
+        /// '전기 과부하 그리고 밤' 조건의 만약 블록을 만든다.
+        /// </summary>
+        private static IfInstruction PlantIf(params BlockInstruction[] then)
+            => PlantIfWith(Logic("전기 과부하", "그리고", "밤"), then);
+
+        /// <summary>
+        /// 지정 조건의 만약 블록을 만든다.
+        /// </summary>
+        private static IfInstruction PlantIfWith(ConditionExpr condition, params BlockInstruction[] then) => new IfInstruction
+        {
+            Condition = condition,
+            Then = new List<BlockInstruction>(then),
+            Else = new List<BlockInstruction>()
+        };
+
+        /// <summary>
+        /// 무한 반복하기 블록을 만든다.
+        /// </summary>
+        private static RepeatInstruction Repeat(params BlockInstruction[] body) => new RepeatInstruction
+        {
+            Count = -1,
+            Body = new List<BlockInstruction>(body)
+        };
+
+        /// <summary>
+        /// 값 없는 명령 노드를 만든다.
+        /// </summary>
+        private static CommandInstruction Cmd(string name) => new CommandInstruction { Command = name };
+
+        /// <summary>
         /// "5m 이상" 조건의 만약 블록에 지정한 수문 명령을 넣은 프로그램을 만든다.
         /// </summary>
         private static List<BlockInstruction> GateProgram(string[] thenCommands, bool hasElse, string[] elseCommands) => new List<BlockInstruction>

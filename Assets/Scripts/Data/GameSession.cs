@@ -18,8 +18,8 @@ namespace Data
         [System.NonSerialized] public bool lastElseUsed;     // 레벨3 결과의 '수문 닫기 조건(아니면)' 표시용
         [System.NonSerialized] public bool lastGateOrderCorrect; // 레벨3 결과의 '수문 열기·닫기 순서' 표시용
         [System.NonSerialized] public string lastConditionText;  // 레벨4 결과의 '설정한 조건' — 만약에 연결한 조건식
-        [System.NonSerialized] public bool lastRepeatNested;     // 레벨4 결과의 '반복 감지' — 반복하기가 만약 안에 중첩
-        [System.NonSerialized] public bool lastHospitalInRepeat; // 레벨4 결과의 '병원 전력 유지'
+        [System.NonSerialized] public bool lastAmusementPowerCut; // 레벨4 결과의 '놀이시설 전력 차단'
+        [System.NonSerialized] public bool lastHospitalPowerKept; // 레벨4 결과의 '병원 전력 유지'
 
         // 컴파일에 성공해 채점까지 끝난 결과인지 — 넘어가기/미완료와 구분한다.
         // 레벨마다 채워지는 값이 달라 개별 필드로 판정하면 분기가 계속 늘고,
@@ -65,8 +65,8 @@ namespace Data
             lastElseUsed = false;
             lastGateOrderCorrect = false;
             lastConditionText = null;
-            lastRepeatNested = false;
-            lastHospitalInRepeat = false;
+            lastAmusementPowerCut = false;
+            lastHospitalPowerKept = false;
             hasCodingResult = false;
         }
     }

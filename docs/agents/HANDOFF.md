@@ -13,6 +13,14 @@
 
 ---
 
+### [2026-10-02 16:10] Claude → Antigravity · 레벨4 채점 변경·함정 블록 (feat/powerplant-scoring-traps)
+- 변경 파일: BlockScorer.cs(구조 채점 → IsAmusementPowerCut: 놀이시설 불 끄기가 만약 안 + 함정 놀이시설 불 켜기 미사용, IsHospitalPowerKept: 병원 불 켜기가 반복 안 + 함정 병원 불 끄기 미사용, 조건 함정 낮·전기 여유 → 조건 0점), Constants.cs(PowerPlantAmusement*·HospitalKept/Other·ConditionTrapScore, LabelAmusement), GameSession.cs, GameSceneManager.cs, ResultSequence.cs(반복 감지 → 놀이시설 전력 차단, 건너뜀 '-'), 04_PowerPlantBlockLayout.asset(함정 4개), BlockScorerTests.cs(테스트 2개), CHANGELOG.md, TODO.md, REVIEW_ITEMS.md
+- 확인 요청: 두 판정·조건 함정 채점과 만점 30, 결과 행·AI·건너뜀 값, 삭제 심볼 잔존, 레이아웃 YAML·라벨 일치, Command·Condition 미사용 컴파일 통과, 레벨5 영향, 테스트 기대값
+- 결과: 통과(동작 함정 8개 항목·조건 함정 6개 항목, 버그 없음). PlayMode 31/31 → 32/32(Claude 실행), 콘솔 에러 0.
+  - 레벨5도 ScorePowerPlant를 쓰므로 반복하기 위치 무관 규칙이 같이 적용됨. 레벨5 레이아웃에는 함정 블록을 넣지 않음(기획 미정).
+  - '전기 여유' 단독 테스트 추가 제안은 '전기 여유 또는 밤' 케이스가 같은 판정을 확인해 반영하지 않음.
+  - PlayMode 실행 중 한 번은 '테스트가 제한 시간 안에 시작되지 않음'으로 실패(Play 모드 진입 후 도메인 리로드로 작업 추적이 끊긴 것으로 보임) → 재실행해 통과.
+
 ### [2026-10-02 15:38] Claude → Antigravity · 레벨3 수문 순서 결과 행·빈 아니면 에러 (feat/hydro-gate-order-result)
 - 변경 파일: BlockScorer.cs(IsHydroGateOrderCorrect 공개, 채점과 공용), GameSession.cs(lastGateOrderCorrect), GameSceneManager.cs, ResultSequence.cs(수력 행: 개방 높이/조건 감지/아니면/수문 열기·닫기 순서/상태, 강물 높이 행 제거, 건너뜀은 순서 '-'), Constants.cs(LabelGateOrder·GateOrderCorrect/Wrong, LabelRiverHeight 삭제), BlockCompiler.cs(빈 아니면 → 아니면 블록 지목 실패), BlockScorerTests.cs·BlockCompilerTests.cs(테스트 3개), BlockTestUtil.cs(AddConditionSocket), CHANGELOG.md, TODO.md, REVIEW_ITEMS.md
 - 확인 요청: 행 순서·AI·건너뜀 값, 순서 판정과 채점 기준 일치, 세션 초기화, LabelRiverHeight 잔존, 빈 아니면 검사와 switch 순서, 새 테스트의 실제 컴파일 경로 추적

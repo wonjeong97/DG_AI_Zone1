@@ -288,7 +288,7 @@ namespace Scenes
                 playerResult =
                     kind == LevelKind.Wind       ? BuildWindRows(_session.lastQuestionTime, null, false, poor) :
                     kind == LevelKind.Hydro      ? BuildHydroRows(null, false, Constants.ResultMessages.NoValue, poor) :
-                    kind == LevelKind.PowerPlant ? BuildPowerPlantRows(null, OnOff(false), Constants.ResultMessages.NoValue, poor) :
+                    kind == LevelKind.PowerPlant ? BuildPowerPlantRows(null, Constants.ResultMessages.NoValue, Constants.ResultMessages.NoValue, poor) :
                                                    BuildSolarRows(null, null, poor);
                 ApplyGrayscale();
             }
@@ -402,16 +402,16 @@ namespace Scenes
             => isCorrect ? Constants.ResultMessages.GateOrderCorrect : Constants.ResultMessages.GateOrderWrong;
 
         /// <summary>
-        /// 레벨4(발전소) 결과 행 — 고정 상황 / 플레이어가 만약에 연결한 조건식 / 반복 중첩·병원 명령 위치.
-        /// 뒤 두 항목은 구조·명령 채점과 같은 기준이라 효율 %가 왜 그렇게 나왔는지 화면에서 읽힌다.
-        /// 코딩을 건너뛰면 병원 전력 유지는 판단할 배치가 없으므로 ON/OFF 대신 '-'로 둔다.
+        /// 레벨4(발전소) 결과 행 — 고정 상황 / 플레이어가 만약에 연결한 조건식 / 놀이시설 전력 차단·병원 전력 유지.
+        /// 뒤 두 항목은 놀이시설·병원 채점과 같은 기준이라 효율 %가 왜 그렇게 나왔는지 화면에서 읽힌다.
+        /// 코딩을 건너뛰면 두 항목은 판단할 배치가 없으므로 ON/OFF 대신 '-'로 둔다.
         /// </summary>
-        private static List<ResultRow> BuildPowerPlantRows(string condition, string repeatNested, string hospitalInRepeat, string status) => new()
+        private static List<ResultRow> BuildPowerPlantRows(string condition, string amusementPowerCut, string hospitalPowerKept, string status) => new()
         {
             new ResultRow(Constants.ResultMessages.LabelSituation, Constants.ResultMessages.PowerPlantSituation),
             new ResultRow(Constants.ResultMessages.LabelCondition, OrNoValue(condition)),
-            new ResultRow(Constants.ResultMessages.LabelRepeat, repeatNested),
-            new ResultRow(Constants.ResultMessages.LabelHospital, hospitalInRepeat),
+            new ResultRow(Constants.ResultMessages.LabelAmusement, amusementPowerCut),
+            new ResultRow(Constants.ResultMessages.LabelHospital, hospitalPowerKept),
             new ResultRow(Constants.ResultMessages.LabelStatus, status),
         };
 
@@ -428,8 +428,8 @@ namespace Scenes
                                       GateOrderText(_session.lastGateOrderCorrect), status);
 
             if (kind == LevelKind.PowerPlant)
-                return BuildPowerPlantRows(_session.lastConditionText, OnOff(_session.lastRepeatNested),
-                                           OnOff(_session.lastHospitalInRepeat), status);
+                return BuildPowerPlantRows(_session.lastConditionText, OnOff(_session.lastAmusementPowerCut),
+                                           OnOff(_session.lastHospitalPowerKept), status);
 
             return BuildSolarRows(_session.lastCount, _session.lastDirection, status);
         }
