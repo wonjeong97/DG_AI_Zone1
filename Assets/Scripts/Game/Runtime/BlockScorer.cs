@@ -118,15 +118,52 @@ namespace Game.Runtime
         }
 
         /// <summary>
-        /// '놀이시설 불 끄기'가 첫 '만약' 안(중첩 포함)에 있고 함정 '놀이시설 불 켜기'를 쓰지 않았는지 확인한다 —
-        /// 레벨4 놀이시설 채점과 결과의 '놀이시설 전력 차단'이 같은 기준을 쓴다.
+        /// '놀이시설 불 끄기'가 첫 '만약' 안(중첩 포함)에서 실제로 실행될 수 있고 함정 '놀이시설 불 켜기'를 쓰지 않았는지 확인한다 —
+        /// 레벨4 놀이시설 채점과 결과의 '놀이시설 끄기 조건(만약)'이 같은 기준을 쓴다.
+        /// 무한 반복하기 뒤에 놓여 실행되지 않는 블록은 인정하지 않는다.
         /// </summary>
         public static bool IsAmusementPowerCut(List<BlockInstruction> instructions)
         {
             IfInstruction ifInstr = FindFirst<IfInstruction>(instructions);
-            return ifInstr is not null
-                && ContainsCommandDeep(ifInstr.Then, PowerPlantAmusementOffCommand)
-                && !ContainsCommandDeep(instructions, PowerPlantAmusementOnCommand);
+            if (ifInstr is null || ContainsCommandDeep(instructions, PowerPlantAmusementOnCommand)) return false;
+
+            HashSet<BlockInstruction> reachable = new HashSet<BlockInstruction>();
+            CollectReachable(instructions, reachable);
+            foreach (BlockInstruction instr in InstructionTree.Traverse(ifInstr.Then))
+                if (instr is CommandInstruction cmd && cmd.Command == PowerPlantAmusementOffCommand && reachable.Contains(cmd))
+                    return true;
+            return false;
+        }
+
+        /// <summary>
+        /// 실행 순서대로 도달할 수 있는 명령을 모은다 — 무한 반복하기는 끝나지 않으므로 그 뒤 블록은 같은 목록이든 바깥 목록이든 실행되지 않는다.
+        /// 이 목록의 실행이 끝나지 않으면(무한 반복에 갇히면) true를 반환한다.
+        /// </summary>
+        private static bool CollectReachable(List<BlockInstruction> list, HashSet<BlockInstruction> reachable)
+        {
+            if (list is null) return false;
+
+            foreach (BlockInstruction instr in list)
+            {
+                reachable.Add(instr);
+                switch (instr)
+                {
+                    case RepeatInstruction rep:
+                        bool bodyNeverEnds = CollectReachable(rep.Body, reachable);
+                        if (rep.IsInfinite || bodyNeverEnds) return true;
+                        break;
+                    case IfInstruction ifInstr:
+                        bool thenNeverEnds = CollectReachable(ifInstr.Then, reachable);
+                        bool elseNeverEnds = CollectReachable(ifInstr.Else, reachable);
+                        // 아니면이 없으면 조건이 거짓일 때 그냥 지나가므로, 두 분기가 모두 끝나지 않을 때만 뒤 블록이 막힌다
+                        if (ifInstr.HasElseMarker && thenNeverEnds && elseNeverEnds) return true;
+                        break;
+                    case FunctionInstruction fn:
+                        if (CollectReachable(fn.Body, reachable)) return true;
+                        break;
+                }
+            }
+            return false;
         }
 
         /// <summary>

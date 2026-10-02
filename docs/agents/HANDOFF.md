@@ -13,6 +13,11 @@
 
 ---
 
+### [2026-10-02 16:25] Claude → Antigravity · 레벨4 놀이시설 행 이름·실행 불가 블록 제외 (feat/powerplant-reachability)
+- 변경 파일: BlockScorer.cs(IsAmusementPowerCut에 도달 가능 판정, CollectReachable 신규: 무한 반복 뒤 같은·바깥 목록 블록 도달 불가, 아니면 있는 만약은 두 분기 모두 안 끝날 때만 막음), Constants.cs(LabelAmusement '놀이시설 끄기 조건(만약)'), GameSession.cs·ResultSequence.cs(주석), BlockScorerTests.cs(테스트 1개), CHANGELOG.md, TODO.md, REVIEW_ITEMS.md
+- 확인 요청: 도달 판정 규칙과 단락 평가 없음, 정답 형태 3개 true·무한 반복 뒤 2개 false, 다른 레벨 영향, 테스트 기대값, switch 지역 변수
+- 결과: 통과(6개 항목, 버그 없음). PlayMode 33/33(Claude 실행), 콘솔 에러 0. case 중괄호 감싸기 제안은 변수 이름이 겹치지 않아 반영하지 않음.
+
 ### [2026-10-02 16:10] Claude → Antigravity · 레벨4 채점 변경·함정 블록 (feat/powerplant-scoring-traps)
 - 변경 파일: BlockScorer.cs(구조 채점 → IsAmusementPowerCut: 놀이시설 불 끄기가 만약 안 + 함정 놀이시설 불 켜기 미사용, IsHospitalPowerKept: 병원 불 켜기가 반복 안 + 함정 병원 불 끄기 미사용, 조건 함정 낮·전기 여유 → 조건 0점), Constants.cs(PowerPlantAmusement*·HospitalKept/Other·ConditionTrapScore, LabelAmusement), GameSession.cs, GameSceneManager.cs, ResultSequence.cs(반복 감지 → 놀이시설 전력 차단, 건너뜀 '-'), 04_PowerPlantBlockLayout.asset(함정 4개), BlockScorerTests.cs(테스트 2개), CHANGELOG.md, TODO.md, REVIEW_ITEMS.md
 - 확인 요청: 두 판정·조건 함정 채점과 만점 30, 결과 행·AI·건너뜀 값, 삭제 심볼 잔존, 레이아웃 YAML·라벨 일치, Command·Condition 미사용 컴파일 통과, 레벨5 영향, 테스트 기대값

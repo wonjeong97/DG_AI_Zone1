@@ -131,6 +131,36 @@ namespace DG.Zone1.Tests
         }
 
         /// <summary>
+        /// 무한 반복하기 뒤에 놓여 실행되지 않는 놀이시설 불 끄기는 인정하지 않고, 반복 안에서 상황을 확인하는 만약은 인정한다.
+        /// </summary>
+        [Test]
+        public void 무한_반복_뒤에_있어_실행되지_않는_놀이시설_끄기는_인정하지_않는다()
+        {
+            List<BlockInstruction> ifAfterRepeat = new List<BlockInstruction>
+                { Repeat(Cmd("병원 불 켜기")), PlantIf(Cmd("놀이시설 불 끄기")) };
+            Assert.IsFalse(BlockScorer.IsAmusementPowerCut(ifAfterRepeat), "만약이 무한 반복 뒤");
+            Assert.AreEqual(Constants.Scores.PowerPlantAmusementOtherScore + Constants.Scores.PowerPlantConditionAndScore + Constants.Scores.PowerPlantHospitalKeptScore,
+                BlockScorer.ScoreProgram(ifAfterRepeat, null, null, LevelKind.PowerPlant));
+
+            List<BlockInstruction> offAfterRepeatInIf = new List<BlockInstruction>
+                { PlantIf(Repeat(Cmd("병원 불 켜기")), Cmd("놀이시설 불 끄기")) };
+            Assert.IsFalse(BlockScorer.IsAmusementPowerCut(offAfterRepeatInIf), "만약 안에서 무한 반복 뒤");
+
+            List<BlockInstruction> ifInsideRepeat = new List<BlockInstruction>
+                { Repeat(PlantIf(Cmd("놀이시설 불 끄기")), Cmd("병원 불 켜기")) };
+            Assert.IsTrue(BlockScorer.IsAmusementPowerCut(ifInsideRepeat), "반복 안에서 상황 확인");
+            Assert.AreEqual(BlockScorer.GetMaxScore(LevelKind.PowerPlant),
+                BlockScorer.ScoreProgram(ifInsideRepeat, null, null, LevelKind.PowerPlant));
+
+            // 반복하기(무한) { 놀이시설 불 끄기 } → 만약(전기 과부하 또는 낮) { 놀이시설 불 켜기 }
+            List<BlockInstruction> alwaysOff = new List<BlockInstruction>
+                { Repeat(Cmd("놀이시설 불 끄기")), PlantIfWith(Logic("전기 과부하", "또는", "낮"), Cmd("놀이시설 불 켜기")) };
+            Assert.IsFalse(BlockScorer.IsAmusementPowerCut(alwaysOff), "항상 끄기는 만약 안 끄기가 아님");
+            Assert.AreEqual(Constants.Scores.PowerPlantAmusementOtherScore + Constants.Scores.PowerPlantConditionTrapScore + Constants.Scores.PowerPlantHospitalOtherScore,
+                BlockScorer.ScoreProgram(alwaysOff, null, null, LevelKind.PowerPlant));
+        }
+
+        /// <summary>
         /// 레벨4 조건은 그리고 10점 / 또는·단일 5점이고, 함정 조건(낮·전기 여유)이 하나라도 들어가면 0점이다.
         /// </summary>
         [Test]
