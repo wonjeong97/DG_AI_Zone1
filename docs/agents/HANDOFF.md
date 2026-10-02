@@ -13,6 +13,13 @@
 
 ---
 
+### [2026-10-02] Claude → Antigravity · T7 리팩터링 후 스킬 준수 재점검·문제 데이터 위치 조사
+- 변경 파일: 없음(리뷰·조사). 브랜치 코드 diff(Temp/review/branch_code.diff)와 Constants.Questions·Scores 사용처.
+- 결과:
+  - 이번 변경분 스킬 준수: 0·3·6·7·10·11·17·18·20번과 readonly static 순서 준수. 13번 위반 — ResultSequence 타이머 수정에 회귀 테스트 없음(타당, 후속). 12번 지적(LevelKind를 SO 필드로 둠)은 오탐에 가까움 — 식별자 문자열이 아니라 코드에 정의된 enum의 선택값이며, goToOutroAfterResult와 같은 방식.
+  - 프로젝트 전체 grep(Claude): var·GetComponent·씬 탐색·static readonly·리플렉션·코루틴·LINQ·Approximately(0f) 모두 0, summary 419/419. 남은 위반은 Debug.Log 12건(예외 5건 제외), GetComponentInChildren/InParent 2, Object.Instantiate 1(ResultRowsView), ProfilerMarker 0(핫패스 있음).
+  - 문제 데이터 조사: agy 보고서가 사용처 표까지만 쓰고 끊겨 나머지는 Claude가 직접 확인. 방향·개수·수력 높이 값은 레벨 레이아웃 블록 라벨과 일치해야 함, HintPanel.TimeVariantNames가 시간 값을 따로 가짐, QuestionData.CorrectAnswer는 만들기만 하고 읽는 곳 없음, AngleScore는 각도 블록이 어느 레벨에도 없어 현재 미사용.
+
 ### [2026-10-02 10:16] Claude · T7 감사 반영 Unity 검증 (refactor/skill-audit-fixes, main 병합 후)
 - 변경 파일: 없음(검증만). main 병합(8d3fb8a) 뒤 Zone1 에디터에서 확인.
 - 확인 요청: 컴파일·콘솔 에러, PlayMode·EditMode 테스트

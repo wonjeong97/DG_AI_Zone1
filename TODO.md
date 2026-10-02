@@ -15,6 +15,8 @@
 - [ ] (감사 후속) 표시 전용 TMP 텍스트 Raycast Target 끄기 — 3_Game 약 22개, 4_Result 6개, 2_Story 5개, BlockFactory 블록 라벨
 - [ ] (감사 후속) FlowInnerResize.LateUpdate 매 프레임 체인 순회를 변경 시에만 계산
 - [ ] (감사 후속) 스냅 대상 선정 중복(UpdateSnapHighlight/TrySnapToSocket)을 한 메서드로
+- [ ] (감사 후속) ResultSequence 타이머 수정의 회귀 테스트(스킬 13번) — 연출 중 예외를 넣을 주입 지점이 필요
+- [ ] (결정 필요) Constants.Questions의 문제 문구·후보 값·정답을 LevelData(SO)로 옮길지
 - [ ] (기획 확인) 미션 실패여도 다음 레벨이 해금되는 동작이 의도인지 — ResultSequence.OnNextClicked
 
 ## 완료
