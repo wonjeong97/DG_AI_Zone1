@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using UnityEngine.Video;
 using VContainer;
 using HuliacDev.Core;
+using HuliacDev.UI;
 using HuliacDev.Utils;
 using ZLogger;
 
@@ -31,19 +32,21 @@ namespace Scenes
         private GameSession _session;
         private ILogger<StoryManager> _logger;
         private InactivityTimer _inactivityTimer;
+        private SoundManager _soundManager;
 
         // 00_Common.json의 panelFadeDuration 사용 — 로드 전까지의 폴백 기본값
         private float _fadeDuration = 0.3f;
 
         /// <summary>
-        /// 게임 세션, 로거, 비활동 타이머를 주입받는다.
+        /// 게임 세션, 로거, 비활동 타이머, 사운드 매니저를 주입받는다.
         /// </summary>
         [Inject]
-        public void Construct(GameSession session, ILogger<StoryManager> log, InactivityTimer inactivityTimer)
+        public void Construct(GameSession session, ILogger<StoryManager> log, InactivityTimer inactivityTimer, SoundManager soundManager)
         {
             _session = session;
             _logger = log;
             _inactivityTimer = inactivityTimer;
+            _soundManager = soundManager;
         }
 
         private LevelData _currentLevel;
@@ -101,6 +104,7 @@ namespace Scenes
         /// </summary>
         private void OnLevelButtonClicked(int index)
         {
+            if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
             if (index < 0 || index >= levelDataList.Length) return;
 
             _currentLevel = levelDataList[index];
@@ -199,6 +203,7 @@ namespace Scenes
         /// </summary>
         private void OnStartClicked()
         {
+            if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
             if (!_currentLevel)
             {
                 if (_logger != null) _logger.ZLogWarning($"[StoryManager] 선택된 레벨이 없어 게임 씬으로 넘어가지 않습니다.");

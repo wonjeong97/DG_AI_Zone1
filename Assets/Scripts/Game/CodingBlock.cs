@@ -8,6 +8,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using VContainer;
+using HuliacDev.UI;
 using ZLogger;
 #if UNITY_EDITOR
 using UnityEditor;
@@ -77,14 +78,16 @@ namespace Game
         public Transform Footer => footer;
 
         private ILogger<CodingBlock> _logger;
+        private SoundManager _soundManager;
 
         /// <summary>
-        /// 로거를 주입받는다.
+        /// 로거와 사운드 매니저를 주입받는다.
         /// </summary>
         [Inject]
-        public void Construct(ILogger<CodingBlock> logger)
+        public void Construct(ILogger<CodingBlock> logger, SoundManager soundManager)
         {
             _logger = logger;
+            _soundManager = soundManager;
         }
 
         private Canvas _canvas;
@@ -746,6 +749,7 @@ namespace Game
 
             if (TrySnapToSocket())
             {
+                if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.BlockAssembled);
                 ClearDragCache();
                 return;
             }

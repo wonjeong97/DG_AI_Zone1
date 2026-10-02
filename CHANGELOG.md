@@ -6,6 +6,9 @@
 
 ## [Unreleased]
 
+### Added
+- 블록 장착, 버튼 클릭, 코딩 완료·경고, 게임 시작, 힌트·미션 다시보기, 미션 성공·실패 때 효과음이 나도록 추가(파일과 음량은 `StreamingAssets/Settings.json` 의 `sounds` 에서 바꿀 수 있음).
+
 ## [2026-10-02]
 
 ### Fixed

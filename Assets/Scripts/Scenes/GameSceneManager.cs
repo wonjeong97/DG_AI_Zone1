@@ -10,6 +10,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using VContainer;
+using HuliacDev.UI;
 using HuliacDev.Utils;
 using ZLogger;
 
@@ -33,15 +34,17 @@ namespace Scenes
 
         private GameSession _session;
         private ILogger<GameSceneManager> _logger;
+        private SoundManager _soundManager;
 
         /// <summary>
-        /// 게임 세션과 로거를 주입받는다.
+        /// 게임 세션, 로거, 사운드 매니저를 주입받는다.
         /// </summary>
         [Inject]
-        public void Construct(GameSession session, ILogger<GameSceneManager> logger)
+        public void Construct(GameSession session, ILogger<GameSceneManager> logger, SoundManager soundManager)
         {
             _session = session;
             _logger = logger;
+            _soundManager = soundManager;
         }
 
         // 명령 하나를 실행한 것처럼 보이도록 두는 간격 — 3_Game.json 로드 전까지의 폴백 기본값
@@ -127,16 +130,23 @@ namespace Scenes
                 _session.lastQuestionTime = _questionTime;
             }
 
+            // 코딩 완료 버튼은 클릭음 대신 컴파일 결과에 따라 완료음·경고음을 낸다(CompileAndRun)
             if (compileButton)
                 compileButton.onClick.AddListener(() => StartCompileAndRun(advanceScene: true));
 
             if (storyButton && storyPanel)
-                storyButton.onClick.AddListener(() => storyPanel.Show(
-                    _currentLevelName,
-                    _currentLevel ? _currentLevel.storyText : null));
+                storyButton.onClick.AddListener(() =>
+                {
+                    if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.HintEpisode);
+                    storyPanel.Show(_currentLevelName, _currentLevel ? _currentLevel.storyText : null);
+                });
 
             if (hintButton && hintPanel)
-                hintButton.onClick.AddListener(() => hintPanel.Show(_currentLevel, _questionTime));
+                hintButton.onClick.AddListener(() =>
+                {
+                    if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.HintEpisode);
+                    hintPanel.Show(_currentLevel, _questionTime);
+                });
 
             if (skipButton)
                 skipButton.onClick.AddListener(SkipToResult);
@@ -211,12 +221,15 @@ namespace Scenes
 
                 if (!result.Success)
                 {
+                    if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.CodingAlert);
                     ShowCompileError(result, blockSpawner ? blockSpawner.CategoryZone : null);
                     return;
                 }
 
                 // 실행~씬 전환 중 연타 방지 — 파도타기 연출 시작 전에 비활성화 (성공 시 씬을 떠나므로 재활성화 불필요)
                 if (advanceScene && compileButton) compileButton.interactable = false;
+
+                if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.CodingComplete);
 
                 // 시작하기 ~ 완성하기 순서로 성공(초록) 하이라이트가 파도타기처럼 순서대로 켜짐 (값 블록 포함)
                 await PlaySuccessWaveAsync(BuildSuccessOrder(codingZone, result.Instructions), ct);
@@ -367,6 +380,7 @@ namespace Scenes
         /// </summary>
         private void SkipToResult()
         {
+            if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
             if (_session)
             {
                 _session.ResetLastResult();

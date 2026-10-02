@@ -6,6 +6,7 @@ using UnityEngine.AddressableAssets;
 using UnityEngine.UI;
 using VContainer;
 using VContainer.Unity;
+using HuliacDev.UI;
 using ZLogger;
 
 namespace Game
@@ -23,15 +24,17 @@ namespace Game
 
         private ILogger<CategoryZone> _logger;
         private IObjectResolver _resolver;
+        private SoundManager _soundManager;
 
         /// <summary>
-        /// 로거와 버튼 생성용 리졸버를 주입받는다.
+        /// 로거, 버튼 생성용 리졸버, 사운드 매니저를 주입받는다.
         /// </summary>
         [Inject]
-        public void Construct(ILogger<CategoryZone> logger, IObjectResolver resolver)
+        public void Construct(ILogger<CategoryZone> logger, IObjectResolver resolver, SoundManager soundManager)
         {
             _logger = logger;
             _resolver = resolver;
+            _soundManager = soundManager;
         }
 
         private static GameObject _buttonPrefab;
@@ -137,7 +140,12 @@ namespace Game
                 {
                     BlockCategory captured = cat;
                     ui.Button.onClick.RemoveAllListeners();
-                    ui.Button.onClick.AddListener(() => Select(captured));
+                    // 클릭음은 버튼에서만 낸다 — Select는 컴파일 오류 표시 때 코드로도 호출된다
+                    ui.Button.onClick.AddListener(() =>
+                    {
+                        if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
+                        Select(captured);
+                    });
                 }
             }
             else if (_logger != null)

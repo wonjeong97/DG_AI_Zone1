@@ -10,6 +10,7 @@ using UnityEngine.Video;
 using VContainer;
 using HuliacDev.App;
 using HuliacDev.Core;
+using HuliacDev.UI;
 using ZLogger;
 
 namespace Scenes
@@ -26,18 +27,20 @@ namespace Scenes
         private VisitorInfoProvider _visitorInfoProvider;
         private InactivityTimer _inactivityTimer;
         private IPublisher<MoveIdleEvent> _moveIdlePublisher;
+        private SoundManager _soundManager;
 
         /// <summary>
-        /// 로거, 체험자 정보 제공자, 비활동 타이머, 관람 완료 이벤트 발행자를 주입받는다.
+        /// 로거, 체험자 정보 제공자, 비활동 타이머, 관람 완료 이벤트 발행자, 사운드 매니저를 주입받는다.
         /// </summary>
         [Inject]
         public void Construct(ILogger<OutroSceneManager> log, VisitorInfoProvider visitorInfoProvider,
-            InactivityTimer inactivityTimer, IPublisher<MoveIdleEvent> moveIdlePublisher)
+            InactivityTimer inactivityTimer, IPublisher<MoveIdleEvent> moveIdlePublisher, SoundManager soundManager)
         {
             _logger = log;
             _visitorInfoProvider = visitorInfoProvider;
             _inactivityTimer = inactivityTimer;
             _moveIdlePublisher = moveIdlePublisher;
+            _soundManager = soundManager;
         }
 
         /// <summary>
@@ -115,6 +118,7 @@ namespace Scenes
         /// </summary>
         private void OnEndButtonClicked()
         {
+            if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
             if (_moveIdlePublisher != null)
                 _moveIdlePublisher.Publish(new MoveIdleEvent());
             else if (_logger != null)

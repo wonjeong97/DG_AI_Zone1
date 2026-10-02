@@ -13,6 +13,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using VContainer;
+using HuliacDev.UI;
 using HuliacDev.Utils;
 using ZLogger;
 
@@ -26,6 +27,7 @@ namespace Scenes
 
         private ILogger<TitleSceneManager> _logger;
         private VisitorInfoProvider _visitorInfoProvider;
+        private SoundManager _soundManager;
 
         // 무한 반복 깜빡임이라 씬을 떠날 때 직접 Kill한다
         private Tween _qrBlinkTween;
@@ -37,13 +39,14 @@ namespace Scenes
         private bool _isWaitingForQr;
 
         /// <summary>
-        /// 로거와 체험자 정보 제공자를 주입받는다.
+        /// 로거, 체험자 정보 제공자, 사운드 매니저를 주입받는다.
         /// </summary>
         [Inject]
-        public void Construct(ILogger<TitleSceneManager> log, VisitorInfoProvider visitorInfoProvider)
+        public void Construct(ILogger<TitleSceneManager> log, VisitorInfoProvider visitorInfoProvider, SoundManager soundManager)
         {
             _logger = log;
             _visitorInfoProvider = visitorInfoProvider;
+            _soundManager = soundManager;
         }
 
         /// <summary>
@@ -245,10 +248,11 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 시작 버튼 클릭 시 인트로 씬으로 넘어간다.
+        /// 시작 버튼 클릭 시 게임 시작 효과음을 내고 인트로 씬으로 넘어간다.
         /// </summary>
         private void OnStartButtonClicked()
         {
+            if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.GameStart);
             SceneFader.FadeAndLoad(Constants.Scenes.Intro, logger: _logger).Forget();
         }
     }

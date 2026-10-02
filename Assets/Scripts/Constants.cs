@@ -487,4 +487,18 @@ public static class Constants
         public const string QrGuide    = "QR 코드를 인식하여 주세요.";
         public const string StartGuide = "시작하기를 눌러주세요.";
     }
+
+    // ── 21. 효과음 키 (StreamingAssets/Settings.json의 sounds[].key) ──────
+    // 값은 기획서·파일 이름 그대로 쓴다(missonFailed·missonSuccess의 철자 포함).
+    public static class Sounds
+    {
+        public const string BlockAssembled = "blockAssembled"; // 블록을 소켓에 장착
+        public const string ButtonClick    = "buttonClick";    // 전용 효과음이 없는 버튼 클릭
+        public const string CodingAlert    = "codingAlert";    // 컴파일 실패(블록 빨간 테두리 경고)
+        public const string CodingComplete = "codingComplete"; // 컴파일 성공
+        public const string GameStart      = "gameStart";      // 타이틀 시작하기 버튼
+        public const string HintEpisode    = "hintEpisode";    // 힌트·미션 다시보기 버튼
+        public const string MissionFailed  = "missonFailed";   // 결과 완료 화면 '미션 실패!'
+        public const string MissionSuccess = "missonSuccess";  // 결과 완료 화면 '미션 성공!'
+    }
 }
