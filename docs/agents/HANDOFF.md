@@ -13,6 +13,12 @@
 
 ---
 
+### [2026-10-02 16:55] Claude → Antigravity · 레벨5 블록 레이아웃 (feat/level5-blocks)
+- 변경 파일: 05_FutureEnergyBlockLayout.asset(시작하기 / 미래 에너지 만들기 함수 정의·호출 / 태양광·풍차·수력 발전·스마트 도시 발전소(값 없는 Command) / 완성하기, 레벨4 임시 블록 제거), CHANGELOG.md, TODO.md, REVIEW_ITEMS.md
+- 확인 요청: YAML·라벨, 레벨5 컴파일 경로(메인 체인 함수 제한·함수 펼치기·같은 이름의 정의/호출), 값 없는 Command 처리, 탭 구성, 현재 채점·결과 화면 값
+- 결과: 1~4 통과. PlayMode 33/33(Claude 실행). 채점은 레벨4 규칙(ScorePowerPlant)을 그대로 써서 항상 10/30(33%, 부족·미션 실패), 결과 행은 태양광 행('-')으로 나옴 → 레벨5 채점·결과 행 결정 필요(사용자에게 제안 전달).
+  - 탭 이름 '움직이기'는 레벨4 동작 블록과 같은 규칙이라 유지.
+
 ### [2026-10-02 16:40] Claude → Antigravity · 반복하기(무한) 라벨·레벨4 힌트 문구 (feat/repeat-infinite-label)
 - 변경 파일: 02·04·05 BlockLayout(반복 블록 라벨 '반복하기(무한)'), BlockFactory.cs(GetFlowKind 키워드 포함 판별), ProgramFormatter.cs(반복 출력 중복 방지), Constants.cs(주석), 3_Game.unity(HintPanel/Board/Level4Panel에 Level3Panel/Text_Rule 복제 → 문구 '만약에 밤 그리고 과부하 이면 / 놀이 시설은 끄고, 병원은 계속 전기 켜기', Image_PowerPlant 1277x722@y0 → 939x531@y40), CHANGELOG.md, TODO.md, REVIEW_ITEMS.md
 - 확인 요청: 라벨 변경 후 FlowKind·IsRepeat·컴파일러·출력, 정확 일치 비교 잔존 / 씬 계층·문구·비율·겹침·HintPanel 덮어쓰기·fileID 중복

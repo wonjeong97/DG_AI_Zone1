@@ -22,26 +22,8 @@ MonoBehaviour:
     elseBlocks: []
     chainBlocks: []
     chainSocketOffset: {x: 0, y: 0}
-  - category: 3
-    label: "\uB9CC\uC57D"
-    controlRole: 0
-    valueLabel: 
-    valueKind: 0
-    innerBlocks: []
-    elseBlocks: []
-    chainBlocks: []
-    chainSocketOffset: {x: 0, y: 0}
-  - category: 3
-    label: "\uBC18\uBCF5\uD558\uAE30(\uBB34\uD55C)"
-    controlRole: 0
-    valueLabel: 
-    valueKind: 0
-    innerBlocks: []
-    elseBlocks: []
-    chainBlocks: []
-    chainSocketOffset: {x: 0, y: 0}
   - category: 9
-    label: "\uD568\uC218 \uC815\uC758"
+    label: "\uBBF8\uB798 \uC5D0\uB108\uC9C0 \uB9CC\uB4E4\uAE30"
     controlRole: 0
     valueLabel: 
     valueKind: 0
@@ -50,43 +32,7 @@ MonoBehaviour:
     chainBlocks: []
     chainSocketOffset: {x: 0, y: 0}
   - category: 8
-    label: "\uD568\uC218"
-    controlRole: 0
-    valueLabel: 
-    valueKind: 0
-    innerBlocks: []
-    elseBlocks: []
-    chainBlocks: []
-    chainSocketOffset: {x: 0, y: 0}
-  - category: 7
-    label: "\uC804\uAE30 \uACFC\uBD80\uD558"
-    controlRole: 0
-    valueLabel: 
-    valueKind: 0
-    innerBlocks: []
-    elseBlocks: []
-    chainBlocks: []
-    chainSocketOffset: {x: 0, y: 0}
-  - category: 7
-    label: "\uBC24"
-    controlRole: 0
-    valueLabel: 
-    valueKind: 5
-    innerBlocks: []
-    elseBlocks: []
-    chainBlocks: []
-    chainSocketOffset: {x: 0, y: 0}
-  - category: 6
-    label: "\uADF8\uB9AC\uACE0"
-    controlRole: 0
-    valueLabel: 
-    valueKind: 0
-    innerBlocks: []
-    elseBlocks: []
-    chainBlocks: []
-    chainSocketOffset: {x: 0, y: 0}
-  - category: 6
-    label: "\uB610\uB294"
+    label: "\uBBF8\uB798 \uC5D0\uB108\uC9C0 \uB9CC\uB4E4\uAE30"
     controlRole: 0
     valueLabel: 
     valueKind: 0
@@ -95,7 +41,7 @@ MonoBehaviour:
     chainBlocks: []
     chainSocketOffset: {x: 0, y: 0}
   - category: 1
-    label: "\uB180\uC774\uC2DC\uC124 \uBD88 \uB044\uAE30"
+    label: "\uD0DC\uC591\uAD11"
     controlRole: 0
     valueLabel: 
     valueKind: 0
@@ -104,7 +50,25 @@ MonoBehaviour:
     chainBlocks: []
     chainSocketOffset: {x: 0, y: 0}
   - category: 1
-    label: "\uBCD1\uC6D0 \uBD88 \uCF1C\uAE30"
+    label: "\uD48D\uCC28"
+    controlRole: 0
+    valueLabel: 
+    valueKind: 0
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
+  - category: 1
+    label: "\uC218\uB825 \uBC1C\uC804"
+    controlRole: 0
+    valueLabel: 
+    valueKind: 0
+    innerBlocks: []
+    elseBlocks: []
+    chainBlocks: []
+    chainSocketOffset: {x: 0, y: 0}
+  - category: 1
+    label: "\uC2A4\uB9C8\uD2B8 \uB3C4\uC2DC \uBC1C\uC804\uC18C"
     controlRole: 0
     valueLabel: 
     valueKind: 0
