@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using UnityEngine.Video;
 using VContainer;
 using HuliacDev.Core;
+using HuliacDev.UI;
 using ZLogger;
 
 namespace Scenes
@@ -24,6 +25,7 @@ namespace Scenes
         private ILogger<IntroSceneManager> _logger;
         private VisitorInfoProvider _visitorInfoProvider;
         private InactivityTimer _inactivityTimer;
+        private SoundManager _soundManager;
 
         // 이름 연출이 끝난 뒤부터 화면 터치로 튜토리얼 패널로 넘어갈 수 있다.
         // 연출을 스킵한 그 터치가 곧바로 패널 전환까지 일으키지 않도록 허용된 프레임은 건너뛴다.
@@ -32,15 +34,16 @@ namespace Scenes
         private bool _isLoadingStory;
 
         /// <summary>
-        /// 로거, 체험자 정보 제공자, 비활동 타이머를 주입받는다.
+        /// 로거, 체험자 정보 제공자, 비활동 타이머, 사운드 매니저를 주입받는다.
         /// </summary>
         [Inject]
         public void Construct(ILogger<IntroSceneManager> log, VisitorInfoProvider visitorInfoProvider,
-            InactivityTimer inactivityTimer)
+            InactivityTimer inactivityTimer, SoundManager soundManager)
         {
             _logger = log;
             _visitorInfoProvider = visitorInfoProvider;
             _inactivityTimer = inactivityTimer;
+            _soundManager = soundManager;
         }
 
         /// <summary>
@@ -114,7 +117,7 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 이름 연출이 끝난 뒤 화면을 터치하면 튜토리얼 패널로 전환한다 (한 번만).
+        /// 이름 연출이 끝난 뒤 화면을 터치하면 클릭음을 내고 튜토리얼 패널로 전환한다 (한 번만).
         /// </summary>
         private void Update()
         {
@@ -122,6 +125,7 @@ namespace Scenes
             if (!StoryLineAnimator.IsPointerPressedThisFrame()) return;
 
             _introTapEnabled = false;
+            if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
             SwitchToTutorialPanelAsync(destroyCancellationToken).Forget();
         }
 

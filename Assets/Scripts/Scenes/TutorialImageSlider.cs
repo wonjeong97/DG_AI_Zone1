@@ -8,6 +8,7 @@ using UnityEngine.AddressableAssets;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using VContainer;
+using HuliacDev.UI;
 using ZLogger;
 
 namespace Scenes
@@ -29,14 +30,16 @@ namespace Scenes
         private RectTransform _rectTransform;
         private int _currentIndex;
         private ILogger<TutorialImageSlider> _logger;
+        private SoundManager _soundManager;
 
         /// <summary>
-        /// 로거를 주입받는다.
+        /// 로거와 사운드 매니저를 주입받는다.
         /// </summary>
         [Inject]
-        public void Construct(ILogger<TutorialImageSlider> logger)
+        public void Construct(ILogger<TutorialImageSlider> logger, SoundManager soundManager)
         {
             _logger = logger;
+            _soundManager = soundManager;
         }
 
         /// <summary>
@@ -79,6 +82,8 @@ namespace Scenes
         /// </summary>
         private void ShowNext()
         {
+            if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
+
             if (_currentIndex == TotalPages - 1)
             {
                 Finished?.Invoke();
@@ -96,6 +101,7 @@ namespace Scenes
         {
             if (_currentIndex == 0) return;
 
+            if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
             _currentIndex--;
             UpdatePageAsync().Forget();
         }

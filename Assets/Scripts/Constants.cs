@@ -493,7 +493,7 @@ public static class Constants
     public static class Sounds
     {
         public const string BlockAssembled = "blockAssembled"; // 블록을 소켓에 장착
-        public const string ButtonClick    = "buttonClick";    // 전용 효과음이 없는 버튼 클릭
+        public const string ButtonClick    = "buttonClick";    // 전용 효과음이 없는 버튼 클릭, 인트로→튜토리얼 터치, 튜토리얼 페이지 넘기기
         public const string CodingAlert    = "codingAlert";    // 컴파일 실패(블록 빨간 테두리 경고)
         public const string CodingComplete = "codingComplete"; // 컴파일 성공
         public const string GameStart      = "gameStart";      // 타이틀 시작하기 버튼

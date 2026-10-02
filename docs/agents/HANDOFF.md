@@ -13,6 +13,14 @@
 
 ---
 
+### [2026-10-02 13:37] Claude → Antigravity · 인트로·튜토리얼 터치 클릭음 (feat/sfx)
+- 변경 파일: IntroSceneManager.cs(인트로 패널 → 튜토리얼 패널 전환 터치), TutorialImageSlider.cs(다음·이전 페이지, 마지막 페이지에서 다음), Constants.cs(주석), CHANGELOG.md(2026-10-02로 이동)
+- 확인 요청: 기대 동작 일치, 소리 중복·누락, SoundManager 주입, validate_script
+- 결과: 통과. 수정할 사항 없음.
+  - 이름 연출 스킵 터치와 첫 페이지에서 이전 터치는 소리 없음.
+  - agy 제안(마지막 페이지 초고속 연타 시 페이드 커튼이 입력을 막기 전 클릭음 2회 가능)은 다른 씬 전환 버튼과 같은 수준이라 반영하지 않음. validate_script의 'Update 안 문자열 결합' 경고는 const string 인자라 오탐.
+  - Claude Play 모드 확인: 0_Title에서 SoundManager가 GameLifetimeScope(Clone) 아래에 생성되고 설정 키 8개 로드, TitleSceneManager 주입 확인. 이후 Play 모드가 꺼지고 활성 씬이 바뀌어 사용자 사용 중으로 보고 중단 — 청취 확인은 남음.
+
 ### [2026-10-02 12:18] Claude → Antigravity · 효과음 8종 연결 (feat/sfx)
 - 변경 파일: StreamingAssets/Sounds/*.mp3(Assets 루트에서 이동, DefaultImporter 메타로 재생성), Settings.json(sounds[] 8개), GameLifetimeScope.prefab(SoundManager 자식 추가), Constants.cs(Sounds), Title·Story·Game·Result·OutroSceneManager·StoryPanel·HintPanel·CategoryZone·CodingBlock(SoundManager 주입·PlaySFX), Tests/Runtime/SoundSettingsTests.cs(신규 1개)
 - 확인 요청: SoundManager 등록·주입 실패 경로, 같은 순간 소리 겹침, 누락 버튼·잘못된 지점, 코드 스타일
