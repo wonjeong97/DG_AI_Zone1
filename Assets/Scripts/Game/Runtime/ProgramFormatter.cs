@@ -109,7 +109,8 @@ namespace Game.Runtime
 
                 case RepeatInstruction rep:
                     string count = rep.IsInfinite ? "무한" : rep.Count.ToString();
-                    sb.AppendLine($"{indent}{Name(rep.Source, Constants.BlockLabels.While)}({count}) {{");
+                    // 블록 라벨에 '(무한)'이 이미 붙어 있어 블록 이름 대신 기본 이름에 횟수를 붙인다
+                    sb.AppendLine($"{indent}{Constants.BlockLabels.While}({count}) {{");
                     AppendBody(sb, rep.Body, depth + 1);
                     sb.AppendLine($"{indent}}}");
                     break;

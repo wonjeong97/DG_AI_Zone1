@@ -23,7 +23,7 @@ MonoBehaviour:
     chainBlocks: []
     chainSocketOffset: {x: 0, y: 0}
   - category: 3
-    label: "\uBC18\uBCF5\uD558\uAE30"
+    label: "\uBC18\uBCF5\uD558\uAE30(\uBB34\uD55C)"
     controlRole: 0
     valueLabel: 
     valueKind: 0

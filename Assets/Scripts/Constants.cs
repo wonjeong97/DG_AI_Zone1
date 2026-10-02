@@ -223,7 +223,7 @@ public static class Constants
     // FlowControl은 만약/반복하기가 같은 카테고리라 라벨로만 구분된다
     public static class BlockLabels
     {
-        public const string While = "반복하기";
+        public const string While = "반복하기"; // 기본 이름 — 레이아웃의 블록 라벨은 '반복하기(무한)'
         public const string If    = "만약";
         public const string Else  = "아니면";
 

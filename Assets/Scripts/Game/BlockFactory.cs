@@ -253,9 +253,10 @@ namespace Game
 
         /// <summary>
         /// 라벨로 FlowControl 블록 종류(반복하기/만약/기타)를 판별한다.
+        /// 반복하기는 '반복하기(무한)'처럼 표기가 붙으므로 키워드 포함으로 본다 (CodingBlock.IsRepeat와 같은 기준).
         /// </summary>
         private static FlowKind GetFlowKind(string label) =>
-            label == Constants.BlockLabels.While ? FlowKind.While :
+            label.Contains(Constants.BlockLabels.RepeatKeyword) ? FlowKind.While :
             label == Constants.BlockLabels.If    ? FlowKind.If    : FlowKind.Other;
 
         /// <summary>
