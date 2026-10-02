@@ -13,6 +13,12 @@
 
 ---
 
+### [2026-10-02 14:13] Claude → Antigravity · 시작하기→완성하기 직결 에러 (feat/level5-question)
+- 변경 파일: BlockCompiler.cs(WalkChain 직후 reachedEnd && program 비었으면 실패, 시작하기·완성하기 지목), Constants.cs(EmptyBetweenStartEnd), BlockCompilerTests.cs(직결 실패 테스트, 미사용 움직이기 테스트에 코딩 영역 방치 블록 추가), CHANGELOG.md, TODO.md
+- 확인 요청: 직결 시 항상 에러·블록 있으면 에러 없음, 레벨5 등 검사 순서, ErrorBlocks 2개 처리, 테스트
+- 결과: 통과. PlayMode 25/25(Claude 실행). 에러 메시지 단언 추가 제안은 ErrorBlocks(시작·완성 2개) 단언으로 이미 구분돼 반영하지 않음.
+  - 레벨5는 ChainOutSocket.CanAccept가 시작하기 뒤에 완성하기를 붙이지 못하게 해 이 경우가 생기지 않음.
+
 ### [2026-10-02 14:03] Claude → Antigravity · 움직이기 블록 사용 선택화 (feat/level5-question)
 - 변경 파일: BlockCompiler.cs(IsExecutable에서 Command 제외), BlockCompilerTests.cs(미사용 오류 테스트를 FlowControl로, 움직이기 블록 미사용 성공 테스트 2개 추가), CHANGELOG.md, TODO.md
 - 확인 요청: Command만 빠졌는지, Command 0개 프로그램의 채점·결과 경로, 코딩 영역에 떠 있는 Command 영향, 테스트 유효성

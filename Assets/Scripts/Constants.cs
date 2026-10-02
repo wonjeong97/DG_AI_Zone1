@@ -139,6 +139,7 @@ public static class Constants
         public const string MissingStartBlock          = "'시작하기' 블록이 코딩 영역에 없습니다";
         public const string StartNotFirst              = "'시작하기' 블록이 첫 번째 블록이어야 합니다";
         public const string MissingConnectedAfterStart = "'시작하기'에 연결된 블록이 없습니다";
+        public const string EmptyBetweenStartEnd       = "'시작하기'와 '완성하기' 사이에 블록이 없습니다";
         public const string MissingEndBlock            = "'완성하기' 블록으로 끝나지 않았습니다";
         public const string FunctionBetweenStartEnd    = "'함수' 블록을 시작하기와 완성하기 사이에 연결해야 합니다";
         public const string EmptyFunctionDef           = "'함수 정의' 블록 안에 블록을 1개 이상 넣어야 합니다";

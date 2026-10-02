@@ -103,6 +103,11 @@ namespace Game.Runtime
             CodingBlock terminal = WalkChain(socket.Occupant, program);
             bool reachedEnd = terminal && terminal.ControlRole == Data.ControlRole.End;
 
+            // 움직이기 블록은 쓰지 않아도 되지만, 시작하기와 완성하기를 바로 잇는 빈 프로그램은 막는다
+            if (reachedEnd && program.Count == 0)
+                return CompileResult.Fail(Constants.CompilerMessages.EmptyBetweenStartEnd,
+                    new[] { start, terminal }, program, reachedEnd);
+
             // 레벨 5(함수) 전용 규칙 — 함수/함수 정의 블록 필수 사용 + 함수 정의는 1개 이상 내부 블록
             if (CodingBlock.RestrictMainChainToFunction)
             {
