@@ -13,6 +13,11 @@
 
 ---
 
+### [2026-10-02 18:15] Claude · Space 디버그 단축키 입력 액션·레벨 선택 전체 해금 (feat/debug-space-action)
+- 변경 파일: Scripts/Input/GameInputActions.inputactions(+생성 래퍼 GameInputActions.cs, App 네임스페이스, Debug/Shortcut = Space), StoryManager.cs(Space → 모든 레벨 해금, ApplyUnlockedLevels 분리, 레벨 선택 후 무시), GameSceneManager.cs(Input.GetKeyDown(Space) → 입력 액션), TestScene.unity·SolarPanelModelPoseTestInput.cs 삭제(1~7·R 테스트 키), GameInputActionsTests.cs·테스트 asmdef(Unity.InputSystem 참조), CHANGELOG.md, TODO.md
+- 확인 요청: 입력 액션 생명주기(생성·구독·활성화/해제·비활성화/Dispose), 기존 동작 유지, 레거시 Input·삭제 스크립트 참조 잔존, TestScene 변경 범위, UI Submit 충돌
+- 결과: 통과 — agy 리뷰가 끝나기 전 사용자 요청으로 Claude가 직접 검증(agy 대신 리뷰). PlayMode 41/41, 콘솔 에러 0, 사용자가 Play 모드에서 레벨 선택 Space 해금 확인. Space는 UI Submit과 충돌 없음(InputSystemUIInputModule, 키보드 Submit 용도는 Enter뿐).
+
 ### [2026-10-02 18:00] Claude → Antigravity · 결과 씬 레벨5 연구소 연출·스테이지 카메라·양호 기준 75% (feat/result-lab-stage)
 - 변경 파일: LabLightGlow.cs(신규 — 부족 꺼짐 / 보통 weakIntensity 0.16 + 펄린 흔들림·불규칙 순간 꺼짐 / 양호 strongIntensity 8, 조명 배열이 비면 자식 조명 수집), ResultSequence.cs(labStage·playerLabGlow·aiLabGlow, FutureEnergy일 때 LabStage), ResultSceneSettings.cs·4_Result.json(labLightDuration), Constants.cs(GoodThresholdPercent 80→75), 4_Result.unity(LabStage — Prefab_Lab ×2 배율 10, 점광원 Light_B039 타워 그림자 Soft·Light_B044·B046 앞 육각 건물 그림자 없음 range 0.22, 색 (1,0.8,0), 카메라 2개 / 스테이지 카메라 10개 위치), LabLightGlowTests.cs(3개), CHANGELOG.md, TODO.md
 - 확인 요청: 연출 패턴·생명주기·깜빡임 상한, 레벨1~4 판정 불변(75~79% 효율 없음), 씬 참조·저장 상태·오버라이드, 자세별 렌더 잘림, 단계별 표시 구분, 테스트

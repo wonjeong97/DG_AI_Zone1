@@ -1,0 +1,35 @@
+{
+    "version": 1,
+    "name": "GameInputActions",
+    "maps": [
+        {
+            "name": "Debug",
+            "id": "ca6cc58a-e7b8-40d0-92b4-71c439864492",
+            "actions": [
+                {
+                    "name": "Shortcut",
+                    "type": "Button",
+                    "id": "91634c0e-376e-40f8-ad21-fd194916600f",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "5eeb8bd2-f830-457e-bfb8-a272bb832b7e",
+                    "path": "<Keyboard>/space",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Shortcut",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}
