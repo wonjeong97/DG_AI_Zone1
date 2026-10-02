@@ -21,6 +21,9 @@ namespace Game
         [Tooltip("마우스 휠 한 칸당 배율 변화 비율")]
         [SerializeField] private float wheelZoomStep = 1.1f;
 
+        [Tooltip("코딩 패널이 속한 루트 캔버스 — Screen Space Overlay가 아니면 이 캔버스의 카메라로 터치 좌표를 변환한다")]
+        [SerializeField] private Canvas rootCanvas;
+
         private ScrollRect _scrollRect;
         private RectTransform _content;
         private RectTransform _viewport;
@@ -65,9 +68,14 @@ namespace Game
                 return;
             }
 
-            Canvas canvas = GetComponentInParent<Canvas>();
-            if (canvas && canvas.rootCanvas.renderMode != RenderMode.ScreenSpaceOverlay)
-                _eventCamera = canvas.rootCanvas.worldCamera;
+            if (!rootCanvas)
+            {
+                if (_logger != null) _logger.ZLogWarning($"[CodingZoneZoom] rootCanvas가 할당되지 않아 Screen Space Overlay 기준으로 터치 좌표를 변환합니다.");
+            }
+            else if (rootCanvas.rootCanvas.renderMode != RenderMode.ScreenSpaceOverlay)
+            {
+                _eventCamera = rootCanvas.rootCanvas.worldCamera;
+            }
 
             _defaultHorizontal = _scrollRect.horizontal;
             _defaultVertical = _scrollRect.vertical;

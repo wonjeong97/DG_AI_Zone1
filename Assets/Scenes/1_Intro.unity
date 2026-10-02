@@ -153,6 +153,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   introPanel: {fileID: 1002515644}
   tutorialPanel: {fileID: 834124851}
+  tutorialSlider: {fileID: 1410857283}
   robotVideoPlayer: {fileID: 1356407829}
   visitorNameText: {fileID: 1977889322}
 --- !u!4 &208277161

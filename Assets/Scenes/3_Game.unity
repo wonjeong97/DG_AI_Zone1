@@ -4070,6 +4070,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxZoom: 1.5
   wheelZoomStep: 1.1
+  rootCanvas: {fileID: 987888715}
 --- !u!1 &1338248138
 GameObject:
   m_ObjectHideFlags: 0
