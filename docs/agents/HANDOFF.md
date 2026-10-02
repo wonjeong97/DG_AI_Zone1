@@ -22,6 +22,7 @@
   - 발전소 문제 글자 크기 35는 Text_Question의 TMP Auto Size(18~44)가 덮어써 원래 효과가 없었음(실측 38.35) → 옮기지 않고 제거.
   - 새 검증 테스트가 레벨5 문제(임시 태양광 문제)와 블록(발전소 블록) 불일치를 잡음 → 동작 유지를 위해 데이터는 그대로 두고 테스트에서 이유를 적어 제외, TODO 기획 확인으로 올림.
   - agy·Claude가 run_tests를 부를 때마다 EditorSettings.asset이 1로 저장됨 → 메모리 값 False 확인 후 되돌림.
+  - 병합 전 PR #62 버그 리뷰(agy, 테스트 재실행 없이): 발견된 버그 없음 — level null 경로, 문구 형식(에셋 문구의 자리표시자는 {0}뿐), 결과 씬 단독 실행, 힌트 배경 그림 유지, BlockScorer 호출 인자 순서 7곳. Claude 리뷰도 동일.
 
 ### [2026-10-02 10:50] Claude → Antigravity · PR #61 리뷰와 회귀 테스트 추가
 - 변경 파일: ResultSequence.cs(타이머 처리를 RunWithTimerPausedAsync로 분리, 본문은 PlaySequenceStepsAsync), Tests/Runtime/ResultSequenceTimerTests.cs(신규 3개), ProjectSettings.asset(bundleVersion 26.10.2), CHANGELOG.md(2026-10-02 섹션), TODO.md
