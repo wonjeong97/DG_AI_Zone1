@@ -402,7 +402,7 @@ namespace Scenes
             => isCorrect ? Constants.ResultMessages.GateOrderCorrect : Constants.ResultMessages.GateOrderWrong;
 
         /// <summary>
-        /// 레벨4(발전소) 결과 행 — 고정 상황 / 플레이어가 만약에 연결한 조건식 / 놀이시설 전력 차단·병원 전력 유지.
+        /// 레벨4(발전소) 결과 행 — 고정 상황 / 플레이어가 만약에 연결한 조건식 / 놀이시설 끄기 조건(만약)·병원 전력 유지.
         /// 뒤 두 항목은 놀이시설·병원 채점과 같은 기준이라 효율 %가 왜 그렇게 나왔는지 화면에서 읽힌다.
         /// 코딩을 건너뛰면 두 항목은 판단할 배치가 없으므로 ON/OFF 대신 '-'로 둔다.
         /// </summary>

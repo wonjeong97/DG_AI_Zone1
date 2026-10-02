@@ -18,7 +18,7 @@ namespace Data
         [System.NonSerialized] public bool lastElseUsed;     // 레벨3 결과의 '수문 닫기 조건(아니면)' 표시용
         [System.NonSerialized] public bool lastGateOrderCorrect; // 레벨3 결과의 '수문 열기·닫기 순서' 표시용
         [System.NonSerialized] public string lastConditionText;  // 레벨4 결과의 '설정한 조건' — 만약에 연결한 조건식
-        [System.NonSerialized] public bool lastAmusementPowerCut; // 레벨4 결과의 '놀이시설 전력 차단'
+        [System.NonSerialized] public bool lastAmusementPowerCut; // 레벨4 결과의 '놀이시설 끄기 조건(만약)'
         [System.NonSerialized] public bool lastHospitalPowerKept; // 레벨4 결과의 '병원 전력 유지'
 
         // 컴파일에 성공해 채점까지 끝난 결과인지 — 넘어가기/미완료와 구분한다.

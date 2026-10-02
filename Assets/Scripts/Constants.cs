@@ -186,7 +186,7 @@ public static class Constants
         public const string LabelGateOrder      = "수문 열기·닫기 순서";
         public const string LabelSituation      = "상황";
         public const string LabelCondition      = "조건";
-        public const string LabelAmusement      = "놀이시설 전력 차단";
+        public const string LabelAmusement      = "놀이시설 끄기 조건(만약)";
         public const string LabelHospital       = "병원 전력 유지";
 
         // 체험자가 정하지 않은 값(코딩을 건너뛴 경우 등)
