@@ -36,10 +36,6 @@ namespace Game
         [Tooltip("프리팹에 미리 들어 있는 소켓(헤더 ValueOutSocket, InnerSocket 등) — Awake에서 소유 등록")]
         [SerializeField] private BlockSocket[] builtInSockets;
 
-        // 레벨 5(함수) 한정 — 메인 체인(시작~완성)에는 함수 블록만 연결하도록 제한.
-        // GameSceneManager가 레벨 로드 시 레이아웃에 함수 블록이 있으면 true로 설정.
-        public static bool RestrictMainChainToFunction { get; set; }
-
         // 컴파일 성공/에러 표시 방식 — GameSceneManager가 레벨 로드 시 Inspector 설정값으로 초기화.
         public static HighlightMode Mode { get; set; } = HighlightMode.Outline;
 

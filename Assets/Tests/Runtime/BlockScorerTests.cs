@@ -131,6 +131,48 @@ namespace DG.Zone1.Tests
         }
 
         /// <summary>
+        /// 레벨5는 함수 안에 넣은 에너지 블록 수로 채점한다 — 4개면 만점, 3개면 75%, 함수 밖 명령은 세지 않는다.
+        /// </summary>
+        [Test]
+        public void 미래에너지는_함수_안에_넣은_에너지_수로_채점된다()
+        {
+            int max = BlockScorer.GetMaxScore(LevelKind.FutureEnergy);
+
+            List<BlockInstruction> allFour = new List<BlockInstruction>
+                { Function(Cmd("태양광"), Cmd("풍력"), Cmd("수력 발전"), Cmd("스마트 도시 발전소")) };
+            Assert.AreEqual(max, BlockScorer.ScoreProgram(allFour, null, null, LevelKind.FutureEnergy), "4개 모두");
+            Assert.IsTrue(BlockScorer.UsesFunction(allFour));
+            CollectionAssert.AreEqual(BlockScorer.FutureEnergyNames, BlockScorer.GetEnergiesInFunction(allFour));
+
+            List<BlockInstruction> three = new List<BlockInstruction>
+                { Function(Cmd("태양광"), Cmd("수력 발전"), Cmd("스마트 도시 발전소")) };
+            Assert.AreEqual(75, BlockScorer.ScoreProgram(three, null, null, LevelKind.FutureEnergy) * 100 / max, "3개 → 75%");
+            CollectionAssert.DoesNotContain(BlockScorer.GetEnergiesInFunction(three), "풍력");
+
+            List<BlockInstruction> outsideFunction = new List<BlockInstruction> { Cmd("태양광"), Function(Cmd("풍력")) };
+            CollectionAssert.AreEqual(new[] { "풍력" }, BlockScorer.GetEnergiesInFunction(outsideFunction), "함수 밖 태양광은 제외");
+
+            List<BlockInstruction> none = new List<BlockInstruction>();
+            Assert.AreEqual(0, BlockScorer.ScoreProgram(none, null, null, LevelKind.FutureEnergy));
+            Assert.IsFalse(BlockScorer.UsesFunction(none));
+
+            // 함수 호출 없이 시작하기 아래에만 에너지를 둔 경우 — 함수 정의 안에 넣어 둔 블록도 호출되지 않으면 프로그램에 없다
+            List<BlockInstruction> mainChainOnly = new List<BlockInstruction> { Cmd("태양광"), Cmd("풍력") };
+            Assert.AreEqual(0, BlockScorer.ScoreProgram(mainChainOnly, null, null, LevelKind.FutureEnergy), "함수 호출 없음");
+            Assert.IsFalse(BlockScorer.UsesFunction(mainChainOnly));
+        }
+
+        /// <summary>
+        /// 함수 정의 본문을 펼쳐 담은 함수 호출 노드를 만든다.
+        /// </summary>
+        private static FunctionInstruction Function(params BlockInstruction[] body) => new FunctionInstruction
+        {
+            Name = "미래 에너지 만들기",
+            DefName = "미래 에너지 만들기",
+            Body = new List<BlockInstruction>(body)
+        };
+
+        /// <summary>
         /// 무한 반복하기 뒤에 놓여 실행되지 않는 놀이시설 불 끄기는 인정하지 않고, 반복 안에서 상황을 확인하는 만약은 인정한다.
         /// </summary>
         [Test]

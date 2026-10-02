@@ -97,9 +97,6 @@ namespace Scenes
                 return;
             }
 
-            // 함수 블록이 포함된 레벨(레벨5)에서는 메인 체인에 함수 블록만 연결하도록 제한
-            CodingBlock.RestrictMainChainToFunction = HasFunctionBlock(layout);
-
             // 씬 진입 페이드인이 블록 스폰과 카테고리 구성 완료 후에 시작되도록 등록
             if (blockSpawner)
                 SceneFader.RegisterPendingTask(blockSpawner.Spawn(layout));
@@ -283,6 +280,8 @@ namespace Scenes
             _session.lastConditionText = BlockScorer.GetConditionText(instructions);
             _session.lastAmusementPowerCut = BlockScorer.IsAmusementPowerCut(instructions);
             _session.lastHospitalPowerKept = BlockScorer.IsHospitalPowerKept(instructions);
+            _session.lastFunctionUsed = BlockScorer.UsesFunction(instructions);
+            _session.lastEnergiesInFunction = BlockScorer.GetEnergiesInFunction(instructions);
             _session.hasCodingResult = true;
         }
 
@@ -362,18 +361,6 @@ namespace Scenes
                 _logger.ZLogInformation($"[GameSceneManager] {prefix}컴파일 성공");
             else
                 _logger.ZLogWarning($"[GameSceneManager] {prefix}컴파일 실패 - {result.Error}");
-        }
-
-        /// <summary>
-        /// 레이아웃 인벤토리에 함수/함수 정의 블록이 있는지 확인한다 (레벨5 판별).
-        /// </summary>
-        private static bool HasFunctionBlock(BlockLayoutData layout)
-        {
-            if (layout.inventoryBlocks is not null)
-                foreach (BlockEntry e in layout.inventoryBlocks)
-                    if (e.category == BlockCategory.Function || e.category == BlockCategory.FunctionDef)
-                        return true;
-            return false;
         }
 
         /// <summary>

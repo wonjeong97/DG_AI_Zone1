@@ -9,7 +9,7 @@ namespace Data
         Wind,           // 레벨2 풍력
         Hydro,          // 레벨3 수력
         PowerPlant,     // 레벨4 발전소
-        FutureEnergy    // 레벨5 미래에너지 — 채점은 발전소 규칙을 공유
+        FutureEnergy    // 레벨5 미래에너지
     }
 
     [CreateAssetMenu(fileName = "LevelData", menuName = "DG/Level Data")]

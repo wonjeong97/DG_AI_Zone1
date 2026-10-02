@@ -24,7 +24,6 @@ namespace DG.Zone1.Tests
         [SetUp]
         public void SetUp()
         {
-            CodingBlock.RestrictMainChainToFunction = false;
             _zone = BlockTestUtil.MakeZone();
             _inventory = new GameObject("Inventory", typeof(RectTransform)).transform;
             _start = BlockTestUtil.MakeBlock(_zone, "시작하기", BlockCategory.Control, _zone.transform, role: ControlRole.Start);
@@ -162,6 +161,70 @@ namespace DG.Zone1.Tests
             List<BlockInstruction> body = rep.Body;
             Assert.AreEqual(1, body.Count);
             Assert.AreSame(cmd, body[0].Source);
+        }
+
+        /// <summary>
+        /// 함수 블록이 있는 레벨이어도 움직이기 블록을 시작하기 아래에 바로 이을 수 있고, 함수 호출 없이도 컴파일된다.
+        /// </summary>
+        [Test]
+        public void 함수_없이_시작하기_아래에_움직이기_블록을_이어도_성공한다()
+        {
+            CodingBlock solar = BlockTestUtil.MakeBlock(_zone, "태양광", BlockCategory.Command, _inventory);
+            BlockTestUtil.MakeBlock(_zone, "미래 에너지 만들기", BlockCategory.FunctionDef, _inventory);
+            BlockTestUtil.MakeBlock(_zone, "미래 에너지 만들기", BlockCategory.Function, _inventory);
+
+            ChainOutSocket.OfBlock(_start).Accept(solar);
+            ChainOutSocket.OfBlock(solar).Accept(_end);
+
+            CompileResult result = BlockCompiler.Compile(_zone);
+
+            Assert.IsTrue(result.Success, result.Error);
+            Assert.AreSame(solar, result.Instructions[0].Source);
+        }
+
+        /// <summary>
+        /// 함수 호출을 이었는데 함수 정의 블록이 인벤토리에 남아 있으면 두 블록을 지목하며 실패하고, 인벤토리 탭 전환 대상이 된다.
+        /// </summary>
+        [Test]
+        public void 함수_호출을_이었는데_함수_정의가_인벤토리에_있으면_실패한다()
+        {
+            CodingBlock def = BlockTestUtil.MakeBlock(_zone, "미래 에너지 만들기", BlockCategory.FunctionDef, _inventory);
+            CodingBlock call = BuildFunctionCallChain();
+
+            CompileResult result = BlockCompiler.Compile(_zone);
+
+            Assert.IsFalse(result.Success, "함수 정의 없이 호출이 컴파일에 성공함");
+            Assert.AreEqual(CompileErrorKind.UnusedBlocks, result.ErrorKind);
+            CollectionAssert.AreEqual(new[] { def, call }, result.ErrorBlocks);
+        }
+
+        /// <summary>
+        /// 함수 정의 블록이 코딩 영역에 있으면 안이 비어 있어도 컴파일에 성공한다.
+        /// </summary>
+        [Test]
+        public void 함수_정의가_비어_있어도_코딩_영역에_있으면_성공한다()
+        {
+            BlockTestUtil.MakeBlock(_zone, "미래 에너지 만들기", BlockCategory.FunctionDef, _zone.transform);
+            CodingBlock call = BuildFunctionCallChain();
+
+            CompileResult result = BlockCompiler.Compile(_zone);
+
+            Assert.IsTrue(result.Success, result.Error);
+            FunctionInstruction fn = result.Instructions[0] as FunctionInstruction;
+            Assert.IsNotNull(fn, "첫 명령이 함수 호출이 아님");
+            Assert.AreSame(call, fn.Source);
+            Assert.AreEqual(0, fn.Body.Count);
+        }
+
+        /// <summary>
+        /// 시작하기 → 함수 호출 → 완성하기 를 잇고 함수 호출 블록을 반환한다.
+        /// </summary>
+        private CodingBlock BuildFunctionCallChain()
+        {
+            CodingBlock call = BlockTestUtil.MakeBlock(_zone, "미래 에너지 만들기", BlockCategory.Function, _inventory);
+            ChainOutSocket.OfBlock(_start).Accept(call);
+            ChainOutSocket.OfBlock(call).Accept(_end);
+            return call;
         }
 
         /// <summary>

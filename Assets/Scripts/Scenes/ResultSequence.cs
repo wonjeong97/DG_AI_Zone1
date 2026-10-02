@@ -232,10 +232,8 @@ namespace Scenes
             LevelKind kind = CurrentLevelKind;
             _isWindStage = kind == LevelKind.Wind;
             _isHydroStage = kind == LevelKind.Hydro;
-            // TODO: 레벨5(미래에너지) 결과 연출은 기획 미정 — 정해지면 여기에 전용 분기를 추가할 것.
-            //       채점은 레벨4와 같은 경로(ScorePowerPlant, 만점 30점)를 쓰지만 함수 블록이 추가되는 레벨이라
-            //       결과 텍스트 항목은 따로 정해야 한다. 그때까지 레벨5는 표시할 값이 없어 '-'로 나온다.
-            //       (05_FutureEnergyData의 resultTopText도 비어 있어 씬 기본 문구가 그대로 쓰인다)
+            // TODO: 레벨5(미래에너지) 3D 결과 연출은 기획 미정 — 정해지면 여기에 전용 분기를 추가할 것.
+            //       그때까지 레벨5는 태양광 스테이지를 그대로 쓴다 (결과 행은 BuildFutureEnergyRows).
             _isPlantStage = kind == LevelKind.PowerPlant;
 
             if (solarStage) solarStage.SetActive(!_isWindStage && !_isHydroStage && !_isPlantStage);
@@ -289,6 +287,7 @@ namespace Scenes
                     kind == LevelKind.Wind       ? BuildWindRows(_session.lastQuestionTime, null, false, poor) :
                     kind == LevelKind.Hydro      ? BuildHydroRows(null, false, Constants.ResultMessages.NoValue, poor) :
                     kind == LevelKind.PowerPlant ? BuildPowerPlantRows(null, Constants.ResultMessages.NoValue, Constants.ResultMessages.NoValue, poor) :
+                    kind == LevelKind.FutureEnergy ? BuildFutureEnergyRows(false, null, poor) :
                                                    BuildSolarRows(null, null, poor);
                 ApplyGrayscale();
             }
@@ -416,6 +415,19 @@ namespace Scenes
         };
 
         /// <summary>
+        /// 레벨5(미래에너지) 결과 행 — 함수 사용 여부 / 에너지 블록별로 함수 안에 넣었는지 / 전력 수급 상태.
+        /// 에너지 행은 채점(함수 안 에너지 수)과 같은 기준이라 효율 %가 왜 그렇게 나왔는지 화면에서 읽힌다.
+        /// </summary>
+        private static List<ResultRow> BuildFutureEnergyRows(bool functionUsed, ICollection<string> energiesInFunction, string status)
+        {
+            List<ResultRow> rows = new() { new ResultRow(Constants.ResultMessages.LabelFunctionUsed, OnOff(functionUsed)) };
+            foreach (string energy in BlockScorer.FutureEnergyNames)
+                rows.Add(new ResultRow(energy, OnOff(energiesInFunction is not null && energiesInFunction.Contains(energy))));
+            rows.Add(new ResultRow(Constants.ResultMessages.LabelStatus, status));
+            return rows;
+        }
+
+        /// <summary>
         /// 레벨에 맞는 플레이어 결과 행을 세션 값으로 만든다.
         /// </summary>
         private List<ResultRow> BuildPlayerRows(LevelKind kind, string status)
@@ -430,6 +442,9 @@ namespace Scenes
             if (kind == LevelKind.PowerPlant)
                 return BuildPowerPlantRows(_session.lastConditionText, OnOff(_session.lastAmusementPowerCut),
                                            OnOff(_session.lastHospitalPowerKept), status);
+
+            if (kind == LevelKind.FutureEnergy)
+                return BuildFutureEnergyRows(_session.lastFunctionUsed, _session.lastEnergiesInFunction, status);
 
             return BuildSolarRows(_session.lastCount, _session.lastDirection, status);
         }
@@ -449,6 +464,9 @@ namespace Scenes
 
             if (kind == LevelKind.PowerPlant)
                 return BuildPowerPlantRows(Constants.ResultMessages.PowerPlantBestCondition, OnOff(true), OnOff(true), good);
+
+            if (kind == LevelKind.FutureEnergy)
+                return BuildFutureEnergyRows(true, new List<string>(BlockScorer.FutureEnergyNames), good);
 
             return BuildSolarRows(BlockScorer.GetBestCount(), CurrentCorrectAnswer, good);
         }

@@ -84,9 +84,11 @@ namespace Game
 
         /// <summary>
         /// 선택한 카테고리의 블록만 인벤토리에 보이게 하고 버튼 강조 상태를 갱신한다.
+        /// 탭으로 묶인 카테고리(함수 정의, 아니면)가 들어와도 그 탭을 고른다.
         /// </summary>
         public void Select(BlockCategory cat)
         {
+            cat = BlockFactory.GetTabCategory(cat);
             CurrentCategory = cat;
             foreach (Transform child in inventoryContent)
                 if (child.TryGetComponent<CodingBlock>(out CodingBlock block))
