@@ -8,5 +8,15 @@
     "numToClose": 10,
     "resetClickTime": 3.0,
     "imageAlpha": 0.0
-  }
+  },
+  "sounds": [
+    { "key": "blockAssembled", "clipPath": "Sounds/blockAssembled.mp3", "volume": 1.0 },
+    { "key": "buttonClick",    "clipPath": "Sounds/buttonClick.mp3",    "volume": 1.0 },
+    { "key": "codingAlert",    "clipPath": "Sounds/codingAlert.mp3",    "volume": 1.0 },
+    { "key": "codingComplete", "clipPath": "Sounds/codingComplete.mp3", "volume": 1.0 },
+    { "key": "gameStart",      "clipPath": "Sounds/gameStart.mp3",      "volume": 1.0 },
+    { "key": "hintEpisode",    "clipPath": "Sounds/hintEpisode.mp3",    "volume": 1.0 },
+    { "key": "missonFailed",   "clipPath": "Sounds/missonFailed.mp3",   "volume": 1.0 },
+    { "key": "missonSuccess",  "clipPath": "Sounds/missonSuccess.mp3",  "volume": 1.0 }
+  ]
 }

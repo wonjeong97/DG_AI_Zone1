@@ -13,6 +13,24 @@
 
 ---
 
+### [2026-10-02 13:37] Claude → Antigravity · 인트로·튜토리얼 터치 클릭음 (feat/sfx)
+- 변경 파일: IntroSceneManager.cs(인트로 패널 → 튜토리얼 패널 전환 터치), TutorialImageSlider.cs(다음·이전 페이지, 마지막 페이지에서 다음), Constants.cs(주석), CHANGELOG.md(2026-10-02로 이동)
+- 확인 요청: 기대 동작 일치, 소리 중복·누락, SoundManager 주입, validate_script
+- 결과: 통과. 수정할 사항 없음.
+  - 이름 연출 스킵 터치와 첫 페이지에서 이전 터치는 소리 없음.
+  - agy 제안(마지막 페이지 초고속 연타 시 페이드 커튼이 입력을 막기 전 클릭음 2회 가능)은 다른 씬 전환 버튼과 같은 수준이라 반영하지 않음. validate_script의 'Update 안 문자열 결합' 경고는 const string 인자라 오탐.
+  - Claude Play 모드 확인: 0_Title에서 SoundManager가 GameLifetimeScope(Clone) 아래에 생성되고 설정 키 8개 로드, TitleSceneManager 주입 확인. 이후 Play 모드가 꺼지고 활성 씬이 바뀌어 사용자 사용 중으로 보고 중단 — 청취 확인은 남음.
+
+### [2026-10-02 12:18] Claude → Antigravity · 효과음 8종 연결 (feat/sfx)
+- 변경 파일: StreamingAssets/Sounds/*.mp3(Assets 루트에서 이동, DefaultImporter 메타로 재생성), Settings.json(sounds[] 8개), GameLifetimeScope.prefab(SoundManager 자식 추가), Constants.cs(Sounds), Title·Story·Game·Result·OutroSceneManager·StoryPanel·HintPanel·CategoryZone·CodingBlock(SoundManager 주입·PlaySFX), Tests/Runtime/SoundSettingsTests.cs(신규 1개)
+- 확인 요청: SoundManager 등록·주입 실패 경로, 같은 순간 소리 겹침, 누락 버튼·잘못된 지점, 코드 스타일
+- 결과: 통과. agy 리뷰 4개 항목 모두 문제 없음(Claude 리뷰도 동일), PlayMode 23/23, 컴파일 에러 0.
+  - 트리거 지점 사전 조사는 agy가 5분 제한에 걸려 빈 결과로 끝나 Claude가 직접 조사함.
+  - Edit 모드에서 8개 mp3를 SoundManager와 같은 UnityWebRequestMultimedia(MPEG)로 읽어 모두 디코딩됨(0.22~4.54초).
+  - Play 모드 청취 확인은 하지 않음 — Editor가 포커스 상태여서 사용자 사용 중일 수 있어 자동 진입을 보류.
+  - 전용 효과음이 있는 버튼(시작하기·코딩 완료·힌트·미션 다시보기)은 buttonClick을 내지 않음. 코딩 완료는 컴파일 성공 시 codingComplete, 실패 시 codingAlert.
+  - 테스트 실행 때 바뀐 EditorSettings.asset은 메모리 값 False 확인 후 되돌림.
+
 ### [2026-10-02 11:41] Claude → Antigravity · 감사 후속 2차 (refactor/audit-followups)
 - 변경 파일: TutorialImageSlider·TypewriterTextTMP·ResultRowView·ResultRowsView·CodingZoneZoom·StoryLineAnimator·Intro/Outro/StoryManager·CodingBlock·BlockSocket·InnerSocket·ChainOutSocket(ZLogger 전환), DG.Zone1.Tests.asmdef(Logging.Abstractions 참조), IntroSceneManager·CodingZoneZoom·1_Intro·3_Game(SerializeField 연결), 6개 씬·CategoryButton.prefab(Raycast Target 40개), FlowInnerResize(형제 캐싱·ProfilerMarker·Fitter 충돌 수정), CodingBlock(FindBestSnapSocket), ResultSequence(미션 실패 해금 주석)
 - 확인 요청: 동작이 바뀌는 버그(CodingZoneZoom Awake→Start, Awake/Start 분리, 리졸버 복제 활성 상태, 스냅 선정 동치, Fitter 판정, 씬 YAML 참조), 스킬 0·2·6·18·19·23번, PlayMode 테스트

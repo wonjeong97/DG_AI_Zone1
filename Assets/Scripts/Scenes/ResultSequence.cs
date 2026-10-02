@@ -12,6 +12,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using VContainer;
 using HuliacDev.Core;
+using HuliacDev.UI;
 using HuliacDev.Utils;
 using ZLogger;
 
@@ -63,16 +64,19 @@ namespace Scenes
         private GameSession _session;
         private InactivityTimer _inactivityTimer;
         private ILogger<ResultSequence> _logger;
+        private SoundManager _soundManager;
 
         /// <summary>
-        /// 게임 세션, 비활동 타이머, 로거를 주입받는다.
+        /// 게임 세션, 비활동 타이머, 로거, 사운드 매니저를 주입받는다.
         /// </summary>
         [Inject]
-        public void Construct(GameSession session, InactivityTimer inactivityTimer, ILogger<ResultSequence> logger)
+        public void Construct(GameSession session, InactivityTimer inactivityTimer, ILogger<ResultSequence> logger,
+            SoundManager soundManager)
         {
             _session = session;
             _inactivityTimer = inactivityTimer;
             _logger = logger;
+            _soundManager = soundManager;
         }
 
         private const int MaxPercent = 100;
@@ -92,6 +96,7 @@ namespace Scenes
         private bool _isPlantStage;            // 발전소 스테이지로 연출 중인지 (레벨4)
         private Material _grayscaleInstance;   // 흑백 전환용 머티리얼 인스턴스 (null이면 컬러 유지)
         private Tween _touchGuideBlinkTween;   // 터치 안내 깜빡임 — 무한 반복이라 직접 Kill한다
+        private string _missionResultSound;    // 완료 패널(미션 성공/실패)이 뜰 때 낼 효과음 — 게임 결과 없이 진입하면 null
 
         // 00_Common.json의 panelFadeDuration 사용 — 로드 전까지의 폴백 기본값
         private float _fadeDuration = 0.5f;
@@ -205,6 +210,7 @@ namespace Scenes
         /// </summary>
         private void OnNextClicked()
         {
+            if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
             string nextScene = _session && _session.currentLevel ? _session.currentLevel.AfterResultScene : Constants.Scenes.Story;
 
             // 미션 성공·실패와 상관없이 다음 레벨을 연다(기획 확인, 2026-10-02).
@@ -289,6 +295,8 @@ namespace Scenes
 
             if (playerRows) playerRows.SetRows(playerResult);
             if (aiRows) aiRows.SetRows(BuildAiRows(kind));
+
+            _missionResultSound = isSuccess ? Constants.Sounds.MissionSuccess : Constants.Sounds.MissionFailed;
 
             if (completeTitleText)
                 completeTitleText.text = isSuccess ? Constants.ResultMessages.MissionSuccess : Constants.ResultMessages.MissionFail;
@@ -515,6 +523,7 @@ namespace Scenes
             SceneFader.SetGroupInteractable(resultPanel, false);
             await SceneFader.FadeCanvasGroupAsync(resultPanel, 1f, 0f, _fadeDuration, ct);
             SceneFader.SetGroupInteractable(completePanel, true);
+            if (_soundManager && _missionResultSound != null) _soundManager.PlaySFX(_missionResultSound);
             await SceneFader.FadeCanvasGroupAsync(completePanel, 0f, 1f, _fadeDuration, ct);
         }
 

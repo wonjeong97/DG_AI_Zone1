@@ -4,6 +4,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using VContainer;
+using HuliacDev.UI;
 using ZLogger;
 
 namespace Scenes
@@ -19,14 +20,16 @@ namespace Scenes
         [SerializeField] private Button closeButton;
 
         private ILogger<StoryPanel> _logger;
+        private SoundManager _soundManager;
 
         /// <summary>
-        /// 로거를 주입받는다.
+        /// 로거와 사운드 매니저를 주입받는다.
         /// </summary>
         [Inject]
-        public void Construct(ILogger<StoryPanel> logger)
+        public void Construct(ILogger<StoryPanel> logger, SoundManager soundManager)
         {
             _logger = logger;
+            _soundManager = soundManager;
         }
 
         /// <summary>
@@ -88,8 +91,12 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 스토리 패널을 닫는다.
+        /// 닫기 버튼 클릭음을 내고 스토리 패널을 닫는다.
         /// </summary>
-        private void Hide() => gameObject.SetActive(false);
+        private void Hide()
+        {
+            if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
+            gameObject.SetActive(false);
+        }
     }
 }
