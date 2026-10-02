@@ -86,10 +86,10 @@ namespace DG.Zone1.Tests
             foreach (List<BlockInstruction> wrong in wrongs)
                 Assert.IsFalse(BlockScorer.IsHydroGateOrderCorrect(wrong));
 
-            // 아니면은 넣었지만 비어 있음 — 아니면 ON, 순서만 오류
-            Assert.IsTrue(BlockScorer.HasHydroElse(wrongs[3]));
+            // 열기·닫기를 반대로 넣음 — 높이·조건·아니면은 AI와 같고 순서만 오류
+            Assert.IsTrue(BlockScorer.HasHydroElse(wrongs[4]));
             Assert.AreEqual(Constants.Scores.HydroExactScore * Constants.Scores.HydroElsePlacedScore * Constants.Scores.HydroGateOrderWrongScore,
-                BlockScorer.ScoreProgram(wrongs[3], "5m", null, LevelKind.Hydro));
+                BlockScorer.ScoreProgram(wrongs[4], "5m", null, LevelKind.Hydro));
 
             Assert.IsFalse(BlockScorer.IsHydroGateOrderCorrect(new List<BlockInstruction>()), "만약 블록이 없으면 오류");
         }

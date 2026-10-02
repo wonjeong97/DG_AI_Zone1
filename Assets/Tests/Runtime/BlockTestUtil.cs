@@ -48,5 +48,17 @@ namespace DG.Zone1.Tests
             flowBlock.RegisterSocket(socket);
             return socket;
         }
+
+        /// <summary>
+        /// 만약 블록 헤더에 내장된 조건 슬롯(ValueOutSocket)을 붙여 소유로 등록한다 — 프리팹에는 원래 들어 있는 소켓이다.
+        /// </summary>
+        public static ValueOutSocket AddConditionSocket(CodingBlock flowBlock)
+        {
+            GameObject socketGo = new GameObject("ConditionSlot", typeof(RectTransform));
+            socketGo.transform.SetParent(flowBlock.transform, false);
+            ValueOutSocket socket = socketGo.AddComponent<ValueOutSocket>();
+            flowBlock.RegisterSocket(socket);
+            return socket;
+        }
     }
 }
