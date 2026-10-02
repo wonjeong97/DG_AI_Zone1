@@ -19,7 +19,6 @@ namespace DG.Zone1.Tests
         [SetUp]
         public void SetUp()
         {
-            CodingBlock.RestrictMainChainToFunction = false;
             _zone = BlockTestUtil.MakeZone();
         }
 

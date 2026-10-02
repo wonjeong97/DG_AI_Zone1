@@ -13,6 +13,12 @@
 
 ---
 
+### [2026-10-02 17:15] Claude → Antigravity · 레벨5 채점·결과 행·컴파일 규칙 (feat/level5-blocks)
+- 변경 파일: BlockScorer.cs(레벨5 채점 분리: GetEnergiesInFunction·UsesFunction, IsPowerPlant 삭제), Constants.cs(FutureEnergyBlockScore·LabelFunctionUsed·FunctionDefNotPlaced, 함수 관련 옛 문구 삭제), GameSession.cs·GameSceneManager.cs(세션 값, RestrictMainChainToFunction·HasFunctionBlock 삭제), ResultSequence.cs(BuildFutureEnergyRows), BlockCompiler.cs(함수 호출 시 함수 정의가 코딩 영역에 없으면 실패, 메인 체인 함수 필수·빈 정의 에러 삭제), ChainOutSocket.cs·CodingBlock.cs(레벨5 체인 제한 삭제), CategoryZone.cs(Select가 탭 카테고리로 정규화), 05 레이아웃(풍차 → 풍력)·05 데이터(문구 통일), 테스트(채점 1·컴파일 3), CHANGELOG.md, TODO.md, REVIEW_ITEMS.md
+- 확인 요청: 채점 분기·함수 안 에너지 집계·결과 행·세션, 잔여 심볼, 새 컴파일 검사와 탭 전환, 재귀 가능성, 테스트
+- 결과: 채점 6개 항목 통과. 컴파일 규칙 리뷰에서 버그 1건 — 함수 정의가 인벤토리에 있을 때 UnusedBlocks 탭 전환이 CategoryZone.Select(FunctionDef)로 들어가 인벤토리 블록이 모두 숨겨지고 탭 강조가 사라짐 → Select에서 GetTabCategory로 정규화해 수정. ExpandFunctionCall 순환 방어 제안(낮음)은 함수 호출 블록이 1개라 반영하지 않음. PlayMode 37/37(Claude 실행), 콘솔 에러 0.
+  - 사용자 Play 중 콘솔에 VContainerException(FadeManager 등록 충돌)·Missing Script 경고가 보였음. Enter Play Mode Options는 꺼져 있어 테스트 러너 영향은 아님. 이번 변경과 무관해 보이며 원인은 미확인.
+
 ### [2026-10-02 16:55] Claude → Antigravity · 레벨5 블록 레이아웃 (feat/level5-blocks)
 - 변경 파일: 05_FutureEnergyBlockLayout.asset(시작하기 / 미래 에너지 만들기 함수 정의·호출 / 태양광·풍차·수력 발전·스마트 도시 발전소(값 없는 Command) / 완성하기, 레벨4 임시 블록 제거), CHANGELOG.md, TODO.md, REVIEW_ITEMS.md
 - 확인 요청: YAML·라벨, 레벨5 컴파일 경로(메인 체인 함수 제한·함수 펼치기·같은 이름의 정의/호출), 값 없는 Command 처리, 탭 구성, 현재 채점·결과 화면 값

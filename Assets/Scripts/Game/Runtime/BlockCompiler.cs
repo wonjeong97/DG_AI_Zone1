@@ -108,16 +108,16 @@ namespace Game.Runtime
                 return CompileResult.Fail(Constants.CompilerMessages.EmptyBetweenStartEnd,
                     new[] { start, terminal }, program, reachedEnd);
 
-            // 레벨 5(함수) 전용 규칙 — 함수/함수 정의 블록 필수 사용 + 함수 정의는 1개 이상 내부 블록
-            if (CodingBlock.RestrictMainChainToFunction)
+            // 함수 호출 블록을 연결했으면 함수 정의 블록도 코딩 영역에 놓여 있어야 한다 (정의 안이 비어 있는 것은 허용).
+            // 정의 블록은 인벤토리에 있을 수 있어 미사용 블록처럼 탭을 전환해 보여 준다
+            CodingBlock functionCall = FindFunctionCall(program);
+            if (functionCall)
             {
-                if (!FindMainChainFunction(start))
-                    return CompileResult.Fail(Constants.CompilerMessages.FunctionBetweenStartEnd,
-                        FindSceneBlock(BlockCategory.Function), program, reachedEnd);
-
                 CodingBlock funcDef = FindSceneBlock(BlockCategory.FunctionDef);
-                if (!funcDef || !FunctionDefHasInnerBlock(funcDef))
-                    return CompileResult.Fail(Constants.CompilerMessages.EmptyFunctionDef, funcDef, program, reachedEnd);
+                if (!zone || !zone.Contains(funcDef))
+                    return CompileResult.Fail(Constants.CompilerMessages.FunctionDefNotPlaced,
+                        funcDef ? new[] { funcDef, functionCall } : new[] { functionCall },
+                        program, reachedEnd, CompileErrorKind.UnusedBlocks);
             }
 
             CodingBlock cmdError = FindCommandWithoutValue(program);
@@ -576,19 +576,12 @@ namespace Game.Runtime
         }
 
         /// <summary>
-        /// 시작하기 체인을 따라가며 함수(사용) 블록을 찾는다 (완성하기 도달 시 중단).
+        /// 프로그램에 연결된 함수(호출) 블록을 찾는다 (없으면 null).
         /// </summary>
-        private static CodingBlock FindMainChainFunction(CodingBlock start)
+        private static CodingBlock FindFunctionCall(List<BlockInstruction> instructions)
         {
-            ChainOutSocket socket = ChainOutSocket.OfBlock(start);
-            CodingBlock current = socket ? socket.Occupant : null;
-            while (current)
-            {
-                if (current.Category == BlockCategory.Control) break;
-                if (current.Category == BlockCategory.Function) return current;
-                socket = ChainOutSocket.OfBlock(current);
-                current = socket ? socket.Occupant : null;
-            }
+            foreach (BlockInstruction instr in InstructionTree.Traverse(instructions))
+                if (instr is FunctionInstruction fn) return fn.Source;
             return null;
         }
 
@@ -600,18 +593,6 @@ namespace Game.Runtime
             foreach (CodingBlock b in _allBlocks)
                 if (b && b.Category == cat) return b;
             return null;
-        }
-
-        /// <summary>
-        /// 함수 정의 블록의 Inner 컨테이너에 블록이 1개 이상 있는지 확인한다.
-        /// </summary>
-        private static bool FunctionDefHasInnerBlock(CodingBlock funcDef)
-        {
-            List<InnerSocket> inners = new List<InnerSocket>();
-            funcDef.GetSockets(inners);
-            foreach (InnerSocket inner in inners)
-                if (inner.Occupant) return true;
-            return false;
         }
     }
 }

@@ -14,7 +14,7 @@ namespace Game
         }
 
         /// <summary>
-        /// 들어오는 블록을 받을 수 있는지(제어 블록 위치 제한, 레벨5 함수 체인 제한, cascade 완료 가능 여부) 검증한다.
+        /// 들어오는 블록을 받을 수 있는지(제어 블록 위치 제한, cascade 완료 가능 여부) 검증한다.
         /// </summary>
         public bool CanAccept(CodingBlock incoming)
         {
@@ -23,26 +23,6 @@ namespace Game
                 // Inner 컨테이너(InnerSocket 하위) 내부에 위치한 소켓일 경우 Control 블록(완성하기 등) 수락 불가
                 if (Owner && Owner.IsInsideInnerContainer())
                     return false;
-            }
-
-            // 레벨 5(함수) 한정 — 메인 체인(시작~완성)에는 함수 블록만 연결 가능
-            if (CodingBlock.RestrictMainChainToFunction && incoming)
-            {
-                CodingBlock owner = Owner;
-                if (owner)
-                {
-                    bool ownerIsStart   = owner.Category == BlockCategory.Control
-                                          && owner.ControlRole == Data.ControlRole.Start;
-                    bool ownerIsFunc    = owner.Category == BlockCategory.Function;
-                    bool incomingIsFunc = incoming.Category == BlockCategory.Function;
-                    bool incomingIsEnd  = incoming.Category == BlockCategory.Control
-                                          && incoming.ControlRole == Data.ControlRole.End;
-
-                    // 시작하기 소켓엔 함수만 / 함수 소켓엔 완성하기만(삽입 금지) / 완성하기는 함수 뒤에만
-                    if (ownerIsStart && !incomingIsFunc) return false;
-                    if (ownerIsFunc && !incomingIsEnd) return false;
-                    if (incomingIsEnd && !ownerIsFunc) return false;
-                }
             }
 
             return CanFit(incoming, Occupant);
