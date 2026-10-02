@@ -19,7 +19,7 @@ namespace Scenes
     {
         private static FadeManager _fadeManager;
         private static bool _isLoading;
-        private static readonly Queue<UniTask> _pendingTasks = new();
+        private readonly static Queue<UniTask> _pendingTasks = new();
 
         // StreamingAssets/Json/00_Common.json — 최초 1회만 로드해 공유(정적 유틸리티라 인스턴스 수명이 앱과 같음)
         private static CommonSettings _commonSettings;

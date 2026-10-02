@@ -57,6 +57,12 @@ namespace Game
         public Data.ControlRole ControlRole { get; private set; }
         public bool IsDragHandled { get; private set; }
 
+        // 반복하기 블록인지 — 블록 이름(라벨)으로 판별하되, name 조회는 매번 문자열을 새로 할당하므로
+        // 드래그 중 매 이벤트 도는 스냅 탐색을 위해 처음 판별한 값을 재사용한다(이름은 생성 시 한 번만 정해짐)
+        private bool? _isRepeat;
+        public bool IsRepeat => _isRepeat ??= Category == BlockCategory.FlowControl
+            && name.Contains(Constants.BlockLabels.RepeatKeyword);
+
         // 핀치 때문에 취소된 드래그 — 손가락을 뗄 때 오는 OnDrop/OnEndDrag가 블록을 옮기지 않도록 드롭 처리 쪽에서도 확인한다
         public bool IsDragCancelled { get; private set; }
 
@@ -185,6 +191,11 @@ namespace Game
         private readonly List<ConditionOutSocket> _conditionOutCandidates = new();
         private bool _hasDragCache;
 
+        // 이 블록의 진입 소켓(스냅 기준점) — 드래그 중 매 이벤트 이름으로 자식을 찾지 않도록 후보와 함께 모아 둔다
+        private ChainInSocket _chainInSocket;
+        private ValueInSocket _valueInSocket;
+        private ConditionInSocket _conditionInSocket;
+
         /// <summary>
         /// 스냅 후보 소켓을 수집한다 — 후보는 코딩 패널 위 블록들의 소켓뿐이다.
         /// </summary>
@@ -192,6 +203,10 @@ namespace Game
         {
             ClearDragCache();
             _hasDragCache = true;
+
+            _chainInSocket = BlockSocket.FindChildComponent<ChainInSocket>(transform, Constants.Sockets.ChainInName);
+            _valueInSocket = BlockSocket.FindChildComponent<ValueInSocket>(transform, Constants.Sockets.ValueInName);
+            _conditionInSocket = BlockSocket.FindChildComponent<ConditionInSocket>(transform, Constants.Sockets.ConditionInName);
 
             if (!_codingZone)
             {
@@ -238,6 +253,9 @@ namespace Game
             _innerCandidates.Clear();
             _valueOutCandidates.Clear();
             _conditionOutCandidates.Clear();
+            _chainInSocket = null;
+            _valueInSocket = null;
+            _conditionInSocket = null;
             _hasDragCache = false;
         }
 
@@ -904,10 +922,9 @@ namespace Game
         /// </summary>
         private bool TryGetChainSnapOrigin(out Vector2 pos)
         {
-            ChainInSocket inSocket = BlockSocket.FindChildComponent<ChainInSocket>(transform, Constants.Sockets.ChainInName);
-            if (inSocket)
+            if (_chainInSocket)
             {
-                pos = (Vector2)inSocket.transform.position;
+                pos = (Vector2)_chainInSocket.transform.position;
                 return true;
             }
 
@@ -924,9 +941,8 @@ namespace Game
         /// <summary>
         /// 가로 연결(값/조건) 기준점으로 해당 In 소켓 위치를, 없으면 블록 좌측 중앙을 반환한다.
         /// </summary>
-        private bool TryGetHorizontalSnapOrigin<TInSocket>(string socketName, out Vector2 pos) where TInSocket : Component
+        private bool TryGetHorizontalSnapOrigin(Component inSocket, out Vector2 pos)
         {
-            TInSocket inSocket = BlockSocket.FindChildComponent<TInSocket>(transform, socketName);
             if (inSocket)
             {
                 pos = (Vector2)inSocket.transform.position;
@@ -949,6 +965,7 @@ namespace Game
         /// </summary>
         private ChainOutSocket FindSnapOutSocket(out float bestSqr)
         {
+            EnsureDragCache();
             if (!TryGetChainSnapOrigin(out Vector2 myPos))
             {
                 bestSqr = float.MaxValue;
@@ -958,7 +975,6 @@ namespace Game
             ChainOutSocket best = null;
             float minSqr = ChainSnapRadius * ChainSnapRadius;
 
-            EnsureDragCache();
             foreach (ChainOutSocket candidate in _chainOutCandidates)
             {
                 if (candidate.transform.IsChildOf(transform)) continue;
@@ -984,6 +1000,7 @@ namespace Game
         /// </summary>
         private InnerSocket FindSnapInnerSocket(out float bestSqr)
         {
+            EnsureDragCache();
             if (Category == BlockCategory.Control || !TryGetChainSnapOrigin(out Vector2 myPos))
             {
                 bestSqr = float.MaxValue;
@@ -993,7 +1010,6 @@ namespace Game
             InnerSocket best = null;
             float minSqr = ChainSnapRadius * ChainSnapRadius;
 
-            EnsureDragCache();
             foreach (InnerSocket candidate in _innerCandidates)
             {
                 if (candidate.transform.IsChildOf(transform)) continue;
@@ -1019,12 +1035,12 @@ namespace Game
         /// </summary>
         private ValueOutSocket FindSnapValueOutSocket()
         {
-            if (!TryGetHorizontalSnapOrigin<ValueInSocket>(Constants.Sockets.ValueInName, out Vector2 myPos)) return null;
+            EnsureDragCache();
+            if (!TryGetHorizontalSnapOrigin(_valueInSocket, out Vector2 myPos)) return null;
 
             ValueOutSocket best = null;
             float minSqr = SnapRadius * SnapRadius;
 
-            EnsureDragCache();
             foreach (ValueOutSocket candidate in _valueOutCandidates)
             {
                 if (candidate.transform.IsChildOf(transform)) continue;
@@ -1045,7 +1061,7 @@ namespace Game
 
                     // 반복하기의 헤더 슬롯은 조건용이 아니므로 조건 블록은 스냅 제외 (만약 전용)
                     if (Category == BlockCategory.Condition
-                        && targetBlock.Category == BlockCategory.FlowControl && targetBlock.name.Contains(Constants.BlockLabels.RepeatKeyword))
+                        && targetBlock.IsRepeat)
                         continue;
                 }
 
@@ -1068,12 +1084,12 @@ namespace Game
         /// </summary>
         private ConditionOutSocket FindSnapConditionOutSocket()
         {
-            if (!TryGetHorizontalSnapOrigin<ConditionInSocket>(Constants.Sockets.ConditionInName, out Vector2 myPos)) return null;
+            EnsureDragCache();
+            if (!TryGetHorizontalSnapOrigin(_conditionInSocket, out Vector2 myPos)) return null;
 
             ConditionOutSocket best = null;
             float minSqr = SnapRadius * SnapRadius;
 
-            EnsureDragCache();
             foreach (ConditionOutSocket candidate in _conditionOutCandidates)
             {
                 if (candidate.transform.IsChildOf(transform)) continue;
@@ -1288,33 +1304,6 @@ namespace Game
             {
                 _logger.ZLogWarning($"[CodingBlock] {name}의 인벤토리·복귀 위치가 모두 없어 제자리에 둡니다.");
             }
-        }
-
-        /// <summary>
-        /// 드래그 시작 전 위치(부모·순서·좌표)로 되돌리고, 떼어냈던 소켓의 점유를 복구한다.
-        /// </summary>
-        public void ReturnHome()
-        {
-            if (!_homeParent) return;
-
-            bool isReturningToInventory = !_codingZone || !_homeParent.IsChildOf(_codingZone.transform);
-            if (isReturningToInventory)
-            {
-                ReturnToInventory();
-                return;
-            }
-
-            transform.SetParent(_homeParent, false);
-            transform.SetSiblingIndex(_homeIndex);
-            if (!_rt) TryGetComponent(out _rt);
-            if (_rt) _rt.anchoredPosition = _homeAnchoredPos;
-
-            if (_homeParent.TryGetComponent<ValueOutSocket>(out ValueOutSocket vos))
-                vos.Reoccupy(this);
-            else if (_homeParent.TryGetComponent<ConditionOutSocket>(out ConditionOutSocket condOut))
-                condOut.Reoccupy(this);
-            else if (_homeParent.TryGetComponent<ChainOutSocket>(out ChainOutSocket cos))
-                cos.Reoccupy(this);
         }
 
         /// <summary>

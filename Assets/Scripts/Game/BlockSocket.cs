@@ -28,11 +28,6 @@ namespace Game
         public virtual void Release() => _occupant = null;
 
         /// <summary>
-        /// 드래그가 취소되어 블록이 원래 소켓으로 되돌아온 경우 점유 상태만 복구한다.
-        /// </summary>
-        public void Reoccupy(CodingBlock block) => _occupant = block;
-
-        /// <summary>
         /// 점유 블록을 기록한다.
         /// </summary>
         protected void SetOccupant(CodingBlock block) => _occupant = block;

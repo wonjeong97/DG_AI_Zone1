@@ -564,23 +564,8 @@ namespace Game
             CreateSocketObject<ConditionInSocket>(block, Constants.Sockets.ConditionInName, new Vector2(0f, 0.5f), offset);
         }
 
-        // ── 빈 CodingSlot ───────────────────────────────────────
-        // 비어있는 슬롯(EmptyIndicator·CodingSlot) 공통 높이
+        // 비어있는 Inner 슬롯 표시(EmptyIndicator) 높이
         private const float EmptySlotHeight = 60f;
-
-        /// <summary>
-        /// 코딩 영역의 빈 세로 슬롯을 만든다.
-        /// </summary>
-        public static GameObject CreateEmptyCodingSlot()
-        {
-            GameObject go = NewRect(Constants.BlockParts.Slot, 0f, EmptySlotHeight);
-            AddImage(go, Constants.HighlightColors.EmptySlot);
-            LayoutElement le = go.AddComponent<LayoutElement>();
-            le.preferredHeight = EmptySlotHeight;
-            le.flexibleWidth = 1f;
-            go.AddComponent<CodingSlot>();
-            return go;
-        }
 
         // ── 아웃라인 오버레이 머티리얼 3종 ──────────────────────────
         // Full: 전체 범위 (에러 표시)

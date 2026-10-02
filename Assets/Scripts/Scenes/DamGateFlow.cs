@@ -57,11 +57,11 @@ namespace Scenes
         [SerializeField] private float minFoamRate = 20f;
         [SerializeField] private float maxFoamRate = 130f;
 
-        private static readonly int OpeningId = Shader.PropertyToID("_Opening");
-        private static readonly int SpeedId = Shader.PropertyToID("_Speed");
-        private static readonly int WidthId = Shader.PropertyToID("_WidthFrac");
-        private static readonly int HeightId = Shader.PropertyToID("_HeightFrac");
-        private static readonly int FlowFracId = Shader.PropertyToID("_FlowFrac");
+        private readonly static int OpeningId = Shader.PropertyToID("_Opening");
+        private readonly static int SpeedId = Shader.PropertyToID("_Speed");
+        private readonly static int WidthId = Shader.PropertyToID("_WidthFrac");
+        private readonly static int HeightId = Shader.PropertyToID("_HeightFrac");
+        private readonly static int FlowFracId = Shader.PropertyToID("_FlowFrac");
 
         private const float MaxPercent = 100f;
         private const float ClosedEpsilon = 0.001f;

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Data;
 using Game;
 using Game.Runtime;
 using NUnit.Framework;
@@ -6,14 +7,11 @@ using NUnit.Framework;
 namespace DG.Zone1.Tests
 {
     /// <summary>
-    /// 레벨 판별을 Constants.Levels로 모으고 문자열 조합을 ZString으로 바꾼 뒤에도
+    /// 레벨 판별을 LevelData.kind(LevelKind)로 바꾸고 문자열 조합을 ZString으로 바꾼 뒤에도
     /// 채점 규칙과 결과 표시 값이 그대로인지 검증한다.
     /// </summary>
     public class BlockScorerTests
     {
-        private const string WindLevel = "02_WindData";
-        private const string HydroLevel = "03_HydroData";
-
         /// <summary>
         /// 채점용 방향 명령 노드를 만든다.
         /// </summary>
@@ -33,11 +31,11 @@ namespace DG.Zone1.Tests
             string wind = Constants.Directions.East;
 
             Assert.AreEqual(Constants.Scores.WindDirectionSameScore,
-                BlockScorer.ScoreCommand(DirectionCommand(Constants.Directions.East), wind, WindLevel));
+                BlockScorer.ScoreCommand(DirectionCommand(Constants.Directions.East), wind, LevelKind.Wind));
             Assert.AreEqual(Constants.Scores.WindDirectionOppositeScore,
-                BlockScorer.ScoreCommand(DirectionCommand(Constants.Directions.West), wind, WindLevel));
+                BlockScorer.ScoreCommand(DirectionCommand(Constants.Directions.West), wind, LevelKind.Wind));
             Assert.AreEqual(Constants.Scores.WindDirectionOtherScore,
-                BlockScorer.ScoreCommand(DirectionCommand(Constants.Directions.North), wind, WindLevel));
+                BlockScorer.ScoreCommand(DirectionCommand(Constants.Directions.North), wind, LevelKind.Wind));
         }
 
         /// <summary>
@@ -47,11 +45,11 @@ namespace DG.Zone1.Tests
         public void 수력_조건_높이는_문제_높이와의_비교로_채점된다()
         {
             Assert.AreEqual(Constants.Scores.HydroExactScore * Constants.Scores.HydroElseMissingScore * Constants.Scores.HydroGateOrderWrongScore,
-                BlockScorer.ScoreProgram(IfProgram("5m 이상"), "5m", HydroLevel));
+                BlockScorer.ScoreProgram(IfProgram("5m 이상"), "5m", LevelKind.Hydro));
             Assert.AreEqual(Constants.Scores.HydroLowerScore * Constants.Scores.HydroElseMissingScore * Constants.Scores.HydroGateOrderWrongScore,
-                BlockScorer.ScoreProgram(IfProgram("3m 이상"), "5m", HydroLevel));
+                BlockScorer.ScoreProgram(IfProgram("3m 이상"), "5m", LevelKind.Hydro));
             Assert.AreEqual(Constants.Scores.HydroHigherScore * Constants.Scores.HydroElseMissingScore * Constants.Scores.HydroGateOrderWrongScore,
-                BlockScorer.ScoreProgram(IfProgram("8m 이상"), "5m", HydroLevel));
+                BlockScorer.ScoreProgram(IfProgram("8m 이상"), "5m", LevelKind.Hydro));
         }
 
         /// <summary>

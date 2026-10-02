@@ -55,6 +55,9 @@ namespace Scenes
         private string _currentLevelName;
         private LevelData _currentLevel;
 
+        // 레벨 없이 진입하면(testLevel 미지정) 태양광 규칙으로 동작한다
+        private LevelKind CurrentLevelKind => _currentLevel ? _currentLevel.kind : LevelKind.Solar;
+
         /// <summary>
         /// 레벨을 결정해 블록을 스폰하고 문제를 출제한 뒤 버튼 동작을 연결한다.
         /// </summary>
@@ -100,14 +103,14 @@ namespace Scenes
                 _logger.ZLogWarning($"[GameSceneManager] blockSpawner가 할당되지 않아 블록을 생성할 수 없습니다.");
 
             // 레벨별 문제 출제 — Constants.Questions 센터에서 생성
-            Constants.Questions.QuestionData issue = Constants.Questions.GenerateQuestion(_currentLevelName);
+            Constants.Questions.QuestionData issue = Constants.Questions.GenerateQuestion(CurrentLevelKind);
             _questionTime = issue.ValueKey;
             string question = issue.QuestionText;
 
             if (questionText)
             {
                 questionText.text = question;
-                if (Constants.Levels.IsPowerPlant(_currentLevelName))
+                if (CurrentLevelKind == LevelKind.PowerPlant)
                     questionText.fontSize = Constants.Questions.PowerPlantQuestionFontSize;
             }
             else if (_logger != null)
@@ -196,7 +199,7 @@ namespace Scenes
 
                 // 컴파일 성공 시에만 점수를 계산 — 포매터/로그에 함께 표시
                 int? score = result.Success
-                    ? BlockScorer.ScoreProgram(result.Instructions, _questionTime, _currentLevelName)
+                    ? BlockScorer.ScoreProgram(result.Instructions, _questionTime, CurrentLevelKind)
                     : null;
 
                 // 컴파일 결과를 코드 형태로 로그 (실패 시에도 순회된 프로그램을 표시)

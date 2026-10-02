@@ -77,7 +77,7 @@ namespace Game
         public void OnScroll(PointerEventData eventData)
         {
             float wheel = eventData.scrollDelta.y;
-            if (Mathf.Approximately(wheel, 0f)) return;
+            if (Mathf.Abs(wheel) < 0.001f) return;
 
             // 장치마다 휠 한 칸의 값이 달라 방향만 쓴다
             ZoomAt(eventData.position, wheel > 0f ? wheelZoomStep : 1f / wheelZoomStep);

@@ -77,10 +77,10 @@ namespace Scenes
 
         private const int MaxPercent = 100;
 
-        private string CurrentLevelName => _session && _session.currentLevel ? _session.currentLevel.name : null;
+        private LevelKind CurrentLevelKind => _session && _session.currentLevel ? _session.currentLevel.kind : LevelKind.Solar;
 
         // 셰이더 프로퍼티 조회 비용을 줄이기 위한 ID 캐시
-        private static readonly int GrayscaleAmountId = Shader.PropertyToID("_GrayscaleAmount");
+        private readonly static int GrayscaleAmountId = Shader.PropertyToID("_GrayscaleAmount");
 
         private int _playerPercent;
         private bool _isWindStage;             // 풍력 스테이지로 연출 중인지 (레벨2)
@@ -218,14 +218,14 @@ namespace Scenes
         /// </summary>
         private void ApplyLevelStage()
         {
-            string levelName = CurrentLevelName;
-            _isWindStage = Constants.Levels.IsWind(levelName);
-            _isHydroStage = Constants.Levels.IsHydro(levelName);
+            LevelKind kind = CurrentLevelKind;
+            _isWindStage = kind == LevelKind.Wind;
+            _isHydroStage = kind == LevelKind.Hydro;
             // TODO: 레벨5(미래에너지) 결과 연출은 기획 미정 — 정해지면 여기에 전용 분기를 추가할 것.
             //       채점은 레벨4와 같은 경로(ScorePowerPlant, 만점 30점)를 쓰지만 함수 블록이 추가되는 레벨이라
             //       결과 텍스트 항목은 따로 정해야 한다. 그때까지 레벨5는 표시할 값이 없어 '-'로 나온다.
             //       (05_FutureEnergyData의 resultTopText도 비어 있어 씬 기본 문구가 그대로 쓰인다)
-            _isPlantStage = Constants.Levels.IsPowerPlant(levelName);
+            _isPlantStage = kind == LevelKind.PowerPlant;
 
             if (solarStage) solarStage.SetActive(!_isWindStage && !_isHydroStage && !_isPlantStage);
             if (windStage) windStage.SetActive(_isWindStage);
@@ -244,7 +244,7 @@ namespace Scenes
                 return;
             }
 
-            string levelName = CurrentLevelName;
+            LevelKind kind = CurrentLevelKind;
 
             // 코딩 완료(컴파일 성공) 없이 넘어온 경우 값 대신 '-' 표시.
             // 레벨마다 채워지는 값이 달라 개별 필드로 판정하지 않고 게임 씬이 세운 플래그를 그대로 쓴다.
@@ -255,12 +255,12 @@ namespace Scenes
             if (hasCoding)
             {
                 // 최고 점수 대비 비율로 전력 수급 상태 판정
-                int maxScore = BlockScorer.GetMaxScore(levelName);
+                int maxScore = BlockScorer.GetMaxScore(kind);
                 float percent = maxScore > 0 ? _session.lastScore * 100f / maxScore : 0f;
                 string status = ToStatusText(percent);
                 _playerPercent = Mathf.Clamp(Mathf.FloorToInt(percent), 0, MaxPercent);
 
-                playerResult = BuildPlayerRows(levelName, status);
+                playerResult = BuildPlayerRows(kind, status);
                 isSuccess = status != Constants.ResultMessages.StatusPoor;
 
                 // 전력이 부족한 결과는 흑백으로 전환해 시각적으로 구분
@@ -275,15 +275,15 @@ namespace Scenes
                 // 문제로 주어진 값(바람 방향·강물 높이·발전소 상황)은 그대로 보여준다.
                 string poor = Constants.ResultMessages.StatusPoor;
                 playerResult =
-                    Constants.Levels.IsWind(levelName)       ? BuildWindRows(_session.lastQuestionTime, null, false, poor) :
-                    Constants.Levels.IsHydro(levelName)      ? BuildHydroRows(_session.lastQuestionTime, null, false, poor) :
-                    Constants.Levels.IsPowerPlant(levelName) ? BuildPowerPlantRows(null, OnOff(false), Constants.ResultMessages.NoValue, poor) :
-                                                               BuildSolarRows(null, null, poor);
+                    kind == LevelKind.Wind       ? BuildWindRows(_session.lastQuestionTime, null, false, poor) :
+                    kind == LevelKind.Hydro      ? BuildHydroRows(_session.lastQuestionTime, null, false, poor) :
+                    kind == LevelKind.PowerPlant ? BuildPowerPlantRows(null, OnOff(false), Constants.ResultMessages.NoValue, poor) :
+                                                   BuildSolarRows(null, null, poor);
                 ApplyGrayscale();
             }
 
             if (playerRows) playerRows.SetRows(playerResult);
-            if (aiRows) aiRows.SetRows(BuildAiRows(levelName));
+            if (aiRows) aiRows.SetRows(BuildAiRows(kind));
 
             if (completeTitleText)
                 completeTitleText.text = isSuccess ? Constants.ResultMessages.MissionSuccess : Constants.ResultMessages.MissionFail;
@@ -398,15 +398,15 @@ namespace Scenes
         /// <summary>
         /// 레벨에 맞는 플레이어 결과 행을 세션 값으로 만든다.
         /// </summary>
-        private List<ResultRow> BuildPlayerRows(string levelName, string status)
+        private List<ResultRow> BuildPlayerRows(LevelKind kind, string status)
         {
-            if (Constants.Levels.IsWind(levelName))
+            if (kind == LevelKind.Wind)
                 return BuildWindRows(_session.lastQuestionTime, _session.lastDirection, _session.lastRepeatUsed, status);
 
-            if (Constants.Levels.IsHydro(levelName))
+            if (kind == LevelKind.Hydro)
                 return BuildHydroRows(_session.lastQuestionTime, _session.lastGateHeight, _session.lastElseUsed, status);
 
-            if (Constants.Levels.IsPowerPlant(levelName))
+            if (kind == LevelKind.PowerPlant)
                 return BuildPowerPlantRows(_session.lastConditionText, OnOff(_session.lastRepeatNested),
                                            OnOff(_session.lastHospitalInRepeat), status);
 
@@ -416,79 +416,103 @@ namespace Scenes
         /// <summary>
         /// AI 결과 행을 만든다 — AI는 항상 정답(풍력은 정답 방향, 수력은 문제와 같은 높이)이다.
         /// </summary>
-        private List<ResultRow> BuildAiRows(string levelName)
+        private List<ResultRow> BuildAiRows(LevelKind kind)
         {
             string good = Constants.ResultMessages.StatusGood;
 
-            if (Constants.Levels.IsWind(levelName))
+            if (kind == LevelKind.Wind)
                 return BuildWindRows(_session.lastQuestionTime,
-                                     BlockScorer.GetBestDirection(_session.lastQuestionTime, levelName), true, good);
+                                     BlockScorer.GetBestDirection(_session.lastQuestionTime, kind), true, good);
 
-            if (Constants.Levels.IsHydro(levelName))
+            if (kind == LevelKind.Hydro)
                 return BuildHydroRows(_session.lastQuestionTime, _session.lastQuestionTime, true, good);
 
-            if (Constants.Levels.IsPowerPlant(levelName))
+            if (kind == LevelKind.PowerPlant)
                 return BuildPowerPlantRows(Constants.ResultMessages.PowerPlantBestCondition, OnOff(true), OnOff(true), good);
 
             return BuildSolarRows(BlockScorer.GetBestCount(),
-                                  BlockScorer.GetBestDirection(_session.lastQuestionTime, levelName), good);
+                                  BlockScorer.GetBestDirection(_session.lastQuestionTime, kind), good);
         }
 
         /// <summary>
-        /// 플레이어 결과 → AI 결과 → 터치 안내 → 완료 패널 순서의 결과 연출 전체를 진행한다.
+        /// 비활동 타이머를 멈춘 채 결과 연출 전체를 진행한다.
         /// </summary>
         private async UniTaskVoid PlaySequence()
         {
-            CancellationToken ct = destroyCancellationToken;
+            await RunWithTimerPausedAsync(_inactivityTimer, PlaySequenceStepsAsync, destroyCancellationToken, ex =>
+            {
+                if (_logger != null) _logger.ZLogError(ex, $"[ResultSequence] 결과 연출 중 오류가 발생해 비활동 타이머를 재개합니다.");
+            });
+        }
+
+        /// <summary>
+        /// 비활동 타이머를 멈춘 채 연출을 진행하고, 취소나 오류로 중간에 빠져나가도 타이머를 다시 켠다.
+        /// </summary>
+        public static async UniTask RunWithTimerPausedAsync(InactivityTimer timer, Func<CancellationToken, UniTask> steps,
+            CancellationToken ct, Action<Exception> onError = null)
+        {
             try
             {
                 // 터치 안내가 뜨기 전까지는 입력 없이 연출만 보는 구간 — 비활동 타이머를 멈춘다
-                if (_inactivityTimer) _inactivityTimer.Pause();
-
-                await LoadSceneSettingsAsync(ct);
-                _fadeDuration = await SceneFader.GetPanelFadeDurationAsync();
-
-                if (playerRows) await playerRows.PlayAsync(ct);
-                await SceneFader.FadeCanvasGroupAsync(playerImageGroup, 0f, 1f, _fadeDuration, ct);
-                await PlayPlayerStageAsync(ct);
-                await PlayEfficiencyAsync(playerEffGroup, playerEffText, _playerPercent, ct);
-                await FadeToGrayscaleAsync(ct);
-
-                await PlayAiStartAsync(ct);
-
-                // AI 시작 안내가 사라진 뒤 AI 결과 패널 페이드인 → 연출 시작
-                if (aiResultGroup)
-                    await SceneFader.FadeCanvasGroupAsync(aiResultGroup, 0f, 1f, _fadeDuration, ct);
-
-                if (aiRows) await aiRows.PlayAsync(ct);
-                await SceneFader.FadeCanvasGroupAsync(aiImageGroup, 0f, 1f, _fadeDuration, ct);
-                await PlayAiStageAsync(ct);
-                await PlayEfficiencyAsync(aiEffGroup, aiEffText, MaxPercent, ct);
-
-                // AI 결과를 읽을 틈을 준 뒤 안내를 띄운다
-                float guideDelay = _sceneSettings?.touchGuideDelay ?? touchGuideDelay;
-                await UniTask.Delay(TimeSpan.FromSeconds(guideDelay), cancellationToken: ct);
-                await ShowTouchGuideAsync(ct);
-
-                // 안내가 떴으니 이제부터는 사용자 입력을 기다리는 구간 — 타이머 재개
-                if (_inactivityTimer) _inactivityTimer.Resume();
-
-                // 화면 아무 곳이나 새로 누르면 완료 화면으로 넘어간다
-                await UniTask.WaitUntil(StoryLineAnimator.IsPointerPressedThisFrame, cancellationToken: ct);
-                HideTouchGuide();
-
-                // 순차 페이드 — resultPanel이 완전히 꺼진 뒤 completePanel이 켜짐
-                SceneFader.SetGroupInteractable(resultPanel, false);
-                await SceneFader.FadeCanvasGroupAsync(resultPanel, 1f, 0f, _fadeDuration, ct);
-                SceneFader.SetGroupInteractable(completePanel, true);
-                await SceneFader.FadeCanvasGroupAsync(completePanel, 0f, 1f, _fadeDuration, ct);
+                if (timer) timer.Pause();
+                await steps(ct);
             }
             catch (OperationCanceledException)
             {
                 // 시퀀스 도중 씬 전환(다음 버튼 등)으로 오브젝트가 파괴된 경우 — 정상 종료.
                 // 터치 안내가 뜨기 전에 빠져나갔다면 타이머가 멈춘 채 남으므로 여기서 되돌린다.
-                if (_inactivityTimer) _inactivityTimer.Resume();
+                if (timer) timer.Resume();
             }
+            catch (Exception ex)
+            {
+                // 연출 도중 예기치 않은 오류 — 타이머가 멈춘 채 남으면 체험자가 떠나도 타이틀로 돌아가지 않는다
+                onError?.Invoke(ex);
+                if (timer) timer.Resume();
+            }
+        }
+
+        /// <summary>
+        /// 플레이어 결과 → AI 결과 → 터치 안내 → 완료 패널 순서의 결과 연출 전체를 진행한다.
+        /// </summary>
+        private async UniTask PlaySequenceStepsAsync(CancellationToken ct)
+        {
+            await LoadSceneSettingsAsync(ct);
+            _fadeDuration = await SceneFader.GetPanelFadeDurationAsync();
+
+            if (playerRows) await playerRows.PlayAsync(ct);
+            await SceneFader.FadeCanvasGroupAsync(playerImageGroup, 0f, 1f, _fadeDuration, ct);
+            await PlayPlayerStageAsync(ct);
+            await PlayEfficiencyAsync(playerEffGroup, playerEffText, _playerPercent, ct);
+            await FadeToGrayscaleAsync(ct);
+
+            await PlayAiStartAsync(ct);
+
+            // AI 시작 안내가 사라진 뒤 AI 결과 패널 페이드인 → 연출 시작
+            if (aiResultGroup)
+                await SceneFader.FadeCanvasGroupAsync(aiResultGroup, 0f, 1f, _fadeDuration, ct);
+
+            if (aiRows) await aiRows.PlayAsync(ct);
+            await SceneFader.FadeCanvasGroupAsync(aiImageGroup, 0f, 1f, _fadeDuration, ct);
+            await PlayAiStageAsync(ct);
+            await PlayEfficiencyAsync(aiEffGroup, aiEffText, MaxPercent, ct);
+
+            // AI 결과를 읽을 틈을 준 뒤 안내를 띄운다
+            float guideDelay = _sceneSettings?.touchGuideDelay ?? touchGuideDelay;
+            await UniTask.Delay(TimeSpan.FromSeconds(guideDelay), cancellationToken: ct);
+            await ShowTouchGuideAsync(ct);
+
+            // 안내가 떴으니 이제부터는 사용자 입력을 기다리는 구간 — 타이머 재개
+            if (_inactivityTimer) _inactivityTimer.Resume();
+
+            // 화면 아무 곳이나 새로 누르면 완료 화면으로 넘어간다
+            await UniTask.WaitUntil(StoryLineAnimator.IsPointerPressedThisFrame, cancellationToken: ct);
+            HideTouchGuide();
+
+            // 순차 페이드 — resultPanel이 완전히 꺼진 뒤 completePanel이 켜짐
+            SceneFader.SetGroupInteractable(resultPanel, false);
+            await SceneFader.FadeCanvasGroupAsync(resultPanel, 1f, 0f, _fadeDuration, ct);
+            SceneFader.SetGroupInteractable(completePanel, true);
+            await SceneFader.FadeCanvasGroupAsync(completePanel, 0f, 1f, _fadeDuration, ct);
         }
 
         /// <summary>
@@ -552,7 +576,7 @@ namespace Scenes
             }
 
             if (aiPanelPose)
-                await aiPanelPose.ApplyAsync(null, BlockScorer.GetBestDirection(_session ? _session.lastQuestionTime : null, CurrentLevelName), ct);
+                await aiPanelPose.ApplyAsync(null, BlockScorer.GetBestDirection(_session ? _session.lastQuestionTime : null, CurrentLevelKind), ct);
             else
                 WarnMissingStage(nameof(aiPanelPose));
         }

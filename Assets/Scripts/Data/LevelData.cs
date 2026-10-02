@@ -2,11 +2,24 @@ using UnityEngine;
 
 namespace Data
 {
+    // 레벨 종류 — 문제 출제·채점·결과 연출이 이 값으로 분기한다 (에셋 이름을 바꿔도 동작이 바뀌지 않도록)
+    public enum LevelKind
+    {
+        Solar,          // 레벨1 태양광
+        Wind,           // 레벨2 풍력
+        Hydro,          // 레벨3 수력
+        PowerPlant,     // 레벨4 발전소
+        FutureEnergy    // 레벨5 미래에너지 — 채점은 발전소 규칙을 공유
+    }
+
     [CreateAssetMenu(fileName = "LevelData", menuName = "DG/Level Data")]
     public class LevelData : ScriptableObject
     {
         [Tooltip("진행도 판정용 순번 — StoryManager.levelDataList 내 위치와 일치해야 함 (레벨1=0, 레벨2=1, ...)")]
         public int levelIndex;
+
+        [Tooltip("레벨 종류 — 문제 출제·채점·결과 연출 분기 기준")]
+        public LevelKind kind;
 
         public BlockLayoutData blockLayout;
 

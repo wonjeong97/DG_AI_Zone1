@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: 02_WindData
   m_EditorClassIdentifier: 
   levelIndex: 1
+  kind: 1
   blockLayout: {fileID: 11400000, guid: baecb7195ffa6f14ba6f9a4f7cad5301, type: 2}
   storyText: "\uBC14\uB78C\uC774 \uBD80\uB294 \uBC29\uD5A5\uC744 \uC0B4\uD3B4\uBCF4\uC138\uC694.\n<font=\"GamtanRoadTantan
     SDF Outline\">\n\u2022 \uBC14\uB78C\uC774 \uC5B4\uB514\uC5D0\uC11C \uBD80\uB294\uC9C0

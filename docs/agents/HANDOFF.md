@@ -13,6 +13,27 @@
 
 ---
 
+### [2026-10-02 10:50] Claude → Antigravity · PR #61 리뷰와 회귀 테스트 추가
+- 변경 파일: ResultSequence.cs(타이머 처리를 RunWithTimerPausedAsync로 분리, 본문은 PlaySequenceStepsAsync), Tests/Runtime/ResultSequenceTimerTests.cs(신규 3개), ProjectSettings.asset(bundleVersion 26.10.2), CHANGELOG.md(2026-10-02 섹션), TODO.md
+- 확인 요청: PR 전체 diff 버그 리뷰(소켓 캐시·IsRepeat·예외 처리·LevelKind), 타이머 분리 전후 동작 일치와 테스트 유효성, PlayMode 테스트
+- 결과: 통과. PR 리뷰 발견된 버그 없음(Claude 리뷰도 동일), 분리 전후 동작 일치, 스킬 0·6·11·13번 준수, PlayMode 19/19 통과, 콘솔 에러 0.
+  - agy가 run_tests를 부를 때마다 EditorSettings.asset이 m_EnterPlayModeOptionsEnabled 1로 저장됨 → 메모리 값 False 확인 후 되돌림(두 번).
+
+### [2026-10-02] Claude → Antigravity · T7 리팩터링 후 스킬 준수 재점검·문제 데이터 위치 조사
+- 변경 파일: 없음(리뷰·조사). 브랜치 코드 diff(Temp/review/branch_code.diff)와 Constants.Questions·Scores 사용처.
+- 결과:
+  - 이번 변경분 스킬 준수: 0·3·6·7·10·11·17·18·20번과 readonly static 순서 준수. 13번 위반 — ResultSequence 타이머 수정에 회귀 테스트 없음(타당, 후속). 12번 지적(LevelKind를 SO 필드로 둠)은 오탐에 가까움 — 식별자 문자열이 아니라 코드에 정의된 enum의 선택값이며, goToOutroAfterResult와 같은 방식.
+  - 프로젝트 전체 grep(Claude): var·GetComponent·씬 탐색·static readonly·리플렉션·코루틴·LINQ·Approximately(0f) 모두 0, summary 419/419. 남은 위반은 Debug.Log 12건(예외 5건 제외), GetComponentInChildren/InParent 2, Object.Instantiate 1(ResultRowsView), ProfilerMarker 0(핫패스 있음).
+  - 문제 데이터 조사: agy 보고서가 사용처 표까지만 쓰고 끊겨 나머지는 Claude가 직접 확인. 방향·개수·수력 높이 값은 레벨 레이아웃 블록 라벨과 일치해야 함, HintPanel.TimeVariantNames가 시간 값을 따로 가짐, QuestionData.CorrectAnswer는 만들기만 하고 읽는 곳 없음, AngleScore는 각도 블록이 어느 레벨에도 없어 현재 미사용.
+
+### [2026-10-02 10:16] Claude · T7 감사 반영 Unity 검증 (refactor/skill-audit-fixes, main 병합 후)
+- 변경 파일: 없음(검증만). main 병합(8d3fb8a) 뒤 Zone1 에디터에서 확인.
+- 확인 요청: 컴파일·콘솔 에러, PlayMode·EditMode 테스트
+- 결과: 통과. Claude가 직접 실행 — agy 실행 파일이 이 PC에서 없어져(`AppData\Local\agy\bin` 없음) 대신 실행함. 컴파일 에러 0, PlayMode 16/16 통과, EditMode 테스트 0개, 콘솔은 MCP WebSocket 경고 1건뿐.
+  - MCP run_tests(PlayMode)가 실행 중에 EditorSettings.asset을 `m_EnterPlayModeOptionsEnabled: 1`로 저장하고 메모리에서만 되돌림 → 메모리 값 False 확인 후 파일을 git checkout으로 되돌림.
+  - 블록 드래그 스냅과 레벨별 결과 화면은 Play 모드에서 직접 조작해 보지 않음(테스트는 컴파일·채점·소켓 점유만 다룸).
+  - 10:18 agy 복구(1.2.14) 후 agy 재확인: 콘솔 에러 0, validate_script(CodingBlock·BlockScorer·ResultSequence·LevelData) 에러·경고 0, 03_HydroData kind 2 — 통과.
+
 ### [2026-10-01 23:00] Claude → Antigravity · 프로젝트 설정 정리
 - 변경 파일: ProjectSettings/ProjectSettings.asset
 - 확인 요청: bundleVersion 이 26.10.1 인지, m_EnterPlayModeOptionsEnabled 가 0 인지
@@ -22,6 +43,22 @@
 - 변경 파일: Assets/Scenes/0_Title.unity, 1_Intro.unity, 2_Story.unity, 5_Outro.unity (Main Camera Post Processing 끔)
 - 확인 요청: 모든 씬·프리팹에 m_RenderPostProcessing: 1 이 남았는지, 4_Result 렌더텍스처 카메라 8개의 Clear Flags·배경 알파, 이 카메라들의 후처리를 끈 채 두는 것이 맞는지
 - 결과: 통과. 후처리 켜진 카메라 0개. 4_Result 카메라 8개는 SolidColor·알파 0으로 3D 모델을 UI 위에 합성하며, URP 14 후처리는 알파를 1로 덮어써 검은 박스가 생기고 프로젝트에 Volume도 없으므로 끈 채 유지가 맞다는 의견.
+### [2026-10-01] Claude → Antigravity · T7 감사 결과 반영 (refactor/skill-audit-fixes)
+- 변경 파일: ResultSequence.cs(일반 예외 시 비활동 타이머 재개), CodingBlock.cs·BlockSocket.cs·BlockFactory.cs·CategoryButtonUI.cs·CodingZone.cs·Constants.cs(미사용 코드 삭제), CodingSlot.cs(삭제), static readonly 13곳 순서, CodingZoneZoom.cs(휠 0 비교), CodingBlock.cs(드래그 스냅 진입 소켓 캐싱·IsRepeat), BlockCompiler.cs(IsRepeat 사용), LevelData.cs(LevelKind)·01~05_*Data.asset(kind)·BlockScorer.cs·GameSceneManager.cs·ResultSequence.cs·BlockScorerTests.cs(레벨 판별을 kind로), CHANGELOG.md
+- 확인 요청: 단계별 diff 리뷰(삭제 심볼 잔여 참조, 예외 분기 순서, 진입 소켓 캐시가 쓰이기 전 채워지는지, IsRepeat 동치, LevelKind와 기존 이름 판별 동치·레벨5 경로·null 기본값, LevelData 에셋 누락)
+- 결과: 통과(2회 호출, 8개 항목 모두 통과). Claude가 Unity 생성 csproj를 dotnet build로 컴파일 확인 — DG.Zone1·Tests·Editor 오류 0, C# 경고 0. Zone1 에디터가 MCP에 연결되어 있지 않아(MCP 서버에는 Zone4만 연결) PlayMode 테스트·Play 모드 확인은 하지 못함.
+
+### [2026-10-01] Claude → Antigravity · T7 프로젝트 전체 스킬 준수·최적화 감사
+- 변경 파일: 없음(읽기 전용 감사). agy 6건 병렬(CodingBlock / BlockFactory·Spawner / 존·소켓 / 컴파일러·채점 / 결과·게임 씬 / 타이틀·스토리 씬), Claude는 grep 기반 규칙 점검과 App·Data·Network·Constants·씬 레이캐스트 직접 검토.
+- 결과: agy 지적을 코드로 확인해 확정·오탐을 나눔.
+  - 확정(규칙): `static readonly` 순서 13곳, GetComponentInChildren/InParent 2곳(IntroSceneManager:60, CodingZoneZoom:54), 로거 미주입 컴포넌트의 Debug.Log 12곳, `Mathf.Approximately(wheel, 0f)`(CodingZoneZoom:80), GameSession SO를 런타임 상태 저장소로 사용, 표시 전용 TMP 텍스트 Raycast Target 켜짐(3_Game 약 22개 등), ResultRowsView가 IObjectResolver 대신 Instantiate.
+  - 확정(최적화): 드래그 중 매 이벤트 `transform.Find`+TryGetComponent·`name.Contains`(CodingBlock 스냅 탐색), FlowInnerResize.LateUpdate 매 프레임 체인 순회·형제 TryGetComponent.
+  - 확정(정리): 죽은 코드 CodingBlock.ReturnHome·CodingSlot·BlockFactory.CreateEmptyCodingSlot·CategoryButtonUI.SetReferences, 스냅 대상 선정 로직 중복(UpdateSnapHighlight/TrySnapToSocket), 레벨 종류를 에셋 이름으로 판별(Constants.Levels.IsXxx 22곳).
+  - 확정(버그): ResultSequence.PlaySequence에서 취소 외 예외 시 비활동 타이머가 멈춘 채 남음(이전 리뷰에서 보류한 건).
+  - 잠재(현재 데이터로 재현 불가): 함수 정의 안 함수 블록 시 무한 재귀(레벨5 함수 블록 1개라 불가), 만약 안 아니면 2개 통과(레벨3 아니면 1개).
+  - 오탐: 씬 매니저의 GameManagerBase 상속 요구(GameManagerBase는 DontDestroyOnLoad 싱글톤), ReturnHome InnerSocket 누락(호출처 없음), SnapInto Kill 후 좌표 튐(1135줄 가드), 드롭 시 parent null(드래그 중 부모는 캔버스), typeof(RectTransform)로 만든 오브젝트의 TryGetComponent 반환값 미검사.
+  - 결정 필요: 미션 실패여도 다음 레벨 해금(ResultSequence.OnNextClicked) — 기획 확인.
+  - 스킬 문서 보완 필요: 1번 "씬/전역 매니저는 GameManagerBase 상속" 문구가 싱글톤과 충돌, 23번 예시가 `private static readonly` 순서.
 
 ### [2026-10-01] Claude → Antigravity · 블록 탭 이름 변경·탭 라벨 겹침 (#60)
 - 변경 파일: Constants.cs(Condition "숫자·정보", Command "움직이기"), CategoryZone.cs(셀 180×52, 열 간격 32), CategoryButton.prefab(라벨 폭 128·왼쪽 정렬·줄바꿈 끔), GamtanRoadTantan SDF.asset(Dynamic 아틀라스 글자 추가), 1_Intro.unity(직업 이름 "신재생에너지 전문가", 사용자 편집), CHANGELOG.md, REVIEW_ITEMS.md
