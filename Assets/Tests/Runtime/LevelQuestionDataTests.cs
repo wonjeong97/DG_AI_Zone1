@@ -108,10 +108,6 @@ namespace DG.Zone1.Tests
         {
             foreach (LevelData level in LoadLevels())
             {
-                // 레벨5(미래에너지)는 기획이 정해지지 않아 태양광 문제를 임시로 쓰고, 블록은 발전소 블록이라 방향 블록이 없다.
-                // 레벨5 문제가 정해지면 이 제외를 지운다(TODO.md 기획 확인 항목).
-                if (level.kind == LevelKind.FutureEnergy) continue;
-
                 HashSet<string> labels = CollectLabels(level.blockLayout);
                 foreach (QuestionOption option in level.questionOptions)
                 {

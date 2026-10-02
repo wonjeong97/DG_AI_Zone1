@@ -13,6 +13,13 @@
 
 ---
 
+### [2026-10-02 13:44] Claude → Antigravity · 레벨5 문제 문구 교체 (feat/level5-question)
+- 변경 파일: 05_FutureEnergyData.asset(questionFormat 고정 문구, questionOptions를 태양광 시간 5개 → '미래 에너지' 1개·정답 없음), LevelQuestionDataTests.cs(레벨5 제외 삭제), CHANGELOG.md, TODO.md
+- 확인 요청: 고정 문구 표시, 채점·결과·힌트 패널 예외 경로, 화면 변화, 테스트 제외 삭제 안전성
+- 결과: 통과. 수정할 사항 없음. PlayMode 23/23(Claude 실행).
+  - 화면 변화: 결과 씬 AI 행 패널 방향이 '-'로, AI 태양광 패널이 정면(yaw 0) 유지 — 레벨5 결과 연출은 기획 전(ResultSequence TODO)이라 태양광 화면을 임시로 쓰는 중.
+  - 테스트 후 EditorSettings.asset과, SaveAssets로 함께 저장된 TMP 동적 아틀라스 글리프(GamtanRoadTantan SDF.asset)는 되돌림.
+
 ### [2026-10-02 13:37] Claude → Antigravity · 인트로·튜토리얼 터치 클릭음 (feat/sfx)
 - 변경 파일: IntroSceneManager.cs(인트로 패널 → 튜토리얼 패널 전환 터치), TutorialImageSlider.cs(다음·이전 페이지, 마지막 페이지에서 다음), Constants.cs(주석), CHANGELOG.md(2026-10-02로 이동)
 - 확인 요청: 기대 동작 일치, 소리 중복·누락, SoundManager 주입, validate_script
