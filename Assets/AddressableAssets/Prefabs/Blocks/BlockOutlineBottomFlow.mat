@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: BlockOutlineRight
+  m_Name: BlockOutlineBottomFlow
   m_Shader: {fileID: 4800000, guid: f8bae803b076d3b4fb790a72c22a94b3, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
@@ -41,8 +41,8 @@ Material:
     - _StencilWriteMask: 255
     - _UseUIAlphaClip: 0
     - _XMax: 1
-    - _XMin: 0.944
-    - _YMax: 0.99
-    - _YMin: 0.166
+    - _XMin: 0
+    - _YMax: 0.062
+    - _YMin: 0
     m_Colors: []
   m_BuildTextureStacks: []

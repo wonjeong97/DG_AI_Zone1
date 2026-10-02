@@ -36,7 +36,7 @@ public static class Constants
         // 폰트를 모두 로드해 캐시에 등록해 둔다(GameLifetimeScope). 그래야 태그가 해석된다.
         // 폰트 변형을 추가할 때는 이 라벨만 붙이면 코드 수정이 필요 없다.
         public const string TmpFontLabel = "TMPFont";
-        public const string SpriteFillShader     = "Custom/UI/SpriteFill";
+        public const string BlockOutlineShader   = "Custom/UI/BlockOutline";
         public const string GrayscaleShader      = "Custom/UI/Grayscale";
 
         // 씬별 연출 타이밍 JSON(StreamingAssets/Json/{씬 이름}.json)이 모여 있는 폴더
@@ -415,17 +415,24 @@ public static class Constants
     // ── 15. 블록 하이라이트 색상 및 크기 설정 ─────────────────────
     public static class HighlightSettings
     {
-        // 외곽선 두께/확장 크기 (기존 4px -> 10px로 확대하여 가시성 강화)
+        // 외곽선 두께 — 블록 모양 둘레에 그리는 테두리 폭 (BlockOutlineMesh·Custom/UI/BlockOutline)
         public const float OutlineThickness = 10f;
-        // 세로 체인 하단 스냅 하이라이트 Y 범위 (기존 35% -> 45%)
-        public const float ChainHighlightYMax = 0.45f;
-        // InnerSnapHighlight 전용 UV Y Max (헤더 하단 노치 라인 클리핑)
-        public const float InnerHighlightYMax = 0.38f;
-        // InnerSnapHighlight 전용 RectTransform 오프셋 (Bottom: 155, Top: -175)
-        public const float InnerHighlightOffsetBottom = 155f;
-        public const float InnerHighlightOffsetTop = -175f;
-        // 가로 슬롯 우측 스냅 하이라이트 X 범위 (기존 80% -> 75%)
-        public const float ValueHighlightXMin = 0.75f;
+
+        // 스냅 하이라이트가 보일 영역 (코드로 조립하는 블록용 — 프리팹은 BlockOutline* 머티리얼 값).
+        // 스프라이트 기준 0~1(아래·왼쪽이 0), 0이나 1이면 그쪽 바깥 테두리까지 연다.
+        // 체인: 몸체 아래 가장자리 아래만 (아니면 블록 아트 361x121 — 몸체 0~99행, 아래 돌기 100~119행)
+        public const float ChainHighlightYMax = 0.172f;
+        // 값 칸: 몸체 오른쪽 가장자리 바깥만, 위아래로 넘어가지 않게 (논리 블록 아트 381x101 — 몸체 오른쪽 끝 x=359, 소켓 ~379)
+        public const float ValueHighlightXMin = 0.944f;
+        public const float ValueHighlightYMin = 0.005f;
+        public const float ValueHighlightYMax = 0.99f;
+
+        // ㄷ자 블록 안쪽 진입 하이라이트 — 머리 아래 가장자리와 머리 아래 돌기 둘레만 그린다(픽셀, 아트 위·왼쪽 기준).
+        // 반복하기·만약(321)과 함수 정의(301)는 높이만 다르고 머리 모양이 같아 픽셀로 정하고 스프라이트마다 비율로 바꾼다.
+        // 머리 0~100행, 머리 아래 돌기 ~120행, 왼쪽 팔 오른쪽 끝 x=19~20
+        public const float InnerHighlightHeaderBottomPx = 101f; // 이 행보다 아래(안쪽 공간)만 보인다
+        public const float InnerHighlightSourceBottomPx = 121f; // 머리와 돌기(이 행 위)만 부풀린다
+        public const float InnerHighlightSourceLeftPx = 22f;    // 왼쪽 팔은 부풀리지 않는다 — 팔을 따라 내려가는 선이 생기지 않도록
 
         // 스냅 하이라이트 부드러운 깜빡임(Pulse) 애니메이션 설정
         public const float SnapPulseMinAlpha = 0.35f;

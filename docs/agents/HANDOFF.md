@@ -13,6 +13,15 @@
 
 ---
 
+### [2026-10-02 15:08] Claude → Antigravity · 외곽선·스냅 하이라이트 셰이더화 (feat/level5-question)
+- 변경 파일: Shaders/UIBlockOutline.shader(신규, 9-slice 대응 팽창·보일 영역·원본 영역), Game/BlockOutlineMesh.cs(신규), Tests/Runtime/BlockOutlineMeshTests.cs(신규 2개), CodingBlock.cs(이미지 확장·IsIfBlock·SetHighlightRect 삭제), BlockFactory.cs(머티리얼 Outline*·스프라이트별 안쪽 머티리얼), InnerSocket.cs(안쪽 하이라이트를 외곽선과 같은 크기로), Constants.cs, 블록 프리팹 11개, 머티리얼(BlockOutline·BottomFlow·RightCondition 신규, Bottom·Right·IfValue 셰이더·값 변경, BlockOutlineFull 삭제), UISpriteFill.shader 삭제, GraphicsSettings Always Included 교체, CHANGELOG.md, TODO.md
+- 확인 요청: 셰이더 대응식·영역, 메시 경계 추출·확장·캔버스 채널, 안쪽 하이라이트 생성, 삭제 심볼 잔존, 렌더 결과, validate_script
+- 결과: 통과(리뷰 3회 — 마지막은 사용자 스크린샷 요청 3건 반영분). PlayMode 27/27(Claude 실행), 콘솔 에러 0.
+  - 사용자 요청: 체인=블록 아래 가장자리와 돌기만, ㄷ자 안쪽=머리 아래 선이 팔 모서리까지·팔 따라 내려가지 않게, 값 칸=오른쪽 옆면과 소켓만. 아트 가장자리를 픽셀로 측정해 머티리얼 값을 정했고 미리보기 씬 렌더로 확인(Temp/review/snap_v2.png).
+  - 처음 셰이더는 칸(quad)별 UV 비율로 샘플링해 9-slice 경계 근처(ㄷ자 머리 아래 돌기)에서 두께가 블록 길이에 따라 3~12px로 달라짐 → 사각형 기준 좌표에서 샘플링하고 9-slice 대응식으로 UV를 구하도록 바꿈. Unity UI가 uv0.zw를 셰이더로 넘기는 것은 미리보기 씬 실험으로 확인.
+  - agy가 지적한 'ㄷ자 안쪽 공간의 빨간 띠'는 안쪽 공간 가장자리의 정상 테두리(아트 확인), '깊은 자식에 OnTransformParentChanged 미전달'은 Unity 문서상 간접 부모 변경도 전달돼 반영하지 않음.
+  - 미리보기·Play 중 TMP 동적 아틀라스 글리프가 폰트 에셋에 저장된 것은 되돌림. SaveAssetIfDirty로 ProjectSettings가 저장되지 않아 GraphicsSettings.asset은 파일을 직접 수정(메모리 값과 일치).
+
 ### [2026-10-02 14:13] Claude → Antigravity · 시작하기→완성하기 직결 에러 (feat/level5-question)
 - 변경 파일: BlockCompiler.cs(WalkChain 직후 reachedEnd && program 비었으면 실패, 시작하기·완성하기 지목), Constants.cs(EmptyBetweenStartEnd), BlockCompilerTests.cs(직결 실패 테스트, 미사용 움직이기 테스트에 코딩 영역 방치 블록 추가), CHANGELOG.md, TODO.md
 - 확인 요청: 직결 시 항상 에러·블록 있으면 에러 없음, 레벨5 등 검사 순서, ErrorBlocks 2개 처리, 테스트

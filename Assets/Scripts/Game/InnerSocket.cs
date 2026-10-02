@@ -84,36 +84,22 @@ namespace Game
         }
 
         /// <summary>
-        /// 소유 블록의 헤더 컨테이너에 내부 진입 하이라이트 이미지를 (없으면 만들어) 반환한다.
+        /// 소유 블록의 외곽선 옆에 내부 진입 하이라이트 이미지를 (없으면 만들어) 반환한다.
+        /// 블록 외곽선과 같은 크기·스프라이트 설정으로 만들고, 머티리얼이 ㄷ자 안쪽 진입부(머리 아래 가장자리·돌기)만 남긴다.
         /// </summary>
         private Image GetOrAddHighlightImage()
         {
             if (_highlightImg) return _highlightImg;
 
             CodingBlock parentBlock = Owner;
-            Transform container = null;
-            Sprite blockSprite = null;
-
-            if (parentBlock)
+            Image outline = parentBlock ? parentBlock.OutlineImage : null;
+            if (!outline)
             {
-                // Header 컨테이너 탐색 (root의 첫 번째 자식, e.g. Label / Header_...)
-                if (parentBlock.transform.childCount > 0)
-                {
-                    Transform firstChild = parentBlock.transform.GetChild(0);
-                    if (firstChild != transform.parent)
-                        container = firstChild;
-                }
-
-                // 하이라이트 모양은 블록 외곽선과 같은 스프라이트를 쓴다
-                if (parentBlock.OutlineImage) blockSprite = parentBlock.OutlineImage.sprite;
-            }
-            else if (_logger != null)
-            {
-                _logger.ZLogWarning($"[InnerSocket] {name}의 소유 블록이 등록되지 않아 하이라이트 모양을 알 수 없습니다.");
+                if (_logger != null) _logger.ZLogWarning($"[InnerSocket] {name}의 소유 블록 외곽선을 찾지 못해 내부 진입 하이라이트를 표시할 수 없습니다.");
+                return null;
             }
 
-            if (!container)
-                container = transform.parent ? transform.parent : transform;
+            Transform container = outline.transform.parent;
 
             // 이 소켓이 직접 만들어 상수 이름을 붙인 자식이라 이름 탐색이 허용된다
             Image existingImg = FindChildComponent<Image>(container, Constants.BlockParts.InnerSnapHighlight);
@@ -126,28 +112,30 @@ namespace Game
             GameObject go = new GameObject(Constants.BlockParts.InnerSnapHighlight, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
             go.transform.SetParent(container, false);
 
-            // ValueHighlight 바로 아래에 배치하여 렌더링 순서 최적화
-            Image valueHighlight = parentBlock ? parentBlock.ValueHighlightImage : null;
-            if (valueHighlight && valueHighlight.transform.parent == container)
-                go.transform.SetSiblingIndex(valueHighlight.transform.GetSiblingIndex() + 1);
-            else
-                go.transform.SetAsFirstSibling();
+            // 다른 하이라이트와 함께 본체 뒤에 깔리도록 ValueHighlight(없으면 외곽선) 바로 뒤에 둔다
+            Image valueHighlight = parentBlock.ValueHighlightImage;
+            Transform after = valueHighlight && valueHighlight.transform.parent == container ? valueHighlight.transform : outline.transform;
+            go.transform.SetSiblingIndex(after.GetSiblingIndex() + 1);
 
             go.AddComponent<LayoutElement>().ignoreLayout = true;
 
+            RectTransform outlineRt = outline.rectTransform;
             go.TryGetComponent(out RectTransform rt);
-            rt.anchorMin = Vector2.zero;
-            rt.anchorMax = Vector2.one;
-            rt.offsetMin = new Vector2(0f, Constants.HighlightSettings.InnerHighlightOffsetBottom);
-            rt.offsetMax = new Vector2(0f, -Constants.HighlightSettings.InnerHighlightOffsetTop);
+            rt.anchorMin = outlineRt.anchorMin;
+            rt.anchorMax = outlineRt.anchorMax;
+            rt.offsetMin = outlineRt.offsetMin;
+            rt.offsetMax = outlineRt.offsetMax;
 
             go.TryGetComponent(out Image img);
-            img.sprite = blockSprite;
-            img.type = Image.Type.Simple;
+            img.sprite = outline.sprite;
+            img.type = outline.type;
+            img.fillCenter = outline.fillCenter;
+            img.pixelsPerUnitMultiplier = outline.pixelsPerUnitMultiplier;
             img.preserveAspect = false;
-            img.material = BlockFactory.SpriteFillMaterialInner;
+            img.material = BlockFactory.GetInnerOutlineMaterial(outline.sprite);
             img.color = Color.clear;
             img.raycastTarget = false;
+            go.AddComponent<BlockOutlineMesh>();
 
             _highlightImg = img;
             return img;

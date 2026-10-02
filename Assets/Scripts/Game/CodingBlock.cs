@@ -276,12 +276,12 @@ namespace Game
         /// <summary>
         /// 하단 체인 연결 지점에 스냅 하이라이트 펄스를 켠다.
         /// </summary>
-        public void ShowChainHighlight() => PlaySnapPulse(chainHighlightImage, isVerticalChain: true);
+        public void ShowChainHighlight() => PlaySnapPulse(chainHighlightImage);
 
         /// <summary>
         /// 우측 값 연결 지점에 스냅 하이라이트 펄스를 켠다.
         /// </summary>
-        public void ShowValueHighlight() => PlaySnapPulse(valueHighlightImage, isVerticalChain: false);
+        public void ShowValueHighlight() => PlaySnapPulse(valueHighlightImage);
 
         /// <summary>
         /// 스냅 하이라이트 펄스를 멈추고 체인·값 하이라이트를 모두 끈다.
@@ -293,16 +293,11 @@ namespace Game
             SetHighlight(valueHighlightImage, Color.clear);
         }
 
-        // 만약 블록 — 반복하기와 같은 FlowControl이라 이름으로 구분한다 (조건 스냅 하이라이트 전용 처리).
-        // 런타임에는 BlockFactory가 이름을 라벨("만약")로 바꾸지만, 에디터 테스트 씬에 프리팹 원본을
-        // 그대로 배치하면 이름이 "IfBlock"이므로 프리팹 키도 함께 본다.
-        private bool IsIfBlock => Category == BlockCategory.FlowControl
-            && (name.Contains(Constants.BlockLabels.If) || name.Contains(Constants.BlockAssets.IfPrefab));
-
         /// <summary>
-        /// 지정한 하이라이트 이미지를 연결 방향에 맞게 넓힌 뒤 무한 반복 알파 펄스를 재생한다.
+        /// 지정한 하이라이트 이미지에 무한 반복 알파 펄스를 재생한다.
+        /// 테두리 모양과 보일 영역(아래 체인·오른쪽 값 칸 등)은 이미지의 BlockOutlineMesh와 머티리얼이 정한다.
         /// </summary>
-        private void PlaySnapPulse(Image img, bool isVerticalChain = false)
+        private void PlaySnapPulse(Image img)
         {
             if (!img)
             {
@@ -312,28 +307,6 @@ namespace Game
             if (_activeSnapImage == img && _snapHighlightTween != null && _snapHighlightTween.IsActive()) return;
 
             StopSnapPulse();
-
-            float t = Constants.HighlightSettings.OutlineThickness;
-            RectTransform rt = img.rectTransform;
-            if (isVerticalChain)
-            {
-                // ChainHighlight: 좌우(X) 0, 상하(Y) -10~10 확장
-                rt.offsetMin = new Vector2(0f, -t);
-                rt.offsetMax = new Vector2(0f, t);
-            }
-            else if (IsIfBlock)
-            {
-                // 만약 블록의 조건 슬롯: C자 본체로 초록이 흘러내리지 않도록 상하는 확장하지 않고 좌우만 넓힌다.
-                // 세로 범위는 IfBlock.prefab의 ValueHighlight에 붙은 BlockOutlineIfValue 머티리얼이
-                // 헤더 높이(UV Y 0.5~1)로 잘라낸다 — 값은 인스펙터에서 조정한다.
-                rt.offsetMin = new Vector2(-t, 0f);
-                rt.offsetMax = new Vector2(t, 0f);
-            }
-            else
-            {
-                rt.offsetMin = new Vector2(-t, -t);
-                rt.offsetMax = new Vector2(t, t);
-            }
 
             Color baseColor = Constants.HighlightColors.Snap;
             baseColor.a = Constants.HighlightSettings.SnapPulseMaxAlpha;
@@ -418,7 +391,6 @@ namespace Game
                     if (_logger != null) _logger.ZLogWarning($"[CodingBlock] {name}에 외곽선 이미지가 연결되지 않아 에러 표시를 건너뜁니다.");
                     return;
                 }
-                SetHighlightRect(target);
                 from = Color.clear;
             }
 
@@ -463,7 +435,6 @@ namespace Game
                     if (_logger != null) _logger.ZLogWarning($"[CodingBlock] {name}에 외곽선 이미지가 연결되지 않아 성공 표시를 건너뜁니다.");
                     return;
                 }
-                SetHighlightRect(outlineImage);
                 outlineImage.color = Color.clear;
                 _compileHighlightTween = outlineImage.DOColor(success, duration).SetEase(Ease.OutSine).SetLink(gameObject);
             }
@@ -531,24 +502,11 @@ namespace Game
         }
 
         /// <summary>
-        /// 하이라이트 이미지 색을 바꾸고, 켜는 경우 외곽선 두께만큼 영역을 넓힌다.
+        /// 하이라이트 이미지 색을 바꾼다 (테두리 두께만큼 넓히는 것은 BlockOutlineMesh가 메시로 한다).
         /// </summary>
         private static void SetHighlight(Image img, Color color)
         {
-            if (!img) return;
-            img.color = color;
-            if (color != Color.clear) SetHighlightRect(img);
-        }
-
-        /// <summary>
-        /// 하이라이트 이미지를 블록 사방으로 외곽선 두께만큼 넓힌다.
-        /// </summary>
-        private static void SetHighlightRect(Image img)
-        {
-            float t = Constants.HighlightSettings.OutlineThickness;
-            RectTransform rt = img.rectTransform;
-            rt.offsetMin = new Vector2(-t, -t);
-            rt.offsetMax = new Vector2(t, t);
+            if (img) img.color = color;
         }
 
         /// <summary>

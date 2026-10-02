@@ -567,39 +567,59 @@ namespace Game
         // 비어있는 Inner 슬롯 표시(EmptyIndicator) 높이
         private const float EmptySlotHeight = 60f;
 
-        // ── 아웃라인 오버레이 머티리얼 3종 ──────────────────────────
-        // Full: 전체 범위 (에러 표시)
-        // Bottom: 하단 35% (체인 스냅 표시)
-        // Right: 우측 20% (값 스냅 표시)
-        private static Material _spriteFillMaterial;
-        private static Material _spriteFillMaterialBottom;
-        private static Material _spriteFillMaterialInner;
-        private static Material _spriteFillMaterialRight;
+        // ── 외곽선·스냅 하이라이트 머티리얼 ─────────────────────────
+        // 모두 Custom/UI/BlockOutline으로 블록 모양 둘레에 일정 두께 테두리를 그리고(BlockOutlineMesh와 함께) 보일 영역만 다르다.
+        // Full: 전체 (컴파일 에러·성공) / Bottom: 아래 체인 연결부 / Right: 오른쪽 값 칸 / Inner: ㄷ자 안쪽 진입부(스프라이트별)
+        private static Material _outlineMaterial;
+        private static Material _outlineMaterialBottom;
+        private static Material _outlineMaterialRight;
+        private readonly static Dictionary<Sprite, Material> _innerOutlineMaterials = new();
 
-        public static Material SpriteFillMaterial       => GetOrLoadMaterial(ref _spriteFillMaterial,       "BlockOutlineFull",   0.0f, 1.0f, 0.0f, 1.0f);
-        public static Material SpriteFillMaterialBottom => GetOrLoadMaterial(ref _spriteFillMaterialBottom, "BlockOutlineBottom", 0.0f, Constants.HighlightSettings.ChainHighlightYMax, 0.0f, 1.0f);
-        public static Material SpriteFillMaterialInner  => GetOrLoadMaterial(ref _spriteFillMaterialInner,  "BlockOutlineInner",  0.0f, Constants.HighlightSettings.InnerHighlightYMax, 0.0f, 1.0f);
-        public static Material SpriteFillMaterialRight  => GetOrLoadMaterial(ref _spriteFillMaterialRight,  "BlockOutlineRight",  0.0f, 1.0f, Constants.HighlightSettings.ValueHighlightXMin, 1.0f);
+        public static Material OutlineMaterial       => GetOrCreateOutlineMaterial(ref _outlineMaterial,       "BlockOutline",       0f, 1f, 0f, 1f);
+        public static Material OutlineMaterialBottom => GetOrCreateOutlineMaterial(ref _outlineMaterialBottom, "BlockOutlineBottom", 0f, Constants.HighlightSettings.ChainHighlightYMax, 0f, 1f);
+        public static Material OutlineMaterialRight  => GetOrCreateOutlineMaterial(ref _outlineMaterialRight,  "BlockOutlineRight",
+            Constants.HighlightSettings.ValueHighlightYMin, Constants.HighlightSettings.ValueHighlightYMax, Constants.HighlightSettings.ValueHighlightXMin, 1f);
 
         /// <summary>
-        /// 캐시된 영역 제한 머티리얼을 반환하고, 없으면 새로 만든다.
+        /// ㄷ자 블록 안쪽 진입 하이라이트 머티리얼을 스프라이트별로 반환한다 (없으면 만든다).
+        /// 머리 아래 가장자리 아래만 보이고, 머리와 머리 아래 돌기만 부풀린다(왼쪽 팔 제외) — 픽셀 기준 값을 이 스프라이트의 비율로 바꾼다.
         /// </summary>
-        private static Material GetOrLoadMaterial(ref Material cache, string matName, float yMin, float yMax, float xMin, float xMax)
+        public static Material GetInnerOutlineMaterial(Sprite sprite)
         {
-            if (!cache) cache = MakeSpriteFillMat(matName, yMin, yMax, xMin, xMax);
+            if (!sprite) return null;
+            if (_innerOutlineMaterials.TryGetValue(sprite, out Material cached) && cached) return cached;
+
+            float w = sprite.rect.width;
+            float h = sprite.rect.height;
+            Material mat = MakeOutlineMat("BlockOutlineInner", 0f, (h - Constants.HighlightSettings.InnerHighlightHeaderBottomPx) / h, 0f, 1f);
+            if (mat)
+            {
+                mat.SetFloat("_SrcXMin", Constants.HighlightSettings.InnerHighlightSourceLeftPx / w);
+                mat.SetFloat("_SrcYMin", (h - Constants.HighlightSettings.InnerHighlightSourceBottomPx) / h);
+            }
+            _innerOutlineMaterials[sprite] = mat;
+            return mat;
+        }
+
+        /// <summary>
+        /// 캐시된 하이라이트 머티리얼을 반환하고, 없으면 새로 만든다.
+        /// </summary>
+        private static Material GetOrCreateOutlineMaterial(ref Material cache, string matName, float yMin, float yMax, float xMin, float xMax)
+        {
+            if (!cache) cache = MakeOutlineMat(matName, yMin, yMax, xMin, xMax);
             return cache;
         }
 
         /// <summary>
-        /// SpriteFill 셰이더로 UV 영역을 제한한 하이라이트 머티리얼을 만든다.
+        /// BlockOutline 셰이더로 보일 영역(스프라이트 기준 0~1, 0·1이면 그쪽 바깥 테두리까지)을 정한 하이라이트 머티리얼을 만든다.
         /// </summary>
-        private static Material MakeSpriteFillMat(string matName, float yMin, float yMax, float xMin, float xMax)
+        private static Material MakeOutlineMat(string matName, float yMin, float yMax, float xMin, float xMax)
         {
-            Shader shader = Shader.Find(Constants.ResourcePaths.SpriteFillShader);
+            Shader shader = Shader.Find(Constants.ResourcePaths.BlockOutlineShader);
             if (!shader)
             {
                 // 정적 머티리얼 프로퍼티 경로라 로거를 받을 수 없어 Debug로 대체 출력한다
-                Debug.LogWarning($"[BlockFactory] '{Constants.ResourcePaths.SpriteFillShader}' 셰이더를 찾을 수 없습니다.");
+                Debug.LogWarning($"[BlockFactory] '{Constants.ResourcePaths.BlockOutlineShader}' 셰이더를 찾을 수 없습니다.");
                 return null;
             }
 
@@ -706,48 +726,37 @@ namespace Game
         }
 
         /// <summary>
-        /// 스프라이트 블록용 방향별 하이라이트 오버레이 3종(기본 투명, 런타임에 색 변경)을 만든다.
-        /// sibling 0: SpriteOutline(전체, 컴파일 에러) / 1: ChainHighlight(하단, 체인 스냅) / 2: ValueHighlight(우측, 값 스냅).
+        /// 스프라이트 블록용 하이라이트 오버레이 3종(기본 투명, 런타임에 색 변경)을 만든다.
+        /// sibling 0: SpriteOutline(전체, 컴파일 결과) / 1: ChainHighlight(아래, 체인 스냅) / 2: ValueHighlight(오른쪽, 값 스냅).
         /// </summary>
         private static (Image outline, Image chain, Image value) AddHighlightOverlays(GameObject blockGo, Sprite sprite)
         {
-            float t = Constants.HighlightSettings.OutlineThickness;
-            Vector2 minOffFull = new Vector2(-t, -t);
-            Vector2 maxOffFull = new Vector2(t, t);
-
-            Vector2 minOffChain = new Vector2(0f, -t);
-            Vector2 maxOffChain = new Vector2(0f, t);
-
-            Image outline = AddOverlay(Constants.BlockParts.Outline, blockGo, sprite, Vector2.zero, Vector2.one, minOffFull, maxOffFull, SpriteFillMaterial);
-            Image chain = AddOverlay(Constants.BlockParts.ChainHighlight, blockGo, sprite, Vector2.zero, Vector2.one, minOffChain, maxOffChain,
-                SpriteFillMaterialBottom);
-            Image value = AddOverlay(Constants.BlockParts.ValueHighlight, blockGo, sprite, Vector2.zero, Vector2.one, minOffFull, maxOffFull,
-                SpriteFillMaterialRight);
+            Image outline = AddOverlay(Constants.BlockParts.Outline, blockGo, sprite, OutlineMaterial);
+            Image chain = AddOverlay(Constants.BlockParts.ChainHighlight, blockGo, sprite, OutlineMaterialBottom);
+            Image value = AddOverlay(Constants.BlockParts.ValueHighlight, blockGo, sprite, OutlineMaterialRight);
             return (outline, chain, value);
         }
 
         /// <summary>
-        /// 투명한 하이라이트 오버레이 이미지 하나를 만들어 반환한다.
+        /// 블록과 같은 크기의 투명한 하이라이트 오버레이 이미지 하나를 만들어 반환한다.
+        /// 이미지를 늘리지 않고 BlockOutlineMesh가 메시를 테두리 두께만큼 넓힌다.
         /// </summary>
-        private static Image AddOverlay(string name, GameObject parent, Sprite sprite,
-            Vector2 anchorMin, Vector2 anchorMax, Vector2 offsetMin, Vector2 offsetMax,
-            Material mat = null)
+        private static Image AddOverlay(string name, GameObject parent, Sprite sprite, Material mat)
         {
             GameObject go = new GameObject(name, typeof(RectTransform));
             go.transform.SetParent(parent.transform, false);
             go.TryGetComponent(out RectTransform rt);
-            rt.anchorMin = anchorMin;
-            rt.anchorMax = anchorMax;
-            rt.offsetMin = offsetMin;
-            rt.offsetMax = offsetMax;
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = rt.offsetMax = Vector2.zero;
             Image img = go.AddComponent<Image>();
             img.sprite = sprite;
             img.type = Image.Type.Simple;
             img.preserveAspect = false;
             img.color = Color.clear;
             img.raycastTarget = false;
-            Material useMat = mat ? mat : SpriteFillMaterial;
-            if (useMat) img.material = useMat;
+            if (mat) img.material = mat;
+            go.AddComponent<BlockOutlineMesh>();
             return img;
         }
 
