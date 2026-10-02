@@ -18,8 +18,24 @@ MonoBehaviour:
   storyText: "\uBC14\uB78C\uC774 \uBD80\uB294 \uBC29\uD5A5\uC744 \uC0B4\uD3B4\uBCF4\uC138\uC694.\n<font=\"GamtanRoadTantan
     SDF Outline\">\n\u2022 \uBC14\uB78C\uC774 \uC5B4\uB514\uC5D0\uC11C \uBD80\uB294\uC9C0
     \uC54C\uC544\uBCF4\uACE0\n\u2022 \uD48D\uCC28\uB97C \uBC14\uB78C \uCABD\uC73C\uB85C
-    \uB3CC\uB824 \uBCF4\uC138\uC694.\n</font>\n\uBC14\uB78C\uC774 \uBC14\uB014
-    \uB54C\uB9C8\uB2E4 \uD48D\uCC28\uB3C4 \uB530\uB77C \uC6C0\uC9C1\uC774\uAC8C \uCF54\uB529\uD574
-    \uBCFC\uAE4C\uC694?\n\n"
+    \uB3CC\uB824 \uBCF4\uC138\uC694.\n</font>\n\uBC14\uB78C\uC774 \uBC14\uB014 \uB54C\uB9C8\uB2E4
+    \uD48D\uCC28\uB3C4 \uB530\uB77C \uC6C0\uC9C1\uC774\uAC8C \uCF54\uB529\uD574 \uBCFC\uAE4C\uC694?\n\n"
   resultTopText: "\uD48D\uCC28\uAC00 \uBC14\uB78C\uC744 \uB530\uB77C \uC6C0\uC9C1\uC5EC\uC694"
+  questionFormat: "\uBC14\uB78C\uC774 <color=yellow>[{0}]</color>\uC5D0\uC11C \uACC4\uC18D
+    \uBD88\uC5B4\uC640\uC694.\n\uD48D\uCC28 \uB0A0\uAC1C\uB97C \uC5B4\uB290 \uCABD\uC73C\uB85C
+    \uB3CC\uB824\uC57C \uD560\uAE4C\uC694?"
+  questionOptions:
+  - value: "\uB3D9\uCABD"
+    correctAnswer: "\uB3D9\uCABD"
+    hintObjectName: Image_Wind_East
+  - value: "\uC11C\uCABD"
+    correctAnswer: "\uC11C\uCABD"
+    hintObjectName: Image_Wind_West
+  - value: "\uB0A8\uCABD"
+    correctAnswer: "\uB0A8\uCABD"
+    hintObjectName: Image_Wind_South
+  - value: "\uBD81\uCABD"
+    correctAnswer: "\uBD81\uCABD"
+    hintObjectName: Image_Wind_North
+  hintRuleFormat: 
   goToOutroAfterResult: 0

@@ -23,4 +23,24 @@ MonoBehaviour:
     \uD558\uBA74 \uD587\uBE5B\uC744 \uAC00\uC7A5 \uB9CE\uC774 \uBAA8\uC744 \uC218
     \uC788\uC744\uAE4C\uC694?"
   resultTopText: "\uB0B4\uAC00 \uB9CC\uB4E0 \uB300\uB85C \uD328\uB110\uC774 \uC6C0\uC9C1\uC5EC\uC694"
+  questionFormat: "\uC9C0\uAE08\uC740 <color=yellow>[{0}]</color>\uC608\uC694.\n\uD587\uBE5B\uC744
+    \uC798 \uBC1B\uC73C\uB824\uBA74\n\uD0DC\uC591\uAD11 \uD328\uB110\uC744 \uC5B4\uB290
+    \uCABD\uC73C\uB85C \uB3CC\uB824\uC57C \uD560\uAE4C\uC694?"
+  questionOptions:
+  - value: "\uC544\uCE68 8\uC2DC"
+    correctAnswer: "\uB3D9\uCABD"
+    hintObjectName: 8AM
+  - value: "\uC624\uC804 10\uC2DC"
+    correctAnswer: "\uB3D9\uCABD"
+    hintObjectName: 10AM
+  - value: "\uC815\uC624"
+    correctAnswer: "\uB0A8\uCABD"
+    hintObjectName: 12PM
+  - value: "\uC624\uD6C4 2\uC2DC"
+    correctAnswer: "\uC11C\uCABD"
+    hintObjectName: 2PM
+  - value: "\uC624\uD6C4 4\uC2DC"
+    correctAnswer: "\uC11C\uCABD"
+    hintObjectName: 4PM
+  hintRuleFormat: 
   goToOutroAfterResult: 0

@@ -22,4 +22,27 @@ MonoBehaviour:
     \uC591\uC5D0 \uB530\uB77C \uC218\uBB38\uC774 \uC6C0\uC9C1\uC774\uAC8C \uD574\uBCFC\uAE4C\uC694?"
   resultTopText: "\uBB3C\uC758 \uB192\uC774\uC5D0 \uB530\uB77C \uB310\uC758 \uBB38\uC774
     \uC6C0\uC9C1\uC5EC\uC694"
+  questionFormat: "\uAC15\uBB3C\uC774 <color=yellow>[{0}]</color>\uBCF4\uB2E4 \uB192\uC544\uC9C0\uBA74
+    \uC704\uD5D8\uD574\uC694.\n\uBB3C\uC774 <color=yellow>[{0}]</color>\uBCF4\uB2E4
+    \uB192\uC544\uC9C0\uBA74\n\uB310\uC758 \uC218\uBB38\uC744 \uC5B4\uB290 \uC870\uAC74\uC5D0
+    \uC5F4\uACE0 \uB2EB\uC544\uC57C \uD560\uAE4C\uC694?"
+  questionOptions:
+  - value: 1m
+    correctAnswer: 
+    hintObjectName: 
+  - value: 3m
+    correctAnswer: 
+    hintObjectName: 
+  - value: 5m
+    correctAnswer: 
+    hintObjectName: 
+  - value: 8m
+    correctAnswer: 
+    hintObjectName: 
+  - value: 10m
+    correctAnswer: 
+    hintObjectName: 
+  hintRuleFormat: "\uBB3C\uC774 [{0}]\uBCF4\uB2E4 \uB192\uC73C\uBA74 \u2192 \uB310\uC758
+    \uBB38 \uC5F4\uAE30\n\uBB3C\uC774 [{0}]\uBCF4\uB2E4 \uB0AE\uC73C\uBA74 \u2192
+    \uB310\uC758 \uBB38 \uB2EB\uAE30"
   goToOutroAfterResult: 0

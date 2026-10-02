@@ -13,6 +13,17 @@
 
 ---
 
+### [2026-10-02 11:06] Claude → Antigravity · 문제 데이터를 LevelData(SO)로 이전 (refactor/question-data-to-leveldata)
+- 변경 파일: LevelData.cs(questionFormat·questionOptions·hintRuleFormat, 조회 메서드), 01~05_*Data.asset(값 이전), Constants.cs(Questions 삭제, 정반대 방향 표는 Directions.Opposite), BlockScorer.cs(정답을 인자로 받음), GameSceneManager.cs(LevelData로 출제), ResultSequence.cs(CurrentCorrectAnswer), HintPanel.cs(힌트 그림 이름을 LevelData에서 읽음), BlockScorerTests.cs, LevelQuestionDataTests.cs(신규 3개)
+- 확인 요청: 이전 전후 동작 일치(레벨별 문장·후보 값·정답, 레벨5, 채점, 결과 AI 행, 힌트 그림), 스킬 0·6·7·11·12번, PlayMode 테스트
+- 결과: 통과. 리뷰 전 항목 통과, PlayMode 22/22 통과(레벨5 제외 반영 후), 콘솔 에러 0.
+  - 값 이전은 에디터에서 실제 출제 문장의 문제 값을 {0}으로 바꾸고 다시 넣어 원문과 같은지 레벨마다 확인함.
+  - Claude가 Play 모드(3_Game, testLevel 04)에서 확인: 발전소 문제 문장 일치. 힌트 패널에 레벨1 '정오'·'아침 8시', 레벨2 '서쪽'·'북쪽'을 넣으면 해당 그림 하나만 켜지고 배경(Image_Horizon·Image_Windforce)은 그대로, 레벨3 '5m'은 높이·규칙 문구 정상.
+  - 발전소 문제 글자 크기 35는 Text_Question의 TMP Auto Size(18~44)가 덮어써 원래 효과가 없었음(실측 38.35) → 옮기지 않고 제거.
+  - 새 검증 테스트가 레벨5 문제(임시 태양광 문제)와 블록(발전소 블록) 불일치를 잡음 → 동작 유지를 위해 데이터는 그대로 두고 테스트에서 이유를 적어 제외, TODO 기획 확인으로 올림.
+  - agy·Claude가 run_tests를 부를 때마다 EditorSettings.asset이 1로 저장됨 → 메모리 값 False 확인 후 되돌림.
+  - 병합 전 PR #62 버그 리뷰(agy, 테스트 재실행 없이): 발견된 버그 없음 — level null 경로, 문구 형식(에셋 문구의 자리표시자는 {0}뿐), 결과 씬 단독 실행, 힌트 배경 그림 유지, BlockScorer 호출 인자 순서 7곳. Claude 리뷰도 동일.
+
 ### [2026-10-02 10:50] Claude → Antigravity · PR #61 리뷰와 회귀 테스트 추가
 - 변경 파일: ResultSequence.cs(타이머 처리를 RunWithTimerPausedAsync로 분리, 본문은 PlaySequenceStepsAsync), Tests/Runtime/ResultSequenceTimerTests.cs(신규 3개), ProjectSettings.asset(bundleVersion 26.10.2), CHANGELOG.md(2026-10-02 섹션), TODO.md
 - 확인 요청: PR 전체 diff 버그 리뷰(소켓 캐시·IsRepeat·예외 처리·LevelKind), 타이머 분리 전후 동작 일치와 테스트 유효성, PlayMode 테스트

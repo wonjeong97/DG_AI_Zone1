@@ -52,6 +52,7 @@ namespace Scenes
 
         private CancellationTokenSource _cts;
         private string _questionTime;
+        private string _correctAnswer; // 방향 문제의 정답 블록 라벨 — 정답 방향이 없는 레벨은 null
         private string _currentLevelName;
         private LevelData _currentLevel;
 
@@ -102,17 +103,20 @@ namespace Scenes
             else if (_logger != null)
                 _logger.ZLogWarning($"[GameSceneManager] blockSpawner가 할당되지 않아 블록을 생성할 수 없습니다.");
 
-            // 레벨별 문제 출제 — Constants.Questions 센터에서 생성
-            Constants.Questions.QuestionData issue = Constants.Questions.GenerateQuestion(CurrentLevelKind);
-            _questionTime = issue.ValueKey;
-            string question = issue.QuestionText;
+            // 레벨별 문제 출제 — LevelData의 문제 값 후보 중 하나를 무작위로 고른다
+            QuestionOption option = level.PickQuestionOption();
+            _questionTime = option is not null ? option.value : null;
+            _correctAnswer = level.GetCorrectAnswer(_questionTime);
 
+            string question = null;
+            if (option is not null && !string.IsNullOrEmpty(level.questionFormat))
+                question = ZString.Format(level.questionFormat, option.value);
+            else if (_logger != null)
+                _logger.ZLogWarning($"[GameSceneManager] {level.name}에 문제 문구나 문제 값 후보가 없어 문제를 출제하지 못했습니다.");
+
+            // 문구 길이는 레벨마다 달라도 문제 칸(Text_Question)의 Auto Size가 글자 크기를 맞춘다
             if (questionText)
-            {
                 questionText.text = question;
-                if (CurrentLevelKind == LevelKind.PowerPlant)
-                    questionText.fontSize = Constants.Questions.PowerPlantQuestionFontSize;
-            }
             else if (_logger != null)
                 _logger.ZLogWarning($"[GameSceneManager] questionText가 할당되지 않아 문제 텍스트를 표시할 수 없습니다.");
 
@@ -132,7 +136,7 @@ namespace Scenes
                     _currentLevel ? _currentLevel.storyText : null));
 
             if (hintButton && hintPanel)
-                hintButton.onClick.AddListener(() => hintPanel.Show(_currentLevelName, _questionTime));
+                hintButton.onClick.AddListener(() => hintPanel.Show(_currentLevel, _questionTime));
 
             if (skipButton)
                 skipButton.onClick.AddListener(SkipToResult);
@@ -199,7 +203,7 @@ namespace Scenes
 
                 // 컴파일 성공 시에만 점수를 계산 — 포매터/로그에 함께 표시
                 int? score = result.Success
-                    ? BlockScorer.ScoreProgram(result.Instructions, _questionTime, CurrentLevelKind)
+                    ? BlockScorer.ScoreProgram(result.Instructions, _questionTime, _correctAnswer, CurrentLevelKind)
                     : null;
 
                 // 컴파일 결과를 코드 형태로 로그 (실패 시에도 순회된 프로그램을 표시)

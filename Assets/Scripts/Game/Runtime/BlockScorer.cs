@@ -9,9 +9,9 @@ namespace Game.Runtime
     public static class BlockScorer
     {
         /// <summary>
-        /// 프로그램 전체를 레벨 규칙에 맞게 채점해 총점을 반환한다.
+        /// 프로그램 전체를 레벨 규칙에 맞게 채점해 총점을 반환한다 — 정답 방향은 출제 때 고른 문제 값의 정답(LevelData)을 받는다.
         /// </summary>
-        public static int ScoreProgram(List<BlockInstruction> instructions, string questionValueKey, LevelKind kind = LevelKind.Solar)
+        public static int ScoreProgram(List<BlockInstruction> instructions, string questionValueKey, string correctAnswer, LevelKind kind = LevelKind.Solar)
         {
             // 레벨4/5(발전소·미래에너지)는 명령에 값이 없어 아래 순회 채점과 무관 — 구조/조건/명령 3항목을 더한 별도 채점
             if (IsPowerPlant(kind))
@@ -23,7 +23,7 @@ namespace Game.Runtime
             foreach (BlockInstruction instr in InstructionTree.Traverse(instructions))
             {
                 if (instr is CommandInstruction cmd)
-                    total += ScoreCommand(cmd, questionValueKey, kind);
+                    total += ScoreCommand(cmd, correctAnswer, kind);
                 else if (isHydro && instr is IfInstruction ifInstr)
                 {
                     int conditionScore = ScoreHydroCondition(ifInstr.Condition, questionValueKey);
@@ -60,12 +60,6 @@ namespace Game.Runtime
 
             return Constants.Scores.DirectionCorrectScore + Constants.Scores.CountScore[GetBestCount()];
         }
-
-        /// <summary>
-        /// 문제 값에 대한 정답(최고 점수) 방향을 반환한다.
-        /// </summary>
-        public static string GetBestDirection(string questionValueKey, LevelKind kind = LevelKind.Solar)
-            => Constants.Questions.GetCorrectDirection(kind, questionValueKey);
 
         /// <summary>
         /// 가장 높은 점수를 주는 개수 값을 반환한다.
@@ -176,17 +170,16 @@ namespace Game.Runtime
         /// <summary>
         /// Command 하나를 연결된 값의 종류에 맞게 채점한다.
         /// </summary>
-        public static int ScoreCommand(CommandInstruction cmd, string questionValueKey, LevelKind kind = LevelKind.Solar)
+        public static int ScoreCommand(CommandInstruction cmd, string correctAnswer, LevelKind kind = LevelKind.Solar)
         {
             if (cmd.Value is null) return 0;
 
             switch (cmd.ValueKind)
             {
                 case ValueKind.Direction:
-                    string correct = Constants.Questions.GetCorrectDirection(kind, questionValueKey);
                     if (kind == LevelKind.Wind)
-                        return ScoreWindDirection(cmd.Value, correct);
-                    return correct is not null && cmd.Value == correct ? Constants.Scores.DirectionCorrectScore : 1;
+                        return ScoreWindDirection(cmd.Value, correctAnswer);
+                    return correctAnswer is not null && cmd.Value == correctAnswer ? Constants.Scores.DirectionCorrectScore : 1;
                 case ValueKind.Angle:
                     return Constants.Scores.AngleScore.TryGetValue(cmd.Value, out int angle) ? angle : 0;
                 case ValueKind.Count:
@@ -204,7 +197,7 @@ namespace Game.Runtime
             if (correct is not null && chosen == correct)
                 return Constants.Scores.WindDirectionSameScore;
 
-            if (correct is not null && Constants.Questions.OppositeDirection.TryGetValue(correct, out string opposite) && chosen == opposite)
+            if (correct is not null && Constants.Directions.Opposite.TryGetValue(correct, out string opposite) && chosen == opposite)
                 return Constants.Scores.WindDirectionOppositeScore;
 
             return Constants.Scores.WindDirectionOtherScore;

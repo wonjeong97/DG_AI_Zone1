@@ -53,6 +53,15 @@ public static class Constants
         public const string East  = "동쪽";
         public const string South = "남쪽";
         public const string West  = "서쪽";
+
+        // 방향별 정반대 방향 — 풍력 레벨 채점(정반대 오답 판정)에 사용
+        public readonly static System.Collections.Generic.Dictionary<string, string> Opposite = new()
+        {
+            [East]  = West,
+            [West]  = East,
+            [South] = North,
+            [North] = South,
+        };
     }
 
     // ── 5. 점수 관리 ───────────────────────────────────────────
@@ -452,105 +461,6 @@ public static class Constants
 
         // 시작하기: 상단 앵커에서 아래로, 완성하기: 하단 앵커에서 위로 이만큼 띄운다
         public const float ControlBlockYInset = 120f;
-    }
-
-    // ── 18. 레벨별 문제 출제 및 정답 전용 센터 ───────────────────────
-    public static class Questions
-    {
-        public struct QuestionData
-        {
-            public string QuestionText;
-            public string ValueKey;        // 시간대("아침 8시") 또는 바람 방향("동쪽")
-            public string CorrectAnswer;  // 정답 방향("동쪽")
-        }
-
-        // 레벨4(발전소) 문제 텍스트가 다른 레벨보다 길어 기본 폰트 크기(40)로는 넘치므로 축소
-        public const float PowerPlantQuestionFontSize = 35f;
-
-        // 태양광 레벨 (시간대별 정답 방향)
-        public readonly static string[] SolarTimes = { "아침 8시", "오전 10시", "정오", "오후 2시", "오후 4시" };
-        public readonly static System.Collections.Generic.Dictionary<string, string> SolarAnswers =
-            new System.Collections.Generic.Dictionary<string, string>
-            {
-                ["아침 8시"]  = Directions.East,
-                ["오전 10시"] = Directions.East,
-                ["정오"]      = Directions.South,
-                ["오후 2시"]  = Directions.West,
-                ["오후 4시"]  = Directions.West,
-            };
-
-        // 풍력 레벨 (바람 방향별 정답 날개 방향)
-        public readonly static string[] WindDirections = { Directions.East, Directions.West, Directions.South, Directions.North };
-        public readonly static System.Collections.Generic.Dictionary<string, string> WindAnswers =
-            new System.Collections.Generic.Dictionary<string, string>
-            {
-                [Directions.East]  = Directions.East,
-                [Directions.West]  = Directions.West,
-                [Directions.South] = Directions.South,
-                [Directions.North] = Directions.North,
-            };
-
-        // 방향별 정반대 방향 — 풍력 레벨 채점(정반대 오답 판정)에 사용
-        public readonly static System.Collections.Generic.Dictionary<string, string> OppositeDirection =
-            new System.Collections.Generic.Dictionary<string, string>
-            {
-                [Directions.East]  = Directions.West,
-                [Directions.West]  = Directions.East,
-                [Directions.South] = Directions.North,
-                [Directions.North] = Directions.South,
-            };
-
-        // 수력 레벨 (강물 높이 임계값)
-        public readonly static string[] HydroLevels = { "1m", "3m", "5m", "8m", "10m" };
-
-        // 수력 레벨 힌트 — 문제 높이를 기준으로 수문을 여닫는 규칙 ({0} = 강물 높이)
-        public const string HydroHintRuleFormat = "물이 [{0}]보다 높으면 → 댐의 문 열기\n물이 [{0}]보다 낮으면 → 댐의 문 닫기";
-
-        /// <summary>
-        /// 레벨에 맞는 문제(문구·문제 값·정답)를 무작위로 출제한다.
-        /// </summary>
-        public static QuestionData GenerateQuestion(Data.LevelKind kind)
-        {
-            if (kind == Data.LevelKind.Wind)
-            {
-                string dir = WindDirections[UnityEngine.Random.Range(0, WindDirections.Length)];
-                string text = $"바람이 <color=yellow>[{dir}]</color>에서 계속 불어와요.\n풍차 날개를 어느 쪽으로 돌려야 할까요?";
-                string ans = WindAnswers.TryGetValue(dir, out string a) ? a : dir;
-                return new QuestionData { QuestionText = text, ValueKey = dir, CorrectAnswer = ans };
-            }
-            else if (kind == Data.LevelKind.Hydro)
-            {
-                string height = HydroLevels[UnityEngine.Random.Range(0, HydroLevels.Length)];
-                string text = $"강물이 <color=yellow>[{height}]</color>보다 높아지면 위험해요.\n물이 <color=yellow>[{height}]</color>보다 높아지면\n댐의 수문을 어느 조건에 열고 닫아야 할까요?";
-                return new QuestionData { QuestionText = text, ValueKey = height, CorrectAnswer = null };
-            }
-            else if (kind == Data.LevelKind.PowerPlant)
-            {
-                // 레벨4(발전소) — 레벨1/2처럼 매 판마다 랜덤으로 바뀌지 않고 밤/과부하로 고정된 문제
-                const string text = "지금은 <color=yellow>[밤]</color>이에요!\n전기를 너무 많이 사용<color=yellow>[과부하]</color>하고 있어요.\n놀이 시설의 불을 잠시 끄고, 병원의 불은 계속 켜 주세요.";
-                return new QuestionData { QuestionText = text, ValueKey = "밤", CorrectAnswer = null };
-            }
-            else
-            {
-                string time = SolarTimes[UnityEngine.Random.Range(0, SolarTimes.Length)];
-                string text = $"지금은 <color=yellow>[{time}]</color>예요.\n햇빛을 잘 받으려면\n태양광 패널을 어느 쪽으로 돌려야 할까요?";
-                string ans = SolarAnswers.TryGetValue(time, out string a) ? a : Directions.East;
-                return new QuestionData { QuestionText = text, ValueKey = time, CorrectAnswer = ans };
-            }
-        }
-
-        /// <summary>
-        /// 문제 값에 대한 정답 방향을 반환한다 (알 수 없으면 null).
-        /// </summary>
-        public static string GetCorrectDirection(Data.LevelKind kind, string valueKey)
-        {
-            if (string.IsNullOrEmpty(valueKey)) return null;
-
-            if (kind == Data.LevelKind.Wind)
-                return WindAnswers.TryGetValue(valueKey, out string windAns) ? windAns : valueKey;
-
-            return SolarAnswers.TryGetValue(valueKey, out string solarAns) ? solarAns : null;
-        }
     }
 
     // ── 19. 레벨 이름 규칙 ─────────────────────────────────────────

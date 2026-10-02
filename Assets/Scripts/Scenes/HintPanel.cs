@@ -1,5 +1,5 @@
-using System.Collections.Generic;
 using Cysharp.Text;
+using Data;
 using Microsoft.Extensions.Logging;
 using TMPro;
 using UnityEngine;
@@ -32,23 +32,6 @@ namespace Scenes
         [Tooltip("레벨5(미래 에너지) 힌트 오브젝트를 담은 부모(Level5Panel) — 문제 변형별 토글 로직 추가 시 사용")]
         [SerializeField] private Transform level5FutureEnergyContainer;
 
-        private readonly static Dictionary<string, string> TimeVariantNames = new()
-        {
-            ["아침 8시"]  = "8AM",
-            ["오전 10시"] = "10AM",
-            ["정오"]      = "12PM",
-            ["오후 2시"]  = "2PM",
-            ["오후 4시"]  = "4PM",
-        };
-
-        private readonly static Dictionary<string, string> WindVariantNames = new()
-        {
-            [Constants.Directions.East]  = "Image_Wind_East",
-            [Constants.Directions.West]  = "Image_Wind_West",
-            [Constants.Directions.South] = "Image_Wind_South",
-            [Constants.Directions.North] = "Image_Wind_North",
-        };
-
         private ILogger<HintPanel> _logger;
 
         /// <summary>
@@ -71,12 +54,11 @@ namespace Scenes
 
         /// <summary>
         /// 현재 레벨의 힌트 패널만 켜고 문제 값에 맞는 변형을 표시한다.
-        /// levelName은 현재 플레이 중인 레벨의 LevelData 에셋 이름(예: "02_WindData")으로,
-        /// 진행도가 아닌 실제 로드된 레벨을 기준으로 골라야 testLevel 단독 테스트에서도 올바른 패널이 열린다.
+        /// level은 현재 플레이 중인 레벨로, 진행도가 아닌 실제 로드된 레벨을 기준으로 골라야 testLevel 단독 테스트에서도 올바른 패널이 열린다.
         /// </summary>
-        public void Show(string levelName, string questionValueKey = null)
+        public void Show(LevelData level, string questionValueKey = null)
         {
-            int levelNumber = Constants.Levels.ParseLevelNumber(levelName);
+            int levelNumber = Constants.Levels.ParseLevelNumber(level ? level.name : null);
             string targetPanelName = levelNumber > 0 ? ZString.Concat("Level", levelNumber, "Panel") : null;
 
             foreach (GameObject panel in levelPanels)
@@ -88,71 +70,86 @@ namespace Scenes
                 level1TimeContainer.gameObject.SetActive(level1TimeContainer.gameObject.name == targetPanelName);
 
             if (levelNumber == 1)
-                ApplyTimeVariant(questionValueKey);
+                ApplyHintVariant(level1TimeContainer, nameof(level1TimeContainer), level, questionValueKey);
 
             if (levelNumber == 2)
-                ApplyWindVariant(questionValueKey);
+                ApplyHintVariant(level2WindContainer, nameof(level2WindContainer), level, questionValueKey);
 
             if (levelNumber == 3)
-                ApplyMeterText(questionValueKey);
+                ApplyMeterText(level, questionValueKey);
 
             gameObject.SetActive(true);
         }
 
         /// <summary>
-        /// 레벨1 힌트 패널의 시간대 오브젝트 중 현재 문제의 시간과 일치하는 것만 활성화한다.
+        /// 힌트 그림 오브젝트 중 현재 문제 값에 해당하는 것만 켠다 — 그림 이름은 LevelData의 문제 값 후보에 적혀 있다.
         /// </summary>
-        private void ApplyTimeVariant(string questionValueKey)
+        private void ApplyHintVariant(Transform container, string containerName, LevelData level, string questionValueKey)
         {
-            if (!level1TimeContainer)
+            if (!container)
             {
-                if (_logger != null) _logger.ZLogWarning($"[HintPanel] level1TimeContainer가 할당되지 않아 시간대 힌트를 고르지 못했습니다.");
+                if (_logger != null) _logger.ZLogWarning($"[HintPanel] {containerName}가 할당되지 않아 힌트 그림을 고르지 못했습니다.");
                 return;
             }
 
-            string target = questionValueKey != null && TimeVariantNames.TryGetValue(questionValueKey, out string name) ? name : null;
-            foreach (Transform child in level1TimeContainer)
+            if (!level)
             {
-                // 시간대 오브젝트만 토글 — Image_Horizon 등 공통 배경은 그대로 둠
-                if (TimeVariantNames.ContainsValue(child.name))
-                    child.gameObject.SetActive(child.name == target);
+                if (_logger != null) _logger.ZLogWarning($"[HintPanel] 레벨 정보가 없어 {containerName}의 힌트 그림을 고르지 못했습니다.");
+                return;
             }
+
+            QuestionOption current = level.FindQuestionOption(questionValueKey);
+            string target = current is not null ? current.hintObjectName : null;
+            bool isTargetFound = false;
+            foreach (Transform child in container)
+            {
+                // 힌트 그림 오브젝트만 토글 — Image_Horizon·Image_Windforce 등 공통 배경은 그대로 둠
+                if (!IsHintObjectName(level, child.name)) continue;
+
+                bool isTarget = child.name == target;
+                child.gameObject.SetActive(isTarget);
+                isTargetFound |= isTarget;
+            }
+
+            if (!isTargetFound && _logger != null)
+                _logger.ZLogWarning($"[HintPanel] 문제 값 '{questionValueKey}'의 힌트 그림({target})을 {containerName}에서 찾지 못했습니다.");
         }
 
         /// <summary>
-        /// 레벨2 힌트 패널의 풍향 오브젝트 중 현재 문제의 바람 방향과 일치하는 것만 활성화한다.
+        /// 자식 오브젝트 이름이 이 레벨의 문제 값 후보에 적힌 힌트 그림 이름인지 확인한다.
         /// </summary>
-        private void ApplyWindVariant(string questionValueKey)
+        private static bool IsHintObjectName(LevelData level, string objectName)
         {
-            if (!level2WindContainer)
-            {
-                if (_logger != null) _logger.ZLogWarning($"[HintPanel] level2WindContainer가 할당되지 않아 풍향 힌트를 고르지 못했습니다.");
-                return;
-            }
+            if (level.questionOptions is null) return false;
 
-            string target = questionValueKey != null && WindVariantNames.TryGetValue(questionValueKey, out string name) ? name : null;
-            foreach (Transform child in level2WindContainer)
-            {
-                // 풍향 오브젝트만 토글 — Image_Windforce 등 공통 배경은 그대로 둠
-                if (WindVariantNames.ContainsValue(child.name))
-                    child.gameObject.SetActive(child.name == target);
-            }
+            foreach (QuestionOption option in level.questionOptions)
+                if (option is not null && !string.IsNullOrEmpty(option.hintObjectName) && option.hintObjectName == objectName)
+                    return true;
+            return false;
         }
 
         /// <summary>
         /// 레벨3 힌트 패널의 Text_Meter에 현재 문제의 강물 높이 값을 그대로 표시하고, 같은 높이로 수문 규칙 문구를 채운다.
         /// </summary>
-        private void ApplyMeterText(string questionValueKey)
+        private void ApplyMeterText(LevelData level, string questionValueKey)
         {
             if (level3MeterText)
                 level3MeterText.text = questionValueKey;
             else if (_logger != null)
                 _logger.ZLogWarning($"[HintPanel] level3MeterText가 할당되지 않아 강물 높이를 표시하지 못했습니다.");
 
-            if (level3RuleText)
-                level3RuleText.text = ZString.Format(Constants.Questions.HydroHintRuleFormat, questionValueKey);
+            if (!level3RuleText)
+            {
+                if (_logger != null) _logger.ZLogWarning($"[HintPanel] level3RuleText가 할당되지 않아 수문 규칙 문구를 표시하지 못했습니다.");
+            }
+            else if (level && !string.IsNullOrEmpty(level.hintRuleFormat))
+            {
+                level3RuleText.text = ZString.Format(level.hintRuleFormat, questionValueKey);
+            }
             else if (_logger != null)
-                _logger.ZLogWarning($"[HintPanel] level3RuleText가 할당되지 않아 수문 규칙 문구를 표시하지 못했습니다.");
+            {
+                _logger.ZLogWarning($"[HintPanel] 레벨에 힌트 규칙 문구(hintRuleFormat)가 없어 수문 규칙 문구를 표시하지 못했습니다.");
+            }
         }
 
         /// <summary>

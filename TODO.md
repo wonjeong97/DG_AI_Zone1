@@ -13,11 +13,12 @@
 - [ ] (감사 후속) 표시 전용 TMP 텍스트 Raycast Target 끄기 — 3_Game 약 22개, 4_Result 6개, 2_Story 5개, BlockFactory 블록 라벨
 - [ ] (감사 후속) FlowInnerResize.LateUpdate 매 프레임 체인 순회를 변경 시에만 계산
 - [ ] (감사 후속) 스냅 대상 선정 중복(UpdateSnapHighlight/TrySnapToSocket)을 한 메서드로
-- [ ] 문제 문구·후보 값·정답을 Constants.Questions에서 LevelData(SO)로 옮기기 — 빌드 없이 바꿀 일 없어 JSON 대신 SO(2026-10-02 결정), 채점 점수·방향 이름은 Constants 유지
+- [ ] (기획 확인) 레벨5(미래에너지) 문제 — 지금은 임시로 태양광 문제(시간대·방향 정답)를 내지만 블록은 발전소 블록이라 방향 블록이 없음. 정해지면 05_FutureEnergyData 문제 데이터를 바꾸고 LevelQuestionDataTests의 레벨5 제외를 지울 것
 - [ ] (기획 확인) 미션 실패여도 다음 레벨이 해금되는 동작이 의도인지 — ResultSequence.OnNextClicked
 
 ## 완료
 
+- [x] 문제 문구·후보 값·정답·힌트 그림을 Constants.Questions·HintPanel에서 LevelData(SO)로 옮기기 — PR #62, 리뷰·PlayMode 22/22 통과 — 담당: Claude / 검증: Antigravity (2026-10-02)
 - [x] 스킬 준수 감사 1차 반영(타이머 버그와 회귀 테스트, 미사용 코드, 제어자 순서, 드래그 핫패스, LevelKind) — PR #61, 리뷰·PlayMode 19/19 통과 — 담당: Claude / 검증: Antigravity (2026-10-02)
 - [x] 프로젝트 설정 정리: Player Settings Version을 수정일 26.10.1로 — 담당: Claude / 검증: Antigravity (2026-10-01)
 - [x] 씬별 카메라 후처리 정리: UI 전용 씬(0_Title·1_Intro·2_Story·5_Outro) 후처리 끔, 4_Result의 3D 렌더텍스처 카메라 8개는 투명 배경 유지를 위해 끈 채 유지 — 담당: Claude / 검증: Antigravity (2026-10-01)
