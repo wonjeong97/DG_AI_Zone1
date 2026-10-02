@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 35b45145103e568498fa13c3afd65638, type: 3}
   m_Name: 05_FutureEnergyData
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   levelIndex: 4
   kind: 4
   blockLayout: {fileID: 11400000, guid: bf7dd25c4e249d94fb8f3b4508ef5b4c, type: 2}
@@ -23,4 +23,25 @@ MonoBehaviour:
     \uD65C\uC6A9\uD574 \uB3C4\uC2DC \uC804\uCCB4\uAC00 \uD6A8\uC728\uC801\uC73C\uB85C
     \uB3CC\uC544\uAC00\uAC8C \uD574\uC8FC\uC138\uC694!"
   resultTopText: 
+  questionFormat: "\uC9C0\uAE08\uC740 <color=yellow>[{0}]</color>\uC608\uC694.\n\uD587\uBE5B\uC744
+    \uC798 \uBC1B\uC73C\uB824\uBA74\n\uD0DC\uC591\uAD11 \uD328\uB110\uC744 \uC5B4\uB290
+    \uCABD\uC73C\uB85C \uB3CC\uB824\uC57C \uD560\uAE4C\uC694?"
+  questionFontSize: 0
+  questionOptions:
+  - value: "\uC544\uCE68 8\uC2DC"
+    correctAnswer: "\uB3D9\uCABD"
+    hintObjectName: 
+  - value: "\uC624\uC804 10\uC2DC"
+    correctAnswer: "\uB3D9\uCABD"
+    hintObjectName: 
+  - value: "\uC815\uC624"
+    correctAnswer: "\uB0A8\uCABD"
+    hintObjectName: 
+  - value: "\uC624\uD6C4 2\uC2DC"
+    correctAnswer: "\uC11C\uCABD"
+    hintObjectName: 
+  - value: "\uC624\uD6C4 4\uC2DC"
+    correctAnswer: "\uC11C\uCABD"
+    hintObjectName: 
+  hintRuleFormat: 
   goToOutroAfterResult: 1
