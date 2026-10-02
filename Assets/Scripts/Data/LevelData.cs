@@ -35,9 +35,6 @@ namespace Data
         [TextArea(3, 6)]
         public string questionFormat;
 
-        [Tooltip("문제 글자 크기 — 0이면 씬에 지정된 크기를 쓴다(문구가 길어 넘치는 레벨만 지정)")]
-        public float questionFontSize;
-
         [Tooltip("문제 값 후보 — 매 판 하나를 무작위로 고른다(하나만 두면 고정 문제)")]
         public QuestionOption[] questionOptions;
 

@@ -79,6 +79,10 @@ namespace Scenes
 
         private LevelKind CurrentLevelKind => _session && _session.currentLevel ? _session.currentLevel.kind : LevelKind.Solar;
 
+        // 이번 판 문제의 정답 방향 — AI 결과 행과 AI 패널 연출에 쓴다 (정답 방향이 없는 레벨은 null)
+        private string CurrentCorrectAnswer =>
+            _session && _session.currentLevel ? _session.currentLevel.GetCorrectAnswer(_session.lastQuestionTime) : null;
+
         // 셰이더 프로퍼티 조회 비용을 줄이기 위한 ID 캐시
         private readonly static int GrayscaleAmountId = Shader.PropertyToID("_GrayscaleAmount");
 
@@ -421,8 +425,7 @@ namespace Scenes
             string good = Constants.ResultMessages.StatusGood;
 
             if (kind == LevelKind.Wind)
-                return BuildWindRows(_session.lastQuestionTime,
-                                     BlockScorer.GetBestDirection(_session.lastQuestionTime, kind), true, good);
+                return BuildWindRows(_session.lastQuestionTime, CurrentCorrectAnswer, true, good);
 
             if (kind == LevelKind.Hydro)
                 return BuildHydroRows(_session.lastQuestionTime, _session.lastQuestionTime, true, good);
@@ -430,8 +433,7 @@ namespace Scenes
             if (kind == LevelKind.PowerPlant)
                 return BuildPowerPlantRows(Constants.ResultMessages.PowerPlantBestCondition, OnOff(true), OnOff(true), good);
 
-            return BuildSolarRows(BlockScorer.GetBestCount(),
-                                  BlockScorer.GetBestDirection(_session.lastQuestionTime, kind), good);
+            return BuildSolarRows(BlockScorer.GetBestCount(), CurrentCorrectAnswer, good);
         }
 
         /// <summary>
@@ -576,7 +578,7 @@ namespace Scenes
             }
 
             if (aiPanelPose)
-                await aiPanelPose.ApplyAsync(null, BlockScorer.GetBestDirection(_session ? _session.lastQuestionTime : null, CurrentLevelKind), ct);
+                await aiPanelPose.ApplyAsync(null, CurrentCorrectAnswer, ct);
             else
                 WarnMissingStage(nameof(aiPanelPose));
         }

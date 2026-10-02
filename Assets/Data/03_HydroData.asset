@@ -26,7 +26,6 @@ MonoBehaviour:
     \uC704\uD5D8\uD574\uC694.\n\uBB3C\uC774 <color=yellow>[{0}]</color>\uBCF4\uB2E4
     \uB192\uC544\uC9C0\uBA74\n\uB310\uC758 \uC218\uBB38\uC744 \uC5B4\uB290 \uC870\uAC74\uC5D0
     \uC5F4\uACE0 \uB2EB\uC544\uC57C \uD560\uAE4C\uC694?"
-  questionFontSize: 0
   questionOptions:
   - value: 1m
     correctAnswer: 

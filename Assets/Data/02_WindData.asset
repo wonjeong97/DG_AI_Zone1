@@ -24,7 +24,6 @@ MonoBehaviour:
   questionFormat: "\uBC14\uB78C\uC774 <color=yellow>[{0}]</color>\uC5D0\uC11C \uACC4\uC18D
     \uBD88\uC5B4\uC640\uC694.\n\uD48D\uCC28 \uB0A0\uAC1C\uB97C \uC5B4\uB290 \uCABD\uC73C\uB85C
     \uB3CC\uB824\uC57C \uD560\uAE4C\uC694?"
-  questionFontSize: 0
   questionOptions:
   - value: "\uB3D9\uCABD"
     correctAnswer: "\uB3D9\uCABD"

@@ -28,14 +28,15 @@ namespace DG.Zone1.Tests
         [Test]
         public void 풍력_방향은_같음_정반대_그외로_3단계_채점된다()
         {
-            string wind = Constants.Directions.East;
+            // 풍력은 바람이 불어오는 방향이 곧 정답 날개 방향이다(02_WindData)
+            string correct = Constants.Directions.East;
 
             Assert.AreEqual(Constants.Scores.WindDirectionSameScore,
-                BlockScorer.ScoreCommand(DirectionCommand(Constants.Directions.East), wind, LevelKind.Wind));
+                BlockScorer.ScoreCommand(DirectionCommand(Constants.Directions.East), correct, LevelKind.Wind));
             Assert.AreEqual(Constants.Scores.WindDirectionOppositeScore,
-                BlockScorer.ScoreCommand(DirectionCommand(Constants.Directions.West), wind, LevelKind.Wind));
+                BlockScorer.ScoreCommand(DirectionCommand(Constants.Directions.West), correct, LevelKind.Wind));
             Assert.AreEqual(Constants.Scores.WindDirectionOtherScore,
-                BlockScorer.ScoreCommand(DirectionCommand(Constants.Directions.North), wind, LevelKind.Wind));
+                BlockScorer.ScoreCommand(DirectionCommand(Constants.Directions.North), correct, LevelKind.Wind));
         }
 
         /// <summary>
@@ -45,11 +46,11 @@ namespace DG.Zone1.Tests
         public void 수력_조건_높이는_문제_높이와의_비교로_채점된다()
         {
             Assert.AreEqual(Constants.Scores.HydroExactScore * Constants.Scores.HydroElseMissingScore * Constants.Scores.HydroGateOrderWrongScore,
-                BlockScorer.ScoreProgram(IfProgram("5m 이상"), "5m", LevelKind.Hydro));
+                BlockScorer.ScoreProgram(IfProgram("5m 이상"), "5m", null, LevelKind.Hydro));
             Assert.AreEqual(Constants.Scores.HydroLowerScore * Constants.Scores.HydroElseMissingScore * Constants.Scores.HydroGateOrderWrongScore,
-                BlockScorer.ScoreProgram(IfProgram("3m 이상"), "5m", LevelKind.Hydro));
+                BlockScorer.ScoreProgram(IfProgram("3m 이상"), "5m", null, LevelKind.Hydro));
             Assert.AreEqual(Constants.Scores.HydroHigherScore * Constants.Scores.HydroElseMissingScore * Constants.Scores.HydroGateOrderWrongScore,
-                BlockScorer.ScoreProgram(IfProgram("8m 이상"), "5m", LevelKind.Hydro));
+                BlockScorer.ScoreProgram(IfProgram("8m 이상"), "5m", null, LevelKind.Hydro));
         }
 
         /// <summary>

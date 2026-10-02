@@ -26,7 +26,6 @@ MonoBehaviour:
   questionFormat: "\uC9C0\uAE08\uC740 <color=yellow>[{0}]</color>\uC608\uC694.\n\uD587\uBE5B\uC744
     \uC798 \uBC1B\uC73C\uB824\uBA74\n\uD0DC\uC591\uAD11 \uD328\uB110\uC744 \uC5B4\uB290
     \uCABD\uC73C\uB85C \uB3CC\uB824\uC57C \uD560\uAE4C\uC694?"
-  questionFontSize: 0
   questionOptions:
   - value: "\uC544\uCE68 8\uC2DC"
     correctAnswer: "\uB3D9\uCABD"

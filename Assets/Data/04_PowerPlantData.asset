@@ -28,7 +28,6 @@ MonoBehaviour:
     \uB108\uBB34 \uB9CE\uC774 \uC0AC\uC6A9<color=yellow>[\uACFC\uBD80\uD558]</color>\uD558\uACE0
     \uC788\uC5B4\uC694.\n\uB180\uC774 \uC2DC\uC124\uC758 \uBD88\uC744 \uC7A0\uC2DC
     \uB044\uACE0, \uBCD1\uC6D0\uC758 \uBD88\uC740 \uACC4\uC18D \uCF1C \uC8FC\uC138\uC694."
-  questionFontSize: 35
   questionOptions:
   - value: "\uBC24"
     correctAnswer: 
