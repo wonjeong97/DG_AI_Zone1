@@ -696,42 +696,12 @@ namespace Game
         /// </summary>
         private void UpdateSnapHighlight()
         {
-            CodingBlock newTarget = null;
-            InnerSocket newInnerSocket = null;
             bool isValue = SnapsHorizontally;
+            BlockSocket socket = FindBestSnapSocket();
 
-            if (isValue)
-            {
-                // Condition / Logic: ConditionOut 스냅 우선, 없으면 ValueOut 스냅
-                if (PrefersConditionSocket)
-                {
-                    ConditionOutSocket condSocket = FindSnapConditionOutSocket();
-                    if (condSocket)
-                        newTarget = condSocket.Owner;
-                }
-
-                if (!newTarget)
-                {
-                    ValueOutSocket socket = FindSnapValueOutSocket();
-                    if (socket)
-                        newTarget = socket.Owner;
-                }
-            }
-            else
-            {
-                ChainOutSocket chainSocket = FindSnapOutSocket(out float chainSqr);
-                InnerSocket innerSocket = FindSnapInnerSocket(out float innerSqr);
-
-                // 두 범위가 겹치면 더 가까운 쪽 우선
-                if (chainSocket && (!innerSocket || chainSqr <= innerSqr))
-                {
-                    newTarget = chainSocket.Owner;
-                }
-                else if (innerSocket)
-                {
-                    newInnerSocket = innerSocket;
-                }
-            }
+            // 내부 소켓은 소켓 자체를, 나머지는 소켓을 가진 블록의 연결부를 강조한다
+            InnerSocket newInnerSocket = socket as InnerSocket;
+            CodingBlock newTarget = socket && !newInnerSocket ? socket.Owner : null;
 
             if (newTarget == _snapTarget && newInnerSocket == _snapInnerSocket) return;
 
@@ -861,31 +831,38 @@ namespace Game
         /// </summary>
         private bool TrySnapToSocket()
         {
+            BlockSocket socket = FindBestSnapSocket();
+            if (!socket) return false;
+
+            if (socket is ChainOutSocket chainSocket) return AttachTo(chainSocket.Accept);
+            if (socket is InnerSocket innerSocket) return AttachTo(innerSocket.Accept);
+            if (socket is ValueOutSocket valueSocket) return AttachTo(valueSocket.Accept);
+            if (socket is ConditionOutSocket conditionSocket) return AttachTo(conditionSocket.Accept);
+            return false;
+        }
+
+        /// <summary>
+        /// 지금 위치에서 붙을 소켓을 고른다 — 드래그 중 하이라이트와 드롭 시 부착이 같은 기준을 쓰도록 한 곳에 모았다.
+        /// 가로 연결 블록은 조건 연결(ConditionOut)을 먼저, 없으면 값 슬롯(ValueOut)을, 세로 연결 블록은 체인·내부 소켓 중 더 가까운 쪽을 고른다.
+        /// </summary>
+        private BlockSocket FindBestSnapSocket()
+        {
             if (SnapsHorizontally)
             {
-                // Condition / Logic: ConditionOut 스냅 우선
                 if (PrefersConditionSocket)
                 {
-                    ConditionOutSocket condSlot = FindSnapConditionOutSocket();
-                    if (condSlot) return AttachTo(condSlot.Accept);
+                    ConditionOutSocket conditionSocket = FindSnapConditionOutSocket();
+                    if (conditionSocket) return conditionSocket;
                 }
-
-                ValueOutSocket slot = FindSnapValueOutSocket();
-                if (slot) return AttachTo(slot.Accept);
-
-                return false;
+                return FindSnapValueOutSocket();
             }
 
             ChainOutSocket chainSocket = FindSnapOutSocket(out float chainSqr);
             InnerSocket innerSocket = FindSnapInnerSocket(out float innerSqr);
 
             // 두 후보가 모두 범위 안이면 더 가까운 쪽 우선
-            if (chainSocket && (!innerSocket || chainSqr <= innerSqr))
-                return AttachTo(chainSocket.Accept);
-
-            if (innerSocket) return AttachTo(innerSocket.Accept);
-
-            return false;
+            if (chainSocket && (!innerSocket || chainSqr <= innerSqr)) return chainSocket;
+            return innerSocket;
         }
 
         /// <summary>
