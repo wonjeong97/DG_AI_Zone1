@@ -13,6 +13,16 @@
 
 ---
 
+### [2026-10-02 11:41] Claude → Antigravity · 감사 후속 2차 (refactor/audit-followups)
+- 변경 파일: TutorialImageSlider·TypewriterTextTMP·ResultRowView·ResultRowsView·CodingZoneZoom·StoryLineAnimator·Intro/Outro/StoryManager·CodingBlock·BlockSocket·InnerSocket·ChainOutSocket(ZLogger 전환), DG.Zone1.Tests.asmdef(Logging.Abstractions 참조), IntroSceneManager·CodingZoneZoom·1_Intro·3_Game(SerializeField 연결), 6개 씬·CategoryButton.prefab(Raycast Target 40개), FlowInnerResize(형제 캐싱·ProfilerMarker·Fitter 충돌 수정), CodingBlock(FindBestSnapSocket), ResultSequence(미션 실패 해금 주석)
+- 확인 요청: 동작이 바뀌는 버그(CodingZoneZoom Awake→Start, Awake/Start 분리, 리졸버 복제 활성 상태, 스냅 선정 동치, Fitter 판정, 씬 YAML 참조), 스킬 0·2·6·18·19·23번, PlayMode 테스트
+- 결과: 통과. 발견된 버그 없음, 스킬 준수, PlayMode 22/22, 콘솔 에러 0(영상 오디오 코덱 에러는 기존 문제로 제외).
+  - Claude Play 모드 확인: 드래그 시뮬레이션으로 체인·값·조건·내부 소켓 4종 모두 드래그 중 강조 대상과 실제 부착 대상이 같음. 반복하기 안에 블록을 넣으면 내부 44→81·전체 286→323(이전과 같음), 만약 안에서 중첩된 블록이 커지면 만약도 같은 폭으로 커짐. 인트로 tutorialSlider 연결·Finished 구독, CodingZoneZoom rootCanvas 연결, 결과 행 리졸버 복제·로거 주입 확인.
+  - Raycast Target: 끈 텍스트마다 EventSystem.RaycastAll로 확인 — 버튼 라벨은 같은 버튼, 힌트·스토리 팝업 텍스트는 같은 팝업 버튼이 받고, 새로 드러난 조작 없음. 블록 라벨은 블록을 잡는 영역이라 제외(C자 블록은 라벨·빈 칸 표시만 레이캐스트를 받음).
+  - FlowInnerResize가 여백을 뺀 자식 합을 매 프레임 써서 블록 루트의 ContentSizeFitter와 서로 덮어쓰던 기존 문제(매 프레임 레이아웃 재빌드)를 발견해 수정.
+  - 기존 문제: Robot_260728.webm의 Opus 오디오 트랙 코덱 에러 — 최종 영상 확정 후 처리(TODO).
+  - Play 중 TMP 동적 아틀라스에 추가된 폰트 에셋 변경과 테스트 실행 때 바뀐 EditorSettings.asset은 되돌림.
+
 ### [2026-10-02 11:06] Claude → Antigravity · 문제 데이터를 LevelData(SO)로 이전 (refactor/question-data-to-leveldata)
 - 변경 파일: LevelData.cs(questionFormat·questionOptions·hintRuleFormat, 조회 메서드), 01~05_*Data.asset(값 이전), Constants.cs(Questions 삭제, 정반대 방향 표는 Directions.Opposite), BlockScorer.cs(정답을 인자로 받음), GameSceneManager.cs(LevelData로 출제), ResultSequence.cs(CurrentCorrectAnswer), HintPanel.cs(힌트 그림 이름을 LevelData에서 읽음), BlockScorerTests.cs, LevelQuestionDataTests.cs(신규 3개)
 - 확인 요청: 이전 전후 동작 일치(레벨별 문장·후보 값·정답, 레벨5, 채점, 결과 AI 행, 힌트 그림), 스킬 0·6·7·11·12번, PlayMode 테스트
