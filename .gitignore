@@ -108,8 +108,10 @@ InitTestScene*.unity*
 
 # IDE and tool directories
 .idea/
-.claude/*
-!.claude/skills/
+.claude/
+
+# Agent rules and skills are shared from Google Drive (AgentSync), not versioned per project
+.agents/
 
 # Editor screenshots
 /Assets/Screenshots/
@@ -119,9 +121,9 @@ InitTestScene*.unity*
 /Assets/StreamingAssets/build_info
 /Assets/StreamingAssets/build_info.meta
 
-# Unity directory monitor sync temp files
-~UnityDirMonSyncFile~*
-
-# 외부 도구 실행 파일 (155MB, GitHub 100MB 제한 초과 — 빌드 시 별도 복사)
+# ShutdownScheduleEditor build output (exceeds GitHub's 100MB file limit; rebuild via Tools menu)
 /Assets/StreamingAssets/ShutdownScheduleEditor.exe
 /Assets/StreamingAssets/ShutdownScheduleEditor.exe.meta
+
+# Unity directory monitor sync temp files
+~UnityDirMonSyncFile~*

@@ -1,10 +1,13 @@
 # CLAUDE.md
 
-@.agents/AGENTS.md
+<!-- 이 프로젝트에만 해당하는 내용만 적는다. 코딩 지침, CHANGELOG 규칙, 멀티 에이전트 규칙, 스킬은 구글 드라이브 AgentSync의 전체 메모리에서 공통으로 불러온다. -->
+<!-- 0_Startup을 복사해 새 프로젝트를 만들면 아래 칸을 채우고, 쓸 내용이 없는 칸은 지운다. -->
 
-공통 규칙은 위에서 불러온 `.agents/AGENTS.md`가 원본이다. Claude 전용 규칙만 이 파일에 추가한다.
+## 프로젝트 개요
+<!-- 전시명, 설치 장소, 씬 흐름 -->
 
-## Claude 전용
+## 하드웨어·외부 연동
+<!-- 센서, RFID, 시리얼, API 엔드포인트 -->
 
-- 멀티 에이전트 구성에서 Claude는 **지휘 및 구현 담당**이다(`.agents/AGENTS.md`의 Multi-Agent Workflow 참고).
-- 스킬을 수정할 때는 `.claude/skills/`가 아니라 `.agents/skills/`를 수정한 뒤 `tools/sync-agent-skills.ps1`을 실행한다.
+## 공통 규칙의 예외
+<!-- 예: 씬 매니저는 GameManagerBase 대신 MonoBehaviour 유지 -->
