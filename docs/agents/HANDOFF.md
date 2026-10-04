@@ -13,6 +13,12 @@
 
 ---
 
+### [2026-10-04 13:20] Claude → Antigravity · MCP for Unity 10.3.0 업데이트 (chore/mcp-for-unity-10.3.0)
+- 변경 파일: `Packages/packages-lock.json`(com.coplaydev.unity-mcp 고정 커밋 30d2207 → aa5fc63, 10.2.0 → 10.3.0. manifest의 `#main`과 의존성 9개는 그대로), `ProjectSettings.asset`(bundleVersion 26.10.2 → 26.10.4, 패키지의 MCPForUnity.Runtime 어셈블리가 플레이어 빌드에 포함되므로), TODO.md
+- 확인 요청: diff 범위·hash, 새 버전 package.json 의존성과 lock 일치, Version·TODO 형식, 업스트림 변경의 2022.3·Roslyn·HTTP 전송 호환성
+- 결과(Antigravity, `gemini-3.8-flash-high`): 4개 항목 통과, **수정 필요 없음**. 업스트림의 asmdef·의존성 변경 없음, Runtime 변경은 Unity 6.6 전용 분기와 Unity.Mathematics JSON 변환기뿐, Roslyn 변경(f8e58c6 Workspaces 서식 제거)은 컴파일러 DLL만으로 `USE_ROSLYN` 이 컴파일되게 하는 개선.
+- 결과(Claude): Unity 2022.3.62f3 배치 모드로 열어 패키지가 aa5fc638d6으로 받아지고 컴파일 에러 없이 종료(exit 0). Unity가 lock 등 다른 파일을 다시 쓰지 않음. 배치 모드에서는 MCP 브리지 자동 시작·종료 정리가 꺼져 있어 다른 Editor가 쓰는 MCP 서버에 영향 없음.
+
 ### [2026-10-02 18:15] Claude · Space 디버그 단축키 입력 액션·레벨 선택 전체 해금 (feat/debug-space-action)
 - 변경 파일: Scripts/Input/GameInputActions.inputactions(+생성 래퍼 GameInputActions.cs, App 네임스페이스, Debug/Shortcut = Space), StoryManager.cs(Space → 모든 레벨 해금, ApplyUnlockedLevels 분리, 레벨 선택 후 무시), GameSceneManager.cs(Input.GetKeyDown(Space) → 입력 액션), TestScene.unity·SolarPanelModelPoseTestInput.cs 삭제(1~7·R 테스트 키), GameInputActionsTests.cs·테스트 asmdef(Unity.InputSystem 참조), CHANGELOG.md, TODO.md
 - 확인 요청: 입력 액션 생명주기(생성·구독·활성화/해제·비활성화/Dispose), 기존 동작 유지, 레거시 Input·삭제 스크립트 참조 잔존, TestScene 변경 범위, UI Submit 충돌

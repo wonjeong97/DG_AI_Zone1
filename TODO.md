@@ -12,6 +12,7 @@
 
 ## 완료
 
+- [x] MCP for Unity 패키지 10.2.0 → 10.3.0 업데이트(packages-lock.json 고정 커밋 갱신), Player Settings Version 26.10.4 — 담당: Claude / 검증: Antigravity (2026-10-04)
 - [x] 디버그 키 정리: Space를 입력 액션(GameInputActions.Debug.Shortcut)으로 — 레벨 선택 화면 모든 레벨 해금·게임 화면 컴파일 검증, TestScene 1~7·R 테스트 키(SolarPanelModelPoseTestInput) 삭제 — PlayMode 41/41 — 담당: Claude / 검증: Antigravity (2026-10-02)
 - [x] 결과 씬 레벨5 연구소 스테이지(Prefab_Lab, 건물 안 노란 조명 — 부족 꺼짐·보통 약하게 깜빡임·양호 강하게), 양호 기준 75%, 스테이지 카메라 10개를 모델이 잘리지 않는 최대 크기로 조정(발전소 피스톤 이동 포함) — PlayMode 40/40 — 담당: Claude / 검증: Antigravity (2026-10-02)
 - [x] 레벨5 컴파일 규칙: 메인 체인 함수 전용 제한·함수 호출 필수·빈 함수 정의 에러 제거, 함수 호출 시 함수 정의 블록이 코딩 영역에 없으면 에러 — 담당: Claude / 검증: Antigravity (2026-10-02)
