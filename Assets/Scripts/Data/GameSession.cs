@@ -28,6 +28,16 @@ namespace Data
         // 값 추출이 실패한 경우(예: 조건식 파싱 실패) 정상 플레이가 스킵으로 잘못 처리된다.
         [System.NonSerialized] public bool hasCodingResult;
 
+        // 관리자 페이지에서 고른 레벨(0부터) — 2_Story가 레벨 선택 화면을 건너뛰고 이 레벨을 바로 고른 뒤 -1로 비운다
+        [System.NonSerialized] public int pendingStoryLevelIndex = -1;
+
+        // 관리자 페이지의 레벨 이동으로 시작한 판인지 — 스토리의 < 버튼과 결과 화면의 다음 버튼이 타이틀의 관리자 화면으로 돌아간다.
+        // 타이틀에 돌아오면 판이 끝나므로 GameLifetimeScope가 비운다
+        [System.NonSerialized] public bool isAdminLevelJump;
+
+        // 다음에 타이틀에 들어오면 비밀번호 없이 관리자 화면을 바로 연다 — 타이틀의 AdminTrigger가 열고 비운다
+        [System.NonSerialized] public bool openAdminOnTitle;
+
         private const string UnlockedLevelIndexKey = "UnlockedLevelIndex";
 
         // 서버 연동 전까지 PlayerPrefs에 로컬로 저장. 추후 서버 값으로 대체될 예정.
@@ -49,6 +59,8 @@ namespace Data
             unlockedLevelIndex = 0;
             currentLevel = null;
             lastQuestionTime = null;
+            pendingStoryLevelIndex = -1;
+            isAdminLevelJump = false;
             ResetLastResult();
         }
 

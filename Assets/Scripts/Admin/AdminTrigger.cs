@@ -1,3 +1,4 @@
+using Data;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 using UnityEngine.UI;
@@ -8,6 +9,7 @@ namespace Admin
 {
     // 화면 구석의 보이지 않는 버튼 — 제한 시간 안에 정해진 횟수만큼 연속으로 누르면 관리자 비밀번호 창을 연다.
     // 템플릿 GameCloser(앱 종료)와 같은 원리이며, 겹치지 않도록 반대쪽 구석에 둔다.
+    // 관리자 레벨 이동으로 플레이하고 타이틀에 돌아온 경우에는 비밀번호 없이 관리자 화면을 바로 다시 연다.
     [RequireComponent(typeof(Button))]
     public class AdminTrigger : MonoBehaviour
     {
@@ -18,18 +20,22 @@ namespace Admin
         [SerializeField, Min(1f)] private float clickTimeWindow = 3f;
 
         [SerializeField] private AdminPasswordPanel passwordPanel;
+        [Tooltip("관리자 레벨 이동에서 돌아왔을 때 바로 열 관리자 화면")]
+        [SerializeField] private AdminPanel adminPanel;
 
         private Button _button;
         private ConsecutiveClickCounter _counter;
         private ILogger<AdminTrigger> _logger;
+        private GameSession _session;
 
         /// <summary>
-        /// 로거를 주입받는다.
+        /// 로거와 게임 세션을 주입받는다.
         /// </summary>
         [Inject]
-        public void Construct(ILogger<AdminTrigger> logger)
+        public void Construct(ILogger<AdminTrigger> logger, GameSession session)
         {
             _logger = logger;
+            _session = session;
         }
 
         /// <summary>
@@ -43,12 +49,19 @@ namespace Admin
         }
 
         /// <summary>
-        /// 연결 누락을 경고한다 (씬 주입은 Awake 뒤라 로그를 남기도록 Start에서 확인).
+        /// 연결 누락을 경고하고(씬 주입은 Awake 뒤라 로그를 남기도록 Start에서 확인),
+        /// 관리자 레벨 이동에서 돌아온 경우 관리자 화면을 다시 연다.
         /// </summary>
         private void Start()
         {
             if (!_button && _logger != null) _logger.ZLogWarning($"[AdminTrigger] {name}에 Button이 없어 관리자 진입을 받을 수 없습니다.");
             if (!passwordPanel && _logger != null) _logger.ZLogWarning($"[AdminTrigger] passwordPanel이 할당되지 않았습니다.");
+
+            if (!_session || !_session.openAdminOnTitle) return;
+
+            _session.openAdminOnTitle = false;
+            if (adminPanel) adminPanel.Open();
+            else if (_logger != null) _logger.ZLogWarning($"[AdminTrigger] adminPanel이 할당되지 않아 관리자 화면을 다시 열 수 없습니다.");
         }
 
         /// <summary>

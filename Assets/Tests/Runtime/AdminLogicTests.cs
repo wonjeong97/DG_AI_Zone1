@@ -94,5 +94,36 @@ namespace DG.Zone1.Tests
             Assert.IsFalse(PasswordInput.IsValidPassword(""));
             Assert.IsFalse(PasswordInput.IsValidPassword(null));
         }
+
+        /// <summary>
+        /// 비밀번호 변경 때 저장할 값으로 입력한 숫자를 그대로 꺼낼 수 있어야 한다.
+        /// </summary>
+        [Test]
+        public void 입력한_숫자를_새_비밀번호_문자열로_꺼낸다()
+        {
+            PasswordInput input = new PasswordInput();
+            foreach (int digit in new[] { 0, 5, 7, 9 })
+                input.TryAppend(digit);
+
+            string newPassword = input.ToString();
+
+            Assert.AreEqual("0579", newPassword, "앞자리 0도 그대로 남아야 함");
+            Assert.IsTrue(PasswordInput.IsValidPassword(newPassword), "저장한 값을 다음에 다시 읽어도 유효해야 함");
+        }
+
+        /// <summary>
+        /// 체험자 이름은 비었거나 앞뒤가 띄어쓰기면 저장할 수 없다 — 인트로·아웃트로 문장에 어긋난 여백이 생긴다.
+        /// </summary>
+        [Test]
+        public void 비었거나_앞뒤가_띄어쓰기인_이름은_저장할_수_없다()
+        {
+            Assert.IsTrue(VisitorNamePanel.IsSavableName("홍길동"));
+            Assert.IsTrue(VisitorNamePanel.IsSavableName("김 철수"), "가운데 띄어쓰기는 허용");
+            Assert.IsFalse(VisitorNamePanel.IsSavableName(string.Empty));
+            Assert.IsFalse(VisitorNamePanel.IsSavableName(null));
+            Assert.IsFalse(VisitorNamePanel.IsSavableName(" 홍길동"));
+            Assert.IsFalse(VisitorNamePanel.IsSavableName("홍길동 "));
+            Assert.IsFalse(VisitorNamePanel.IsSavableName("  "));
+        }
     }
 }

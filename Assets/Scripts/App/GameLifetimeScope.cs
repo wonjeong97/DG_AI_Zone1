@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Cysharp.Threading.Tasks;
 using Data;
 using TMPro;
 using UnityEngine;
@@ -20,10 +19,11 @@ namespace App
     public class GameLifetimeScope : RootLifetimeScope
     {
         private GameSession _session;
+        private VisitorSettings _visitorSettings;
         private ILogger<GameLifetimeScope> _logger;
 
         /// <summary>
-        /// 템플릿 기본 등록에 더해 게임 매니저, 체험자 정보, 전역 페이드, 게임 세션, TMP 폰트를 등록한다.
+        /// 템플릿 기본 등록에 더해 게임 매니저, 체험자 정보, 전역 페이드, 게임 세션, 체험자 설정, TMP 폰트를 등록한다.
         /// </summary>
         protected override void Configure(IContainerBuilder builder)
         {
@@ -57,7 +57,14 @@ namespace App
             // VContainer Configure는 동기 실행이라 Addressables.WaitForCompletion으로 동기 로드
             _session = Addressables.LoadAssetAsync<GameSession>(Constants.ResourcePaths.GameSessionKey).WaitForCompletion();
             _session.ResetProgress();
+            // 타이틀 복귀 때는 지우면 안 되는 값이라 ResetProgress와 따로 부팅 때만 비운다
+            // (도메인 리로드 없이 Play하면 SO의 런타임 값이 이전 실행에서 남는다)
+            _session.openAdminOnTitle = false;
             builder.RegisterInstance(_session);
+
+            // 운영 모드·체험자 이름 — 관리자 페이지에서 바꾼 값은 PlayerPrefs에 남아 있어 재부팅 후에도 유지된다
+            _visitorSettings = Addressables.LoadAssetAsync<VisitorSettings>(Constants.ResourcePaths.VisitorSettingsKey).WaitForCompletion();
+            builder.RegisterInstance(_visitorSettings);
 
             // 폰트 등록 실패를 ZLogger로 남기기 위해 로거를 받을 수 있는 빌드 콜백에서 수행한다.
             // 빌드 콜백도 루트 스코프 Awake 안에서 실행되므로 첫 씬이 그려지기 전에 끝난다.
@@ -131,7 +138,7 @@ namespace App
 
             // 타이틀로 돌아온 경우(아웃트로 종료 버튼·비활동 타임아웃) 진행도 처리
             if (scene.name == Constants.Scenes.Title)
-                HandleReturnToTitleAsync().Forget();
+                HandleReturnToTitle();
 
             foreach (GameObject root in scene.GetRootGameObjects())
                 Container.InjectGameObject(root);
@@ -148,29 +155,13 @@ namespace App
         /// 지우면 안 된다. 대신 현재 체험자 세션만 끝내야 한다.
         /// </para>
         /// </summary>
-        private async UniTaskVoid HandleReturnToTitleAsync()
+        private void HandleReturnToTitle()
         {
-            bool isServerConnected;
-            try
-            {
-                isServerConnected = await Container.Resolve<VisitorInfoProvider>()
-                    .IsServerConnectedAsync(this.GetCancellationTokenOnDestroy());
-            }
-            catch (OperationCanceledException)
-            {
-                // 앱 종료·스코프 파괴로 취소된 정상 흐름
-                return;
-            }
-            catch (Exception ex)
-            {
-                // fire-and-forget이라 여기서 놓치면 UnobservedException으로만 남는다.
-                // Visitor.json을 읽지 못하면 서버 미사용(기본값)으로 보고 다음 체험자를 위해 초기화한다.
-                if (_logger != null) _logger.ZLogWarning($"[GameLifetimeScope] 서버 사용 여부 조회 실패 — 진행도를 초기화합니다: {ex.Message}");
-                _session.ResetProgress();
-                return;
-            }
+            // 관리자 레벨 이동으로 시작한 판도 타이틀로 돌아오면 끝난다 — 비활동 타임아웃으로 돌아온 경우에도
+            // 다음 체험자의 스토리 < 버튼·결과 다음 버튼이 관리자 화면으로 가지 않도록 모드와 상관없이 비운다
+            _session.isAdminLevelJump = false;
 
-            if (!isServerConnected)
+            if (!_visitorSettings.IsServerConnected)
             {
                 _session.ResetProgress();
                 return;
