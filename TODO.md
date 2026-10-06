@@ -8,10 +8,12 @@
 
 ## 할 일
 
-- [ ] (최종 영상 확정 후) 영상 오디오 트랙 제거 — 지금 Robot_260728.webm에 Unity가 지원하지 않는 Opus 오디오 트랙이 있어 인트로 재생 때 콘솔 에러가 남. 영상이 교체될 수 있어 최종 영상본이 정해지면 그 파일에서 ffmpeg -an으로 트랙을 지운다
-
 ## 완료
 
+- [x] 블록 고르기의 '변수' 탭(레벨1·2 값 블록) 이름을 레벨3처럼 '숫자·정보'로 — PlayMode 63/63 — 담당: Claude / 검증: Antigravity (2026-10-07)
+- [x] 영상 오디오 트랙 제거 — Robot_260728.webm의 Opus 트랙을 ffmpeg 스트림 복사(-map 0:v -c copy -an)로 제거, 알파 포함 프레임 동일 확인, 인트로 재생 시 OPUS 에러 사라짐 — 담당: Claude (2026-10-07)
+
+- [x] 관리자 페이지 기능: 비밀번호 변경(키패드 두 번 입력 → Admin.json), 로컬/서버 모드·체험자 이름 변경(Visitor.json → VisitorSettings SO + PlayerPrefs, 이름은 GCON_3 화면 한글 키보드 + 숫자열), 선택한 레벨의 스토리 화면으로 바로 이동, 스토리 좌상단 < 버튼(정상 진입→레벨 선택, 관리자 레벨 이동→타이틀 관리자 화면), 관리자 판은 결과 뒤 타이틀 관리자 화면으로 — PlayMode 63/63 — 담당: Claude / 검증: Antigravity (2026-10-07)
 - [x] 관리자 페이지 진입: 타이틀 좌상단 3초 안에 10회 터치 → 비밀번호 키패드(789/456/123/확인0←, Admin.json 기본 0000·4~6자리, 닫기·10초 무입력 시 닫힘) → 관리자 화면(제목 '관리자 페이지'+닫기, 기존 UI 이미지 없이 단색 러프 UI), 투명 터치 영역은 RaycastArea — PlayMode 51/51 — 담당: Claude / 검증: Antigravity (2026-10-07)
 - [x] 게임 씬 코딩 존을 조금 축소된 배율(0.8)로 시작 — CodingZoneZoom.startZoom, 블록 스폰 전 Awake에서 적용 — PlayMode 45/45 — 담당: Claude / 검증: Antigravity (2026-10-07)
 - [x] ㄷ자 블록(반복하기·만약·함수 정의) 하단 막대를 잡아도 드래그되게 — 프리팹 Footer에 투명 터치 영역(FooterDragArea), 회귀 테스트 CBlockDragAreaTests, Player Settings Version 26.10.7 — PlayMode 45/45 — 담당: Claude / 검증: Antigravity (2026-10-07)

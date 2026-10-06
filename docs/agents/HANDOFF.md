@@ -13,6 +13,22 @@
 
 ---
 
+### [2026-10-07 04:10] Claude → Antigravity · 영상 오디오 트랙 제거·값 블록 탭 이름 (feat/admin-features)
+- 변경 파일: StreamingAssets/Videos/Robot_260728.webm(Opus 오디오 트랙 제거 — ffmpeg -map 0:v -c copy -an, 비디오 재인코딩 없음), Constants.cs(CategoryNames.Value '변수' → '숫자·정보'), REVIEW_ITEMS.md(A-5 메모), CHANGELOG.md, TODO.md
+- 확인 요청: 한 레벨에 Value·Condition 블록이 함께 있어 같은 이름 탭이 두 개 생기는지, CategoryNames.Value가 탭 표시 말고 쓰이는지, '변수' 문구가 씬·프리팹·데이터에 남는지
+- 결과: agy가 끝나기 전 사용자가 PR을 요청해 Claude가 직접 확인(agy 대신 검증). 레벨1·2는 Value만, 레벨3·4는 Condition만, 레벨5는 둘 다 없음. CategoryNames.Value는 BlockFactory.GetCategoryName에서만 사용. 씬·프리팹·데이터에 '변수'(변수 포함) 없음.
+  - 영상: 오디오 제거 전후 120번째 프레임을 알파 포함 RGBA로 디코딩해 완전히 같음, ffprobe에 비디오 트랙만 남음(ALPHA_MODE=1 유지). Play 모드 인트로에서 투명 배경 재생·audioTrackCount 0·OPUS 에러 없음, 레벨1 게임 화면 탭 '숫자·정보' 확인. PlayMode 63/63.
+
+### [2026-10-07 03:50] Claude → Antigravity · 관리자 페이지 기능 (feat/admin-features)
+- 변경 파일: Data/VisitorSettings.cs·AddressableAssets/Data/VisitorSettings.asset(새 SO, Addressables 주소 VisitorSettings — 에셋 값=기본값, 관리자 변경값은 PlayerPrefs 우선), Visitor.json·Data/VisitorData.cs 삭제, App/VisitorInfoProvider.cs(SO 사용, IsServerConnected 속성), App/GameLifetimeScope.cs(SO 등록, 타이틀 복귀 처리 동기화), Scenes/TitleSceneManager.cs·IntroSceneManager.cs, Data/GameSession.cs(pendingStoryLevelIndex·isAdminLevelJump·openAdminOnTitle)·Scenes/StoryManager.cs(관리자 레벨 이동 시 그 레벨 바로 선택, 스토리 좌상단 < 버튼 — 정상 진입이면 2_Story 다시 불러 레벨 선택, 관리자 판이면 타이틀 관리자 화면)·Scenes/ResultSequence.cs(관리자 판이면 다음 버튼이 타이틀 관리자 화면으로)·Admin/AdminTrigger.cs(openAdminOnTitle이면 비밀번호 없이 관리자 화면 열기)·2_Story.unity(StoryPanel/Button_Back), Admin/AdminPanel.cs(모드·이름·비밀번호·레벨 이동·상태 문구, 모드가 바뀌면 닫을 때 타이틀 다시 불러옴), Admin/AdminPasswordPanel.cs(변경 모드 — 두 번 입력 → Admin.json 저장 후 다시 읽어 확인), Admin/PasswordInput.cs(ToString), Admin/HangulComposer.cs·VisitorNamePanel.cs(GCON_3 두벌식 키보드 이식 + 숫자열, 최대 8자), Prefabs/AdminCanvas.prefab(관리자 화면 항목, NamePanel, 그리기 순서 AdminTrigger→AdminPanel→NamePanel→PasswordPanel, 보드 1.25배·이름 창 1.15배, 비밀번호 창 세로 배치, 키 간격 12px·줄 간격 18px), 테스트(HangulComposerTests 8·VisitorSettingsTests 2·AdminLogicTests +2), CHANGELOG.md, TODO.md
+- 확인 요청: (A) 관리자 UI·비밀번호 변경·키보드 로직과 프리팹 연결, (B) Visitor.json → SO 전환 잔존 참조·타이틀/진행도 동작 유지, 레벨 이동 pending 값의 소비·잔존, 테스트의 PlayerPrefs 복원
+- 결과: agy 1차(A·B 두 묶음)는 5분 제한으로 빈 결과 → 네 묶음(A1 비밀번호, A2 키보드, B1 SO 전환, B2 레벨 이동·되돌아가기)으로 좁혀 10분 제한으로 재요청.
+  - A2·B1: 통과, 수정 필요 없음. 참고만 — 겹모음(ㅘ 등) 지우기가 단모음을 거치지 않고 초성으로 돌아감(GCON_3 원본과 같아 유지).
+  - A1: 저장 뒤 메인 스레드 복귀 → `SwitchToMainThread` 한 줄 추가(Task await라 실제로는 메인 스레드로 돌아오지만 방어). 확인 버튼 연타 시 '4~6자리' 안내는 빈 입력에 대한 맞는 안내라 반영 안 함.
+  - B2: 흐름 4가지·sceneLoaded→Start 순서·비활성 패널 주입 통과. `ResetProgress`에 `isAdminLevelJump` 초기화, 부팅 때 `openAdminOnTitle` 초기화(도메인 리로드 없는 Play 대비) 반영. ResultSequence 117줄 영어 로그는 기존 코드라 범위 밖.
+  - Claude가 Play 모드에서 확인: 이름 입력(조합·Shift·한/영·지우기 짧게/길게·8자·빈 이름 저장 불가)·저장, 모드 전환 후 닫으면 타이틀 QR 안내 반영, 비밀번호 변경(불일치 → 재입력 → Admin.json 저장·상태 문구)과 새 비밀번호 로그인, 관리자 레벨 이동 → 스토리 <(타이틀 관리자 화면)·결과 다음(타이틀 관리자 화면), 정상 진입 스토리 < → 레벨 선택. PlayMode 63/63, 콘솔 에러는 기존 영상 OPUS 오디오뿐.
+  - 한 번의 Play에서 루트 스코프 빌드가 `VContainerException`(FadeManager 등록 충돌)으로 실패해 전체 주입이 빠짐 — 10-02 기록과 같은 기존 간헐 문제, 별도 작업으로 분리.
+
 ### [2026-10-07 03:10] Claude → Antigravity · 관리자 페이지 진입 (feat/admin-page)
 - 변경 파일: Admin/AdminTrigger.cs(좌상단 숨은 버튼, 3초 안에 10회), Admin/ConsecutiveClickCounter.cs(GameCloser와 같은 연속 클릭 규칙), Admin/AdminPasswordPanel.cs(키패드 789/456/123/확인0←, ● 표시, 4자리 미만 안내, 틀리면 안내+입력 지움, 닫기, 10초 무입력 시 닫힘, 열 때마다 Admin.json 다시 읽기), Admin/PasswordInput.cs(4~6자리), Admin/AdminPanel.cs(제목+닫기), Data/AdminSettings.cs·StreamingAssets/Json/Admin.json(기본 0000, 잘못된 값이면 0000), App/RaycastArea.cs(CanvasRenderer RequireComponent 추가), Constants.cs(Admin), Prefabs/AdminCanvas.prefab(별도 Canvas sortingOrder 10, 기존 UI 이미지 없이 단색 러프 UI — 사용자 요청), 0_Title.unity(프리팹 배치), AdminLogicTests.cs·RaycastAreaTests.cs, CHANGELOG.md, TODO.md
 - 확인 요청: 비활성 패널 생명주기(첫 Open 때 Awake), 리스너 해제, 무입력 타이머, Admin.json 실패·잘못된 값 처리, GameCloser와 규칙 일치, 프로젝트 규칙

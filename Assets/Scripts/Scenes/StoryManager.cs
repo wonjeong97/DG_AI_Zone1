@@ -29,6 +29,8 @@ namespace Scenes
         [Tooltip("levelPanels와 같은 순서로, 각 레벨 패널 안에서 LevelData.storyText를 표시할 텍스트")]
         [SerializeField] private TMP_Text[] levelStoryTexts;
         [SerializeField] private Button startButton;
+        [Tooltip("스토리 화면 좌상단 < 버튼 — 레벨 선택 화면으로(관리자 레벨 이동이면 타이틀의 관리자 화면으로) 돌아간다")]
+        [SerializeField] private Button backButton;
         [SerializeField] private VideoPlayer robotVideoPlayer;
 
         private GameSession _session;
@@ -65,6 +67,7 @@ namespace Scenes
             if (!levelSelectPanel && _logger != null) _logger.ZLogWarning($"[StoryManager] levelSelectPanel이 할당되지 않았습니다.");
             if (!storyPanel && _logger != null) _logger.ZLogWarning($"[StoryManager] storyPanel이 할당되지 않았습니다.");
             if (!startButton && _logger != null) _logger.ZLogWarning($"[StoryManager] startButton이 할당되지 않았습니다.");
+            if (!backButton && _logger != null) _logger.ZLogWarning($"[StoryManager] backButton이 할당되지 않았습니다.");
 
             // UI 작업 중 에디터에서 패널을 꺼둔 채 플레이해도 항상 levelSelectPanel만 보이는 상태로 시작하도록 정규화
             SceneFader.InitializePanelState(levelSelectPanel, true);
@@ -85,9 +88,18 @@ namespace Scenes
             ApplyUnlockedLevels(Mathf.Clamp(_session ? _session.unlockedLevelIndex : 0, 0, levelDataList.Length - 1));
 
             if (startButton) startButton.onClick.AddListener(OnStartClicked);
+            if (backButton) backButton.onClick.AddListener(OnBackClicked);
 
             // 로봇 영상 — 진입과 동시에 루프 재생 (isLooping은 컴포넌트에 설정됨)
             SceneFader.PlayLoopingVideo(robotVideoPlayer, Constants.VideoPaths.RobotUrl, destroyCancellationToken, _logger);
+
+            // 관리자 페이지에서 레벨을 골라 들어온 경우 — 레벨 선택 화면에서 그 레벨을 누른 것처럼 바로 스토리 화면으로 넘어간다
+            if (_session && _session.pendingStoryLevelIndex >= 0)
+            {
+                int pendingIndex = _session.pendingStoryLevelIndex;
+                _session.pendingStoryLevelIndex = -1;
+                SelectLevel(pendingIndex);
+            }
         }
 
         /// <summary>
@@ -132,6 +144,7 @@ namespace Scenes
         private void OnDestroy()
         {
             _input?.Dispose();
+            if (backButton) backButton.onClick.RemoveListener(OnBackClicked);
         }
 
         /// <summary>
@@ -149,12 +162,24 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 선택한 레벨의 스토리 패널을 준비하고 레벨 선택 화면에서 스토리 화면으로 전환한다.
+        /// 레벨 버튼 클릭 효과음을 내고 그 레벨을 고른다.
         /// </summary>
         private void OnLevelButtonClicked(int index)
         {
             if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
-            if (index < 0 || index >= levelDataList.Length) return;
+            SelectLevel(index);
+        }
+
+        /// <summary>
+        /// 선택한 레벨의 스토리 패널을 준비하고 레벨 선택 화면에서 스토리 화면으로 전환한다.
+        /// </summary>
+        private void SelectLevel(int index)
+        {
+            if (index < 0 || index >= levelDataList.Length)
+            {
+                if (_logger != null) _logger.ZLogWarning($"[StoryManager] {index}번 레벨이 levelDataList에 없어 선택하지 않습니다.");
+                return;
+            }
 
             _currentLevel = levelDataList[index];
 
@@ -245,6 +270,24 @@ namespace Scenes
             {
                 // 전환 도중 씬 전환 등으로 오브젝트가 파괴된 경우 — 정상 종료
             }
+        }
+
+        /// <summary>
+        /// &lt; 버튼 — 관리자 레벨 이동으로 들어온 판이면 타이틀의 관리자 화면으로, 아니면 레벨 선택 화면으로 돌아간다.
+        /// 레벨 선택 화면은 이 씬을 다시 불러 되돌린다(고른 레벨 버튼을 옮기고 별을 숨긴 연출을 하나씩 되돌리지 않기 위해).
+        /// </summary>
+        private void OnBackClicked()
+        {
+            if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
+
+            if (_session && _session.isAdminLevelJump)
+            {
+                _session.openAdminOnTitle = true;
+                SceneFader.FadeAndLoad(Constants.Scenes.Title, logger: _logger).Forget();
+                return;
+            }
+
+            SceneFader.FadeAndLoad(Constants.Scenes.Story, logger: _logger).Forget();
         }
 
         /// <summary>

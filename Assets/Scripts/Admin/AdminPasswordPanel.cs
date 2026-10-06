@@ -17,6 +17,7 @@ namespace Admin
 {
     // 관리자 비밀번호 입력 창 — 키보드·마우스가 없는 전시 환경이라 화면 키패드(789/456/123/확인0←)로 입력받는다.
     // 비밀번호가 맞으면 관리자 화면을 열고, 닫기 버튼을 누르거나 일정 시간 입력이 없으면 닫힌다.
+    // 관리자 화면의 비밀번호 변경도 같은 키패드로 받는다 — 새 비밀번호를 두 번 입력해 같으면 Admin.json에 저장한다.
     public class AdminPasswordPanel : MonoBehaviour
     {
         [Tooltip("숫자 키 0~9 — 배열 인덱스가 그 키가 입력하는 숫자다")]
@@ -25,6 +26,8 @@ namespace Admin
         [SerializeField] private Button backspaceButton;
         [SerializeField] private Button closeButton;
 
+        [Tooltip("키패드 위 안내 문구 — 비밀번호 확인·새 비밀번호·한 번 더 입력 단계마다 바뀐다")]
+        [SerializeField] private TMP_Text promptText;
         [Tooltip("입력한 자릿수만큼 ●를 표시하는 텍스트")]
         [SerializeField] private TMP_Text maskedText;
         [Tooltip("자릿수 부족·비밀번호 오류 안내 텍스트")]
@@ -35,13 +38,26 @@ namespace Admin
         [Tooltip("이 시간(초) 동안 키패드 입력이 없으면 창을 닫는다")]
         [SerializeField, Min(1f)] private float idleTimeout = 10f;
 
+        // 지금 받는 입력 — 관리자 진입 비밀번호 확인, 또는 비밀번호 변경의 새 비밀번호·한 번 더 입력
+        private enum Step
+        {
+            Verify,
+            EnterNew,
+            ConfirmNew
+        }
+
         // 자릿수별 표시 문자열 — 키를 누를 때마다 문자열을 새로 만들지 않도록 미리 만들어 둔다
         private readonly static string[] MaskTexts = CreateMaskTexts();
+
+        private readonly static string SettingsPath =
+            ZString.Concat(Constants.ResourcePaths.SceneSettingsFolder, "/", Constants.Admin.SettingsFileName);
 
         private readonly PasswordInput _input = new();
         private UnityAction[] _digitActions;
         private string _password = Constants.Admin.DefaultPassword;
         private float _lastInputTime;
+        private Step _step;
+        private string _newPassword;
 
         private ILogger<AdminPasswordPanel> _logger;
         private SoundManager _soundManager;
@@ -100,17 +116,20 @@ namespace Admin
         }
 
         /// <summary>
-        /// 입력을 비운 채 창을 열고, 현장에서 바뀌었을 수 있는 비밀번호를 파일에서 다시 읽는다.
+        /// 관리자 진입용으로 창을 열고, 현장에서 바뀌었을 수 있는 비밀번호를 파일에서 다시 읽는다.
         /// </summary>
         public void Open()
         {
-            _input.Clear();
-            RefreshMasked();
-            SetMessage(string.Empty);
-            _lastInputTime = Time.unscaledTime;
-            gameObject.SetActive(true);
-
+            OpenAt(Step.Verify);
             LoadPasswordAsync(destroyCancellationToken).Forget();
+        }
+
+        /// <summary>
+        /// 비밀번호 변경용으로 창을 연다 — 새 비밀번호를 두 번 입력받는다 (관리자 화면 위에 뜬다).
+        /// </summary>
+        public void OpenForChange()
+        {
+            OpenAt(Step.EnterNew);
         }
 
         /// <summary>
@@ -119,7 +138,19 @@ namespace Admin
         public void Close()
         {
             _input.Clear();
+            _newPassword = null;
             gameObject.SetActive(false);
+        }
+
+        /// <summary>
+        /// 입력을 비운 채 주어진 단계로 창을 연다.
+        /// </summary>
+        private void OpenAt(Step step)
+        {
+            _newPassword = null;
+            ShowStep(step);
+            _lastInputTime = Time.unscaledTime;
+            gameObject.SetActive(true);
         }
 
         /// <summary>
@@ -141,8 +172,7 @@ namespace Admin
         {
             try
             {
-                string path = ZString.Concat(Constants.ResourcePaths.SceneSettingsFolder, "/", Constants.Admin.SettingsFileName);
-                AdminSettings settings = await JsonLoader.LoadAsync<AdminSettings>(path, ct, _logger);
+                AdminSettings settings = await JsonLoader.LoadAsync<AdminSettings>(SettingsPath, ct, _logger);
 
                 if (PasswordInput.IsValidPassword(settings.password))
                 {
@@ -182,7 +212,7 @@ namespace Admin
         }
 
         /// <summary>
-        /// 자릿수를 확인한 뒤 비밀번호가 맞으면 관리자 화면을 열고, 틀리면 안내를 띄우고 입력을 지운다.
+        /// 자릿수를 확인한 뒤 지금 단계에 맞게 처리한다 — 진입 확인, 새 비밀번호 받기, 한 번 더 입력한 값 비교.
         /// </summary>
         private void OnConfirmClicked()
         {
@@ -194,6 +224,28 @@ namespace Admin
                 return;
             }
 
+            switch (_step)
+            {
+                case Step.Verify:
+                    ConfirmVerify();
+                    break;
+
+                case Step.EnterNew:
+                    _newPassword = _input.ToString();
+                    ShowStep(Step.ConfirmNew);
+                    break;
+
+                case Step.ConfirmNew:
+                    ConfirmNewPassword();
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// 비밀번호가 맞으면 관리자 화면을 열고, 틀리면 안내를 띄우고 입력을 지운다.
+        /// </summary>
+        private void ConfirmVerify()
+        {
             if (!_input.Matches(_password))
             {
                 if (_logger != null) _logger.ZLogInformation($"[AdminPasswordPanel] 관리자 비밀번호가 틀렸습니다.");
@@ -206,6 +258,52 @@ namespace Admin
             Close();
             if (adminPanel) adminPanel.Open();
             else if (_logger != null) _logger.ZLogWarning($"[AdminPasswordPanel] adminPanel이 할당되지 않아 관리자 화면을 열 수 없습니다.");
+        }
+
+        /// <summary>
+        /// 한 번 더 입력한 값이 새 비밀번호와 같으면 창을 닫고 저장한다. 다르면 새 비밀번호부터 다시 받는다.
+        /// </summary>
+        private void ConfirmNewPassword()
+        {
+            if (!_input.Matches(_newPassword))
+            {
+                ShowStep(Step.EnterNew);
+                SetMessage(Constants.Admin.PasswordMismatch);
+                return;
+            }
+
+            string newPassword = _newPassword;
+            Close();
+            SavePasswordAsync(newPassword, destroyCancellationToken).Forget();
+        }
+
+        /// <summary>
+        /// 새 비밀번호를 Admin.json에 저장하고 결과를 관리자 화면에 알린다.
+        /// JsonLoader.SaveAsync는 실패를 로그로만 남기므로, 다시 읽어 실제로 저장됐는지 확인한다.
+        /// </summary>
+        private async UniTaskVoid SavePasswordAsync(string newPassword, CancellationToken ct)
+        {
+            try
+            {
+                await JsonLoader.SaveAsync(SettingsPath, new AdminSettings { password = newPassword }, ct, _logger);
+                AdminSettings saved = await JsonLoader.LoadAsync<AdminSettings>(SettingsPath, ct, _logger);
+
+                // 파일 입출력 뒤 관리자 화면 UI를 고치므로 메인 스레드로 돌아온다
+                await UniTask.SwitchToMainThread(ct);
+
+                bool isSaved = saved.password == newPassword;
+                if (_logger != null)
+                {
+                    if (isSaved) _logger.ZLogInformation($"[AdminPasswordPanel] 관리자 비밀번호를 변경했습니다.");
+                    else _logger.ZLogWarning($"[AdminPasswordPanel] 새 비밀번호를 Admin.json에 저장하지 못했습니다.");
+                }
+
+                if (adminPanel) adminPanel.ShowStatus(isSaved ? Constants.Admin.PasswordChanged : Constants.Admin.PasswordSaveFailed);
+            }
+            catch (OperationCanceledException)
+            {
+                // 저장 도중 씬 전환 등으로 오브젝트가 파괴된 경우 — 정상 종료
+            }
         }
 
         /// <summary>
@@ -235,6 +333,25 @@ namespace Admin
             for (int i = 0; i < texts.Length; i++)
                 texts[i] = new string('●', i);
             return texts;
+        }
+
+        /// <summary>
+        /// 입력을 비우고 단계에 맞는 안내 문구를 띄운다.
+        /// </summary>
+        private void ShowStep(Step step)
+        {
+            _step = step;
+            _input.Clear();
+            RefreshMasked();
+            SetMessage(string.Empty);
+
+            if (!promptText) return;
+            promptText.text = step switch
+            {
+                Step.EnterNew => Constants.Admin.PromptNew,
+                Step.ConfirmNew => Constants.Admin.PromptConfirm,
+                _ => Constants.Admin.PromptVerify
+            };
         }
 
         /// <summary>

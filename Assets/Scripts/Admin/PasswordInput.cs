@@ -52,6 +52,14 @@ namespace Admin
         }
 
         /// <summary>
+        /// 입력한 숫자를 문자열로 돌려준다 (새 비밀번호를 저장할 때 쓴다).
+        /// </summary>
+        public override string ToString()
+        {
+            return _digits.ToString();
+        }
+
+        /// <summary>
         /// 저장된 비밀번호가 키패드로 입력할 수 있는 값(숫자 4~6자리)인지 확인한다.
         /// </summary>
         public static bool IsValidPassword(string value)

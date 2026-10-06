@@ -28,6 +28,7 @@ public static class Constants
     {
         public const string TutorialImageAddress = "Tutorial";
         public const string GameSessionKey       = "GameSession";
+        public const string VisitorSettingsKey   = "VisitorSettings";
         public const string LabelFontKey         = "GamtanRoadTantan SDF";
 
         // TMP 폰트 에셋 묶음 라벨.
@@ -126,7 +127,9 @@ public static class Constants
     {
         public const string Control         = "제어";
         public const string Command         = "움직이기";
-        public const string Value           = "변수";
+        // 명령 블록 옆에 붙는 값 블록(동쪽, 20개 …) — 레벨3 조건 값(1m 이상 …)과 같은 탭 이름을 쓴다.
+        // 한 레벨에 Value·Condition 블록이 함께 나오면 같은 이름의 탭이 두 개 생기므로 그때는 이름을 나눠야 한다
+        public const string Value           = "숫자·정보";
         public const string FlowControl     = "조건";
         public const string ConditionAction = "조건 동작";
         public const string Action          = "동작";
@@ -532,5 +535,21 @@ public static class Constants
 
         public const string WrongPassword  = "비밀번호가 올바르지 않습니다.";
         public const string PasswordLength = "비밀번호는 4~6자리입니다.";
+
+        // 비밀번호 창 안내 — 확인 단계마다 바뀐다
+        public const string PromptVerify     = "비밀번호를 입력하세요";
+        public const string PromptNew        = "새 비밀번호를 입력하세요";
+        public const string PromptConfirm    = "한 번 더 입력하세요";
+        public const string PasswordMismatch = "비밀번호가 서로 다릅니다. 다시 입력하세요.";
+
+        // 관리자 화면 상태 문구
+        public const string PasswordChanged    = "비밀번호를 변경했습니다.";
+        public const string PasswordSaveFailed = "비밀번호를 저장하지 못했습니다. Admin.json을 확인하세요.";
+        public const string LocalModeSet       = "로컬 모드로 바꿨습니다. 관리자 화면을 닫으면 타이틀에 반영됩니다.";
+        public const string ServerModeSet      = "서버 모드로 바꿨습니다. 관리자 화면을 닫으면 타이틀에 반영됩니다.";
+        public const string VisitorNameChanged = "체험자 이름을 변경했습니다.";
+
+        // 체험자 이름 최대 글자 수 — 인트로·아웃트로 문장 안에 들어가므로 한 줄을 넘지 않게 제한한다
+        public const int VisitorNameMaxLength = 8;
     }
 }

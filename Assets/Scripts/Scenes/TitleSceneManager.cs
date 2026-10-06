@@ -70,15 +70,14 @@ namespace Scenes
         /// </summary>
         private async UniTaskVoid ApplyGuideAsync(CancellationToken ct)
         {
-            // 서버 연동 여부를 비동기로 확인하는 동안 안내·버튼이 잠깐 보였다 바뀌는 플리커를 막기 위해 먼저 숨겨 둠
-            if (qrCanvasGroup) qrCanvasGroup.gameObject.SetActive(false);
+            // 서버 모드면 QR 인식 전까지 시작 버튼이 보이면 안 되므로 먼저 숨겨 둠
             if (startButton) startButton.gameObject.SetActive(false);
 
             try
             {
                 bool isServerConnected = false;
                 if (_visitorInfoProvider != null)
-                    isServerConnected = await _visitorInfoProvider.IsServerConnectedAsync(ct);
+                    isServerConnected = _visitorInfoProvider.IsServerConnected;
                 else if (_logger != null)
                     _logger.ZLogWarning($"[TitleSceneManager] VisitorInfoProvider가 주입되지 않아 서버 미연동으로 보고 시작하기 안내를 표시합니다.");
 

@@ -213,11 +213,18 @@ namespace Scenes
 
         /// <summary>
         /// 다음 레벨로 진행한다 — 방금 플레이한 레벨의 AfterResultScene을 따라간다 (마지막 레벨은 5_Outro).
+        /// 관리자 레벨 이동으로 시작한 판이면 타이틀의 관리자 화면으로 돌아간다.
         /// </summary>
         private void OnNextClicked()
         {
             if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
             string nextScene = _session && _session.currentLevel ? _session.currentLevel.AfterResultScene : Constants.Scenes.Story;
+
+            if (_session && _session.isAdminLevelJump)
+            {
+                _session.openAdminOnTitle = true;
+                nextScene = Constants.Scenes.Title;
+            }
 
             // 미션 성공·실패와 상관없이 다음 레벨을 연다(기획 확인, 2026-10-02).
             // 이미 해금된 이전 레벨을 다시 플레이한 경우엔 진행도를 건드리지 않는다.

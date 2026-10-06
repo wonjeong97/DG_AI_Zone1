@@ -69,7 +69,7 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 텍스트의 "{name}" 플레이스홀더를 서버 연동 시 실제 이름, 미연동 시 Visitor.json의 기본 이름으로 치환한 뒤,
+        /// 텍스트의 "{name}" 플레이스홀더를 서버 연동 시 실제 이름, 미연동 시 VisitorSettings의 이름(관리자 페이지에서 변경)으로 치환한 뒤,
         /// 2_Story/5_Outro와 동일하게 한 줄씩 올라오며 페이드인되는 연출로 표시한다.
         /// </summary>
         private async UniTaskVoid ApplyVisitorNameAsync(System.Threading.CancellationToken ct)
