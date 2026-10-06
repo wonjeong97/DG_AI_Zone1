@@ -15,6 +15,9 @@ namespace Game
     [RequireComponent(typeof(ScrollRect))]
     public class CodingZoneZoom : MonoBehaviour, IScrollHandler
     {
+        [Tooltip("씬 시작 배율 — 1보다 작으면 코딩 판을 축소해 넓게 보여 준다 (최소·최대 배율 범위로 제한)")]
+        [SerializeField] private float startZoom = 0.8f;
+
         [Tooltip("최대 확대 배율 (최소 배율은 코딩 판이 뷰포트를 꽉 채우는 크기로 자동 계산)")]
         [SerializeField] private float maxZoom = 1.5f;
 
@@ -45,6 +48,20 @@ namespace Game
         public void Construct(ILogger<CodingZoneZoom> logger)
         {
             _logger = logger;
+        }
+
+        /// <summary>
+        /// 시작 배율을 적용한다. 완성하기 블록은 놓일 때의 배율로 첫 화면 아래쪽 자리를 정하므로,
+        /// 블록 스폰(GameSceneManager.Start)보다 먼저 실행되도록 Awake에서 한다 (실패 로그는 주입 뒤인 Start에서 남긴다).
+        /// </summary>
+        private void Awake()
+        {
+            if (!TryGetComponent(out ScrollRect scrollRect) || !scrollRect.content) return;
+
+            RectTransform content = scrollRect.content;
+            RectTransform viewport = scrollRect.viewport ? scrollRect.viewport : (RectTransform)transform;
+            float zoom = Mathf.Clamp(startZoom, GetMinZoom(content, viewport), maxZoom);
+            content.localScale = new Vector3(zoom, zoom, 1f);
         }
 
         /// <summary>
@@ -81,16 +98,17 @@ namespace Game
             _defaultVertical = _scrollRect.vertical;
         }
 
-        // 코딩 판이 뷰포트보다 작아지면 빈 영역이 드러나므로 뷰포트를 꽉 채우는 배율까지만 축소한다
-        private float MinZoom
+        private float MinZoom => GetMinZoom(_content, _viewport);
+
+        /// <summary>
+        /// 코딩 판이 뷰포트보다 작아지면 빈 영역이 드러나므로 뷰포트를 꽉 채우는 배율까지만 축소한다.
+        /// </summary>
+        private static float GetMinZoom(RectTransform contentRt, RectTransform viewportRt)
         {
-            get
-            {
-                Rect content = _content.rect;
-                Rect viewport = _viewport.rect;
-                if (content.width <= 0f || content.height <= 0f) return 1f;
-                return Mathf.Min(1f, Mathf.Max(viewport.width / content.width, viewport.height / content.height));
-            }
+            Rect content = contentRt.rect;
+            Rect viewport = viewportRt.rect;
+            if (content.width <= 0f || content.height <= 0f) return 1f;
+            return Mathf.Min(1f, Mathf.Max(viewport.width / content.width, viewport.height / content.height));
         }
 
         /// <summary>

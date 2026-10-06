@@ -13,6 +13,18 @@
 
 ---
 
+### [2026-10-07 02:40] Claude → Antigravity · 코딩 존 시작 배율 0.8 (feat/coding-zone-drag-zoom)
+- 변경 파일: CodingZoneZoom.cs(startZoom 0.8 — Awake에서 Content.localScale에 적용·최소/최대 배율로 제한, 최소 배율 계산을 GetMinZoom으로 분리), CHANGELOG.md, TODO.md
+- 확인 요청: Awake 실행 순서(완성하기 블록은 놓일 때의 배율로 첫 화면 아래쪽 자리를 정함), Awake 시점 viewport.rect 유효성, 배율이 1이 아닌 채 시작할 때의 영향(스냅 반경·OnTransformParentChanged·FlowInnerResize·드래그·위치 제한), 스타일
+- 결과: 통과. Awake는 블록 스폰(GameSceneManager.Start → BlockSpawner.Spawn)보다 항상 먼저 실행되고, 스냅 반경·위치 제한은 이미 배율을 반영함.
+  - Claude가 Play 모드(3_Game, 레벨5)에서 확인: 배율 0.8, 최소 배율 0.514, 시작하기 첫 화면 위쪽·완성하기 첫 화면 아래쪽(뷰포트 안 약 55px 여유). PlayMode 45/45, 콘솔 에러 0.
+
+### [2026-10-07 02:40] Claude → Antigravity · ㄷ자 블록 하단 막대 드래그 (feat/coding-zone-drag-zoom)
+- 변경 파일: WhileBlock·IfBlock·FuncDefBlock.prefab(Footer 아래 FooterDragArea — 투명 Image a=0·raycastTarget·cullTransparentMesh, Footer 위쪽 101px = 스프라이트 하단 막대, IfBlock만 머리 값 돌기 때문에 오른쪽 20px 안쪽), CBlockDragAreaTests.cs(신규 PlayMode 4개), ProjectSettings.asset(bundleVersion 26.10.4 → 26.10.7), CHANGELOG.md, TODO.md
+- 확인 요청: 터치 영역 위치·크기, 안쪽·아래쪽 블록 터치 가로챔, 투명 이미지 노출, 테스트 코드 규칙
+- 결과: 통과(agy 1차는 5분 제한으로 빈 결과, 범위를 좁혀 재요청). 아래에 이어 붙은 블록은 런타임에 붙는 ChainOutSocket의 자식이라 Footer보다 뒤 형제로 위에 그려지고, 자식 Image 색을 한꺼번에 바꾸는 코드는 없음. 알려진 동작: 안쪽 마지막 블록의 아래 돌기 띠(20px)는 하단 막대와 겹쳐 그 자리를 누르면 ㄷ자 블록이 잡힘(agy는 겹치지 않는다고 했으나 실제로는 겹침 — 막대가 보이는 자리라 의도대로 둠).
+  - Claude 확인: 수정 전 프리팹에서 새 테스트 3개 실패(하단 막대 위치에 맞은 UI 없음) → 수정 후 PlayMode 45/45, 콘솔 에러 0.
+
 ### [2026-10-04 13:20] Claude → Antigravity · MCP for Unity 10.3.0 업데이트 (chore/mcp-for-unity-10.3.0)
 - 변경 파일: `Packages/packages-lock.json`(com.coplaydev.unity-mcp 고정 커밋 30d2207 → aa5fc63, 10.2.0 → 10.3.0. manifest의 `#main`과 의존성 9개는 그대로), `ProjectSettings.asset`(bundleVersion 26.10.2 → 26.10.4, 패키지의 MCPForUnity.Runtime 어셈블리가 플레이어 빌드에 포함되므로), TODO.md
 - 확인 요청: diff 범위·hash, 새 버전 package.json 의존성과 lock 일치, Version·TODO 형식, 업스트림 변경의 2022.3·Roslyn·HTTP 전송 호환성
