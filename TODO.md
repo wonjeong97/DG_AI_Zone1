@@ -10,6 +10,7 @@
 
 ## 완료
 
+- [x] 블록 고르기의 '변수' 탭(레벨1·2 값 블록) 이름을 레벨3처럼 '숫자·정보'로 — PlayMode 63/63 — 담당: Claude / 검증: Antigravity (2026-10-07)
 - [x] 영상 오디오 트랙 제거 — Robot_260728.webm의 Opus 트랙을 ffmpeg 스트림 복사(-map 0:v -c copy -an)로 제거, 알파 포함 프레임 동일 확인, 인트로 재생 시 OPUS 에러 사라짐 — 담당: Claude (2026-10-07)
 
 - [x] 관리자 페이지 기능: 비밀번호 변경(키패드 두 번 입력 → Admin.json), 로컬/서버 모드·체험자 이름 변경(Visitor.json → VisitorSettings SO + PlayerPrefs, 이름은 GCON_3 화면 한글 키보드 + 숫자열), 선택한 레벨의 스토리 화면으로 바로 이동, 스토리 좌상단 < 버튼(정상 진입→레벨 선택, 관리자 레벨 이동→타이틀 관리자 화면), 관리자 판은 결과 뒤 타이틀 관리자 화면으로 — PlayMode 63/63 — 담당: Claude / 검증: Antigravity (2026-10-07)
