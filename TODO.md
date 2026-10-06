@@ -6,12 +6,15 @@
 
 ## 진행 중
 
+- [ ] 게임 씬 코딩 존을 조금 축소된 배율로 시작 — 담당: Claude / 검증: Antigravity
+
 ## 할 일
 
 - [ ] (최종 영상 확정 후) 영상 오디오 트랙 제거 — 지금 Robot_260728.webm에 Unity가 지원하지 않는 Opus 오디오 트랙이 있어 인트로 재생 때 콘솔 에러가 남. 영상이 교체될 수 있어 최종 영상본이 정해지면 그 파일에서 ffmpeg -an으로 트랙을 지운다
 
 ## 완료
 
+- [x] ㄷ자 블록(반복하기·만약·함수 정의) 하단 막대를 잡아도 드래그되게 — 프리팹 Footer에 투명 터치 영역(FooterDragArea), 회귀 테스트 CBlockDragAreaTests, Player Settings Version 26.10.7 — PlayMode 45/45 — 담당: Claude / 검증: Antigravity (2026-10-07)
 - [x] MCP for Unity 패키지 10.2.0 → 10.3.0 업데이트(packages-lock.json 고정 커밋 갱신), Player Settings Version 26.10.4 — 담당: Claude / 검증: Antigravity (2026-10-04)
 - [x] 디버그 키 정리: Space를 입력 액션(GameInputActions.Debug.Shortcut)으로 — 레벨 선택 화면 모든 레벨 해금·게임 화면 컴파일 검증, TestScene 1~7·R 테스트 키(SolarPanelModelPoseTestInput) 삭제 — PlayMode 41/41 — 담당: Claude / 검증: Antigravity (2026-10-02)
 - [x] 결과 씬 레벨5 연구소 스테이지(Prefab_Lab, 건물 안 노란 조명 — 부족 꺼짐·보통 약하게 깜빡임·양호 강하게), 양호 기준 75%, 스테이지 카메라 10개를 모델이 잘리지 않는 최대 크기로 조정(발전소 피스톤 이동 포함) — PlayMode 40/40 — 담당: Claude / 검증: Antigravity (2026-10-02)

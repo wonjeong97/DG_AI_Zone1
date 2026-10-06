@@ -13,6 +13,12 @@
 
 ---
 
+### [2026-10-07 02:40] Claude → Antigravity · ㄷ자 블록 하단 막대 드래그 (feat/coding-zone-drag-zoom)
+- 변경 파일: WhileBlock·IfBlock·FuncDefBlock.prefab(Footer 아래 FooterDragArea — 투명 Image a=0·raycastTarget·cullTransparentMesh, Footer 위쪽 101px = 스프라이트 하단 막대, IfBlock만 머리 값 돌기 때문에 오른쪽 20px 안쪽), CBlockDragAreaTests.cs(신규 PlayMode 4개), ProjectSettings.asset(bundleVersion 26.10.4 → 26.10.7), CHANGELOG.md, TODO.md
+- 확인 요청: 터치 영역 위치·크기, 안쪽·아래쪽 블록 터치 가로챔, 투명 이미지 노출, 테스트 코드 규칙
+- 결과: 통과(agy 1차는 5분 제한으로 빈 결과, 범위를 좁혀 재요청). 아래에 이어 붙은 블록은 런타임에 붙는 ChainOutSocket의 자식이라 Footer보다 뒤 형제로 위에 그려지고, 자식 Image 색을 한꺼번에 바꾸는 코드는 없음. 알려진 동작: 안쪽 마지막 블록의 아래 돌기 띠(20px)는 하단 막대와 겹쳐 그 자리를 누르면 ㄷ자 블록이 잡힘(agy는 겹치지 않는다고 했으나 실제로는 겹침 — 막대가 보이는 자리라 의도대로 둠).
+  - Claude 확인: 수정 전 프리팹에서 새 테스트 3개 실패(하단 막대 위치에 맞은 UI 없음) → 수정 후 PlayMode 45/45, 콘솔 에러 0.
+
 ### [2026-10-04 13:20] Claude → Antigravity · MCP for Unity 10.3.0 업데이트 (chore/mcp-for-unity-10.3.0)
 - 변경 파일: `Packages/packages-lock.json`(com.coplaydev.unity-mcp 고정 커밋 30d2207 → aa5fc63, 10.2.0 → 10.3.0. manifest의 `#main`과 의존성 9개는 그대로), `ProjectSettings.asset`(bundleVersion 26.10.2 → 26.10.4, 패키지의 MCPForUnity.Runtime 어셈블리가 플레이어 빌드에 포함되므로), TODO.md
 - 확인 요청: diff 범위·hash, 새 버전 package.json 의존성과 lock 일치, Version·TODO 형식, 업스트림 변경의 2022.3·Roslyn·HTTP 전송 호환성
