@@ -1,0 +1,80 @@
+using Microsoft.Extensions.Logging;
+using UnityEngine;
+using UnityEngine.UI;
+using VContainer;
+using ZLogger;
+
+namespace Admin
+{
+    // 화면 구석의 보이지 않는 버튼 — 제한 시간 안에 정해진 횟수만큼 연속으로 누르면 관리자 비밀번호 창을 연다.
+    // 템플릿 GameCloser(앱 종료)와 같은 원리이며, 겹치지 않도록 반대쪽 구석에 둔다.
+    [RequireComponent(typeof(Button))]
+    public class AdminTrigger : MonoBehaviour
+    {
+        [Tooltip("비밀번호 창을 열기 위해 필요한 연속 클릭 횟수")]
+        [SerializeField, Min(1)] private int targetClickCount = 10;
+
+        [Tooltip("연속 클릭으로 인정하는 시간(초) — 첫 클릭부터 이 시간이 지나면 다시 1회부터 센다")]
+        [SerializeField, Min(1f)] private float clickTimeWindow = 3f;
+
+        [SerializeField] private AdminPasswordPanel passwordPanel;
+
+        private Button _button;
+        private ConsecutiveClickCounter _counter;
+        private ILogger<AdminTrigger> _logger;
+
+        /// <summary>
+        /// 로거를 주입받는다.
+        /// </summary>
+        [Inject]
+        public void Construct(ILogger<AdminTrigger> logger)
+        {
+            _logger = logger;
+        }
+
+        /// <summary>
+        /// 클릭 카운터를 만들고 숨은 버튼에 클릭 동작을 연결한다.
+        /// </summary>
+        private void Awake()
+        {
+            _counter = new ConsecutiveClickCounter(targetClickCount, clickTimeWindow);
+            if (TryGetComponent(out _button))
+                _button.onClick.AddListener(OnClicked);
+        }
+
+        /// <summary>
+        /// 연결 누락을 경고한다 (씬 주입은 Awake 뒤라 로그를 남기도록 Start에서 확인).
+        /// </summary>
+        private void Start()
+        {
+            if (!_button && _logger != null) _logger.ZLogWarning($"[AdminTrigger] {name}에 Button이 없어 관리자 진입을 받을 수 없습니다.");
+            if (!passwordPanel && _logger != null) _logger.ZLogWarning($"[AdminTrigger] passwordPanel이 할당되지 않았습니다.");
+        }
+
+        /// <summary>
+        /// 버튼 클릭 연결을 해제한다.
+        /// </summary>
+        private void OnDestroy()
+        {
+            if (_button) _button.onClick.RemoveListener(OnClicked);
+        }
+
+        /// <summary>
+        /// 클릭을 세고, 목표 횟수에 닿으면 비밀번호 창을 연다.
+        /// </summary>
+        private void OnClicked()
+        {
+            if (!_counter.Register(Time.unscaledTime)) return;
+
+            if (passwordPanel)
+            {
+                if (_logger != null) _logger.ZLogInformation($"[AdminTrigger] {targetClickCount}회 연속 클릭 — 관리자 비밀번호 창을 엽니다.");
+                passwordPanel.Open();
+            }
+            else if (_logger != null)
+            {
+                _logger.ZLogWarning($"[AdminTrigger] passwordPanel이 할당되지 않아 비밀번호 창을 열 수 없습니다.");
+            }
+        }
+    }
+}
