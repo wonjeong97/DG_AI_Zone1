@@ -13,6 +13,12 @@
 
 ---
 
+### [2026-10-07 02:40] Claude → Antigravity · 코딩 존 시작 배율 0.8 (feat/coding-zone-drag-zoom)
+- 변경 파일: CodingZoneZoom.cs(startZoom 0.8 — Awake에서 Content.localScale에 적용·최소/최대 배율로 제한, 최소 배율 계산을 GetMinZoom으로 분리), CHANGELOG.md, TODO.md
+- 확인 요청: Awake 실행 순서(완성하기 블록은 놓일 때의 배율로 첫 화면 아래쪽 자리를 정함), Awake 시점 viewport.rect 유효성, 배율이 1이 아닌 채 시작할 때의 영향(스냅 반경·OnTransformParentChanged·FlowInnerResize·드래그·위치 제한), 스타일
+- 결과: 통과. Awake는 블록 스폰(GameSceneManager.Start → BlockSpawner.Spawn)보다 항상 먼저 실행되고, 스냅 반경·위치 제한은 이미 배율을 반영함.
+  - Claude가 Play 모드(3_Game, 레벨5)에서 확인: 배율 0.8, 최소 배율 0.514, 시작하기 첫 화면 위쪽·완성하기 첫 화면 아래쪽(뷰포트 안 약 55px 여유). PlayMode 45/45, 콘솔 에러 0.
+
 ### [2026-10-07 02:40] Claude → Antigravity · ㄷ자 블록 하단 막대 드래그 (feat/coding-zone-drag-zoom)
 - 변경 파일: WhileBlock·IfBlock·FuncDefBlock.prefab(Footer 아래 FooterDragArea — 투명 Image a=0·raycastTarget·cullTransparentMesh, Footer 위쪽 101px = 스프라이트 하단 막대, IfBlock만 머리 값 돌기 때문에 오른쪽 20px 안쪽), CBlockDragAreaTests.cs(신규 PlayMode 4개), ProjectSettings.asset(bundleVersion 26.10.4 → 26.10.7), CHANGELOG.md, TODO.md
 - 확인 요청: 터치 영역 위치·크기, 안쪽·아래쪽 블록 터치 가로챔, 투명 이미지 노출, 테스트 코드 규칙
