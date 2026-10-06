@@ -12,6 +12,7 @@
 
 ## 완료
 
+- [x] 관리자 페이지 진입: 타이틀 좌상단 3초 안에 10회 터치 → 비밀번호 키패드(789/456/123/확인0←, Admin.json 기본 0000·4~6자리, 닫기·10초 무입력 시 닫힘) → 관리자 화면(제목 '관리자 페이지'+닫기, 기존 UI 이미지 없이 단색 러프 UI), 투명 터치 영역은 RaycastArea — PlayMode 51/51 — 담당: Claude / 검증: Antigravity (2026-10-07)
 - [x] 게임 씬 코딩 존을 조금 축소된 배율(0.8)로 시작 — CodingZoneZoom.startZoom, 블록 스폰 전 Awake에서 적용 — PlayMode 45/45 — 담당: Claude / 검증: Antigravity (2026-10-07)
 - [x] ㄷ자 블록(반복하기·만약·함수 정의) 하단 막대를 잡아도 드래그되게 — 프리팹 Footer에 투명 터치 영역(FooterDragArea), 회귀 테스트 CBlockDragAreaTests, Player Settings Version 26.10.7 — PlayMode 45/45 — 담당: Claude / 검증: Antigravity (2026-10-07)
 - [x] MCP for Unity 패키지 10.2.0 → 10.3.0 업데이트(packages-lock.json 고정 커밋 갱신), Player Settings Version 26.10.4 — 담당: Claude / 검증: Antigravity (2026-10-04)

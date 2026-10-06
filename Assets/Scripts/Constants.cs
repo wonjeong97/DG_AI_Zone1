@@ -519,4 +519,18 @@ public static class Constants
         public const string MissionFailed  = "missonFailed";   // 결과 완료 화면 '미션 실패!'
         public const string MissionSuccess = "missonSuccess";  // 결과 완료 화면 '미션 성공!'
     }
+
+    // ── 22. 관리자 페이지 (타이틀 좌상단 연속 터치 → 비밀번호 키패드) ──────
+    public static class Admin
+    {
+        // 비밀번호 JSON(StreamingAssets/Json/Admin.json) — 파일이 없거나 값이 잘못되면 기본 비밀번호를 쓴다
+        public const string SettingsFileName = "Admin";
+        public const string DefaultPassword  = "0000";
+
+        public const int PasswordMinLength = 4;
+        public const int PasswordMaxLength = 6;
+
+        public const string WrongPassword  = "비밀번호가 올바르지 않습니다.";
+        public const string PasswordLength = "비밀번호는 4~6자리입니다.";
+    }
 }

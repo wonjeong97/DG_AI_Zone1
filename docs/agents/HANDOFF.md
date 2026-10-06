@@ -13,6 +13,14 @@
 
 ---
 
+### [2026-10-07 03:10] Claude → Antigravity · 관리자 페이지 진입 (feat/admin-page)
+- 변경 파일: Admin/AdminTrigger.cs(좌상단 숨은 버튼, 3초 안에 10회), Admin/ConsecutiveClickCounter.cs(GameCloser와 같은 연속 클릭 규칙), Admin/AdminPasswordPanel.cs(키패드 789/456/123/확인0←, ● 표시, 4자리 미만 안내, 틀리면 안내+입력 지움, 닫기, 10초 무입력 시 닫힘, 열 때마다 Admin.json 다시 읽기), Admin/PasswordInput.cs(4~6자리), Admin/AdminPanel.cs(제목+닫기), Data/AdminSettings.cs·StreamingAssets/Json/Admin.json(기본 0000, 잘못된 값이면 0000), App/RaycastArea.cs(CanvasRenderer RequireComponent 추가), Constants.cs(Admin), Prefabs/AdminCanvas.prefab(별도 Canvas sortingOrder 10, 기존 UI 이미지 없이 단색 러프 UI — 사용자 요청), 0_Title.unity(프리팹 배치), AdminLogicTests.cs·RaycastAreaTests.cs, CHANGELOG.md, TODO.md
+- 확인 요청: 비활성 패널 생명주기(첫 Open 때 Awake), 리스너 해제, 무입력 타이머, Admin.json 실패·잘못된 값 처리, GameCloser와 규칙 일치, 프로젝트 규칙
+- 결과: 통과(agy, 수정 필요 없음). 단색 UI 변경·닫기 버튼 추가는 리뷰 뒤 반영 — Claude가 Play 모드에서 다시 확인.
+  - Claude가 Play 모드(0_Title)에서 확인: 좌상단 터치는 AdminTrigger가 받음, 9회까지 안 열리고 10회째 열림, 2자리 확인 → 자릿수 안내, 1234 → 오류 안내·입력 지움, 7회 입력 → 6자리까지, ← 한 자리씩, 0000 → 관리자 화면, 관리자 화면이 떠 있으면 좌상단을 Dim이 받음, 키 12개·닫기 버튼 위치의 맨 위 처리기가 각 버튼, 닫기 → 닫힘, 10초 무입력 → 닫힘(로그 03:00:06 → 03:00:16). PlayMode 51/51, 콘솔 에러 0.
+  - 발견해 고친 것: 이 UGUI(1.0.0)의 Graphic은 CanvasRenderer를 요구하지 않아, 새 오브젝트에 붙인 RaycastArea를 GraphicRaycaster가 조회하다 MissingComponentException → RaycastArea에 [RequireComponent(typeof(CanvasRenderer))], 회귀 테스트 RaycastAreaTests.
+  - 알려진 동작: 관리자 창이 열려 있어도 타이틀의 QR 스캐너 입력은 계속 받는다.
+
 ### [2026-10-07 02:40] Claude → Antigravity · 코딩 존 시작 배율 0.8 (feat/coding-zone-drag-zoom)
 - 변경 파일: CodingZoneZoom.cs(startZoom 0.8 — Awake에서 Content.localScale에 적용·최소/최대 배율로 제한, 최소 배율 계산을 GetMinZoom으로 분리), CHANGELOG.md, TODO.md
 - 확인 요청: Awake 실행 순서(완성하기 블록은 놓일 때의 배율로 첫 화면 아래쪽 자리를 정함), Awake 시점 viewport.rect 유효성, 배율이 1이 아닌 채 시작할 때의 영향(스냅 반경·OnTransformParentChanged·FlowInnerResize·드래그·위치 제한), 스타일
