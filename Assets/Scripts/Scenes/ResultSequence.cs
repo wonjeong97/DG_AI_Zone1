@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using App;
 using Cysharp.Text;
 using Cysharp.Threading.Tasks;
 using Data;
@@ -14,6 +15,7 @@ using VContainer;
 using HuliacDev.Core;
 using HuliacDev.UI;
 using HuliacDev.Utils;
+using Network;
 using ZLogger;
 
 namespace Scenes
@@ -68,18 +70,22 @@ namespace Scenes
         private InactivityTimer _inactivityTimer;
         private ILogger<ResultSequence> _logger;
         private SoundManager _soundManager;
+        private VisitorInfoProvider _visitorInfoProvider;
+        private VisitorApiClient _visitorApiClient;
 
         /// <summary>
-        /// 게임 세션, 비활동 타이머, 로거, 사운드 매니저를 주입받는다.
+        /// 게임 세션, 비활동 타이머, 로거, 사운드 매니저, 체험자 정보 제공자, 체험자 서버 API를 주입받는다.
         /// </summary>
         [Inject]
         public void Construct(GameSession session, InactivityTimer inactivityTimer, ILogger<ResultSequence> logger,
-            SoundManager soundManager)
+            SoundManager soundManager, VisitorInfoProvider visitorInfoProvider, VisitorApiClient visitorApiClient)
         {
             _session = session;
             _inactivityTimer = inactivityTimer;
             _logger = logger;
             _soundManager = soundManager;
+            _visitorInfoProvider = visitorInfoProvider;
+            _visitorApiClient = visitorApiClient;
         }
 
         private const int MaxPercent = 100;
@@ -308,12 +314,52 @@ namespace Scenes
             if (playerRows) playerRows.SetRows(playerResult);
             if (aiRows) aiRows.SetRows(BuildAiRows(kind));
 
+            UploadLevelResult(isSuccess);
+
             _missionResultSound = isSuccess ? Constants.Sounds.MissionSuccess : Constants.Sounds.MissionFailed;
 
             if (completeTitleText)
                 completeTitleText.text = isSuccess ? Constants.ResultMessages.MissionSuccess : Constants.ResultMessages.MissionFail;
             else if (_logger != null)
                 _logger.ZLogWarning($"[ResultSequence] completeTitleText가 할당되지 않아 미션 성공/실패를 표시하지 못했습니다.");
+        }
+
+        /// <summary>
+        /// 서버 모드에서 QR로 확인한 체험자면 이번 레벨의 미션 결과(성공 1·실패 0, 넘어가기는 실패)를 서버에 올린다.
+        /// 관리자 레벨 이동으로 시작한 판은 체험자 기록에 섞이지 않도록 올리지 않는다.
+        /// 결과 화면을 빨리 넘겨도 끊기지 않도록 씬 수명과 묶지 않는다 — 요청은 Server.json의 시간 초과로 끝난다.
+        /// </summary>
+        private void UploadLevelResult(bool isSuccess)
+        {
+            if (_visitorInfoProvider == null || _visitorApiClient == null)
+            {
+                if (_logger != null) _logger.ZLogWarning($"[ResultSequence] 체험자 정보 제공자 또는 서버 API가 주입되지 않아 레벨 결과를 올리지 않습니다.");
+                return;
+            }
+
+            // 로컬 모드 — 올릴 서버가 없다
+            if (!_visitorInfoProvider.IsServerConnected) return;
+
+            if (_session.isAdminLevelJump)
+            {
+                if (_logger != null) _logger.ZLogInformation($"[ResultSequence] 관리자 레벨 이동으로 시작한 판이라 레벨 결과를 올리지 않습니다.");
+                return;
+            }
+
+            if (_visitorInfoProvider.VisitorIdx < 0)
+            {
+                if (_logger != null) _logger.ZLogWarning($"[ResultSequence] QR로 확인한 체험자가 없어 레벨 결과를 올리지 않습니다.");
+                return;
+            }
+
+            if (!_session.currentLevel)
+            {
+                if (_logger != null) _logger.ZLogWarning($"[ResultSequence] 현재 레벨 정보가 없어 레벨 결과를 올리지 않습니다.");
+                return;
+            }
+
+            string code = VisitorApiClient.GetLevelCode(_session.currentLevel.levelIndex);
+            _visitorApiClient.UpdateValueAsync(_visitorInfoProvider.VisitorIdx, code, isSuccess, CancellationToken.None).Forget();
         }
 
         /// <summary>

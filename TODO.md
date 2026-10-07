@@ -8,10 +8,11 @@
 
 ## 할 일
 
-- [ ] 결과 저장(updateValue)·진행도 API 연동 — 이 존의 콘텐츠 코드, 서버 모드 타이틀 복귀 때 진행도 처리, getUser 응답의 빈 값(`"A1": ,`)이 올바른 JSON이 아닌 문제 확인 필요(사용자가 나중에 설명)
+- [ ] 진행도 API 연동 — 서버 모드 타이틀 복귀 때 진행도 처리, getUser 응답의 빈 값(`"A1": ,`)을 `null` 로 내도록 서버 수정 요청함(2026-10-07) → 반영 확인 후 연동
 
 ## 완료
 
+- [x] 레벨 결과 서버 업로드(updateValue) — 1존 코드 A, 레벨1~5 = A1~A5, 미션 성공 1·실패 0(넘어가기 포함), 서버 모드·QR 확인 체험자만, 관리자 레벨 이동 판 제외, 응답 result로 저장 판정 — PlayMode 95/95 — 담당: Claude / 검증: Antigravity (2026-10-07)
 - [x] 서버 모드 QR 체험자 확인(checkActive) — 체험 가능하면 idx·이름 기록 후 시작하기, 완료·없음·서버 오류는 안내 후 다시 QR 대기, 서버 주소는 StreamingAssets/Json/Server.json — PlayMode 78/78 — 담당: Claude / 검증: Antigravity (2026-10-07)
 - [x] 템플릿 디버그 단축키 D·I·M을 Ctrl+D·Ctrl+I·Ctrl+M으로(QR 스캐너 uid 문자와 충돌 방지, 템플릿은 그대로 두고 런타임 바인딩 오버라이드) — PlayMode 66/66 — 담당: Claude / 검증: Antigravity (2026-10-07)
 - [x] 블록 고르기의 '변수' 탭(레벨1·2 값 블록) 이름을 레벨3처럼 '숫자·정보'로 — PlayMode 63/63 — 담당: Claude / 검증: Antigravity (2026-10-07)
