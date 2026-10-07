@@ -564,8 +564,16 @@ public static class Constants
     public static class VisitorApi
     {
         // 서버 주소 JSON(StreamingAssets/Json/Server.json)
-        public const string SettingsFileName      = "Server";
-        public const int    DefaultTimeoutSeconds = 5;
+        public const string SettingsFileName = "Server";
+
+        // 요청 실패(연결 실패·시간 초과·HTTP 오류) 시 응답 대기 시간(초)과 최대 시도 횟수(첫 시도 포함).
+        // 결과 업로드(updateValue)는 화면을 막지 않아 넉넉히, 타이틀 QR 확인(checkActive·getUser)은 체험자가 화면 앞에서
+        // 기다리므로 짧게 둔다. 재시도 간격은 공통이다
+        public const int   DefaultUploadTimeoutSeconds  = 5;
+        public const int   DefaultUploadMaxAttempts     = 10;
+        public const int   DefaultQrCheckTimeoutSeconds = 3;
+        public const int   DefaultQrCheckMaxAttempts    = 3;
+        public const float DefaultRetryDelaySeconds     = 1f;
 
         // 체험 가능 여부 — 뒤에 uid를 붙인다. 체험 가능하면 "idx_user,name"(예: "10,LLL")
         public const string CheckActivePath   = "/api/checkActive.cfm?uid=";

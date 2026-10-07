@@ -13,6 +13,13 @@
 
 ---
 
+### [2026-10-07 17:30] Claude → Antigravity · 체험자 서버 API 재시도 (feat/api-retry)
+- 변경 파일: Network/VisitorApiClient.cs(GetTextAsync가 재시도 반복, SendGetAsync가 한 번 보내기 — 연결 실패·시간 초과·HTTP 오류·잘못된 주소만 재시도, 대기는 UnscaledDeltaTime·취소 즉시 반영, 로그에 n/최대 시도), Data/ServerSettings.cs·StreamingAssets/Json/Server.json(uploadTimeoutSeconds 5·uploadMaxAttempts 10, qrCheckTimeoutSeconds 3·qrCheckMaxAttempts 3, retryDelaySeconds 1 — 기존 timeoutSeconds는 upload…로 이름 변경), Constants.cs(기본값), Scenes/ResultSequence.cs(주석), CHANGELOG.md, TODO.md
+- 배경: 사용자 요청 — 인터넷 상황에 따라 한 번에 안 될 수 있어 실패 시 반드시 여러 번 시도, 기본 10회. 타이틀 대기가 길어져(최악 약 60초) QR 확인만 짧게 해 달라는 추가 요청 → QR 확인 3회·3초(최악 API당 약 11초). 아직 현장 배포 전이라 Server.json 키 이름 변경에 호환 문제 없음.
+- 확인 요청: 횟수·간격 계산과 0·음수 방어, 대기 중 취소, 무한 루프·QR 대기 복귀, updateValue 중복 저장, uid 로그, 코드 규칙
+- 결과: 6개 항목 통과(agy, QR 확인 값 분리 전 diff 기준). 제안(타이틀 대기 약 59초)은 QR 확인 값 분리로 해결.
+  - Claude 확인: PlayMode 106/106. 127.0.0.1 가짜 서버가 요청마다 처음 3번 HTTP 500 → checkActive·getUser 3번 실패 뒤 4번째 성공(시작하기·idx 10·해금 2), updateValue 3번 실패 뒤 저장 완료(A3=0). 닫힌 포트: 10회 설정에서 10번 모두 실패(시도당 약 2.5초) → 확인 불가 안내, QR 값 분리 후 3번(약 6초) → 확인 불가 안내. 확인 뒤 Server.json·운영 모드·해금 PlayerPrefs·EditorSettings 원복.
+
 ### [2026-10-07 17:20] Claude → Antigravity · 서버 진행도 getUser (feat/get-user-progress)
 - 변경 파일: Network/GetUserResult.cs(신규 — result는 JsonUtility, A1~A5는 null·0 구분을 위해 정규식으로 읽어 기록 있는 마지막 레벨 순번), Network/VisitorApiClient.cs(GetUserAsync — 응답에 uid·이름이 있어 원문 대신 실패 사유만 로그), Scenes/TitleSceneManager.cs(ConfirmVisitorAsync: checkActive → getUser → 체험자·해금 기록, getUser 실패 시 확인 불가 안내 후 QR 대기), App/GameLifetimeScope.cs(타이틀 복귀 때 모드 구분 없이 ResetProgress, `_visitorSettings` 필드를 지역 변수로), Constants.cs(GetUserPath), GetUserResultTests.cs(신규 11개), CHANGELOG.md, TODO.md
 - 배경: 서버가 getUser의 기록 없는 값을 빈칸 대신 null로 내도록 수정됨(사용자 확인). 해금은 성공·실패와 상관없이 기록 있는 마지막 레벨의 다음까지(로컬 규칙과 같음), 서버 모드도 타이틀 복귀 때 초기화 — 사용자 결정.
