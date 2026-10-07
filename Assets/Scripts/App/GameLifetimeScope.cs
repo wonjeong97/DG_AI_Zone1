@@ -23,7 +23,8 @@ namespace App
         private ILogger<GameLifetimeScope> _logger;
 
         /// <summary>
-        /// 템플릿 기본 등록에 더해 게임 매니저, 체험자 정보·서버 API, 전역 페이드, 게임 세션, 체험자 설정, TMP 폰트를 등록한다.
+        /// 템플릿 기본 등록에 더해 게임 매니저, 체험자 정보·서버 API, 전역 페이드, 게임 세션, 체험자 설정, TMP 폰트를 등록하고
+        /// 템플릿 디버그 단축키를 Ctrl 조합으로 바꾼다.
         /// </summary>
         protected override void Configure(IContainerBuilder builder)
         {
@@ -39,6 +40,11 @@ namespace App
                 container.Resolve<GameCloser>();
                 container.Resolve<SystemCanvas>();
             });
+
+            // 템플릿 디버그 단축키(D·I·M)를 Ctrl 조합으로 — QR 스캐너가 입력하는 uid 문자와 겹치지 않게
+            // GameManagerBase가 주입받는 것과 같은 싱글톤 인스턴스라 그대로 반영된다
+            builder.RegisterBuildCallback(container =>
+                DebugShortcutBindings.Apply(container.Resolve<TemplateInputActions>()));
 
             // 전역 페이드 매니저 — App 하위에 생성되어 씬 전환 간 유지
             builder.RegisterComponentOnNewGameObject<FadeManager>(Lifetime.Singleton, "FadeManager")
