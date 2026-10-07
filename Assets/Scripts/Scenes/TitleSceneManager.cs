@@ -29,6 +29,7 @@ namespace Scenes
         private ILogger<TitleSceneManager> _logger;
         private VisitorInfoProvider _visitorInfoProvider;
         private VisitorApiClient _visitorApiClient;
+        private GameSession _session;
         private SoundManager _soundManager;
 
         // 0_Title.json 로드 전에 QR 확인 결과가 나오면 기본값을 쓴다
@@ -44,15 +45,16 @@ namespace Scenes
         private bool _isWaitingForQr;
 
         /// <summary>
-        /// 로거, 체험자 정보 제공자, 체험자 서버 API, 사운드 매니저를 주입받는다.
+        /// 로거, 체험자 정보 제공자, 체험자 서버 API, 게임 세션, 사운드 매니저를 주입받는다.
         /// </summary>
         [Inject]
         public void Construct(ILogger<TitleSceneManager> log, VisitorInfoProvider visitorInfoProvider,
-            VisitorApiClient visitorApiClient, SoundManager soundManager)
+            VisitorApiClient visitorApiClient, GameSession session, SoundManager soundManager)
         {
             _logger = log;
             _visitorInfoProvider = visitorInfoProvider;
             _visitorApiClient = visitorApiClient;
+            _session = session;
             _soundManager = soundManager;
         }
 
@@ -221,7 +223,7 @@ namespace Scenes
         }
 
         /// <summary>
-        /// QR uid로 서버에 체험 가능 여부를 묻는다. 체험 가능하면 체험자를 기록하고 시작하기 안내로 바꾸고,
+        /// QR uid로 서버에 체험자를 확인한다. 확인되면 시작하기 안내로 바꾸고,
         /// 아니면(체험 완료·없는 QR·서버 오류) 이유를 잠시 보여 준 뒤 다시 QR을 기다린다.
         /// </summary>
         private async UniTaskVoid CheckVisitorAsync(string uid, CancellationToken ct)
@@ -230,24 +232,14 @@ namespace Scenes
 
             try
             {
-                CheckActiveResult result = CheckActiveResult.Failed();
-                if (_visitorApiClient != null)
-                    result = await _visitorApiClient.CheckActiveAsync(uid, ct);
-                else if (_logger != null)
-                    _logger.ZLogError($"[TitleSceneManager] VisitorApiClient가 주입되지 않아 체험자를 확인할 수 없습니다.");
-
-                if (result.Status == CheckActiveStatus.Active)
+                string failMessage = await ConfirmVisitorAsync(uid, ct);
+                if (failMessage == null)
                 {
-                    if (_visitorInfoProvider != null)
-                        _visitorInfoProvider.SetServerVisitor(result.IdxUser, result.Name);
-                    else if (_logger != null)
-                        _logger.ZLogWarning($"[TitleSceneManager] VisitorInfoProvider가 주입되지 않아 확인한 체험자를 기록하지 못했습니다.");
-
                     ShowStartGuide();
                     return;
                 }
 
-                if (guideText) guideText.text = GetScanFailMessage(result.Status);
+                if (guideText) guideText.text = failMessage;
 
                 // 0_Title.json에 음수를 적으면 Delay가 예외를 내 QR 대기로 돌아오지 못하므로 0 이상으로 제한한다
                 float messageSeconds = Mathf.Max(0f, _sceneSettings.scanResultMessageSeconds);
@@ -258,6 +250,38 @@ namespace Scenes
             {
                 // 확인 도중 씬 전환 등으로 오브젝트가 파괴된 경우 — 정상 종료
             }
+        }
+
+        /// <summary>
+        /// 서버에 체험 가능 여부(checkActive)와 진행도(getUser)를 물어 체험자와 해금 레벨을 기록한다.
+        /// 체험할 수 없으면 하단에 보여 줄 안내 문구를, 확인되면 null을 돌려준다.
+        /// </summary>
+        private async UniTask<string> ConfirmVisitorAsync(string uid, CancellationToken ct)
+        {
+            if (_visitorApiClient == null)
+            {
+                if (_logger != null) _logger.ZLogError($"[TitleSceneManager] VisitorApiClient가 주입되지 않아 체험자를 확인할 수 없습니다.");
+                return Constants.TitleMessages.QrCheckFailed;
+            }
+
+            CheckActiveResult active = await _visitorApiClient.CheckActiveAsync(uid, ct);
+            if (active.Status != CheckActiveStatus.Active) return GetScanFailMessage(active.Status);
+
+            GetUserResult progress = await _visitorApiClient.GetUserAsync(uid, ct);
+            if (!progress.IsFound) return Constants.TitleMessages.QrCheckFailed;
+
+            if (_visitorInfoProvider != null)
+                _visitorInfoProvider.SetServerVisitor(active.IdxUser, active.Name);
+            else if (_logger != null)
+                _logger.ZLogWarning($"[TitleSceneManager] VisitorInfoProvider가 주입되지 않아 확인한 체험자를 기록하지 못했습니다.");
+
+            // 성공·실패와 상관없이 기록이 있는 마지막 레벨의 다음 레벨까지 연다 — 로컬 진행 규칙(ResultSequence.OnNextClicked)과 같다
+            if (_session)
+                _session.unlockedLevelIndex = progress.LastRecordedLevelIndex + 1;
+            else if (_logger != null)
+                _logger.ZLogWarning($"[TitleSceneManager] GameSession이 주입되지 않아 서버 진행도를 반영하지 못했습니다.");
+
+            return null;
         }
 
         /// <summary>

@@ -13,6 +13,14 @@
 
 ---
 
+### [2026-10-07 17:20] Claude → Antigravity · 서버 진행도 getUser (feat/get-user-progress)
+- 변경 파일: Network/GetUserResult.cs(신규 — result는 JsonUtility, A1~A5는 null·0 구분을 위해 정규식으로 읽어 기록 있는 마지막 레벨 순번), Network/VisitorApiClient.cs(GetUserAsync — 응답에 uid·이름이 있어 원문 대신 실패 사유만 로그), Scenes/TitleSceneManager.cs(ConfirmVisitorAsync: checkActive → getUser → 체험자·해금 기록, getUser 실패 시 확인 불가 안내 후 QR 대기), App/GameLifetimeScope.cs(타이틀 복귀 때 모드 구분 없이 ResetProgress, `_visitorSettings` 필드를 지역 변수로), Constants.cs(GetUserPath), GetUserResultTests.cs(신규 11개), CHANGELOG.md, TODO.md
+- 배경: 서버가 getUser의 기록 없는 값을 빈칸 대신 null로 내도록 수정됨(사용자 확인). 해금은 성공·실패와 상관없이 기록 있는 마지막 레벨의 다음까지(로컬 규칙과 같음), 서버 모드도 타이틀 복귀 때 초기화 — 사용자 결정.
+- 확인 요청: 정규식 범위·null 구분·해금 계산·A5까지 기록, getUser 실패 처리·소프트락, ResetProgress와 관리자 흐름, uid·이름 로그, private 중첩 클래스 JsonUtility, 코드 규칙
+- 결과: 6개 항목 통과(agy). 제안(`private static readonly` 순서)은 프로젝트 규칙(`readonly static`)과 반대라 미반영.
+  - Claude 확인: PlayMode 106/106. 127.0.0.1 가짜 서버로 Play 모드 — A1=1·A2=0 → unlockedLevelIndex 2, 2_Story에서 L1~L3만 열림; 타이틀 복귀 → 해금 0·체험자 비움; checkActive 통과·getUser NOT_FOUND → 기록 없이 '확인할 수 없습니다' 안내 후 QR 대기. 확인 뒤 Server.json·운영 모드·해금 PlayerPrefs(0)·EditorSettings 원복.
+  - 같은 레벨을 성공 후 실패로 다시 하면 updateValue가 마지막 값(0)으로 덮어씀 — 사용자 확인 결과 의도된 동작(최종 플레이 값 기준), 변경 없음.
+
 ### [2026-10-07 17:10] Claude → Antigravity · 레벨 결과 서버 업로드 updateValue (feat/update-value-api)
 - 변경 파일: Network/VisitorApiClient.cs(UpdateValueAsync·GetLevelCode, Server.json 로드 공통화), Network/UpdateValueResponse.cs(신규 — 응답 JSON의 result만 읽어 저장 성공 판정), Scenes/ResultSequence.cs(미션 성공·실패가 정해지면 UploadLevelResult — 서버 모드·QR 확인 체험자만, 관리자 레벨 이동 판 제외, CancellationToken.None + Forget), Constants.cs(UpdateValuePathFormat·ZoneCode A), VisitorApiClientTests.cs(신규 14개), CHANGELOG.md, TODO.md
 - 배경: 1존 코드는 A, 레벨1~5 = A1~A5, 미션 성공 1·실패 0(사용자 설명). 실측 응답 `{"result":true,"idx_user":8,"code":"A1","value":0}`, 잘못된 idx_user면 `{"result":false,"message":"ERROR_IDX_USER"}`.
