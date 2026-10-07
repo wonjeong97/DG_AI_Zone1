@@ -13,6 +13,13 @@
 
 ---
 
+### [2026-10-07 20:15] Claude → Antigravity · 체험자 서버 API 방어 — 4존 맞춤 (fix/visitor-api-guards)
+- 변경 파일: Network/GetUserResult.cs(이 존의 레벨 A1~A5만 봄 — 1 이상 Constants.VisitorApi.LevelCount 이하), Constants.cs(VisitorApi.LevelCount 5), Network/VisitorApiClient.cs(LoadSettingsAsync — JsonLoader.LoadAsync 다음 ThrowIfCancellationRequested), App/GameLifetimeScope.cs(LoadVisitorSettings — Addressables 로드가 예외·null이면 Debug.LogError 후 ScriptableObject.CreateInstance로 대체), GetUserResultTests.cs(2개 추가 — 따옴표 숫자 "1"·"0", 범위 밖 키 A0·A6·A10), VisitorApiClientTests.cs(1개 추가 — 취소된 요청은 '서버 주소 없음'이 아니라 취소로 전달), CHANGELOG.md, TODO.md
+- 배경: 4존 PR #47에서 다듬은 부분을 1존 구조(레벨 순번 0부터, 콘텐츠 코드 A)로 맞춤. 상한이 없으면 서버에 A6 같은 키가 생길 때 마지막 레벨까지 열림(StoryManager가 Clamp는 함). JsonLoader는 취소되면 예외 대신 기본값(빈 baseUrl)을 돌려줘 취소 뒤에도 'baseUrl이 비어 있어' 에러가 남을 수 있었음. VisitorSettings 로드가 실패하면 null이 등록돼 루트 빌드가 깨질 수 있었음.
+- 확인 요청: A1~A5 범위·따옴표 숫자·테스트 기대값(0부터, 기록 없으면 -1), 취소 전달과 호출부(TitleSceneManager.CheckVisitorAsync catch, ResultSequence는 CancellationToken.None), VisitorSettings 대체, 규칙
+- 결과: (1)~(3) 통과(agy, 첫 요청은 5분 제한에 걸려 둘로 나눠 다시 맡김). 지적 미반영: `private readonly static` 순서(프로젝트 규칙이며 이번에 바꾼 줄도 아님), '~않게'로 끝나는 주석(같은 파일 기존 주석과 같은 문체).
+  - Claude 확인: PlayMode 114/114. 취소 테스트는 ThrowIfCancellationRequested 줄을 잠시 뺀 코드에서 실패('취소가 예외로 전달되지 않아…')하고 되돌리면 통과함을 확인. VisitorSettings 로드 실패는 Play 모드에서 재현하지 않음(에셋 기본값과 코드 기본값이 같음 — 로컬 모드·'체험자').
+
 ### [2026-10-07 20:10] Claude → Antigravity · QR 입력 글자 간격 초기화 — 4존 T45 맞춤 (fix/qr-scan-gap-reset)
 - 변경 파일: Scenes/ScanInputBuffer.cs(신규 — Append(char, now)가 앞 글자와 MaxCharGapSeconds 넘게 벌어지면 앞 글자를 비우고 버린 개수를 돌려줌, IsStale·TakeAndClear·Clear, 기본 0.5초), Scenes/TitleSceneManager.cs(StringBuilder 대신 ScanInputBuffer, 시간은 Time.realtimeSinceStartup, 버리면 개수만 로그, 마지막 글자보다 간격 넘게 늦은 Enter는 QR로 보지 않음, ApplyGuideAsync가 qrCanvasGroup이 없어도 0_Title.json을 읽고 깜빡임만 건너뜀, ApplyScanCharGap — 0 이하면 경고 후 기본값), Data/TitleSceneSettings.cs·StreamingAssets/Json/0_Title.json(scanCharGapSeconds 0.5), ScanInputBufferTests.cs(신규 5개), CHANGELOG.md, TODO.md
 - 배경: 4존 실제 리더기 테스트에서 찍기 전에 눌린 키 한 글자가 uid 앞에 붙어 13자로 들어옴 — 타이틀이 Enter까지 들어온 글자를 모두 모으기 때문. 4존 `fix/qr-scan-gap-reset`(9e24168)을 1존 구조(Scenes 네임스페이스, '~한다' 문체)로 옮김.
