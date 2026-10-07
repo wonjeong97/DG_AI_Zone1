@@ -13,6 +13,14 @@
 
 ---
 
+### [2026-10-07 17:40] Claude → Antigravity · QR 확인 중 최소 표시 시간 (feat/qr-checking-min-time)
+- 변경 파일: Scenes/TitleSceneManager.cs(CheckVisitorAsync — 확인 시작 시각을 재고, 서버 확인이 끝난 뒤 qrCheckingMinSeconds를 못 채웠으면 남은 시간만큼 UnscaledDeltaTime 대기 후 결과 표시), Data/TitleSceneSettings.cs·StreamingAssets/Json/0_Title.json(qrCheckingMinSeconds 1.0), CHANGELOG.md, TODO.md
+- 배경: 내부망 서버가 빨리 답하면 '확인 중' 문구가 수십 ms만 스쳐 깜빡임처럼 보임 — 사용자 요청으로 최소 1초.
+- 확인 요청: 남은 시간 계산·0/음수, 대기 중 취소·스캐너 입력, 성공·실패 두 경로, 설정 로드 전 기본값, 코드 규칙
+- 결과: 5개 항목 통과(agy). 제안(Mathf.Max로 음수 방어 명시)은 `remainingSeconds > 0f` 검사로 이미 안전해 미반영.
+  - Claude 확인: PlayMode 106/106. 즉시 답하는 127.0.0.1 가짜 서버로 TMP 텍스트 변경 시각 기록 — 체험 가능: 스캔 10.635 → 시작하기 11.637(약 1.0초), 없는 QR: 스캔 29.018 → 미등록 안내 30.031 → QR 대기 33.027(실패 안내 3초). 확인 뒤 Server.json·운영 모드·EditorSettings 원복.
+  - 열린 문제(사용자에게 질문함): QR 확인 뒤 시작하기를 안 누르면 타이틀이 무기한 대기하고 스캐너 입력도 멈춰 있어, 다음 사람의 QR을 받지 못하고 시작하기를 누르면 앞사람으로 체험·업로드됨.
+
 ### [2026-10-07 17:30] Claude → Antigravity · 체험자 서버 API 재시도 (feat/api-retry)
 - 변경 파일: Network/VisitorApiClient.cs(GetTextAsync가 재시도 반복, SendGetAsync가 한 번 보내기 — 연결 실패·시간 초과·HTTP 오류·잘못된 주소만 재시도, 대기는 UnscaledDeltaTime·취소 즉시 반영, 로그에 n/최대 시도), Data/ServerSettings.cs·StreamingAssets/Json/Server.json(uploadTimeoutSeconds 5·uploadMaxAttempts 10, qrCheckTimeoutSeconds 3·qrCheckMaxAttempts 3, retryDelaySeconds 1 — 기존 timeoutSeconds는 upload…로 이름 변경), Constants.cs(기본값), Scenes/ResultSequence.cs(주석), CHANGELOG.md, TODO.md
 - 배경: 사용자 요청 — 인터넷 상황에 따라 한 번에 안 될 수 있어 실패 시 반드시 여러 번 시도, 기본 10회. 타이틀 대기가 길어져(최악 약 60초) QR 확인만 짧게 해 달라는 추가 요청 → QR 확인 3회·3초(최악 API당 약 11초). 아직 현장 배포 전이라 Server.json 키 이름 변경에 호환 문제 없음.

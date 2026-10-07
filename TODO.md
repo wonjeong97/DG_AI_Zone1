@@ -10,6 +10,7 @@
 
 ## 완료
 
+- [x] 타이틀 'QR 코드를 확인하고 있습니다'를 최소 1초 보여 주기(서버가 빨리 답해도 깜빡이지 않게, 0_Title.json qrCheckingMinSeconds) — PlayMode 106/106 — 담당: Claude / 검증: Antigravity (2026-10-07)
 - [x] 체험자 서버 API 요청 실패 시 재시도(연결 실패·시간 초과·HTTP 오류만, 서버가 답한 결과는 재시도 안 함) — Server.json의 upload…(결과 업로드 10회·5초)·qrCheck…(타이틀 QR 확인 3회·3초)·retryDelaySeconds(1초) — PlayMode 106/106 — 담당: Claude / 검증: Antigravity (2026-10-07)
 - [x] 진행도 API 연동(getUser) — QR 확인 후 A1~A5 중 기록 있는 마지막 레벨의 다음까지 해금, getUser 실패는 안내 후 QR 대기, 서버 모드도 타이틀 복귀 때 진행도 초기화 — PlayMode 106/106 — 담당: Claude / 검증: Antigravity (2026-10-07)
 - [x] 레벨 결과 서버 업로드(updateValue) — 1존 코드 A, 레벨1~5 = A1~A5, 미션 성공 1·실패 0(넘어가기 포함), 서버 모드·QR 확인 체험자만, 관리자 레벨 이동 판 제외, 응답 result로 저장 판정 — PlayMode 95/95 — 담당: Claude / 검증: Antigravity (2026-10-07)

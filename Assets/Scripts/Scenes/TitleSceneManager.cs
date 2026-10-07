@@ -223,16 +223,23 @@ namespace Scenes
         }
 
         /// <summary>
-        /// QR uid로 서버에 체험자를 확인한다. 확인되면 시작하기 안내로 바꾸고,
+        /// QR uid로 서버에 체험자를 확인한다. '확인하고 있습니다'를 최소 시간만큼은 보여 준 뒤, 확인되면 시작하기 안내로 바꾸고
         /// 아니면(체험 완료·없는 QR·서버 오류) 이유를 잠시 보여 준 뒤 다시 QR을 기다린다.
         /// </summary>
         private async UniTaskVoid CheckVisitorAsync(string uid, CancellationToken ct)
         {
             if (guideText) guideText.text = Constants.TitleMessages.QrChecking;
+            float checkStartTime = Time.realtimeSinceStartup;
 
             try
             {
                 string failMessage = await ConfirmVisitorAsync(uid, ct);
+
+                // 서버가 빨리 답해도 '확인하고 있습니다'가 스치듯 지나가지 않게 최소 시간을 채운다 — 이미 지났으면 바로 넘어간다
+                float remainingSeconds = _sceneSettings.qrCheckingMinSeconds - (Time.realtimeSinceStartup - checkStartTime);
+                if (remainingSeconds > 0f)
+                    await UniTask.Delay(TimeSpan.FromSeconds(remainingSeconds), DelayType.UnscaledDeltaTime, cancellationToken: ct);
+
                 if (failMessage == null)
                 {
                     ShowStartGuide();

@@ -6,6 +6,9 @@
 
 ## [Unreleased]
 
+### Changed
+- 서버 모드 타이틀에서 QR을 찍은 뒤 'QR 코드를 확인하고 있습니다' 안내를 서버가 빨리 답해도 최소 1초(`StreamingAssets/Json/0_Title.json` 의 `qrCheckingMinSeconds`)는 보여 준 뒤 결과로 바뀌도록 변경(문구가 깜빡이듯 스치지 않게).
+
 ## [2026-10-07]
 
 ### ⚠ Breaking Changes
