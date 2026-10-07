@@ -8,8 +8,11 @@
 
 ## 할 일
 
+- [ ] 결과 저장(updateValue)·진행도 API 연동 — 이 존의 콘텐츠 코드, 서버 모드 타이틀 복귀 때 진행도 처리, getUser 응답의 빈 값(`"A1": ,`)이 올바른 JSON이 아닌 문제 확인 필요(사용자가 나중에 설명)
+
 ## 완료
 
+- [x] 서버 모드 QR 체험자 확인(checkActive) — 체험 가능하면 idx·이름 기록 후 시작하기, 완료·없음·서버 오류는 안내 후 다시 QR 대기, 서버 주소는 StreamingAssets/Json/Server.json — PlayMode 78/78 — 담당: Claude / 검증: Antigravity (2026-10-07)
 - [x] 블록 고르기의 '변수' 탭(레벨1·2 값 블록) 이름을 레벨3처럼 '숫자·정보'로 — PlayMode 63/63 — 담당: Claude / 검증: Antigravity (2026-10-07)
 - [x] 영상 오디오 트랙 제거 — Robot_260728.webm의 Opus 트랙을 ffmpeg 스트림 복사(-map 0:v -c copy -an)로 제거, 알파 포함 프레임 동일 확인, 인트로 재생 시 OPUS 에러 사라짐 — 담당: Claude (2026-10-07)
 

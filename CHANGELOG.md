@@ -6,6 +6,11 @@
 
 ## [Unreleased]
 
+### Added
+- 서버 모드에서 QR을 찍으면 체험자 서버에 확인해, 체험할 수 있는 QR이면 시작하기로 넘어가고 서버에 등록된 체험자 이름을 인트로·아웃트로에 쓰도록 추가.
+- 서버 모드에서 이미 체험을 마친 QR·등록되지 않은 QR이거나 서버에 연결할 수 없을 때, 타이틀 하단에 이유를 3초(`StreamingAssets/Json/0_Title.json` 의 `scanResultMessageSeconds`) 동안 보여 준 뒤 다시 QR을 기다리도록 추가.
+- 체험자 서버 주소와 응답 대기 시간(처음 값 5초)을 재빌드 없이 `StreamingAssets/Json/Server.json` 에서 바꿀 수 있도록 추가.
+
 ## [2026-10-07]
 
 ### ⚠ Breaking Changes

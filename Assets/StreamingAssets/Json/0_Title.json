@@ -1,4 +1,5 @@
 {
   "qrFadeDuration": 1.0,
-  "qrBlinkMinAlpha": 0.3
+  "qrBlinkMinAlpha": 0.3,
+  "scanResultMessageSeconds": 3.0
 }

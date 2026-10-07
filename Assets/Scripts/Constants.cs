@@ -507,6 +507,12 @@ public static class Constants
     {
         public const string QrGuide    = "QR 코드를 인식하여 주세요.";
         public const string StartGuide = "시작하기를 눌러주세요.";
+
+        // 서버 모드에서 QR을 찍은 뒤 체험자 확인 결과 안내 — 확인 중을 빼면 잠시 보여 준 뒤 QrGuide로 돌아간다
+        public const string QrChecking    = "QR 코드를 확인하고 있습니다.";
+        public const string QrCompleted   = "이미 체험을 완료한 QR 코드입니다.";
+        public const string QrNotFound    = "등록되지 않은 QR 코드입니다.";
+        public const string QrCheckFailed = "QR 코드를 확인할 수 없습니다. 잠시 후 다시 시도해 주세요.";
     }
 
     // ── 21. 효과음 키 (StreamingAssets/Settings.json의 sounds[].key) ──────
@@ -551,5 +557,19 @@ public static class Constants
 
         // 체험자 이름 최대 글자 수 — 인트로·아웃트로 문장 안에 들어가므로 한 줄을 넘지 않게 제한한다
         public const int VisitorNameMaxLength = 8;
+    }
+
+    // ── 23. 체험자 서버 API (서버 모드에서 타이틀 QR uid로 체험자 확인) ──────
+    // 서버는 현장 내부망에 있다. 응답은 JSON이 아닌 평문이다.
+    public static class VisitorApi
+    {
+        // 서버 주소 JSON(StreamingAssets/Json/Server.json)
+        public const string SettingsFileName      = "Server";
+        public const int    DefaultTimeoutSeconds = 5;
+
+        // 체험 가능 여부 — 뒤에 uid를 붙인다. 체험 가능하면 "idx_user,name"(예: "10,LLL")
+        public const string CheckActivePath   = "/api/checkActive.cfm?uid=";
+        public const string CompletedResponse = "체험을 완료한 유저입니다";
+        public const string NotFoundResponse  = "NOT_FOUND";
     }
 }
