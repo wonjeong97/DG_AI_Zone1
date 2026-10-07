@@ -8,12 +8,19 @@ namespace App
 {
     // 운영 모드(서버 연동 여부)에 따라 체험자 이름을 결정한다.
     // 모드와 로컬 모드 이름은 VisitorSettings(SO, 관리자 페이지에서 변경)에서 읽는다.
+    // 서버 모드에서는 타이틀이 QR로 확인한 체험자(서버의 idx_user·이름)를 들고 있다가 타이틀로 돌아오면 비운다.
     public class VisitorInfoProvider
     {
         private const string FallbackName = "체험자";
+        private const int NoVisitorIdx = -1;
 
         private readonly VisitorSettings _settings;
         private readonly ILogger<VisitorInfoProvider> _logger;
+
+        private string _serverVisitorName;
+
+        // 서버 모드에서 QR로 확인한 체험자의 idx_user — 확인 전이거나 체험이 끝나면 -1
+        public int VisitorIdx { get; private set; } = NoVisitorIdx;
 
         /// <summary>
         /// 체험자 설정과 로거를 생성자 주입으로 받는다.
@@ -28,15 +35,34 @@ namespace App
         public bool IsServerConnected => _settings.IsServerConnected;
 
         /// <summary>
-        /// 화면에 표시할 체험자 이름을 반환한다 (서버 미연동 시 VisitorSettings의 이름).
+        /// 타이틀에서 QR로 확인한 서버 체험자를 기록한다.
+        /// </summary>
+        public void SetServerVisitor(int idxUser, string visitorName)
+        {
+            VisitorIdx = idxUser;
+            _serverVisitorName = visitorName;
+        }
+
+        /// <summary>
+        /// 서버 체험자 기록을 비운다 — 타이틀로 돌아오면 다음 체험자를 QR로 다시 확인해야 한다.
+        /// </summary>
+        public void ClearServerVisitor()
+        {
+            VisitorIdx = NoVisitorIdx;
+            _serverVisitorName = null;
+        }
+
+        /// <summary>
+        /// 화면에 표시할 체험자 이름을 반환한다. 서버 모드면 QR로 확인한 서버 이름, 아니면 VisitorSettings의 이름이다.
         /// </summary>
         public UniTask<string> GetNameAsync(CancellationToken cancellationToken = default)
         {
             if (_settings.IsServerConnected)
             {
-                // TODO: 서버 연동(예: QR 스캔)으로 실제 체험자 이름을 조회하도록 구현.
-                // 서버 API가 준비되기 전까지는 기본 이름으로 대체함.
-                if (_logger != null) _logger.ZLogWarning($"[VisitorInfoProvider] 서버 모드이지만 서버 연동이 아직 구현되지 않아 기본 이름으로 대체합니다.");
+                if (!string.IsNullOrEmpty(_serverVisitorName)) return UniTask.FromResult(_serverVisitorName);
+
+                // 관리자 화면의 레벨 이동처럼 QR 확인 없이 시작한 판이거나 서버 이름이 비어 있는 경우
+                if (_logger != null) _logger.ZLogWarning($"[VisitorInfoProvider] 서버 모드이지만 QR로 확인한 체험자 이름이 없어 기본 이름으로 대체합니다.");
             }
 
             string visitorName = _settings.VisitorName;

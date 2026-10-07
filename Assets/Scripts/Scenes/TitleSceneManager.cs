@@ -15,6 +15,7 @@ using UnityEngine.UI;
 using VContainer;
 using HuliacDev.UI;
 using HuliacDev.Utils;
+using Network;
 using ZLogger;
 
 namespace Scenes
@@ -27,7 +28,11 @@ namespace Scenes
 
         private ILogger<TitleSceneManager> _logger;
         private VisitorInfoProvider _visitorInfoProvider;
+        private VisitorApiClient _visitorApiClient;
         private SoundManager _soundManager;
+
+        // 0_Title.json 로드 전에 QR 확인 결과가 나오면 기본값을 쓴다
+        private TitleSceneSettings _sceneSettings = new();
 
         // 무한 반복 깜빡임이라 씬을 떠날 때 직접 Kill한다
         private Tween _qrBlinkTween;
@@ -39,13 +44,15 @@ namespace Scenes
         private bool _isWaitingForQr;
 
         /// <summary>
-        /// 로거, 체험자 정보 제공자, 사운드 매니저를 주입받는다.
+        /// 로거, 체험자 정보 제공자, 체험자 서버 API, 사운드 매니저를 주입받는다.
         /// </summary>
         [Inject]
-        public void Construct(ILogger<TitleSceneManager> log, VisitorInfoProvider visitorInfoProvider, SoundManager soundManager)
+        public void Construct(ILogger<TitleSceneManager> log, VisitorInfoProvider visitorInfoProvider,
+            VisitorApiClient visitorApiClient, SoundManager soundManager)
         {
             _logger = log;
             _visitorInfoProvider = visitorInfoProvider;
+            _visitorApiClient = visitorApiClient;
             _soundManager = soundManager;
         }
 
@@ -89,9 +96,9 @@ namespace Scenes
                 qrCanvasGroup.gameObject.SetActive(true);
 
                 string settingsPath = ZString.Concat(Constants.ResourcePaths.SceneSettingsFolder, "/", Constants.Scenes.Title);
-                TitleSceneSettings sceneSettings = await JsonLoader.LoadAsync<TitleSceneSettings>(settingsPath, ct, _logger);
+                _sceneSettings = await JsonLoader.LoadAsync<TitleSceneSettings>(settingsPath, ct, _logger);
 
-                _qrBlinkTween = qrCanvasGroup.DOFade(sceneSettings.qrBlinkMinAlpha, sceneSettings.qrFadeDuration)
+                _qrBlinkTween = qrCanvasGroup.DOFade(_sceneSettings.qrBlinkMinAlpha, _sceneSettings.qrFadeDuration)
                     .SetLoops(-1, LoopType.Yoyo)
                     .SetEase(Ease.InOutSine)
                     .SetLink(qrCanvasGroup.gameObject);
@@ -203,15 +210,67 @@ namespace Scenes
         }
 
         /// <summary>
-        /// QR 인식이 끝나면 입력 대기를 멈추고 시작하기 안내로 바꾼다.
+        /// QR 인식이 끝나면 입력 대기를 멈추고 서버에 체험자를 확인한다.
         /// </summary>
         private void OnQrScanned(string code)
         {
             StopWaitingForQr();
             if (_logger != null) _logger.ZLogInformation($"[TitleSceneManager] QR 인식 완료 (길이 {code.Length})");
 
-            // TODO: 서버 연동 시 — code로 체험자 정보·진행도를 조회해 VisitorInfoProvider에 반영할 것.
-            ShowStartGuide();
+            CheckVisitorAsync(code, destroyCancellationToken).Forget();
+        }
+
+        /// <summary>
+        /// QR uid로 서버에 체험 가능 여부를 묻는다. 체험 가능하면 체험자를 기록하고 시작하기 안내로 바꾸고,
+        /// 아니면(체험 완료·없는 QR·서버 오류) 이유를 잠시 보여 준 뒤 다시 QR을 기다린다.
+        /// </summary>
+        private async UniTaskVoid CheckVisitorAsync(string uid, CancellationToken ct)
+        {
+            if (guideText) guideText.text = Constants.TitleMessages.QrChecking;
+
+            try
+            {
+                CheckActiveResult result = CheckActiveResult.Failed();
+                if (_visitorApiClient != null)
+                    result = await _visitorApiClient.CheckActiveAsync(uid, ct);
+                else if (_logger != null)
+                    _logger.ZLogError($"[TitleSceneManager] VisitorApiClient가 주입되지 않아 체험자를 확인할 수 없습니다.");
+
+                if (result.Status == CheckActiveStatus.Active)
+                {
+                    if (_visitorInfoProvider != null)
+                        _visitorInfoProvider.SetServerVisitor(result.IdxUser, result.Name);
+                    else if (_logger != null)
+                        _logger.ZLogWarning($"[TitleSceneManager] VisitorInfoProvider가 주입되지 않아 확인한 체험자를 기록하지 못했습니다.");
+
+                    ShowStartGuide();
+                    return;
+                }
+
+                if (guideText) guideText.text = GetScanFailMessage(result.Status);
+
+                // 0_Title.json에 음수를 적으면 Delay가 예외를 내 QR 대기로 돌아오지 못하므로 0 이상으로 제한한다
+                float messageSeconds = Mathf.Max(0f, _sceneSettings.scanResultMessageSeconds);
+                await UniTask.Delay(TimeSpan.FromSeconds(messageSeconds), DelayType.UnscaledDeltaTime, cancellationToken: ct);
+                WaitForQr();
+            }
+            catch (OperationCanceledException)
+            {
+                // 확인 도중 씬 전환 등으로 오브젝트가 파괴된 경우 — 정상 종료
+            }
+        }
+
+        /// <summary>
+        /// 체험할 수 없는 QR 확인 결과를 하단 안내 문구로 바꾼다.
+        /// </summary>
+        private static string GetScanFailMessage(CheckActiveStatus status)
+        {
+            return status switch
+            {
+                CheckActiveStatus.Completed => Constants.TitleMessages.QrCompleted,
+                CheckActiveStatus.NotFound  => Constants.TitleMessages.QrNotFound,
+                _                           => Constants.TitleMessages.QrCheckFailed
+            };
         }
 
         /// <summary>

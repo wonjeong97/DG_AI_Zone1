@@ -23,7 +23,7 @@ namespace App
         private ILogger<GameLifetimeScope> _logger;
 
         /// <summary>
-        /// 템플릿 기본 등록에 더해 게임 매니저, 체험자 정보, 전역 페이드, 게임 세션, 체험자 설정, TMP 폰트를 등록하고
+        /// 템플릿 기본 등록에 더해 게임 매니저, 체험자 정보·서버 API, 전역 페이드, 게임 세션, 체험자 설정, TMP 폰트를 등록하고
         /// 템플릿 디버그 단축키를 Ctrl 조합으로 바꾼다.
         /// </summary>
         protected override void Configure(IContainerBuilder builder)
@@ -31,6 +31,7 @@ namespace App
             base.Configure(builder);
             builder.RegisterComponentInHierarchy<GameManager>();
             builder.Register<VisitorInfoProvider>(Lifetime.Singleton);
+            builder.Register<Network.VisitorApiClient>(Lifetime.Singleton);
 
             // GameCloser·SystemCanvas 등록은 base의 ConfigureCoreComponents()에서 수행됨(중복 등록 시 VContainer 충돌).
             // 다만 아무도 Resolve하지 않으면 지연 등록만으로는 주입되지 않으므로 빌드 시점에 즉시 Resolve
@@ -167,16 +168,19 @@ namespace App
             // 다음 체험자의 스토리 < 버튼·결과 다음 버튼이 관리자 화면으로 가지 않도록 모드와 상관없이 비운다
             _session.isAdminLevelJump = false;
 
+            // QR로 확인한 체험자도 타이틀로 돌아오면 체험이 끝난다 — 다음 체험자는 QR로 다시 확인한다
+            Container.Resolve<VisitorInfoProvider>().ClearServerVisitor();
+
             if (!_visitorSettings.IsServerConnected)
             {
                 _session.ResetProgress();
                 return;
             }
 
-            // TODO: 서버 연동 시 — 현재 체험자 식별 정보와 진행도 세션을 종료/초기화할 것.
+            // TODO: 서버 연동 시 — 진행도 세션을 종료/초기화할 것.
             //       진행도는 서버에 저장되어 있어 다음 QR 스캔 때 이어서 시작할 수 있어야 하므로,
             //       로컬 ResetProgress로 지우는 대신 "이 체험자의 세션이 끝났다"만 정리해야 한다.
-            //       (VisitorInfoProvider.GetNameAsync의 서버 연동 TODO와 함께 구현)
+            //       (진행도 API 연동과 함께 구현)
         }
     }
 }
