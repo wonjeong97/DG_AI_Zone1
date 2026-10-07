@@ -122,11 +122,14 @@ namespace Network
         }
 
         /// <summary>
-        /// Server.json을 읽는다. baseUrl이 비어 있으면 로그를 남기고 null을 돌려준다.
+        /// Server.json을 읽는다. baseUrl이 비어 있으면 로그를 남기고 null을 돌려주며, 취소는 예외로 전달한다.
         /// </summary>
         private async UniTask<ServerSettings> LoadSettingsAsync(CancellationToken cancellationToken)
         {
             ServerSettings settings = await JsonLoader.LoadAsync<ServerSettings>(SettingsPath, cancellationToken, _logger);
+
+            // JsonLoader는 취소돼도 기본값(빈 baseUrl)을 돌려주므로 여기서 취소를 전달한다 — 취소 뒤 'baseUrl이 비어 있어' 에러가 남지 않게
+            cancellationToken.ThrowIfCancellationRequested();
             if (!string.IsNullOrEmpty(settings.baseUrl)) return settings;
 
             if (_logger != null) _logger.ZLogError($"[VisitorApiClient] Server.json의 baseUrl이 비어 있어 서버를 호출할 수 없습니다.");
