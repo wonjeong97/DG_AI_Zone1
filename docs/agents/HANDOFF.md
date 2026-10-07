@@ -13,6 +13,14 @@
 
 ---
 
+### [2026-10-07 17:10] Claude → Antigravity · 레벨 결과 서버 업로드 updateValue (feat/update-value-api)
+- 변경 파일: Network/VisitorApiClient.cs(UpdateValueAsync·GetLevelCode, Server.json 로드 공통화), Network/UpdateValueResponse.cs(신규 — 응답 JSON의 result만 읽어 저장 성공 판정), Scenes/ResultSequence.cs(미션 성공·실패가 정해지면 UploadLevelResult — 서버 모드·QR 확인 체험자만, 관리자 레벨 이동 판 제외, CancellationToken.None + Forget), Constants.cs(UpdateValuePathFormat·ZoneCode A), VisitorApiClientTests.cs(신규 14개), CHANGELOG.md, TODO.md
+- 배경: 1존 코드는 A, 레벨1~5 = A1~A5, 미션 성공 1·실패 0(사용자 설명). 실측 응답 `{"result":true,"idx_user":8,"code":"A1","value":0}`, 잘못된 idx_user면 `{"result":false,"message":"ERROR_IDX_USER"}`.
+- 확인 요청: 화면 미션 결과와 업로드 값 일치(넘어가기 0), 중복·결과 없는 진입, 업로드 조건 순서·null, 씬 파괴 뒤 접근·예외 누출, URL 조립·코드, 코드 규칙
+- 결과: 6개 항목 통과(agy, 응답 판정 테스트 직접 실행 포함). 제안(UploadLevelResult 안 `_session` null 검사)은 호출부가 이미 거르므로 미반영.
+  - Claude 확인: PlayMode 95/95. 127.0.0.1 가짜 서버로 Play 모드에서 QR 확인(idx 10) 뒤 결과 씬 진입 — 레벨1 넘어가기 → `idx_user=10&code=A1&value=0`, 레벨5 최고 점수 → `code=A5&value=1`·화면 '미션 성공!', 관리자 레벨 이동 판 → 전송 없음(로그만). 확인 뒤 Server.json·운영 모드 PlayerPrefs(로컬 0)·GameSession 값·EditorSettings 원복.
+  - 재시도 없음 — 전송 실패 시 에러 로그만 남김(필요하면 추후).
+
 ### [2026-10-07 16:50] Claude → Antigravity · 서버 모드 QR 체험자 확인 checkActive (feat/check-active-api)
 - 변경 파일: Network/VisitorApiClient.cs(신규 — Server.json 주소로 checkActive GET, 실패는 예외 대신 RequestFailed, uid는 로그에 남기지 않음), Network/CheckActiveResult.cs(신규 — 평문 응답 해석: "idx_user,name" 체험 가능·"체험을 완료한 유저입니다"·"NOT_FOUND"·그 밖 Unknown), Data/ServerSettings.cs·StreamingAssets/Json/Server.json(신규 — baseUrl·timeoutSeconds), App/VisitorInfoProvider.cs(서버 체험자 idx·이름 기록/비우기, 서버 모드 이름), App/GameLifetimeScope.cs(VisitorApiClient 등록, 타이틀 복귀 때 체험자 비움), Scenes/TitleSceneManager.cs(QR → 확인 중 → 시작하기 또는 안내 후 QR 대기), Data/TitleSceneSettings.cs·0_Title.json(scanResultMessageSeconds 3), Constants.cs(VisitorApi·안내 문구), CheckActiveResultTests.cs(신규 15개), CHANGELOG.md, TODO.md
 - 배경: 서버는 회사 내부망 전용이라 개발 환경에서 접속 불가. 응답 형식은 사용자가 회사에서 페이지 소스로 확인한 실측값(체험 가능 `10,LLL`, 완료 `체험을 완료한 유저입니다`, 없음 `NOT_FOUND`). 템플릿 ApiRetryUtil은 응답 본문을 안 돌려주고 에디터에서 전송을 생략하는 로그용이라 쓰지 않음.

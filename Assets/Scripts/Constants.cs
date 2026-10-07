@@ -571,5 +571,11 @@ public static class Constants
         public const string CheckActivePath   = "/api/checkActive.cfm?uid=";
         public const string CompletedResponse = "체험을 완료한 유저입니다";
         public const string NotFoundResponse  = "NOT_FOUND";
+
+        // 레벨 결과 저장 — {0} idx_user, {1} 콘텐츠 코드, {2} 성공 1·실패 0
+        public const string UpdateValuePathFormat = "/api/updateValue.cfm?idx_user={0}&code={1}&value={2}";
+
+        // 이 존(1존)의 콘텐츠 코드 — 레벨 번호를 붙여 A1~A5(레벨1~5)로 쓴다
+        public const string ZoneCode = "A";
     }
 }
