@@ -359,7 +359,8 @@ namespace Scenes
             }
 
             string code = VisitorApiClient.GetLevelCode(_session.currentLevel.levelIndex);
-            _visitorApiClient.UpdateValueAsync(_visitorInfoProvider.VisitorIdx, code, isSuccess, CancellationToken.None).Forget();
+            _visitorApiClient.UpdateValueAsync(_visitorInfoProvider.VisitorIdx, _visitorInfoProvider.ServerVisitorName, code, isSuccess,
+                CancellationToken.None).Forget();
         }
 
         /// <summary>

@@ -19,7 +19,15 @@
 - 확인 요청: 남은 시간 계산·0/음수, 대기 중 취소·스캐너 입력, 성공·실패 두 경로, 설정 로드 전 기본값, 코드 규칙
 - 결과: 5개 항목 통과(agy). 제안(Mathf.Max로 음수 방어 명시)은 `remainingSeconds > 0f` 검사로 이미 안전해 미반영.
   - Claude 확인: PlayMode 106/106. 즉시 답하는 127.0.0.1 가짜 서버로 TMP 텍스트 변경 시각 기록 — 체험 가능: 스캔 10.635 → 시작하기 11.637(약 1.0초), 없는 QR: 스캔 29.018 → 미등록 안내 30.031 → QR 대기 33.027(실패 안내 3초). 확인 뒤 Server.json·운영 모드·EditorSettings 원복.
-  - 열린 문제(사용자에게 질문함): QR 확인 뒤 시작하기를 안 누르면 타이틀이 무기한 대기하고 스캐너 입력도 멈춰 있어, 다음 사람의 QR을 받지 못하고 시작하기를 누르면 앞사람으로 체험·업로드됨.
+  - 열린 문제(사용자에게 질문함): QR 확인 뒤 시작하기를 안 누르면 타이틀이 무기한 대기하고 스캐너 입력도 멈춰 있어, 다음 사람의 QR을 받지 못하고 시작하기를 누르면 앞사람으로 체험·업로드됨. → 아래 17:50 항목에서 해결.
+
+### [2026-10-07 17:50] Claude → Antigravity · 확인 뒤 이름 안내·새 QR 받기·시작하기 대기 시간 제한, 업로드 로그 이름 (feat/qr-checking-min-time)
+- 변경 파일: Scenes/TitleSceneManager.cs(WaitForQr를 문구·시작 버튼 숨김과 StartScanning(입력만, 장치 이벤트 중복 방지)으로 분리, 확인 성공 시 ShowConfirmedVisitorAsync — '{이름}님, 시작하기를 눌러주세요.'·스캐너 입력 유지·대기 시간 재기, OnQrScanned에서 시간 재기 취소·시작 버튼 숨김·앞사람 기록(ClearConfirmedVisitor: 체험자·unlockedLevelIndex) 비움, ConfirmTimeoutAsync — Settings.json useInactivityTimer·resetTime(InactivityTimer와 같은 규칙) 뒤 기록 비우고 QR 대기, 시작하기 클릭 시 입력·시간 재기 중지, AppSettingsProvider 주입), Constants.cs(StartGuideWithNameFormat), App/VisitorInfoProvider.cs(ServerVisitorName 공개 읽기), Network/VisitorApiClient.cs(UpdateValueAsync에 visitorName — 로그에만 사용), Scenes/ResultSequence.cs(이름 전달), CHANGELOG.md, TODO.md
+- 배경: 사용자 요청 — 확인 뒤 시작하기를 안 누를 때 다음 사람 QR을 받고, 비활동 타이머와 같은 값으로 시간 제한, 시작 문구에 이름, 업로드 로그에 이름. 로컬 모드 시작 문구는 그대로.
+- 확인 요청: 앞사람 기록이 남는 경로, CTS 관리, 입력 중복 구독·시작 클릭 뒤 간섭, 로컬 모드 유지, 코드 규칙
+- 결과: 5개 항목 통과(agy). 제안(시작 버튼 연타 방지)은 기존 동작이라 범위 밖. 업로드 로그 이름 추가는 agy 리뷰 뒤 넣은 작은 변경이라 Claude가 대신 검증.
+  - Claude 확인: PlayMode 106/106. 127.0.0.1 가짜 서버(체험자 LLL·KKK), 테스트 동안만 Settings.json useInactivityTimer true·resetTime 5 — LLL 확인 → 'LLL님, 시작하기를 눌러주세요.'·5초 뒤 QR 대기(기록 비움), KKK도 21.29→26.30초; 시간 제한을 메모리에서 60초로 늘려 LLL(idx 10·해금 2) 상태에서 KKK 스캔 → 'KKK님, …'(idx 12·해금 0), 그 상태에서 없는 QR → 시작 버튼 숨김·기록 비움 → 미등록 안내 → QR 대기. 업로드 로그 `레벨 결과 저장 완료 (idx 10, 이름 LLL, A1=0)`. 콘솔 에러 0, 확인 뒤 Settings.json·Server.json·운영 모드·세션·EditorSettings 원복.
+  - 주의: Settings.json이 useInactivityTimer false면 타이틀 시간 제한도 꺼짐(새 QR 받기로 앞사람 문제는 막힘). 현장에서는 true로.
 
 ### [2026-10-07 17:30] Claude → Antigravity · 체험자 서버 API 재시도 (feat/api-retry)
 - 변경 파일: Network/VisitorApiClient.cs(GetTextAsync가 재시도 반복, SendGetAsync가 한 번 보내기 — 연결 실패·시간 초과·HTTP 오류·잘못된 주소만 재시도, 대기는 UnscaledDeltaTime·취소 즉시 반영, 로그에 n/최대 시도), Data/ServerSettings.cs·StreamingAssets/Json/Server.json(uploadTimeoutSeconds 5·uploadMaxAttempts 10, qrCheckTimeoutSeconds 3·qrCheckMaxAttempts 3, retryDelaySeconds 1 — 기존 timeoutSeconds는 upload…로 이름 변경), Constants.cs(기본값), Scenes/ResultSequence.cs(주석), CHANGELOG.md, TODO.md

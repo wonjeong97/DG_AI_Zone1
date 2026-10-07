@@ -13,6 +13,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using VContainer;
+using HuliacDev.Data;
 using HuliacDev.UI;
 using HuliacDev.Utils;
 using Network;
@@ -31,9 +32,13 @@ namespace Scenes
         private VisitorApiClient _visitorApiClient;
         private GameSession _session;
         private SoundManager _soundManager;
+        private AppSettingsProvider _settingsProvider;
 
         // 0_Title.json 로드 전에 QR 확인 결과가 나오면 기본값을 쓴다
         private TitleSceneSettings _sceneSettings = new();
+
+        // QR로 확인한 체험자가 시작하기를 누르지 않고 기다린 시간 재기 — 시작하기·새 QR·씬 파괴 때 취소한다
+        private CancellationTokenSource _confirmTimeoutCts;
 
         // 무한 반복 깜빡임이라 씬을 떠날 때 직접 Kill한다
         private Tween _qrBlinkTween;
@@ -45,17 +50,18 @@ namespace Scenes
         private bool _isWaitingForQr;
 
         /// <summary>
-        /// 로거, 체험자 정보 제공자, 체험자 서버 API, 게임 세션, 사운드 매니저를 주입받는다.
+        /// 로거, 체험자 정보 제공자, 체험자 서버 API, 게임 세션, 사운드 매니저, 앱 설정(Settings.json) 제공자를 주입받는다.
         /// </summary>
         [Inject]
         public void Construct(ILogger<TitleSceneManager> log, VisitorInfoProvider visitorInfoProvider,
-            VisitorApiClient visitorApiClient, GameSession session, SoundManager soundManager)
+            VisitorApiClient visitorApiClient, GameSession session, SoundManager soundManager, AppSettingsProvider settingsProvider)
         {
             _logger = log;
             _visitorInfoProvider = visitorInfoProvider;
             _visitorApiClient = visitorApiClient;
             _session = session;
             _soundManager = soundManager;
+            _settingsProvider = settingsProvider;
         }
 
         /// <summary>
@@ -91,7 +97,7 @@ namespace Scenes
                     _logger.ZLogWarning($"[TitleSceneManager] VisitorInfoProvider가 주입되지 않아 서버 미연동으로 보고 시작하기 안내를 표시합니다.");
 
                 if (isServerConnected) WaitForQr();
-                else ShowStartGuide();
+                else ShowStartGuide(Constants.TitleMessages.StartGuide);
 
                 // qrCanvasGroup 누락은 Start에서 이미 경고했다
                 if (!qrCanvasGroup) return;
@@ -112,17 +118,28 @@ namespace Scenes
         }
 
         /// <summary>
-        /// QR 안내를 띄우고 키보드(바코드 스캐너) 문자 입력을 받기 시작한다.
+        /// 시작 버튼을 숨기고 QR 안내를 띄운 뒤 키보드(바코드 스캐너) 문자 입력을 받기 시작한다.
         /// </summary>
         private void WaitForQr()
         {
+            if (startButton) startButton.gameObject.SetActive(false);
             if (guideText) guideText.text = Constants.TitleMessages.QrGuide;
+            StartScanning();
+        }
 
+        /// <summary>
+        /// 키보드(바코드 스캐너) 문자 입력을 받기 시작한다. 이미 받고 있으면 모은 문자만 비운다.
+        /// </summary>
+        private void StartScanning()
+        {
             _scanBuffer.Clear();
             _isWaitingForQr = true;
 
             foreach (InputDevice device in InputSystem.devices)
                 if (device is Keyboard keyboard) SubscribeScanKeyboard(keyboard);
+
+            // 이미 받고 있는 중에 다시 불려도 장치 연결 이벤트가 두 번 걸리지 않게 뺐다가 건다
+            InputSystem.onDeviceChange -= OnDeviceChange;
             InputSystem.onDeviceChange += OnDeviceChange;
 
             if (_scanKeyboards.Count == 0 && _logger != null)
@@ -213,10 +230,14 @@ namespace Scenes
 
         /// <summary>
         /// QR 인식이 끝나면 입력 대기를 멈추고 서버에 체험자를 확인한다.
+        /// 시작하기가 떠 있는 동안 다음 사람이 찍은 경우에도 앞사람 기록을 비우고 새로 확인한다.
         /// </summary>
         private void OnQrScanned(string code)
         {
             StopWaitingForQr();
+            CancelConfirmTimeout();
+            if (startButton) startButton.gameObject.SetActive(false);
+            ClearConfirmedVisitor();
             if (_logger != null) _logger.ZLogInformation($"[TitleSceneManager] QR 인식 완료 (길이 {code.Length})");
 
             CheckVisitorAsync(code, destroyCancellationToken).Forget();
@@ -242,7 +263,7 @@ namespace Scenes
 
                 if (failMessage == null)
                 {
-                    ShowStartGuide();
+                    await ShowConfirmedVisitorAsync(ct);
                     return;
                 }
 
@@ -305,12 +326,99 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 하단 안내를 "시작하기를 눌러주세요"로 바꾸고 시작 버튼을 보여준다.
+        /// 하단 안내를 시작하기 안내 문구로 바꾸고 시작 버튼을 보여준다.
         /// </summary>
-        private void ShowStartGuide()
+        private void ShowStartGuide(string message)
         {
-            if (guideText) guideText.text = Constants.TitleMessages.StartGuide;
+            if (guideText) guideText.text = message;
             if (startButton) startButton.gameObject.SetActive(true);
+        }
+
+        /// <summary>
+        /// QR로 확인한 체험자에게 이름이 들어간 시작 안내와 시작 버튼을 보여 준다.
+        /// 다음 사람이 QR을 찍을 수 있게 스캐너 입력을 계속 받고, 시작하기를 기다린 시간을 재기 시작한다.
+        /// </summary>
+        private async UniTask ShowConfirmedVisitorAsync(CancellationToken ct)
+        {
+            string visitorName = _visitorInfoProvider != null ? await _visitorInfoProvider.GetNameAsync(ct) : null;
+            ShowStartGuide(string.IsNullOrEmpty(visitorName)
+                ? Constants.TitleMessages.StartGuide
+                : ZString.Format(Constants.TitleMessages.StartGuideWithNameFormat, visitorName));
+
+            StartScanning();
+            StartConfirmTimeout();
+        }
+
+        /// <summary>
+        /// 확인했던 체험자와 서버 진행도로 연 해금 레벨을 비운다 — 다음 사람의 QR로 다시 확인하거나 대기 시간이 지났을 때.
+        /// </summary>
+        private void ClearConfirmedVisitor()
+        {
+            if (_visitorInfoProvider != null) _visitorInfoProvider.ClearServerVisitor();
+            if (_session) _session.unlockedLevelIndex = 0;
+        }
+
+        /// <summary>
+        /// 시작하기를 기다린 시간 재기를 새로 시작한다 — 이전에 재던 것은 취소한다.
+        /// </summary>
+        private void StartConfirmTimeout()
+        {
+            CancelConfirmTimeout();
+            _confirmTimeoutCts = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
+            ConfirmTimeoutAsync(_confirmTimeoutCts).Forget();
+        }
+
+        /// <summary>
+        /// 시작하기를 기다린 시간 재기를 취소한다 — 시작하기를 눌렀거나 새 QR이 들어왔거나 씬을 떠날 때.
+        /// </summary>
+        private void CancelConfirmTimeout()
+        {
+            if (_confirmTimeoutCts == null) return;
+
+            _confirmTimeoutCts.Cancel();
+            _confirmTimeoutCts.Dispose();
+            _confirmTimeoutCts = null;
+        }
+
+        /// <summary>
+        /// 비활동 타이머와 같은 설정(Settings.json의 useInactivityTimer·resetTime)으로, 시작하기를 누르지 않은 채
+        /// 그 시간이 지나면 확인한 체험자를 비우고 다시 QR을 기다린다. 비활동 타이머가 꺼져 있으면 계속 기다린다.
+        /// </summary>
+        private async UniTaskVoid ConfirmTimeoutAsync(CancellationTokenSource cts)
+        {
+            // 취소 시 CancelConfirmTimeout이 CTS를 바로 해제하므로 토큰을 먼저 받아 둔다
+            CancellationToken ct = cts.Token;
+
+            try
+            {
+                if (_settingsProvider == null)
+                {
+                    if (_logger != null) _logger.ZLogWarning($"[TitleSceneManager] AppSettingsProvider가 주입되지 않아 시작하기 대기 시간 제한 없이 기다립니다.");
+                    return;
+                }
+
+                Settings settings = await _settingsProvider.GetAsync(ct);
+                if (settings == null || !settings.useInactivityTimer || settings.resetTime <= 0f) return;
+
+                await UniTask.Delay(TimeSpan.FromSeconds(settings.resetTime), DelayType.UnscaledDeltaTime, cancellationToken: ct);
+
+                if (_logger != null) _logger.ZLogInformation($"[TitleSceneManager] {settings.resetTime}초 동안 시작하기를 누르지 않아 QR 대기로 돌아갑니다.");
+                ClearConfirmedVisitor();
+                WaitForQr();
+            }
+            catch (OperationCanceledException)
+            {
+                // 시작하기·새 QR·씬 파괴로 취소된 정상 흐름
+            }
+            finally
+            {
+                // 다른 재기가 이미 새로 시작됐으면 그 CTS는 건드리지 않는다
+                if (_confirmTimeoutCts == cts)
+                {
+                    _confirmTimeoutCts.Dispose();
+                    _confirmTimeoutCts = null;
+                }
+            }
         }
 
         /// <summary>
@@ -331,6 +439,7 @@ namespace Scenes
         {
             if (_qrBlinkTween != null && _qrBlinkTween.IsActive()) _qrBlinkTween.Kill();
             StopWaitingForQr();
+            CancelConfirmTimeout();
 
             // Start()에서 등록을 건너뛴 미할당 버튼도 있을 수 있으므로 해제도 동일하게 가드
             if (startButton) startButton.onClick.RemoveListener(OnStartButtonClicked);
@@ -338,9 +447,12 @@ namespace Scenes
 
         /// <summary>
         /// 시작 버튼 클릭 시 게임 시작 효과음을 내고 인트로 씬으로 넘어간다.
+        /// 넘어가는 페이드 동안 QR이 찍혀 체험자가 바뀌거나 대기 시간이 지나 QR 대기로 돌아가지 않게 둘 다 멈춘다.
         /// </summary>
         private void OnStartButtonClicked()
         {
+            StopWaitingForQr();
+            CancelConfirmTimeout();
             if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.GameStart);
             SceneFader.FadeAndLoad(Constants.Scenes.Intro, logger: _logger).Forget();
         }
