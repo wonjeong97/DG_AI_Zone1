@@ -12,8 +12,8 @@ using ZLogger;
 namespace Network
 {
     /// <summary>
-    /// 체험자 서버(현장 내부망) API를 호출한다. 서버 주소는 StreamingAssets/Json/Server.json에서 호출마다 읽어
-    /// 현장에서 파일만 고쳐도 다음 호출부터 반영된다.
+    /// 체험자 서버(현장 내부망) API를 호출한다. 서버 주소·시간 초과·재시도 횟수는 StreamingAssets/Json/Server.json에서
+    /// 호출마다 읽어 현장에서 파일만 고쳐도 다음 호출부터 반영된다. 네트워크가 불안정할 수 있어 요청이 실패하면 다시 시도한다.
     /// 템플릿 ApiRetryUtil은 응답 본문을 돌려주지 않고 에디터에서는 전송을 생략하는 로그 전송용이라 쓰지 않는다.
     /// uid에는 생년월일이 들어 있어 로그에 남기지 않는다.
     /// </summary>
@@ -41,7 +41,8 @@ namespace Network
             if (settings == null) return CheckActiveResult.Failed();
 
             string url = ZString.Concat(settings.baseUrl.TrimEnd('/'), Constants.VisitorApi.CheckActivePath, Uri.EscapeDataString(uid));
-            string body = await GetTextAsync(url, settings.timeoutSeconds, cancellationToken);
+            string body = await GetTextAsync(url, settings.qrCheckTimeoutSeconds, settings.qrCheckMaxAttempts, settings.retryDelaySeconds,
+                "checkActive", cancellationToken);
             if (body == null) return CheckActiveResult.Failed();
 
             CheckActiveResult result = CheckActiveResult.Parse(body);
@@ -67,7 +68,8 @@ namespace Network
             if (settings == null) return GetUserResult.Failed("서버 주소 없음");
 
             string url = ZString.Concat(settings.baseUrl.TrimEnd('/'), Constants.VisitorApi.GetUserPath, Uri.EscapeDataString(uid));
-            string body = await GetTextAsync(url, settings.timeoutSeconds, cancellationToken);
+            string body = await GetTextAsync(url, settings.qrCheckTimeoutSeconds, settings.qrCheckMaxAttempts, settings.retryDelaySeconds,
+                "getUser", cancellationToken);
             if (body == null) return GetUserResult.Failed("요청 실패");
 
             GetUserResult result = GetUserResult.Parse(body);
@@ -99,7 +101,8 @@ namespace Network
 
             int value = isSuccess ? 1 : 0;
             string path = ZString.Format(Constants.VisitorApi.UpdateValuePathFormat, idxUser, Uri.EscapeDataString(code), value);
-            string body = await GetTextAsync(ZString.Concat(settings.baseUrl.TrimEnd('/'), path), settings.timeoutSeconds, cancellationToken);
+            string body = await GetTextAsync(ZString.Concat(settings.baseUrl.TrimEnd('/'), path), settings.uploadTimeoutSeconds, settings.uploadMaxAttempts,
+                settings.retryDelaySeconds, "updateValue", cancellationToken);
             if (body == null)
             {
                 if (_logger != null) _logger.ZLogError($"[VisitorApiClient] 레벨 결과를 올리지 못했습니다 (idx {idxUser}, {code}={value}).");
@@ -129,9 +132,36 @@ namespace Network
         }
 
         /// <summary>
-        /// GET 요청을 보내 응답 본문을 받는다. 연결 실패·시간 초과·HTTP 오류·잘못된 주소면 로그를 남기고 null을 돌려준다.
+        /// GET 요청을 보내 응답 본문을 받는다. 연결 실패·시간 초과·HTTP 오류·잘못된 주소면 재시도 간격을 두고
+        /// 최대 시도 횟수까지 다시 보내며, 모두 실패하면 로그를 남기고 null을 돌려준다.
+        /// 서버가 답한 결과(NOT_FOUND 등)는 다시 보내도 같으므로 재시도하지 않는다 — 응답 본문 해석은 호출부가 한다.
         /// </summary>
-        private async UniTask<string> GetTextAsync(string url, int timeoutSeconds, CancellationToken cancellationToken)
+        private async UniTask<string> GetTextAsync(string url, int timeoutSeconds, int maxAttempts, float retryDelaySeconds,
+            string apiName, CancellationToken cancellationToken)
+        {
+            maxAttempts = Mathf.Max(1, maxAttempts);
+
+            // 재시도 대기는 Time.timeScale과 무관해야 한다 — 일시정지 중에도 재시도가 멈추지 않게
+            TimeSpan retryDelay = TimeSpan.FromSeconds(Mathf.Max(0f, retryDelaySeconds));
+
+            for (int attempt = 1; attempt <= maxAttempts; attempt++)
+            {
+                string body = await SendGetAsync(url, timeoutSeconds, apiName, attempt, maxAttempts, cancellationToken);
+                if (body != null) return body;
+
+                if (attempt < maxAttempts)
+                    await UniTask.Delay(retryDelay, DelayType.UnscaledDeltaTime, cancellationToken: cancellationToken);
+            }
+
+            if (_logger != null) _logger.ZLogError($"[VisitorApiClient] {apiName} 요청이 {maxAttempts}번 모두 실패했습니다.");
+            return null;
+        }
+
+        /// <summary>
+        /// GET 요청을 한 번 보내 응답 본문을 받는다. 실패하면 몇 번째 시도인지와 함께 경고를 남기고 null을 돌려준다.
+        /// </summary>
+        private async UniTask<string> SendGetAsync(string url, int timeoutSeconds, string apiName, int attempt, int maxAttempts,
+            CancellationToken cancellationToken)
         {
             try
             {
@@ -148,13 +178,13 @@ namespace Network
             }
             catch (UnityWebRequestException e)
             {
-                if (_logger != null) _logger.ZLogWarning($"[VisitorApiClient] 서버 요청 실패 (HTTP {e.ResponseCode}): {e.Error}");
+                if (_logger != null) _logger.ZLogWarning($"[VisitorApiClient] {apiName} 요청 실패 ({attempt}/{maxAttempts}, HTTP {e.ResponseCode}): {e.Error}");
                 return null;
             }
             catch (Exception e)
             {
                 // Server.json 주소 형식이 잘못된 경우 등 — 타이틀이 QR 대기로 돌아갈 수 있도록 실패로 처리한다
-                if (_logger != null) _logger.ZLogError($"[VisitorApiClient] 서버 요청 중 예외: {e.Message}");
+                if (_logger != null) _logger.ZLogWarning($"[VisitorApiClient] {apiName} 요청 중 예외 ({attempt}/{maxAttempts}): {e.Message}");
                 return null;
             }
         }

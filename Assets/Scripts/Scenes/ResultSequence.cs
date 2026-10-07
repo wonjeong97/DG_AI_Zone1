@@ -327,7 +327,7 @@ namespace Scenes
         /// <summary>
         /// 서버 모드에서 QR로 확인한 체험자면 이번 레벨의 미션 결과(성공 1·실패 0, 넘어가기는 실패)를 서버에 올린다.
         /// 관리자 레벨 이동으로 시작한 판은 체험자 기록에 섞이지 않도록 올리지 않는다.
-        /// 결과 화면을 빨리 넘겨도 끊기지 않도록 씬 수명과 묶지 않는다 — 요청은 Server.json의 시간 초과로 끝난다.
+        /// 결과 화면을 빨리 넘겨도 끊기지 않도록 씬 수명과 묶지 않는다 — 요청은 Server.json의 시간 초과·재시도 횟수로 끝난다.
         /// </summary>
         private void UploadLevelResult(bool isSuccess)
         {
