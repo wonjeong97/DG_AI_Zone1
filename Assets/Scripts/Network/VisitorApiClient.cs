@@ -58,6 +58,32 @@ namespace Network
         }
 
         /// <summary>
+        /// uid로 체험자 진행도(이 존의 레벨 기록)를 서버에서 받는다. 요청이 실패하거나 체험자가 없다는 응답이면 IsFound가 false이고,
+        /// 취소만 예외로 전달한다. 응답에 uid·이름이 들어 있어 원문은 로그에 남기지 않는다.
+        /// </summary>
+        public async UniTask<GetUserResult> GetUserAsync(string uid, CancellationToken cancellationToken)
+        {
+            ServerSettings settings = await LoadSettingsAsync(cancellationToken);
+            if (settings == null) return GetUserResult.Failed("서버 주소 없음");
+
+            string url = ZString.Concat(settings.baseUrl.TrimEnd('/'), Constants.VisitorApi.GetUserPath, Uri.EscapeDataString(uid));
+            string body = await GetTextAsync(url, settings.timeoutSeconds, cancellationToken);
+            if (body == null) return GetUserResult.Failed("요청 실패");
+
+            GetUserResult result = GetUserResult.Parse(body);
+            if (!result.IsFound)
+            {
+                if (_logger != null) _logger.ZLogWarning($"[VisitorApiClient] getUser 응답에서 진행도를 읽지 못했습니다: {result.FailReason}");
+            }
+            else if (_logger != null)
+            {
+                _logger.ZLogInformation($"[VisitorApiClient] getUser 결과: 기록 있는 마지막 레벨 순번 {result.LastRecordedLevelIndex}");
+            }
+
+            return result;
+        }
+
+        /// <summary>
         /// 레벨 순번(0부터)을 이 존의 콘텐츠 코드로 바꾼다 — 레벨1은 A1, 레벨5는 A5.
         /// </summary>
         public static string GetLevelCode(int levelIndex) => ZString.Concat(Constants.VisitorApi.ZoneCode, levelIndex + 1);

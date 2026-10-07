@@ -572,6 +572,9 @@ public static class Constants
         public const string CompletedResponse = "체험을 완료한 유저입니다";
         public const string NotFoundResponse  = "NOT_FOUND";
 
+        // 체험자 정보·진행도 — 뒤에 uid를 붙인다. 응답 JSON의 user에 A1~D5(성공 1·실패 0·기록 없음 null)가 있다
+        public const string GetUserPath = "/api/getUser.cfm?uid=";
+
         // 레벨 결과 저장 — {0} idx_user, {1} 콘텐츠 코드, {2} 성공 1·실패 0
         public const string UpdateValuePathFormat = "/api/updateValue.cfm?idx_user={0}&code={1}&value={2}";
 

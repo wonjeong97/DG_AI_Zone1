@@ -19,7 +19,6 @@ namespace App
     public class GameLifetimeScope : RootLifetimeScope
     {
         private GameSession _session;
-        private VisitorSettings _visitorSettings;
         private ILogger<GameLifetimeScope> _logger;
 
         /// <summary>
@@ -70,8 +69,8 @@ namespace App
             builder.RegisterInstance(_session);
 
             // 운영 모드·체험자 이름 — 관리자 페이지에서 바꾼 값은 PlayerPrefs에 남아 있어 재부팅 후에도 유지된다
-            _visitorSettings = Addressables.LoadAssetAsync<VisitorSettings>(Constants.ResourcePaths.VisitorSettingsKey).WaitForCompletion();
-            builder.RegisterInstance(_visitorSettings);
+            VisitorSettings visitorSettings = Addressables.LoadAssetAsync<VisitorSettings>(Constants.ResourcePaths.VisitorSettingsKey).WaitForCompletion();
+            builder.RegisterInstance(visitorSettings);
 
             // 폰트 등록 실패를 ZLogger로 남기기 위해 로거를 받을 수 있는 빌드 콜백에서 수행한다.
             // 빌드 콜백도 루트 스코프 Awake 안에서 실행되므로 첫 씬이 그려지기 전에 끝난다.
@@ -152,35 +151,22 @@ namespace App
         }
 
         /// <summary>
-        /// 타이틀로 돌아왔을 때의 진행도 처리 — 서버 사용 여부에 따라 갈린다.
+        /// 타이틀로 돌아오면 그 체험자의 체험이 끝나므로 운영 모드와 상관없이 진행도와 체험자 기록을 비운다.
         /// <para>
-        /// 서버 미사용: 다음 체험자를 위해 부팅 시점과 동일하게 진행도를 0으로 초기화한다.
-        /// 비활동 타임아웃으로 중간에 이탈한 경우에도 레벨1부터 다시 시작하게 된다.
+        /// 서버 미사용: 다음 체험자는 부팅 때처럼 레벨1부터 시작한다. 비활동 타임아웃으로 중간에 이탈한 경우도 같다.
         /// </para>
         /// <para>
-        /// 서버 사용: 체험자가 진행도를 저장해 두고 나중에 이어서 할 수 있으므로 로컬에서 일방적으로
-        /// 지우면 안 된다. 대신 현재 체험자 세션만 끝내야 한다.
+        /// 서버 사용: 진행도는 서버에 남아 있어, 다음에 QR을 찍으면 타이틀이 getUser로 그 체험자의 진행도를 다시 받는다.
         /// </para>
         /// </summary>
         private void HandleReturnToTitle()
         {
-            // 관리자 레벨 이동으로 시작한 판도 타이틀로 돌아오면 끝난다 — 비활동 타임아웃으로 돌아온 경우에도
-            // 다음 체험자의 스토리 < 버튼·결과 다음 버튼이 관리자 화면으로 가지 않도록 모드와 상관없이 비운다
-            _session.isAdminLevelJump = false;
+            // 관리자 레벨 이동 표시(isAdminLevelJump)도 함께 비워진다 — 다음 체험자의 스토리 < 버튼·결과 다음 버튼이
+            // 관리자 화면으로 가지 않는다
+            _session.ResetProgress();
 
             // QR로 확인한 체험자도 타이틀로 돌아오면 체험이 끝난다 — 다음 체험자는 QR로 다시 확인한다
             Container.Resolve<VisitorInfoProvider>().ClearServerVisitor();
-
-            if (!_visitorSettings.IsServerConnected)
-            {
-                _session.ResetProgress();
-                return;
-            }
-
-            // TODO: 서버 연동 시 — 진행도 세션을 종료/초기화할 것.
-            //       진행도는 서버에 저장되어 있어 다음 QR 스캔 때 이어서 시작할 수 있어야 하므로,
-            //       로컬 ResetProgress로 지우는 대신 "이 체험자의 세션이 끝났다"만 정리해야 한다.
-            //       (진행도 API 연동과 함께 구현)
         }
     }
 }
