@@ -43,7 +43,7 @@ namespace Network
         public static GetUserResult Failed(string reason) => new(false, NoRecord, reason);
 
         /// <summary>
-        /// getUser 응답 본문을 해석한다. result가 true일 때만 찾은 것으로 보고, 이 존의 레벨 값 중 null이 아닌 마지막 레벨을 찾는다.
+        /// getUser 응답 본문을 해석한다. result가 true일 때만 찾은 것으로 보고, 이 존의 레벨(A1~A5) 값 중 null이 아닌 마지막 레벨을 찾는다.
         /// </summary>
         public static GetUserResult Parse(string body)
         {
@@ -67,7 +67,9 @@ namespace Network
             {
                 if (match.Groups[2].Value == NullValue) continue;
 
-                if (int.TryParse(match.Groups[1].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int levelNumber) && levelNumber >= 1)
+                // 이 존의 레벨(A1~A5)만 본다 — 서버에 A6처럼 없는 레벨 키가 생겨도 마지막 레벨까지 열지 않게 한다
+                if (int.TryParse(match.Groups[1].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int levelNumber)
+                    && levelNumber >= 1 && levelNumber <= Constants.VisitorApi.LevelCount)
                     lastRecordedLevelIndex = Math.Max(lastRecordedLevelIndex, levelNumber - 1);
             }
 

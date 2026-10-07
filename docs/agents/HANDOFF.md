@@ -13,6 +13,29 @@
 
 ---
 
+### [2026-10-07 20:20] Claude → Antigravity · 관리자 화면 떠나는 중 입력 무시 — 4존 _isLeaving 맞춤 (fix/admin-leaving-guard)
+- 변경 파일: Admin/AdminPanel.cs(_isLeaving — 레벨 이동, 모드가 바뀐 닫기로 SceneFader.FadeAndLoad를 부르기 직전에 true, OnCloseClicked·OnLevelClicked 첫 줄에서 무시), CHANGELOG.md, TODO.md
+- 배경: 사용자 결정 — 4존처럼 막기. SceneFader는 로드 중 두 번째 전환을 무시하지만 OnLevelClicked가 그 전에 세션(unlockedLevelIndex·pendingStoryLevelIndex)을 덮어써, 연달아 누르면 나중에 누른 레벨의 스토리가 열릴 수 있었음. 대체 이름(서버 모드인데 QR 체험자가 없을 때)은 사용자 결정으로 지금처럼 관리자 화면 이름(VisitorSettings.VisitorName) 유지 — 변경 없음.
+- 확인 요청: 첫 클릭 값 유지, 영구 잠김 경로(GameSession 없음·모드 안 바뀐 닫기), 4존과 의미 차이, 규칙
+- 결과: 4개 항목 통과(agy). 제안(Open에서 _isLeaving 초기화)은 미반영 — 페이드 중 관리자 화면이 다시 열리면 오히려 보호가 풀리고, 떠나는 경로는 항상 씬이 바뀌어 패널이 파괴됨(4존도 초기화 안 함).
+  - Claude 확인: PlayMode 114/114. Play 모드 0_Title에서 같은 프레임에 OnLevelClicked(1)·(3)을 연달아 호출 → 세션 unlocked/pending 1/1·isAdminLevelJump true·_isLeaving true, 로그 '레벨2 스토리 화면으로 이동합니다' 1줄, 2_Story 진입, 콘솔 에러 0.
+
+### [2026-10-07 20:15] Claude → Antigravity · 체험자 서버 API 방어 — 4존 맞춤 (fix/visitor-api-guards)
+- 변경 파일: Network/GetUserResult.cs(이 존의 레벨 A1~A5만 봄 — 1 이상 Constants.VisitorApi.LevelCount 이하), Constants.cs(VisitorApi.LevelCount 5), Network/VisitorApiClient.cs(LoadSettingsAsync — JsonLoader.LoadAsync 다음 ThrowIfCancellationRequested), App/GameLifetimeScope.cs(LoadVisitorSettings — Addressables 로드가 예외·null이면 Debug.LogError 후 ScriptableObject.CreateInstance로 대체), GetUserResultTests.cs(2개 추가 — 따옴표 숫자 "1"·"0", 범위 밖 키 A0·A6·A10), VisitorApiClientTests.cs(1개 추가 — 취소된 요청은 '서버 주소 없음'이 아니라 취소로 전달), CHANGELOG.md, TODO.md
+- 배경: 4존 PR #47에서 다듬은 부분을 1존 구조(레벨 순번 0부터, 콘텐츠 코드 A)로 맞춤. 상한이 없으면 서버에 A6 같은 키가 생길 때 마지막 레벨까지 열림(StoryManager가 Clamp는 함). JsonLoader는 취소되면 예외 대신 기본값(빈 baseUrl)을 돌려줘 취소 뒤에도 'baseUrl이 비어 있어' 에러가 남을 수 있었음. VisitorSettings 로드가 실패하면 null이 등록돼 루트 빌드가 깨질 수 있었음.
+- 확인 요청: A1~A5 범위·따옴표 숫자·테스트 기대값(0부터, 기록 없으면 -1), 취소 전달과 호출부(TitleSceneManager.CheckVisitorAsync catch, ResultSequence는 CancellationToken.None), VisitorSettings 대체, 규칙
+- 결과: (1)~(3) 통과(agy, 첫 요청은 5분 제한에 걸려 둘로 나눠 다시 맡김). 지적 미반영: `private readonly static` 순서(프로젝트 규칙이며 이번에 바꾼 줄도 아님), '~않게'로 끝나는 주석(같은 파일 기존 주석과 같은 문체).
+  - Claude 확인: PlayMode 114/114. 취소 테스트는 ThrowIfCancellationRequested 줄을 잠시 뺀 코드에서 실패('취소가 예외로 전달되지 않아…')하고 되돌리면 통과함을 확인. VisitorSettings 로드 실패는 Play 모드에서 재현하지 않음(에셋 기본값과 코드 기본값이 같음 — 로컬 모드·'체험자').
+
+### [2026-10-07 20:10] Claude → Antigravity · QR 입력 글자 간격 초기화 — 4존 T45 맞춤 (fix/qr-scan-gap-reset)
+- 변경 파일: Scenes/ScanInputBuffer.cs(신규 — Append(char, now)가 앞 글자와 MaxCharGapSeconds 넘게 벌어지면 앞 글자를 비우고 버린 개수를 돌려줌, IsStale·TakeAndClear·Clear, 기본 0.5초), Scenes/TitleSceneManager.cs(StringBuilder 대신 ScanInputBuffer, 시간은 Time.realtimeSinceStartup, 버리면 개수만 로그, 마지막 글자보다 간격 넘게 늦은 Enter는 QR로 보지 않음, ApplyGuideAsync가 qrCanvasGroup이 없어도 0_Title.json을 읽고 깜빡임만 건너뜀, ApplyScanCharGap — 0 이하면 경고 후 기본값), Data/TitleSceneSettings.cs·StreamingAssets/Json/0_Title.json(scanCharGapSeconds 0.5), ScanInputBufferTests.cs(신규 5개), CHANGELOG.md, TODO.md
+- 배경: 4존 실제 리더기 테스트에서 찍기 전에 눌린 키 한 글자가 uid 앞에 붙어 13자로 들어옴 — 타이틀이 Enter까지 들어온 글자를 모두 모으기 때문. 4존 `fix/qr-scan-gap-reset`(9e24168)을 1존 구조(Scenes 네임스페이스, '~한다' 문체)로 옮김.
+- 확인 요청: 정상 스캔·CR/LF와 Enter 두 경로 한 번 처리, 버려야 할 경우·경계값, 설정 로드 전후·0 이하, ApplyGuideAsync 순서 변경 영향, uid 로그, 규칙, 4존과 의미 차이
+- 결과: A~G 7개 항목 통과(agy `gemini-3.8-flash-high`). 제안 미반영: MaxCharGapSeconds setter 자체 방어(호출부가 이미 검사, 4존과 같게 유지), 설정 주석 마침표(주변 주석과 같은 문체).
+  - Claude 확인: PlayMode 114/114(아래 두 작업과 합친 트리). 127.0.0.1 가짜 서버, 서버 모드 Play 모드에서 Input System 텍스트 이벤트로 입력 — 'x' → 약 7초 뒤 'NF1'+CR → '앞에 모은 1글자를 버리고'·서버가 받은 uid `NF1`(3자)·'LLL님, 시작하기를 눌러주세요.'; 시작하기가 떠 있는 상태에서 'NFab' → 약 14초 뒤 CR → '모은 4글자를 QR로 보지 않고 버립니다'·서버 요청 없음·안내 유지; 0_Title.json 3.0 → 적용 값 3·'x' 뒤 1.95초에 'NF1'+CR → 서버가 `xNF1`(4자)을 받고 미등록 안내; 0 → 경고 로그·적용 값 0.5. 확인 뒤 0_Title.json(0.5)·Server.json·운영 모드 PlayerPrefs(로컬 0)·EditorSettings·GamtanRoadTantan SDF Outline 동적 글자 원복, 가짜 서버 종료.
+  - Enter 키 상태 이벤트는 Game 뷰 포커스가 없어 플레이어까지 오지 않아 CR 문자 경로로만 확인(Enter 키 경로 코드는 바꾸지 않음).
+  - 주의: 스캐너 없이 키보드로 uid를 손으로 입력하면 글자 사이가 0.5초를 넘기 쉬워 앞 글자가 버려진다 — 손 입력 테스트는 scanCharGapSeconds를 잠시 늘리거나 스캐너를 쓴다.
+
 ### [2026-10-07 17:40] Claude → Antigravity · QR 확인 중 최소 표시 시간 (feat/qr-checking-min-time)
 - 변경 파일: Scenes/TitleSceneManager.cs(CheckVisitorAsync — 확인 시작 시각을 재고, 서버 확인이 끝난 뒤 qrCheckingMinSeconds를 못 채웠으면 남은 시간만큼 UnscaledDeltaTime 대기 후 결과 표시), Data/TitleSceneSettings.cs·StreamingAssets/Json/0_Title.json(qrCheckingMinSeconds 1.0), CHANGELOG.md, TODO.md
 - 배경: 내부망 서버가 빨리 답하면 '확인 중' 문구가 수십 ms만 스쳐 깜빡임처럼 보임 — 사용자 요청으로 최소 1초.

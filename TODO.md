@@ -10,6 +10,9 @@
 
 ## 완료
 
+- [x] 관리자 화면에서 레벨 이동·모드 변경으로 씬을 떠나는 중 닫기·레벨 버튼 입력 무시(4존 _isLeaving) — PlayMode 114/114 — 담당: Claude / 검증: Antigravity (2026-10-07)
+- [x] 체험자 서버 API 방어(4존 맞춤) — getUser는 A1~A5만 보기(A0·A6·A10 무시), Server.json 로드 뒤 취소 전달, VisitorSettings 로드 실패 시 에러 후 기본 인스턴스 — PlayMode 114/114 — 담당: Claude / 검증: Antigravity (2026-10-07)
+- [x] 타이틀 QR 입력 글자 간격 초기화(4존 T45) — 글자 사이가 0_Title.json scanCharGapSeconds(0.5초)보다 벌어지면 앞 글자를 버리고, 늦은 Enter는 QR로 보지 않음, 0_Title.json은 qrCanvasGroup이 없어도 항상 읽기 — PlayMode 114/114 — 담당: Claude / 검증: Antigravity (2026-10-07)
 - [x] 레벨 결과 업로드 로그에 체험자 이름 추가(idx·이름·코드=값, uid는 남기지 않음) — PlayMode 106/106 — 담당: Claude / 검증: Antigravity (2026-10-07)
 - [x] 서버 모드 타이틀: QR 확인 뒤 '○○님, 시작하기를 눌러주세요' 문구, 시작하기가 떠 있어도 새 QR을 받아 그 사람으로 다시 확인, 시작하기를 안 누르면 비활동 타이머 값(Settings.json useInactivityTimer·resetTime) 뒤 QR 대기로 — PlayMode 106/106 — 담당: Claude / 검증: Antigravity (2026-10-07)
 - [x] 타이틀 'QR 코드를 확인하고 있습니다'를 최소 1초 보여 주기(서버가 빨리 답해도 깜빡이지 않게, 0_Title.json qrCheckingMinSeconds) — PlayMode 106/106 — 담당: Claude / 검증: Antigravity (2026-10-07)

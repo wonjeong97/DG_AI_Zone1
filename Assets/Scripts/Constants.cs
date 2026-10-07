@@ -591,5 +591,8 @@ public static class Constants
 
         // 이 존(1존)의 콘텐츠 코드 — 레벨 번호를 붙여 A1~A5(레벨1~5)로 쓴다
         public const string ZoneCode = "A";
+
+        // 이 존(1존)의 레벨 수 — getUser 기록은 A1~A5만 보고, 서버에 A6처럼 없는 레벨 키가 생겨도 무시한다
+        public const int LevelCount = 5;
     }
 }

@@ -69,8 +69,7 @@ namespace App
             builder.RegisterInstance(_session);
 
             // 운영 모드·체험자 이름 — 관리자 페이지에서 바꾼 값은 PlayerPrefs에 남아 있어 재부팅 후에도 유지된다
-            VisitorSettings visitorSettings = Addressables.LoadAssetAsync<VisitorSettings>(Constants.ResourcePaths.VisitorSettingsKey).WaitForCompletion();
-            builder.RegisterInstance(visitorSettings);
+            builder.RegisterInstance(LoadVisitorSettings());
 
             // 폰트 등록 실패를 ZLogger로 남기기 위해 로거를 받을 수 있는 빌드 콜백에서 수행한다.
             // 빌드 콜백도 루트 스코프 Awake 안에서 실행되므로 첫 씬이 그려지기 전에 끝난다.
@@ -83,6 +82,28 @@ namespace App
 
         // SystemCanvas(30000)보다 위
         private const int FadeSortingOrder = 32000;
+
+        /// <summary>
+        /// 체험자 설정(VisitorSettings SO)을 Addressables로 불러온다. Configure는 동기 실행이라 WaitForCompletion으로 동기 로드한다.
+        /// 불러오지 못하면 null이 등록돼 루트 빌드가 깨지지 않도록, 에셋 기본값과 같은 임시 인스턴스로 대체하고 에러를 남긴다
+        /// (관리자 페이지에서 바꾼 PlayerPrefs 값은 그대로 읽힌다).
+        /// </summary>
+        private static VisitorSettings LoadVisitorSettings()
+        {
+            try
+            {
+                VisitorSettings settings = Addressables.LoadAssetAsync<VisitorSettings>(Constants.ResourcePaths.VisitorSettingsKey).WaitForCompletion();
+                if (settings) return settings;
+            }
+            catch (Exception ex)
+            {
+                // 컨테이너 구성 도중이라 로거를 아직 주입받을 수 없어 Debug로 남긴다
+                Debug.LogError($"[GameLifetimeScope] VisitorSettings 로드 중 예외: {ex.Message}");
+            }
+
+            Debug.LogError($"[GameLifetimeScope] Addressables 주소 '{Constants.ResourcePaths.VisitorSettingsKey}'의 VisitorSettings를 불러오지 못해 기본값으로 대체합니다.");
+            return ScriptableObject.CreateInstance<VisitorSettings>();
+        }
 
         /// <summary>
         /// Addressables로 관리하는 TMP 폰트를 MaterialReferenceManager 캐시에 미리 등록한다.

@@ -46,6 +46,10 @@ namespace Admin
         // 관리자 화면을 열 때의 모드 — 닫을 때 달라졌으면 타이틀을 다시 불러 안내(QR·시작하기)에 반영한다
         private bool _modeAtOpen;
 
+        // 레벨 이동·타이틀 다시 불러오기로 씬을 떠나는 중이면 닫기·레벨 버튼 입력을 무시한다
+        // (SceneFader는 두 번째 전환을 무시하지만, 그 전에 다른 레벨 값이 세션에 들어가 엉뚱한 레벨 스토리가 열릴 수 있다)
+        private bool _isLeaving;
+
         private ILogger<AdminPanel> _logger;
         private SoundManager _soundManager;
         private VisitorSettings _visitorSettings;
@@ -143,12 +147,15 @@ namespace Admin
         /// </summary>
         private void OnCloseClicked()
         {
+            if (_isLeaving) return;
+
             if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
             gameObject.SetActive(false);
 
             if (!_visitorSettings || _visitorSettings.IsServerConnected == _modeAtOpen) return;
 
             if (_logger != null) _logger.ZLogInformation($"[AdminPanel] 운영 모드가 바뀌어 타이틀을 다시 불러옵니다.");
+            _isLeaving = true;
             SceneFader.FadeAndLoad(Constants.Scenes.Title, logger: _logger).Forget();
         }
 
@@ -247,6 +254,8 @@ namespace Admin
         /// </summary>
         private void OnLevelClicked(int index)
         {
+            if (_isLeaving) return;
+
             if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
             if (!_session)
             {
@@ -259,6 +268,7 @@ namespace Admin
             _session.isAdminLevelJump = true;
             if (_logger != null) _logger.ZLogInformation($"[AdminPanel] 레벨{index + 1} 스토리 화면으로 이동합니다.");
 
+            _isLeaving = true;
             SceneFader.FadeAndLoad(Constants.Scenes.Story, logger: _logger).Forget();
         }
     }

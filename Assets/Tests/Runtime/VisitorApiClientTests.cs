@@ -1,10 +1,15 @@
+using System;
+using System.Collections;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using Network;
 using NUnit.Framework;
+using UnityEngine.TestTools;
 
 namespace DG.Zone1.Tests
 {
     /// <summary>
-    /// 레벨 결과를 서버에 올릴 때 쓰는 이 존(1존)의 콘텐츠 코드와 저장 응답 판정을 검증한다.
+    /// 레벨 결과를 서버에 올릴 때 쓰는 이 존(1존)의 콘텐츠 코드와 저장 응답 판정, 요청 취소 전달을 검증한다.
     /// </summary>
     public class VisitorApiClientTests
     {
@@ -45,5 +50,29 @@ namespace DG.Zone1.Tests
         {
             Assert.IsFalse(UpdateValueResponse.IsSaved(body));
         }
+
+        /// <summary>
+        /// 취소된 요청은 Server.json을 기본값(빈 baseUrl)으로 읽어도 '서버 주소 없음' 실패로 끝나지 않고 취소로 전달된다
+        /// (JsonLoader는 취소돼도 예외 대신 기본값을 돌려준다).
+        /// </summary>
+        [UnityTest]
+        public IEnumerator 취소된_요청은_서버_주소_없음이_아니라_취소로_전달된다() => UniTask.ToCoroutine(async () =>
+        {
+            VisitorApiClient client = new VisitorApiClient(null);
+            using CancellationTokenSource cts = new CancellationTokenSource();
+            cts.Cancel();
+
+            bool canceled = false;
+            try
+            {
+                await client.CheckActiveAsync("TEST", cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                canceled = true;
+            }
+
+            Assert.IsTrue(canceled, "취소가 예외로 전달되지 않아 'baseUrl이 비어 있어' 에러를 남기고 실패로 끝남");
+        });
     }
 }
