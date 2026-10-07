@@ -85,7 +85,7 @@ namespace App
 
         /// <summary>
         /// 체험자 설정(VisitorSettings SO)을 Addressables로 불러온다. Configure는 동기 실행이라 WaitForCompletion으로 동기 로드한다.
-        /// 불러오지 못하면 null을 등록해 루트 빌드가 깨지지 않도록 에셋 기본값과 같은 임시 인스턴스로 대체하고 에러를 남긴다
+        /// 불러오지 못하면 null이 등록돼 루트 빌드가 깨지지 않도록, 에셋 기본값과 같은 임시 인스턴스로 대체하고 에러를 남긴다
         /// (관리자 페이지에서 바꾼 PlayerPrefs 값은 그대로 읽힌다).
         /// </summary>
         private static VisitorSettings LoadVisitorSettings()
