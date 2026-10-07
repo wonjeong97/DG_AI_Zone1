@@ -6,12 +6,11 @@
 
 ## 진행 중
 
-- [ ] 관리자 화면에서 레벨 이동·모드 변경으로 씬을 떠나는 중 버튼 입력 무시(4존 _isLeaving) — 담당: Claude / 검증: Antigravity
-
 ## 할 일
 
 ## 완료
 
+- [x] 관리자 화면에서 레벨 이동·모드 변경으로 씬을 떠나는 중 닫기·레벨 버튼 입력 무시(4존 _isLeaving) — PlayMode 114/114 — 담당: Claude / 검증: Antigravity (2026-10-07)
 - [x] 체험자 서버 API 방어(4존 맞춤) — getUser는 A1~A5만 보기(A0·A6·A10 무시), Server.json 로드 뒤 취소 전달, VisitorSettings 로드 실패 시 에러 후 기본 인스턴스 — PlayMode 114/114 — 담당: Claude / 검증: Antigravity (2026-10-07)
 - [x] 타이틀 QR 입력 글자 간격 초기화(4존 T45) — 글자 사이가 0_Title.json scanCharGapSeconds(0.5초)보다 벌어지면 앞 글자를 버리고, 늦은 Enter는 QR로 보지 않음, 0_Title.json은 qrCanvasGroup이 없어도 항상 읽기 — PlayMode 114/114 — 담당: Claude / 검증: Antigravity (2026-10-07)
 - [x] 레벨 결과 업로드 로그에 체험자 이름 추가(idx·이름·코드=값, uid는 남기지 않음) — PlayMode 106/106 — 담당: Claude / 검증: Antigravity (2026-10-07)

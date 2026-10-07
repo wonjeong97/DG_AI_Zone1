@@ -13,6 +13,13 @@
 
 ---
 
+### [2026-10-07 20:20] Claude → Antigravity · 관리자 화면 떠나는 중 입력 무시 — 4존 _isLeaving 맞춤 (fix/admin-leaving-guard)
+- 변경 파일: Admin/AdminPanel.cs(_isLeaving — 레벨 이동, 모드가 바뀐 닫기로 SceneFader.FadeAndLoad를 부르기 직전에 true, OnCloseClicked·OnLevelClicked 첫 줄에서 무시), CHANGELOG.md, TODO.md
+- 배경: 사용자 결정 — 4존처럼 막기. SceneFader는 로드 중 두 번째 전환을 무시하지만 OnLevelClicked가 그 전에 세션(unlockedLevelIndex·pendingStoryLevelIndex)을 덮어써, 연달아 누르면 나중에 누른 레벨의 스토리가 열릴 수 있었음. 대체 이름(서버 모드인데 QR 체험자가 없을 때)은 사용자 결정으로 지금처럼 관리자 화면 이름(VisitorSettings.VisitorName) 유지 — 변경 없음.
+- 확인 요청: 첫 클릭 값 유지, 영구 잠김 경로(GameSession 없음·모드 안 바뀐 닫기), 4존과 의미 차이, 규칙
+- 결과: 4개 항목 통과(agy). 제안(Open에서 _isLeaving 초기화)은 미반영 — 페이드 중 관리자 화면이 다시 열리면 오히려 보호가 풀리고, 떠나는 경로는 항상 씬이 바뀌어 패널이 파괴됨(4존도 초기화 안 함).
+  - Claude 확인: PlayMode 114/114. Play 모드 0_Title에서 같은 프레임에 OnLevelClicked(1)·(3)을 연달아 호출 → 세션 unlocked/pending 1/1·isAdminLevelJump true·_isLeaving true, 로그 '레벨2 스토리 화면으로 이동합니다' 1줄, 2_Story 진입, 콘솔 에러 0.
+
 ### [2026-10-07 20:15] Claude → Antigravity · 체험자 서버 API 방어 — 4존 맞춤 (fix/visitor-api-guards)
 - 변경 파일: Network/GetUserResult.cs(이 존의 레벨 A1~A5만 봄 — 1 이상 Constants.VisitorApi.LevelCount 이하), Constants.cs(VisitorApi.LevelCount 5), Network/VisitorApiClient.cs(LoadSettingsAsync — JsonLoader.LoadAsync 다음 ThrowIfCancellationRequested), App/GameLifetimeScope.cs(LoadVisitorSettings — Addressables 로드가 예외·null이면 Debug.LogError 후 ScriptableObject.CreateInstance로 대체), GetUserResultTests.cs(2개 추가 — 따옴표 숫자 "1"·"0", 범위 밖 키 A0·A6·A10), VisitorApiClientTests.cs(1개 추가 — 취소된 요청은 '서버 주소 없음'이 아니라 취소로 전달), CHANGELOG.md, TODO.md
 - 배경: 4존 PR #47에서 다듬은 부분을 1존 구조(레벨 순번 0부터, 콘텐츠 코드 A)로 맞춤. 상한이 없으면 서버에 A6 같은 키가 생길 때 마지막 레벨까지 열림(StoryManager가 Clamp는 함). JsonLoader는 취소되면 예외 대신 기본값(빈 baseUrl)을 돌려줘 취소 뒤에도 'baseUrl이 비어 있어' 에러가 남을 수 있었음. VisitorSettings 로드가 실패하면 null이 등록돼 루트 빌드가 깨질 수 있었음.
