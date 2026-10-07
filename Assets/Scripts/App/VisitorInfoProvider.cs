@@ -17,10 +17,11 @@ namespace App
         private readonly VisitorSettings _settings;
         private readonly ILogger<VisitorInfoProvider> _logger;
 
-        private string _serverVisitorName;
-
         // 서버 모드에서 QR로 확인한 체험자의 idx_user — 확인 전이거나 체험이 끝나면 -1
         public int VisitorIdx { get; private set; } = NoVisitorIdx;
+
+        // 서버 모드에서 QR로 확인한 체험자의 서버 이름(영문 이니셜) — 확인 전이거나 체험이 끝나면 null
+        public string ServerVisitorName { get; private set; }
 
         /// <summary>
         /// 체험자 설정과 로거를 생성자 주입으로 받는다.
@@ -40,7 +41,7 @@ namespace App
         public void SetServerVisitor(int idxUser, string visitorName)
         {
             VisitorIdx = idxUser;
-            _serverVisitorName = visitorName;
+            ServerVisitorName = visitorName;
         }
 
         /// <summary>
@@ -49,7 +50,7 @@ namespace App
         public void ClearServerVisitor()
         {
             VisitorIdx = NoVisitorIdx;
-            _serverVisitorName = null;
+            ServerVisitorName = null;
         }
 
         /// <summary>
@@ -59,7 +60,7 @@ namespace App
         {
             if (_settings.IsServerConnected)
             {
-                if (!string.IsNullOrEmpty(_serverVisitorName)) return UniTask.FromResult(_serverVisitorName);
+                if (!string.IsNullOrEmpty(ServerVisitorName)) return UniTask.FromResult(ServerVisitorName);
 
                 // 관리자 화면의 레벨 이동처럼 QR 확인 없이 시작한 판이거나 서버 이름이 비어 있는 경우
                 if (_logger != null) _logger.ZLogWarning($"[VisitorInfoProvider] 서버 모드이지만 QR로 확인한 체험자 이름이 없어 기본 이름으로 대체합니다.");

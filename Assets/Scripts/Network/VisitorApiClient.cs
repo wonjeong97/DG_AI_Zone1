@@ -93,8 +93,10 @@ namespace Network
         /// <summary>
         /// 체험자의 레벨 결과(성공 1·실패 0)를 서버에 올린다. 응답 JSON의 result가 true일 때만 저장된 것으로 본다.
         /// 요청이 실패하거나 서버가 저장하지 않았다고 응답하면 로그만 남기고 false를 돌려주며, 취소만 예외로 전달한다.
+        /// visitorName은 서버에 보내지 않고 누구의 결과인지 로그에 남기는 데만 쓴다.
         /// </summary>
-        public async UniTask<bool> UpdateValueAsync(int idxUser, string code, bool isSuccess, CancellationToken cancellationToken)
+        public async UniTask<bool> UpdateValueAsync(int idxUser, string visitorName, string code, bool isSuccess,
+            CancellationToken cancellationToken)
         {
             ServerSettings settings = await LoadSettingsAsync(cancellationToken);
             if (settings == null) return false;
@@ -105,17 +107,17 @@ namespace Network
                 settings.retryDelaySeconds, "updateValue", cancellationToken);
             if (body == null)
             {
-                if (_logger != null) _logger.ZLogError($"[VisitorApiClient] 레벨 결과를 올리지 못했습니다 (idx {idxUser}, {code}={value}).");
+                if (_logger != null) _logger.ZLogError($"[VisitorApiClient] 레벨 결과를 올리지 못했습니다 (idx {idxUser}, 이름 {visitorName}, {code}={value}).");
                 return false;
             }
 
             if (!UpdateValueResponse.IsSaved(body))
             {
-                if (_logger != null) _logger.ZLogError($"[VisitorApiClient] 서버가 레벨 결과를 저장하지 않았습니다 (idx {idxUser}, {code}={value}), 응답: '{body.Trim()}'");
+                if (_logger != null) _logger.ZLogError($"[VisitorApiClient] 서버가 레벨 결과를 저장하지 않았습니다 (idx {idxUser}, 이름 {visitorName}, {code}={value}), 응답: '{body.Trim()}'");
                 return false;
             }
 
-            if (_logger != null) _logger.ZLogInformation($"[VisitorApiClient] 레벨 결과 저장 완료 (idx {idxUser}, {code}={value})");
+            if (_logger != null) _logger.ZLogInformation($"[VisitorApiClient] 레벨 결과 저장 완료 (idx {idxUser}, 이름 {visitorName}, {code}={value})");
             return true;
         }
 
