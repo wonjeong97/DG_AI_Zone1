@@ -10,6 +10,7 @@
 
 ## 완료
 
+- [x] 템플릿 디버그 단축키 D·I·M을 Ctrl+D·Ctrl+I·Ctrl+M으로(QR 스캐너 uid 문자와 충돌 방지, 템플릿은 그대로 두고 런타임 바인딩 오버라이드) — PlayMode 66/66 — 담당: Claude / 검증: Antigravity (2026-10-07)
 - [x] 블록 고르기의 '변수' 탭(레벨1·2 값 블록) 이름을 레벨3처럼 '숫자·정보'로 — PlayMode 63/63 — 담당: Claude / 검증: Antigravity (2026-10-07)
 - [x] 영상 오디오 트랙 제거 — Robot_260728.webm의 Opus 트랙을 ffmpeg 스트림 복사(-map 0:v -c copy -an)로 제거, 알파 포함 프레임 동일 확인, 인트로 재생 시 OPUS 에러 사라짐 — 담당: Claude (2026-10-07)
 

@@ -13,6 +13,15 @@
 
 ---
 
+### [2026-10-07 16:30] Claude → Antigravity · 디버그 단축키 Ctrl 조합 (fix/debug-shortcut-ctrl)
+- 변경 파일: Input/DebugShortcutBindings.cs(신규 — 템플릿 TemplateInputActions의 ToggleDebug·ToggleInspector·ToggleMouse 원래 단일 키 바인딩을 빈 경로로 덮어써 끄고 OneModifier(Ctrl+원래 키) 조합 추가), App/GameLifetimeScope.cs(빌드 콜백에서 루트 싱글톤에 적용), DebugShortcutBindingsTests.cs(신규 PlayMode 3개), CHANGELOG.md, TODO.md. 템플릿 패키지는 수정하지 않음.
+- 배경: 타이틀 QR 스캐너가 uid 대문자를 키보드로 입력해, 템플릿 단일 키 D(Reporter 컨트롤)·I(런타임 인스펙터)·M(커서)이 스캔 중에 켜짐(예: 520305R74XDM → Reporter 컨트롤·커서 표시). 스캐너는 Shift만 보내고 Ctrl은 보내지 않음.
+- 확인 요청: (A) 싱글톤 동일성·바인딩 로직·테스트 정리·코드 규칙, (B) D·I·M·Space 외 문자·숫자 키 입력 누락 조사
+- 결과: A 통과(agy, 10분 제한으로 좁혀 재요청). agy 제안 "켜진 액션에 AddCompositeBinding을 호출하면 InvalidOperationException"은 오탐 — 1.19.0에서 그 검사(OnWantToChangeSetup)는 맵·액션 추가/삭제에만 있고, Claude가 Enable 뒤 Apply를 실행해 예외 없음·켜진 상태 유지 확인. B는 agy 1차 5분 제한, 2차 read_file 자동 거부로 빈 결과 → Claude가 직접 조사(agy 대신 검증): Assets·템플릿 Runtime(ThirdParty 포함)에 다른 문자·숫자 키 입력 없음, 레거시 GetButton/GetAxis·PlayerInput 없음, 입력 액션 파일은 GameInputActions·TemplateInputActions 둘뿐.
+  - Claude 확인: PlayMode 66/66, 덮어쓰기를 빼면 새 테스트 3개가 '문자 키만 눌렀는데 실행됨'으로 실패. 0_Title Play 모드에서 GameManager가 루트 싱글톤을 쓰고(ownsInputActions=False) 세 액션 모두 단일 키 경로 비고 Ctrl 조합만 남음, 콘솔 에러 0.
+  - 테스트 주의: Editor 포커스가 없으면 InputState.Change가 에디터 상태 버퍼에 기록돼 액션이 입력을 못 봄 → 테스트 동안만 Input Settings 사본(IgnoreFocus + AllDeviceInputAlwaysGoesToGameView)으로 바꿨다가 되돌림. 프로젝트에 Input Settings 에셋이 없어 파일 변경 없음. 실제 Input System은 manifest의 1.14.2가 아니라 의존성으로 올라간 1.19.0.
+  - 참고: Enter는 UI Submit 용도이기도 해 QR 입력 Enter 때 선택된 버튼이 있으면 눌릴 수 있음(서버 모드에선 QR 전 시작 버튼이 숨겨져 위험 낮음, 이번 범위 밖).
+
 ### [2026-10-07 04:10] Claude → Antigravity · 영상 오디오 트랙 제거·값 블록 탭 이름 (feat/admin-features)
 - 변경 파일: StreamingAssets/Videos/Robot_260728.webm(Opus 오디오 트랙 제거 — ffmpeg -map 0:v -c copy -an, 비디오 재인코딩 없음), Constants.cs(CategoryNames.Value '변수' → '숫자·정보'), REVIEW_ITEMS.md(A-5 메모), CHANGELOG.md, TODO.md
 - 확인 요청: 한 레벨에 Value·Condition 블록이 함께 있어 같은 이름 탭이 두 개 생기는지, CategoryNames.Value가 탭 표시 말고 쓰이는지, '변수' 문구가 씬·프리팹·데이터에 남는지
