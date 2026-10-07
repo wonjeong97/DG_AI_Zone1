@@ -6,7 +6,6 @@ using DG.Tweening;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading;
 using TMPro;
 using UnityEngine;
@@ -44,8 +43,9 @@ namespace Scenes
         private Tween _qrBlinkTween;
 
         // USB 바코드 스캐너는 키보드처럼 문자를 입력한 뒤 Enter를 보낸다 — Enter 전까지 모은 문자열이 QR 값.
+        // 글자 사이가 0_Title.json scanCharGapSeconds(기본 0.5초)보다 벌어지면 앞에 모은 글자(찍기 전에 눌린 키 등)는 버린다(ScanInputBuffer).
         // 스캐너는 본체 키보드와 별개의 키보드 장치로 잡히므로 연결된 키보드 전부(나중에 꽂힌 것 포함)를 구독한다.
-        private readonly StringBuilder _scanBuffer = new();
+        private readonly ScanInputBuffer _scanBuffer = new();
         private readonly List<Keyboard> _scanKeyboards = new();
         private bool _isWaitingForQr;
 
@@ -81,7 +81,7 @@ namespace Scenes
         /// <summary>
         /// 서버 연동(isServerConnected)이면 "QR 코드를 인식하여 주세요"를 띄우고 시작 버튼을 숨긴 채 QR 입력을 기다린다.
         /// 미연동이면 QR 단계 없이 "시작하기를 눌러주세요"와 시작 버튼을 바로 보여준다. 안내는 어느 쪽이든 천천히 깜빡인다.
-        /// 페이드 시간은 StreamingAssets/Json/0_Title.json(TitleSceneSettings)에서 읽어와 재빌드 없이 조정한다.
+        /// 페이드 시간·QR 확인 시간·스캐너 글자 간격은 StreamingAssets/Json/0_Title.json(TitleSceneSettings)에서 읽어와 재빌드 없이 조정한다.
         /// </summary>
         private async UniTaskVoid ApplyGuideAsync(CancellationToken ct)
         {
@@ -100,11 +100,14 @@ namespace Scenes
                 else ShowStartGuide(Constants.TitleMessages.StartGuide);
 
                 // qrCanvasGroup 누락은 Start에서 이미 경고했다
-                if (!qrCanvasGroup) return;
-                qrCanvasGroup.gameObject.SetActive(true);
+                if (qrCanvasGroup) qrCanvasGroup.gameObject.SetActive(true);
 
+                // 안내가 없어도 QR 확인·스캐너 값은 써야 하므로 설정은 항상 읽는다
                 string settingsPath = ZString.Concat(Constants.ResourcePaths.SceneSettingsFolder, "/", Constants.Scenes.Title);
                 _sceneSettings = await JsonLoader.LoadAsync<TitleSceneSettings>(settingsPath, ct, _logger);
+                ApplyScanCharGap();
+
+                if (!qrCanvasGroup) return;
 
                 _qrBlinkTween = qrCanvasGroup.DOFade(_sceneSettings.qrBlinkMinAlpha, _sceneSettings.qrFadeDuration)
                     .SetLoops(-1, LoopType.Yoyo)
@@ -115,6 +118,22 @@ namespace Scenes
             {
                 // 확인 도중 씬 전환 등으로 오브젝트가 파괴된 경우 — 정상 종료
             }
+        }
+
+        /// <summary>
+        /// 0_Title.json의 스캐너 글자 사이 최대 간격을 적용한다. 0 이하면 경고를 남기고 기본값을 쓴다.
+        /// </summary>
+        private void ApplyScanCharGap()
+        {
+            float gap = _sceneSettings.scanCharGapSeconds;
+            if (gap > 0f)
+            {
+                _scanBuffer.MaxCharGapSeconds = gap;
+                return;
+            }
+
+            _scanBuffer.MaxCharGapSeconds = ScanInputBuffer.DefaultMaxCharGapSeconds;
+            if (_logger != null) _logger.ZLogWarning($"[TitleSceneManager] 0_Title.json의 scanCharGapSeconds({gap})가 0 이하라 기본값 {ScanInputBuffer.DefaultMaxCharGapSeconds}초를 씁니다.");
         }
 
         /// <summary>
@@ -190,13 +209,25 @@ namespace Scenes
 
         /// <summary>
         /// 스캐너가 보낸 문자를 모은다. 스캐너가 Enter를 CR/LF 문자로 보내는 경우 그 자리에서 인식을 끝낸다.
+        /// 앞 글자와 scanCharGapSeconds(기본 0.5초)보다 벌어진 글자가 오면 앞에 모은 글자는 이번 스캔이 아니라 버린다
+        /// (uid에 생년월일이 있어 글자 내용 대신 개수만 로그에 남긴다).
         /// </summary>
         private void OnScanTextInput(char c)
         {
             if (!_isWaitingForQr) return;
 
-            if (c == '\r' || c == '\n') SubmitScan();
-            else if (!char.IsControl(c)) _scanBuffer.Append(c);
+            if (c == '\r' || c == '\n')
+            {
+                SubmitScan();
+                return;
+            }
+
+            // Tab 등 제어 문자는 QR 값이 아니다
+            if (char.IsControl(c)) return;
+
+            int discarded = _scanBuffer.Append(c, Time.realtimeSinceStartup);
+            if (discarded > 0 && _logger != null)
+                _logger.ZLogInformation($"[TitleSceneManager] 글자 사이가 {_scanBuffer.MaxCharGapSeconds}초 넘게 벌어져 앞에 모은 {discarded}글자를 버리고 새로 모읍니다.");
         }
 
         /// <summary>
@@ -218,12 +249,19 @@ namespace Scenes
 
         /// <summary>
         /// 모은 문자열을 QR 값으로 처리한다 — 비어 있으면(Enter만 들어온 경우) 무시하고 계속 기다린다.
+        /// 마지막 글자 뒤로 scanCharGapSeconds(기본 0.5초)보다 늦게 온 Enter면 모은 글자는 스캔이 아니라 손으로 누른 키로 보고 버린다.
         /// </summary>
         private void SubmitScan()
         {
-            string code = _scanBuffer.ToString();
-            _scanBuffer.Clear();
+            bool isStale = _scanBuffer.IsStale(Time.realtimeSinceStartup);
+            string code = _scanBuffer.TakeAndClear();
             if (!_isWaitingForQr || string.IsNullOrWhiteSpace(code)) return;
+
+            if (isStale)
+            {
+                if (_logger != null) _logger.ZLogInformation($"[TitleSceneManager] 마지막 글자보다 {_scanBuffer.MaxCharGapSeconds}초 넘게 늦게 Enter가 와서 모은 {code.Length}글자를 QR로 보지 않고 버립니다.");
+                return;
+            }
 
             OnQrScanned(code);
         }

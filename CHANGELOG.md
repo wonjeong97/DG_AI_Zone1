@@ -6,6 +6,9 @@
 
 ## [Unreleased]
 
+### Fixed
+- 서버 모드 타이틀에서 QR을 찍기 전에 눌린 키가 QR 값 앞에 붙어 체험자를 확인하지 못하던 것을, 글자 사이가 0.5초(`StreamingAssets/Json/0_Title.json` 의 `scanCharGapSeconds`, PC가 느려 스캔 글자가 늦게 들어오면 늘림)보다 벌어지면 앞에 모은 글자를 버리고 Enter가 그보다 늦게 오면 QR로 보지 않도록 수정.
+
 ## [2026-10-07]
 
 ### ⚠ Breaking Changes

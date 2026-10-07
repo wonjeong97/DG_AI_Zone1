@@ -13,6 +13,15 @@
 
 ---
 
+### [2026-10-07 20:10] Claude → Antigravity · QR 입력 글자 간격 초기화 — 4존 T45 맞춤 (fix/qr-scan-gap-reset)
+- 변경 파일: Scenes/ScanInputBuffer.cs(신규 — Append(char, now)가 앞 글자와 MaxCharGapSeconds 넘게 벌어지면 앞 글자를 비우고 버린 개수를 돌려줌, IsStale·TakeAndClear·Clear, 기본 0.5초), Scenes/TitleSceneManager.cs(StringBuilder 대신 ScanInputBuffer, 시간은 Time.realtimeSinceStartup, 버리면 개수만 로그, 마지막 글자보다 간격 넘게 늦은 Enter는 QR로 보지 않음, ApplyGuideAsync가 qrCanvasGroup이 없어도 0_Title.json을 읽고 깜빡임만 건너뜀, ApplyScanCharGap — 0 이하면 경고 후 기본값), Data/TitleSceneSettings.cs·StreamingAssets/Json/0_Title.json(scanCharGapSeconds 0.5), ScanInputBufferTests.cs(신규 5개), CHANGELOG.md, TODO.md
+- 배경: 4존 실제 리더기 테스트에서 찍기 전에 눌린 키 한 글자가 uid 앞에 붙어 13자로 들어옴 — 타이틀이 Enter까지 들어온 글자를 모두 모으기 때문. 4존 `fix/qr-scan-gap-reset`(9e24168)을 1존 구조(Scenes 네임스페이스, '~한다' 문체)로 옮김.
+- 확인 요청: 정상 스캔·CR/LF와 Enter 두 경로 한 번 처리, 버려야 할 경우·경계값, 설정 로드 전후·0 이하, ApplyGuideAsync 순서 변경 영향, uid 로그, 규칙, 4존과 의미 차이
+- 결과: A~G 7개 항목 통과(agy `gemini-3.8-flash-high`). 제안 미반영: MaxCharGapSeconds setter 자체 방어(호출부가 이미 검사, 4존과 같게 유지), 설정 주석 마침표(주변 주석과 같은 문체).
+  - Claude 확인: PlayMode 114/114(아래 두 작업과 합친 트리). 127.0.0.1 가짜 서버, 서버 모드 Play 모드에서 Input System 텍스트 이벤트로 입력 — 'x' → 약 7초 뒤 'NF1'+CR → '앞에 모은 1글자를 버리고'·서버가 받은 uid `NF1`(3자)·'LLL님, 시작하기를 눌러주세요.'; 시작하기가 떠 있는 상태에서 'NFab' → 약 14초 뒤 CR → '모은 4글자를 QR로 보지 않고 버립니다'·서버 요청 없음·안내 유지; 0_Title.json 3.0 → 적용 값 3·'x' 뒤 1.95초에 'NF1'+CR → 서버가 `xNF1`(4자)을 받고 미등록 안내; 0 → 경고 로그·적용 값 0.5. 확인 뒤 0_Title.json(0.5)·Server.json·운영 모드 PlayerPrefs(로컬 0)·EditorSettings·GamtanRoadTantan SDF Outline 동적 글자 원복, 가짜 서버 종료.
+  - Enter 키 상태 이벤트는 Game 뷰 포커스가 없어 플레이어까지 오지 않아 CR 문자 경로로만 확인(Enter 키 경로 코드는 바꾸지 않음).
+  - 주의: 스캐너 없이 키보드로 uid를 손으로 입력하면 글자 사이가 0.5초를 넘기 쉬워 앞 글자가 버려진다 — 손 입력 테스트는 scanCharGapSeconds를 잠시 늘리거나 스캐너를 쓴다.
+
 ### [2026-10-07 17:40] Claude → Antigravity · QR 확인 중 최소 표시 시간 (feat/qr-checking-min-time)
 - 변경 파일: Scenes/TitleSceneManager.cs(CheckVisitorAsync — 확인 시작 시각을 재고, 서버 확인이 끝난 뒤 qrCheckingMinSeconds를 못 채웠으면 남은 시간만큼 UnscaledDeltaTime 대기 후 결과 표시), Data/TitleSceneSettings.cs·StreamingAssets/Json/0_Title.json(qrCheckingMinSeconds 1.0), CHANGELOG.md, TODO.md
 - 배경: 내부망 서버가 빨리 답하면 '확인 중' 문구가 수십 ms만 스쳐 깜빡임처럼 보임 — 사용자 요청으로 최소 1초.
