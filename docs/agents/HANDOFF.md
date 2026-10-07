@@ -13,6 +13,15 @@
 
 ---
 
+### [2026-10-07 16:50] Claude → Antigravity · 서버 모드 QR 체험자 확인 checkActive (feat/check-active-api)
+- 변경 파일: Network/VisitorApiClient.cs(신규 — Server.json 주소로 checkActive GET, 실패는 예외 대신 RequestFailed, uid는 로그에 남기지 않음), Network/CheckActiveResult.cs(신규 — 평문 응답 해석: "idx_user,name" 체험 가능·"체험을 완료한 유저입니다"·"NOT_FOUND"·그 밖 Unknown), Data/ServerSettings.cs·StreamingAssets/Json/Server.json(신규 — baseUrl·timeoutSeconds), App/VisitorInfoProvider.cs(서버 체험자 idx·이름 기록/비우기, 서버 모드 이름), App/GameLifetimeScope.cs(VisitorApiClient 등록, 타이틀 복귀 때 체험자 비움), Scenes/TitleSceneManager.cs(QR → 확인 중 → 시작하기 또는 안내 후 QR 대기), Data/TitleSceneSettings.cs·0_Title.json(scanResultMessageSeconds 3), Constants.cs(VisitorApi·안내 문구), CheckActiveResultTests.cs(신규 15개), CHANGELOG.md, TODO.md
+- 배경: 서버는 회사 내부망 전용이라 개발 환경에서 접속 불가. 응답 형식은 사용자가 회사에서 페이지 소스로 확인한 실측값(체험 가능 `10,LLL`, 완료 `체험을 완료한 유저입니다`, 없음 `NOT_FOUND`). 템플릿 ApiRetryUtil은 응답 본문을 안 돌려주고 에디터에서 전송을 생략하는 로그용이라 쓰지 않음.
+- 확인 요청: 실패 경로 소프트락, 확인 중 재입력·씬 파괴, 파싱, 체험자 기록·이름, uid 로그, 코드 규칙
+- 결과: 6개 항목 통과(agy, 10분 제한). 제안 반영 1건 — scanResultMessageSeconds가 음수면 Delay 예외로 QR 대기로 못 돌아오므로 0 이상으로 제한. 미반영: 빈 이름 거부(지금도 기본 이름으로 대체), Resolve 필드 캐싱(스타일), `private static readonly` 순서(프로젝트 규칙은 `readonly static`).
+  - Claude 확인: PlayMode 78/78. 127.0.0.1 가짜 서버(응답 앞뒤 \r\n, charset 없는 UTF-8)로 0_Title Play 모드에서 체험 가능(시작하기·idx 10·이름 LLL), 완료, 없음, 예상 밖 HTML, 서버 꺼짐(Cannot connect), 시간 초과(3초 Request timeout) 모두 안내 후 QR 대기 복귀, 타이틀 재진입 시 체험자 비움 확인. 확인 뒤 Server.json·운영 모드 PlayerPrefs(로컬 0)·EditorSettings 원복.
+  - 현장 확인 필요: 실제 서버가 완료 문구를 UTF-8이 아닌 인코딩으로 charset 없이 보내면 깨져 Unknown(확인할 수 없음 안내)이 됨 — 로그의 원문으로 판단.
+  - 범위 밖: 서버 모드에서 타이틀 복귀 때 진행도(해금 레벨)를 지우지 않는 기존 동작 유지 — 결과 저장·진행도 API와 함께 정할 것.
+
 ### [2026-10-07 04:10] Claude → Antigravity · 영상 오디오 트랙 제거·값 블록 탭 이름 (feat/admin-features)
 - 변경 파일: StreamingAssets/Videos/Robot_260728.webm(Opus 오디오 트랙 제거 — ffmpeg -map 0:v -c copy -an, 비디오 재인코딩 없음), Constants.cs(CategoryNames.Value '변수' → '숫자·정보'), REVIEW_ITEMS.md(A-5 메모), CHANGELOG.md, TODO.md
 - 확인 요청: 한 레벨에 Value·Condition 블록이 함께 있어 같은 이름 탭이 두 개 생기는지, CategoryNames.Value가 탭 표시 말고 쓰이는지, '변수' 문구가 씬·프리팹·데이터에 남는지

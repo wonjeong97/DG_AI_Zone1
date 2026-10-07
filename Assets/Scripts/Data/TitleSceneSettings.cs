@@ -8,5 +8,8 @@ namespace Data
     {
         public float qrFadeDuration = 1.2f;
         public float qrBlinkMinAlpha = 0.3f;
+
+        // 서버 모드에서 QR 확인이 안 됐을 때(체험 완료·없는 QR·서버 오류) 안내를 보여 준 뒤 다시 QR을 기다리기까지의 시간(초)
+        public float scanResultMessageSeconds = 3f;
     }
 }
