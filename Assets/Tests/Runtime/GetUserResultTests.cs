@@ -120,6 +120,34 @@ namespace DG.Zone1.Tests
         }
 
         /// <summary>
+        /// JSON 앞뒤에 붙은 줄바꿈·글자는 무시한다 — 현장 서버는 JSON 끝 } 뒤에 ``` 줄을 붙여 보낸 적이 있다.
+        /// </summary>
+        [TestCase("\r\n", "\r\n```\r\n")]
+        [TestCase("", "```")]
+        [TestCase("\r\n\r\n", "\r\n<!-- debug -->\r\n")]
+        public void JSON_앞뒤에_붙은_글자는_무시한다(string prefix, string suffix)
+        {
+            GetUserResult result = GetUserResult.Parse(prefix + WithValues("1", "0", "null", "null", "null") + suffix);
+
+            Assert.IsTrue(result.IsFound);
+            Assert.AreEqual(1, result.LastRecordedLevelIndex);
+        }
+
+        /// <summary>
+        /// JSON으로 읽지 못하면 실패 사유에 JsonUtility 오류 문구를 함께 남긴다 — 로그만으로 응답이 어떻게 깨졌는지 짐작할 수 있게.
+        /// </summary>
+        [Test]
+        public void JSON_해석_오류_문구를_실패_사유에_남긴다()
+        {
+            // 서버 수정 전 형식 — 기록 없는 값이 빈칸
+            GetUserResult result = GetUserResult.Parse(AllNullBody.Replace(@"""A1"": null", @"""A1"": "));
+
+            Assert.IsFalse(result.IsFound);
+            StringAssert.StartsWith("JSON이 아닌 응답 (", result.FailReason);
+            StringAssert.Contains("JSON parse error", result.FailReason);
+        }
+
+        /// <summary>
         /// result가 false면 찾지 못한 것이고, 서버 메시지를 실패 사유로 남긴다.
         /// </summary>
         [Test]
