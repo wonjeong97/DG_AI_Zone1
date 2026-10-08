@@ -10,6 +10,7 @@
 
 ## 완료
 
+- [x] HuliacDev Template 패키지 26.9.25-3 → 26.10.9-1 업데이트(packages-lock.json 고정 커밋 b4547f3 → 640d05e, VideoManager 영상 RenderTexture 깊이 버퍼 제거 — 이 프로젝트는 해당 API를 쓰지 않음), Player Settings Version 26.10.9 — 담당: Claude / 검증: Claude(Antigravity 한도 초과로 대신 검증) (2026-10-09)
 - [x] 타이틀 대기 중에는 move_idle_timeout을 보내지 않고(APIManager가 0_Title 타임아웃 무시), QR 확인 뒤 시작하기 대기 시간이 지나 QR 대기로 돌아갈 때만 TitleSceneManager가 한 번 보냄 — PlayMode 120/120 — 담당: Claude / 검증: Antigravity (2026-10-08)
 - [x] 체험자 서버 JSON 응답 앞뒤 군더더기 무시(현장 getUser가 JSON 끝 } 뒤에 ``` 줄을 붙여 보내 모든 체험자가 타이틀에서 막힘) — getUser·updateValue는 첫 { ~ 마지막 }만 읽고, getUser 실패 사유에 JsonUtility 오류 문구 포함, Player Settings Version 26.10.8 — PlayMode 120/120 — 담당: Claude / 검증: Antigravity (2026-10-08)
 - [x] 관리자 화면에서 레벨 이동·모드 변경으로 씬을 떠나는 중 닫기·레벨 버튼 입력 무시(4존 _isLeaving) — PlayMode 114/114 — 담당: Claude / 검증: Antigravity (2026-10-07)

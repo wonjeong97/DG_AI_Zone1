@@ -13,6 +13,12 @@
 
 ---
 
+### [2026-10-09 02:35] Claude → Antigravity · HuliacDev Template 26.10.9-1 업데이트 (chore/template-26.10.9-1)
+- 변경 파일: Packages/packages-lock.json(com.huliacdev.template hash b4547f3 → 640d05e, 26.9.25-3 → 26.10.9-1), ProjectSettings.asset(bundleVersion 26.10.8 → 26.10.9), TODO.md
+- 패키지 변경: VideoManager.WireRawImageAndRenderTexture가 영상 RenderTexture를 깊이 버퍼 없이(24 → 0) 만듦(Breaking: 반환 텍스처를 Camera.targetTexture 등 깊이가 필요한 용도로 쓰면 결과가 달라짐), TemplateInputActions.cs는 생성 헤더 주석(Input System 1.19.0)만, 나머지는 Template 테스트·문서. public API 변경 없음.
+- 확인 요청: (영향) 이 프로젝트가 WireRawImageAndRenderTexture·UIManager.SetVideo를 쓰는지, 반환 텍스처를 깊이가 필요한 용도로 쓰는지 / (diff) lock에서 template hash만 바뀌었는지, 버전, TODO 형식
+- 결과: Antigravity가 사용 한도에 걸려 Claude가 대신 확인. (영향) Assets에서 두 API를 쓰지 않음. SceneFader.ClearVideoRenderTexture는 VideoPlayer에 연결된 자체 RenderTexture 에셋을 지우며, 깊이 없는 텍스처에 GL.Clear(true, …)를 해도 문제없음 → 통과. (diff) lock은 template hash 한 줄만, bundleVersion 26.10.9, TODO 형식 맞음 → 통과. 컴파일은 같은 패키지 커밋으로 0_Startup을 Unity 배치 모드로 열어 패키지 받기·컴파일 에러 0을 확인(이 프로젝트 에디터는 열지 않음, PlayMode 테스트 안 돌림).
+
 ### [2026-10-08 14:50] Claude → Antigravity · 타이틀 대기 중 move_idle_timeout 안 보냄, 시작하기 대기 시간 초과 때만 한 번 (fix/title-idle-timeout-log)
 - 변경 파일: Network/APIManager.cs(OnInactivityTimeout — 활성 씬이 0_Title이면 로그만 남기고 보내지 않음, 5_Outro는 기존대로 move_idle, 그 외 기존대로 move_idle_timeout), Scenes/TitleSceneManager.cs(ApiManagerBase 주입, ConfirmTimeoutAsync — resetTime 대기 뒤 SendMoveIdleTimeoutLogAsync를 토큰 없이 한 번 보내고 체험자 비움·QR 대기), CHANGELOG.md, TODO.md
 - 배경: 사용자 요청 — 타이틀에서 대기 중에는 move_idle_timeout을 보내지 말고, QR을 찍은 뒤 시작하기를 안 눌러 QR 대기로 돌아갈 때만 한 번 보낼 것. 4존 APIManager·TitleFlowController와 같은 방식. 타이틀에서는 GameManager가 타이머를 멈추지만, ResultSequence.OnDestroy·StoryLineAnimator의 finally처럼 다른 씬이 Resume을 부르는 경로가 있어 타이틀에서 타이머가 다시 돌 수 있음(재현은 안 함) — 씬 판정으로 막음.
