@@ -21,6 +21,7 @@
   - Claude 확인: Rider 코드 분석에서 두 파일 에러 0. 처음에는 MCP에 4존 에디터만 연결돼 있어 1존 확인을 미뤘고, 사용자가 1존 에디터를 켠 뒤 진행. 컴파일 에러 0, PlayMode 120/120(뒤에 EditorSettings 원복).
   - Play 모드: 127.0.0.1 가짜 서버(uid NF1 → 10,LLL), 서버 모드, Settings.json useInactivityTimer true·resetTime 5로 잠시 바꾸고 Input System 텍스트 이벤트로 QR 입력. (1) 0_Title에서 InactivityTimer.Resume() 뒤 5초 → 타임아웃 발행·'[APIManager] 타이틀은 이미 대기 화면이라…'만 남고 move_idle_timeout 없음. (2) QR 확인 뒤 시작하기 안 누름 → 5초 뒤 'QR 코드를 인식하여 주세요.'·시작 버튼 숨김·'skipping send: move_idle_timeout' 1회(같은 흐름 3번 → 3회). (3) 시작하기 안내 중 3.5초에 다시 찍기 → 앞사람 대기 취소, 새 확인 기준 5초 뒤 1회만. (4) 확인 뒤 시작하기 클릭 → 타이틀은 안 보냄, 1_Intro 타임아웃은 기존대로 move_idle_timeout 1회 → 타이틀 복귀 뒤 15초 넘게 추가 전송 없음. 콘솔 에러 0. 확인 뒤 Server.json·Settings.json·운영 모드 PlayerPrefs(로컬 0)·EditorSettings 원복, 가짜 서버 종료.
   - 에디터는 ApiRetryUtil이 실제 전송을 건너뛰고 'skipping send'만 남김 — 빌드에서는 같은 자리에서 서버로 보냄.
+  - PR #85 확인: 코멘트·리뷰 없음, CI 없음, 병합 가능(CLEAN). diff는 커밋 전 리뷰·Play 모드 확인과 같음(APIManager.cs 끝 줄바꿈만 추가) — 추가 수정 없이 머지.
 
 ### [2026-10-08 13:57] Claude → Antigravity · 체험자 서버 JSON 응답 앞뒤 군더더기 무시 (fix/api-json-trailing-text)
 - 변경 파일: Network/ApiJson.cs(신규 — ExtractObject: 첫 '{'~마지막 '}'만, 중괄호가 없으면 본문 그대로), Network/GetUserResult.cs(잘라 낸 json으로 JsonUtility·정규식, ArgumentException 문구를 실패 사유에 덧붙임), Network/UpdateValueResponse.cs(IsSaved도 ExtractObject), GetUserResultTests.cs(4개 추가 — 앞뒤 글자 3종, 오류 문구), VisitorApiClientTests.cs(2개 추가 — updateValue 뒤 ``` 줄), CHANGELOG.md, TODO.md, ProjectSettings.asset(bundleVersion 26.10.8)
