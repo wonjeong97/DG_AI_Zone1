@@ -19,6 +19,7 @@
 - 확인 요청: (코드) ExtractObject 경계·잘못 성공 경로, 정규식 대상 변경·e.Message의 개인정보, 규칙 / (테스트) 회귀 여부·기대값, Unity 문구 의존·기존 테스트, 문체·경계 사례 / (문서·설정) CHANGELOG, TODO, bundleVersion
 - 결과: 세 묶음 9개 항목 모두 통과(agy, 묶음별 병렬). 사전 원인 조사 요청은 5분 제한에 걸려 빈 결과 — 원문으로 원인이 확정돼 다시 맡기지 않고 Claude가 직접 확인.
   - Claude 확인: PlayMode 120/120. 에디터에서 현장 원문(이름·uid만 바꿈)에 ``` 유무만 달리해 Parse — 없음 IsFound True, 붙음 'JSON이 아닌 응답'(고치기 전 코드). 테스트 뒤 EditorSettings 원복, PlayerSettings.bundleVersion은 에디터 메모리 값도 26.10.8로 저장.
+  - PR #84 확인: 코멘트·리뷰 없음, CI 없음, 병합 가능(CLEAN). 서버 응답을 JSON으로 읽는 곳은 GetUserResult·UpdateValueResponse 두 곳뿐(APIManager는 해석 안 함). checkActive는 평문이고 완료 응답이 Trim 뒤 정확히 일치해 뒤에 붙는 글자가 없음 — 추가 수정 없이 머지.
 
 ### [2026-10-07 20:20] Claude → Antigravity · 관리자 화면 떠나는 중 입력 무시 — 4존 _isLeaving 맞춤 (fix/admin-leaving-guard)
 - 변경 파일: Admin/AdminPanel.cs(_isLeaving — 레벨 이동, 모드가 바뀐 닫기로 SceneFader.FadeAndLoad를 부르기 직전에 true, OnCloseClicked·OnLevelClicked 첫 줄에서 무시), CHANGELOG.md, TODO.md
