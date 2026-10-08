@@ -6,12 +6,11 @@
 
 ## 진행 중
 
-- [ ] 타이틀 대기 중에는 move_idle_timeout을 보내지 않고(APIManager가 0_Title 타임아웃 무시), QR 확인 뒤 시작하기 대기 시간이 지나 QR 대기로 돌아갈 때만 TitleSceneManager가 한 번 보냄 — 코드·Rider 검사 완료, 1존 에디터 컴파일·PlayMode 테스트·Play 모드 확인 남음 — 담당: Claude / 검증: Antigravity
-
 ## 할 일
 
 ## 완료
 
+- [x] 타이틀 대기 중에는 move_idle_timeout을 보내지 않고(APIManager가 0_Title 타임아웃 무시), QR 확인 뒤 시작하기 대기 시간이 지나 QR 대기로 돌아갈 때만 TitleSceneManager가 한 번 보냄 — PlayMode 120/120 — 담당: Claude / 검증: Antigravity (2026-10-08)
 - [x] 체험자 서버 JSON 응답 앞뒤 군더더기 무시(현장 getUser가 JSON 끝 } 뒤에 ``` 줄을 붙여 보내 모든 체험자가 타이틀에서 막힘) — getUser·updateValue는 첫 { ~ 마지막 }만 읽고, getUser 실패 사유에 JsonUtility 오류 문구 포함, Player Settings Version 26.10.8 — PlayMode 120/120 — 담당: Claude / 검증: Antigravity (2026-10-08)
 - [x] 관리자 화면에서 레벨 이동·모드 변경으로 씬을 떠나는 중 닫기·레벨 버튼 입력 무시(4존 _isLeaving) — PlayMode 114/114 — 담당: Claude / 검증: Antigravity (2026-10-07)
 - [x] 체험자 서버 API 방어(4존 맞춤) — getUser는 A1~A5만 보기(A0·A6·A10 무시), Server.json 로드 뒤 취소 전달, VisitorSettings 로드 실패 시 에러 후 기본 인스턴스 — PlayMode 114/114 — 담당: Claude / 검증: Antigravity (2026-10-07)
