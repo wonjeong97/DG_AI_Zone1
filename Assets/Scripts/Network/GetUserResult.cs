@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using Cysharp.Text;
 using UnityEngine;
 
 namespace Network
@@ -43,27 +44,31 @@ namespace Network
         public static GetUserResult Failed(string reason) => new(false, NoRecord, reason);
 
         /// <summary>
-        /// getUser 응답 본문을 해석한다. result가 true일 때만 찾은 것으로 보고, 이 존의 레벨(A1~A5) 값 중 null이 아닌 마지막 레벨을 찾는다.
+        /// getUser 응답 본문을 해석한다. JSON 앞뒤에 붙은 글자는 무시하고, result가 true일 때만 찾은 것으로 보며,
+        /// 이 존의 레벨(A1~A5) 값 중 null이 아닌 마지막 레벨을 찾는다.
         /// </summary>
         public static GetUserResult Parse(string body)
         {
             if (string.IsNullOrWhiteSpace(body)) return Failed("빈 응답");
 
+            string json = ApiJson.ExtractObject(body);
+
             GetUserResponse response;
             try
             {
-                response = JsonUtility.FromJson<GetUserResponse>(body);
+                response = JsonUtility.FromJson<GetUserResponse>(json);
             }
-            catch (ArgumentException)
+            catch (ArgumentException e)
             {
-                return Failed("JSON이 아닌 응답");
+                // JsonUtility 오류 문구에는 본문이 들어 있지 않아 로그에 남겨도 된다 — 응답이 어떻게 깨졌는지 짐작하는 단서가 된다
+                return Failed(ZString.Concat("JSON이 아닌 응답 (", e.Message, ")"));
             }
 
             if (response == null) return Failed("빈 응답");
             if (!response.result) return Failed(string.IsNullOrEmpty(response.message) ? "result false" : response.message);
 
             int lastRecordedLevelIndex = NoRecord;
-            foreach (Match match in ZoneLevelPattern.Matches(body))
+            foreach (Match match in ZoneLevelPattern.Matches(json))
             {
                 if (match.Groups[2].Value == NullValue) continue;
 

@@ -13,6 +13,14 @@
 
 ---
 
+### [2026-10-08 13:57] Claude → Antigravity · 체험자 서버 JSON 응답 앞뒤 군더더기 무시 (fix/api-json-trailing-text)
+- 변경 파일: Network/ApiJson.cs(신규 — ExtractObject: 첫 '{'~마지막 '}'만, 중괄호가 없으면 본문 그대로), Network/GetUserResult.cs(잘라 낸 json으로 JsonUtility·정규식, ArgumentException 문구를 실패 사유에 덧붙임), Network/UpdateValueResponse.cs(IsSaved도 ExtractObject), GetUserResultTests.cs(4개 추가 — 앞뒤 글자 3종, 오류 문구), VisitorApiClientTests.cs(2개 추가 — updateValue 뒤 ``` 줄), CHANGELOG.md, TODO.md, ProjectSettings.asset(bundleVersion 26.10.8)
+- 배경: 현장 빌드 서버 모드에서 checkActive는 Active인데 getUser가 매번 'JSON이 아닌 응답'으로 실패해 체험 가능한 관람객이 모두 타이틀에서 막힘. 현장 PC curl 원문: HTTP 200, application/json;charset=utf-8, BOM 없음, 앞에 \r\n, 기록 없는 값 null(정상) — JSON 끝 } 뒤에 ``` 줄이 붙어 JsonUtility가 'The document root must not follow by other values'로 실패(원문 그대로 에디터 재현). 서버 쪽 제거는 별도 요청. 사용자 결정으로 진단 문구 추가 + 앞뒤 무시 둘 다 넣음.
+- 확인 요청: (코드) ExtractObject 경계·잘못 성공 경로, 정규식 대상 변경·e.Message의 개인정보, 규칙 / (테스트) 회귀 여부·기대값, Unity 문구 의존·기존 테스트, 문체·경계 사례 / (문서·설정) CHANGELOG, TODO, bundleVersion
+- 결과: 세 묶음 9개 항목 모두 통과(agy, 묶음별 병렬). 사전 원인 조사 요청은 5분 제한에 걸려 빈 결과 — 원문으로 원인이 확정돼 다시 맡기지 않고 Claude가 직접 확인.
+  - Claude 확인: PlayMode 120/120. 에디터에서 현장 원문(이름·uid만 바꿈)에 ``` 유무만 달리해 Parse — 없음 IsFound True, 붙음 'JSON이 아닌 응답'(고치기 전 코드). 테스트 뒤 EditorSettings 원복, PlayerSettings.bundleVersion은 에디터 메모리 값도 26.10.8로 저장.
+  - PR #84 확인: 코멘트·리뷰 없음, CI 없음, 병합 가능(CLEAN). 서버 응답을 JSON으로 읽는 곳은 GetUserResult·UpdateValueResponse 두 곳뿐(APIManager는 해석 안 함). checkActive는 평문이고 완료 응답이 Trim 뒤 정확히 일치해 뒤에 붙는 글자가 없음 — 추가 수정 없이 머지.
+
 ### [2026-10-07 20:20] Claude → Antigravity · 관리자 화면 떠나는 중 입력 무시 — 4존 _isLeaving 맞춤 (fix/admin-leaving-guard)
 - 변경 파일: Admin/AdminPanel.cs(_isLeaving — 레벨 이동, 모드가 바뀐 닫기로 SceneFader.FadeAndLoad를 부르기 직전에 true, OnCloseClicked·OnLevelClicked 첫 줄에서 무시), CHANGELOG.md, TODO.md
 - 배경: 사용자 결정 — 4존처럼 막기. SceneFader는 로드 중 두 번째 전환을 무시하지만 OnLevelClicked가 그 전에 세션(unlockedLevelIndex·pendingStoryLevelIndex)을 덮어써, 연달아 누르면 나중에 누른 레벨의 스토리가 열릴 수 있었음. 대체 이름(서버 모드인데 QR 체험자가 없을 때)은 사용자 결정으로 지금처럼 관리자 화면 이름(VisitorSettings.VisitorName) 유지 — 변경 없음.

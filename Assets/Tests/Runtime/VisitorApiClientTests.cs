@@ -52,6 +52,16 @@ namespace DG.Zone1.Tests
         }
 
         /// <summary>
+        /// JSON 뒤에 붙은 글자(현장 서버 getUser에서 본 ``` 줄 등)는 무시하고 result로 판정한다.
+        /// </summary>
+        [TestCase("\r\n{\"result\":true,\"idx_user\":13,\"code\":\"A1\",\"value\":1}\r\n```\r\n", true)]
+        [TestCase("{\"result\":false,\"message\":\"ERROR_IDX_USER\"}\r\n```", false)]
+        public void 결과_저장_응답_뒤에_붙은_글자는_무시한다(string body, bool expected)
+        {
+            Assert.AreEqual(expected, UpdateValueResponse.IsSaved(body));
+        }
+
+        /// <summary>
         /// 취소된 요청은 Server.json을 기본값(빈 baseUrl)으로 읽어도 '서버 주소 없음' 실패로 끝나지 않고 취소로 전달된다
         /// (JsonLoader는 취소돼도 예외 대신 기본값을 돌려준다).
         /// </summary>
