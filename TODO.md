@@ -6,6 +6,8 @@
 
 ## 진행 중
 
+- [ ] 타이틀 대기 중에는 move_idle_timeout을 보내지 않고(APIManager가 0_Title 타임아웃 무시), QR 확인 뒤 시작하기 대기 시간이 지나 QR 대기로 돌아갈 때만 TitleSceneManager가 한 번 보냄 — 코드·Rider 검사 완료, 1존 에디터 컴파일·PlayMode 테스트·Play 모드 확인 남음 — 담당: Claude / 검증: Antigravity
+
 ## 할 일
 
 ## 완료

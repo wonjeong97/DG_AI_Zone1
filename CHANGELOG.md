@@ -6,6 +6,9 @@
 
 ## [Unreleased]
 
+### Changed
+- 콘텐츠 로그 서버의 비활동 타임아웃 기록(move_idle_timeout)을 타이틀에서 대기 중일 때는 보내지 않고, 서버 모드에서 QR로 확인한 체험자가 설정 시간(`Settings.json` 의 `resetTime`) 동안 시작하기를 누르지 않아 QR 대기로 돌아갈 때만 한 번 보내도록 변경.
+
 ## [2026-10-08]
 
 ### Fixed

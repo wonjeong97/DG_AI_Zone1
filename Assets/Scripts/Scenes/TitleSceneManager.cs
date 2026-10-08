@@ -13,6 +13,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using VContainer;
 using HuliacDev.Data;
+using HuliacDev.Network;
 using HuliacDev.UI;
 using HuliacDev.Utils;
 using Network;
@@ -32,6 +33,7 @@ namespace Scenes
         private GameSession _session;
         private SoundManager _soundManager;
         private AppSettingsProvider _settingsProvider;
+        private ApiManagerBase _apiManager;
 
         // 0_Title.json 로드 전에 QR 확인 결과가 나오면 기본값을 쓴다
         private TitleSceneSettings _sceneSettings = new();
@@ -50,11 +52,12 @@ namespace Scenes
         private bool _isWaitingForQr;
 
         /// <summary>
-        /// 로거, 체험자 정보 제공자, 체험자 서버 API, 게임 세션, 사운드 매니저, 앱 설정(Settings.json) 제공자를 주입받는다.
+        /// 로거, 체험자 정보 제공자, 체험자 서버 API, 게임 세션, 사운드 매니저, 앱 설정(Settings.json) 제공자, 콘텐츠 로그 API 매니저를 주입받는다.
         /// </summary>
         [Inject]
         public void Construct(ILogger<TitleSceneManager> log, VisitorInfoProvider visitorInfoProvider,
-            VisitorApiClient visitorApiClient, GameSession session, SoundManager soundManager, AppSettingsProvider settingsProvider)
+            VisitorApiClient visitorApiClient, GameSession session, SoundManager soundManager, AppSettingsProvider settingsProvider,
+            ApiManagerBase apiManager)
         {
             _logger = log;
             _visitorInfoProvider = visitorInfoProvider;
@@ -62,6 +65,7 @@ namespace Scenes
             _session = session;
             _soundManager = soundManager;
             _settingsProvider = settingsProvider;
+            _apiManager = apiManager;
         }
 
         /// <summary>
@@ -420,7 +424,8 @@ namespace Scenes
 
         /// <summary>
         /// 비활동 타이머와 같은 설정(Settings.json의 useInactivityTimer·resetTime)으로, 시작하기를 누르지 않은 채
-        /// 그 시간이 지나면 확인한 체험자를 비우고 다시 QR을 기다린다. 비활동 타이머가 꺼져 있으면 계속 기다린다.
+        /// 그 시간이 지나면 서버에 move_idle_timeout을 한 번 보내고 확인한 체험자를 비운 뒤 다시 QR을 기다린다. 비활동 타이머가 꺼져 있으면 계속 기다린다.
+        /// 타이틀에서 난 비활동 타임아웃은 APIManager가 보내지 않으므로, 타이틀의 move_idle_timeout은 이 경우에만 남는다.
         /// </summary>
         private async UniTaskVoid ConfirmTimeoutAsync(CancellationTokenSource cts)
         {
@@ -441,6 +446,11 @@ namespace Scenes
                 await UniTask.Delay(TimeSpan.FromSeconds(settings.resetTime), DelayType.UnscaledDeltaTime, cancellationToken: ct);
 
                 if (_logger != null) _logger.ZLogInformation($"[TitleSceneManager] {settings.resetTime}초 동안 시작하기를 누르지 않아 QR 대기로 돌아갑니다.");
+
+                // 로그 전송은 씬과 상관없이 끝까지 보내도록 이 오브젝트의 토큰을 넘기지 않는다
+                if (_apiManager) _apiManager.SendMoveIdleTimeoutLogAsync().Forget();
+                else if (_logger != null) _logger.ZLogWarning($"[TitleSceneManager] ApiManagerBase가 주입되지 않아 시작하기 대기 시간 초과 로그(move_idle_timeout)를 보내지 못했습니다.");
+
                 ClearConfirmedVisitor();
                 WaitForQr();
             }
