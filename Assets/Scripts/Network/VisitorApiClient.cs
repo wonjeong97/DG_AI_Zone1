@@ -11,11 +11,12 @@ using ZLogger;
 
 namespace Network
 {
+    // 서버 주소·시간 초과·재시도 횟수는 StreamingAssets/Json/Server.json에서
+    // 호출마다 읽어 현장에서 파일만 고쳐도 다음 호출부터 반영된다. 네트워크가 불안정할 수 있어 요청이 실패하면 다시 시도한다.
+    // 템플릿 ApiRetryUtil은 응답 본문을 돌려주지 않고 에디터에서는 전송을 생략하는 로그 전송용이라 쓰지 않는다.
+    // uid에는 생년월일이 들어 있어 로그에 남기지 않는다.
     /// <summary>
-    /// 체험자 서버(현장 내부망) API를 호출한다. 서버 주소·시간 초과·재시도 횟수는 StreamingAssets/Json/Server.json에서
-    /// 호출마다 읽어 현장에서 파일만 고쳐도 다음 호출부터 반영된다. 네트워크가 불안정할 수 있어 요청이 실패하면 다시 시도한다.
-    /// 템플릿 ApiRetryUtil은 응답 본문을 돌려주지 않고 에디터에서는 전송을 생략하는 로그 전송용이라 쓰지 않는다.
-    /// uid에는 생년월일이 들어 있어 로그에 남기지 않는다.
+    /// 체험자 서버(현장 내부망) API를 호출한다.
     /// </summary>
     public class VisitorApiClient
     {
@@ -30,10 +31,11 @@ namespace Network
         }
 
         /// <summary>
-        /// uid로 체험 가능 여부를 서버에 묻는다. 요청이 실패해도 예외 대신 RequestFailed를 돌려주고, 취소만 예외로 전달한다.
+        /// uid로 체험 가능 여부를 서버에 묻는다.
         /// </summary>
         public async UniTask<CheckActiveResult> CheckActiveAsync(string uid, CancellationToken cancellationToken)
         {
+            // 요청이 실패해도 예외 대신 RequestFailed를 돌려주고, 취소만 예외로 전달한다.
             ServerSettings settings = await LoadSettingsAsync(cancellationToken);
             if (settings == null) return CheckActiveResult.Failed();
 
@@ -46,7 +48,7 @@ namespace Network
             if (result.Status == CheckActiveStatus.Unknown)
             {
                 // 서버 오류 페이지가 요청 주소(uid)를 되돌려 보여 줄 수 있어 원문은 남기지 않는다
-                if (_logger != null) _logger.ZLogWarning($"[VisitorApiClient] checkActive 응답을 해석하지 못했습니다 (응답 {(body == null ? 0 : body.Length)}자).");
+                if (_logger != null) _logger.ZLogWarning($"[VisitorApiClient] checkActive 응답을 해석하지 못했습니다 (응답 {body.Length}자).");
             }
             else if (_logger != null)
             {
@@ -57,11 +59,12 @@ namespace Network
         }
 
         /// <summary>
-        /// uid로 체험자 진행도(이 존의 레벨 기록)를 서버에서 받는다. 요청이 실패하거나 체험자가 없다는 응답이면 IsFound가 false이고,
-        /// 취소만 예외로 전달한다. 응답에 uid·이름이 들어 있어 원문은 로그에 남기지 않는다.
+        /// uid로 체험자 진행도(이 존의 레벨 기록)를 서버에서 받는다.
         /// </summary>
         public async UniTask<GetUserResult> GetUserAsync(string uid, CancellationToken cancellationToken)
         {
+            // 요청이 실패하거나 체험자가 없다는 응답이면 IsFound가 false이고,
+            // 취소만 예외로 전달한다. 응답에 uid·이름이 들어 있어 원문은 로그에 남기지 않는다.
             ServerSettings settings = await LoadSettingsAsync(cancellationToken);
             if (settings == null) return GetUserResult.Failed("서버 주소 없음");
 
@@ -89,13 +92,14 @@ namespace Network
         public static string GetLevelCode(int levelIndex) => ZString.Concat(Constants.VisitorApi.ZoneCode, levelIndex + 1);
 
         /// <summary>
-        /// 체험자의 레벨 결과(성공 1·실패 0)를 서버에 올린다. 응답 JSON의 result가 true일 때만 저장된 것으로 본다.
-        /// 요청이 실패하거나 서버가 저장하지 않았다고 응답하면 로그만 남기고 false를 돌려주며, 취소만 예외로 전달한다.
-        /// visitorName은 서버에 보내지 않고 누구의 결과인지 로그에 남기는 데만 쓴다.
+        /// 체험자의 레벨 결과(성공 1·실패 0)를 서버에 올린다.
         /// </summary>
         public async UniTask<bool> UpdateValueAsync(int idxUser, string visitorName, string code, bool isSuccess,
             CancellationToken cancellationToken)
         {
+            // 응답 JSON의 result가 true일 때만 저장된 것으로 본다.
+            // 요청이 실패하거나 서버가 저장하지 않았다고 응답하면 로그만 남기고 false를 돌려주며, 취소만 예외로 전달한다.
+            // visitorName은 서버에 보내지 않고 누구의 결과인지 로그에 남기는 데만 쓴다.
             ServerSettings settings = await LoadSettingsAsync(cancellationToken);
             if (settings == null) return false;
 
@@ -120,10 +124,11 @@ namespace Network
         }
 
         /// <summary>
-        /// Server.json을 읽는다. baseUrl이 비어 있으면 로그를 남기고 null을 돌려주며, 취소는 예외로 전달한다.
+        /// Server.json을 읽는다.
         /// </summary>
         private async UniTask<ServerSettings> LoadSettingsAsync(CancellationToken cancellationToken)
         {
+            // baseUrl이 비어 있으면 로그를 남기고 null을 돌려주며, 취소는 예외로 전달한다.
             ServerSettings settings = await JsonLoader.LoadAsync<ServerSettings>(Constants.SettingsFiles.Server, cancellationToken, _logger);
 
             // JsonLoader는 취소돼도 기본값(빈 baseUrl)을 돌려주므로 여기서 취소를 전달한다 — 취소 뒤 'baseUrl이 비어 있어' 에러가 남지 않게
@@ -135,13 +140,14 @@ namespace Network
         }
 
         /// <summary>
-        /// GET 요청을 보내 응답 본문을 받는다. 연결 실패·시간 초과·HTTP 오류·잘못된 주소면 재시도 간격을 두고
-        /// 최대 시도 횟수까지 다시 보내며, 모두 실패하면 로그를 남기고 null을 돌려준다.
-        /// 서버가 답한 결과(NOT_FOUND 등)는 다시 보내도 같으므로 재시도하지 않는다 — 응답 본문 해석은 호출부가 한다.
+        /// GET 요청을 보내 응답 본문을 받는다.
         /// </summary>
         private async UniTask<string> GetTextAsync(string url, int timeoutSeconds, int maxAttempts, float retryDelaySeconds,
             string apiName, CancellationToken cancellationToken)
         {
+            // 연결 실패·시간 초과·HTTP 오류·잘못된 주소면 재시도 간격을 두고
+            // 최대 시도 횟수까지 다시 보내며, 모두 실패하면 로그를 남기고 null을 돌려준다.
+            // 서버가 답한 결과(NOT_FOUND 등)는 다시 보내도 같으므로 재시도하지 않는다 — 응답 본문 해석은 호출부가 한다.
             maxAttempts = Mathf.Max(1, maxAttempts);
 
             // 재시도 대기는 Time.timeScale과 무관해야 한다 — 일시정지 중에도 재시도가 멈추지 않게
@@ -161,11 +167,12 @@ namespace Network
         }
 
         /// <summary>
-        /// GET 요청을 한 번 보내 응답 본문을 받는다. 실패하면 몇 번째 시도인지와 함께 경고를 남기고 null을 돌려준다.
+        /// GET 요청을 한 번 보내 응답 본문을 받는다.
         /// </summary>
         private async UniTask<string> SendGetAsync(string url, int timeoutSeconds, string apiName, int attempt, int maxAttempts,
             CancellationToken cancellationToken)
         {
+            // 실패하면 몇 번째 시도인지와 함께 경고를 남기고 null을 돌려준다.
             try
             {
                 using UnityWebRequest request = UnityWebRequest.Get(url);

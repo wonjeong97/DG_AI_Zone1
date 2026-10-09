@@ -188,7 +188,7 @@ namespace Admin
         }
 
         /// <summary>
-        /// 숫자 한 자리를 입력한다. 최대 자릿수를 넘는 입력은 무시한다.
+        /// 숫자 한 자리를 입력하고, 최대 자릿수를 넘는 입력은 무시한다.
         /// </summary>
         private void OnDigitClicked(int digit)
         {
@@ -265,7 +265,7 @@ namespace Admin
         }
 
         /// <summary>
-        /// 한 번 더 입력한 값이 새 비밀번호와 같으면 창을 닫고 저장한다. 다르면 새 비밀번호부터 다시 받는다.
+        /// 한 번 더 입력한 값이 새 비밀번호와 같으면 창을 닫고 저장하며, 다르면 새 비밀번호부터 다시 받는다.
         /// </summary>
         private void ConfirmNewPassword()
         {

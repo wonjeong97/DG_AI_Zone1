@@ -20,11 +20,11 @@ namespace Scenes
         public int Length => _buffer.Length;
 
         /// <summary>
-        /// 문자 하나를 now(초) 시각에 받은 것으로 덧붙인다. 앞 글자와 간격이 MaxCharGapSeconds를 넘으면 앞에 모은 글자를 버리고 새로 시작하며,
-        /// 버린 글자 수를 돌려준다(버리지 않았으면 0).
+        /// 문자 하나를 now(초) 시각에 받은 것으로 덧붙이고 버린 글자 수를 돌려준다(버리지 않았으면 0).
         /// </summary>
         public int Append(char c, float now)
         {
+            // 앞 글자와 간격이 MaxCharGapSeconds를 넘으면 앞에 모은 글자를 버리고 새로 시작한다.
             int discarded = 0;
             if (IsStale(now))
             {

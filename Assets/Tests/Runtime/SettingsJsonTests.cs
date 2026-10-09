@@ -84,6 +84,23 @@ namespace DG.Zone1.Tests
         }
 
         /// <summary>
+        /// 게임 씬 스냅 반경이 0 이하면 기본값으로 바꾼다 — 0이면 블록이 어떤 소켓에도 붙지 않아 코딩을 완성할 수 없다.
+        /// </summary>
+        [Test]
+        public void 게임_스냅_반경이_0_이하면_기본값으로_바꾼다()
+        {
+            GameSceneSettings invalid = new GameSceneSettings { snapRadius = 0f, chainSnapRadius = -10f };
+
+            Assert.IsTrue(invalid.ClampToValid());
+            Assert.AreEqual(GameSceneSettings.DefaultSnapRadius, invalid.snapRadius);
+            Assert.AreEqual(GameSceneSettings.DefaultSnapRadius, invalid.chainSnapRadius);
+
+            GameSceneSettings valid = new GameSceneSettings { snapRadius = 80f, chainSnapRadius = 90f };
+            Assert.IsFalse(valid.ClampToValid(), "0보다 큰 반경은 그대로 둔다");
+            Assert.AreEqual(80f, valid.snapRadius);
+        }
+
+        /// <summary>
         /// 타이틀의 체험자 시작 안내 문구에 이름 자리({name})가 있다 — 빠지면 QR로 확인한 체험자 이름이 안내에 나오지 않는다.
         /// </summary>
         [Test]

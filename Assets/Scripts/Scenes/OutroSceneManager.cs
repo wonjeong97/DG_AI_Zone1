@@ -73,16 +73,9 @@ namespace Scenes
                 return;
             }
 
-            StoryLineAnimator.HideBeforeAnimate(endingText);
-
-            if (_visitorInfoProvider != null)
-                endingText.text = _visitorInfoProvider.FillName(endingText.text);
-            else if (_logger != null)
-                _logger.ZLogWarning($"[OutroSceneManager] VisitorInfoProvider가 주입되지 않아 이름을 치환하지 않습니다.");
-
             try
             {
-                await StoryLineAnimator.AnimateWithCommonSettingsAsync(endingText, ct, _inactivityTimer, _logger);
+                await StoryLineAnimator.AnimateWithVisitorNameAsync(endingText, _visitorInfoProvider, ct, _inactivityTimer, _logger);
             }
             catch (System.OperationCanceledException)
             {

@@ -203,7 +203,8 @@ namespace Scenes
         /// </summary>
         private void OnDestroy()
         {
-            if (_touchGuideBlinkTween != null && _touchGuideBlinkTween.IsActive()) _touchGuideBlinkTween.Kill();
+            // 무한 반복 깜빡임이라 직접 멈춘다
+            HideTouchGuide();
 
             // 흑백 전환용 머티리얼은 런타임에 new로 만든 인스턴스라 씬 언로드로 회수되지 않는다
             if (_grayscaleInstance)

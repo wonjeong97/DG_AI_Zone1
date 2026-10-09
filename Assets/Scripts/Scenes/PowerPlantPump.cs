@@ -103,10 +103,11 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 에너지 효율(%)에 맞춰 강도를 올린다. 부족 구간이면 0 — 피스톤도 수증기도 멈춘 채로 둔다.
+        /// 에너지 효율(%)에 맞춰 강도를 올린다.
         /// </summary>
         public async UniTask ApplyAsync(int percent, CancellationToken ct)
         {
+            // 부족 구간이면 0 — 피스톤도 수증기도 멈춘 채로 둔다.
             CaptureRest();
             float target = ToIntensity(percent);
             await DOVirtual.Float(_intensity, target, rampDuration, SetIntensity)
@@ -117,10 +118,11 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 효율(%)을 연출 강도로 바꾼다. 부족/보통 경계는 결과 텍스트와 같은 기준을 쓴다.
+        /// 효율(%)을 연출 강도로 바꾼다.
         /// </summary>
         private static float ToIntensity(int percent)
         {
+            // 부족/보통 경계는 결과 텍스트와 같은 기준을 쓴다.
             float poorCut = Constants.ResultMessages.NormalThresholdPercent;
             if (percent < poorCut) return 0f;
             return Mathf.Lerp(MinActiveIntensity, 1f, Mathf.InverseLerp(poorCut, MaxPercent, percent));

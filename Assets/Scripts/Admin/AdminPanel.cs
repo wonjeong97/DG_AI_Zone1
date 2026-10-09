@@ -181,7 +181,7 @@ namespace Admin
         }
 
         /// <summary>
-        /// 관리자 화면을 닫는다. 모드가 바뀌었으면 타이틀을 다시 불러 반영한다.
+        /// 관리자 화면을 닫고, 모드가 바뀌었으면 타이틀을 다시 불러 반영한다.
         /// </summary>
         private void Close()
         {
@@ -295,10 +295,10 @@ namespace Admin
 
         /// <summary>
         /// 고른 레벨까지 해금하고, 그 레벨을 고른 상태로 스토리 화면에 들어가도록 2_Story로 이동한다.
-        /// 이 판은 스토리의 &lt; 버튼이나 결과 화면의 다음 버튼으로 타이틀의 관리자 화면에 돌아온다.
         /// </summary>
         private void OnLevelClicked(int index)
         {
+            // 이 판은 스토리의 < 버튼이나 결과 화면의 다음 버튼으로 타이틀의 관리자 화면에 돌아온다.
             if (_isLeaving) return;
 
             if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);

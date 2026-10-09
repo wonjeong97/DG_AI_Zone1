@@ -1,7 +1,10 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
+using Microsoft.Extensions.Logging;
 using UnityEngine;
+using VContainer;
+using ZLogger;
 
 namespace Scenes
 {
@@ -109,6 +112,35 @@ namespace Scenes
         /// 활성화될 때 현재 개방량을 수문·물줄기에 반영한다.
         /// </summary>
         private void OnEnable() => ApplyAll();
+
+        private ILogger<DamGateFlow> _logger;
+
+        /// <summary>
+        /// 로거를 주입받는다 (결과 씬을 불러올 때 GameLifetimeScope가 주입).
+        /// </summary>
+        [Inject]
+        public void Construct(ILogger<DamGateFlow> logger) => _logger = logger;
+
+        /// <summary>
+        /// 연출에 필요한 수문 참조가 빠져 있으면 경고한다 (매 프레임 건너뛰는 곳마다 남기면 로그가 넘치므로 시작할 때 한 번만, 주입이 없는 에디터 모드는 건너뛴다).
+        /// </summary>
+        private void Start()
+        {
+            if (_logger == null) return;
+            if (gates == null || gates.Length == 0)
+            {
+                _logger.ZLogWarning($"[DamGateFlow] {name}에 gates가 비어 있어 수문·물줄기가 움직이지 않습니다.");
+                return;
+            }
+
+            for (int i = 0; i < gates.Length; i++)
+            {
+                DamGate g = gates[i];
+                if (g == null) continue;
+                if (!g.gate) _logger.ZLogWarning($"[DamGateFlow] {name}의 {i + 1}번 수문에 gate가 할당되지 않아 수문이 열리지 않습니다.");
+                if (!g.water) _logger.ZLogWarning($"[DamGateFlow] {name}의 {i + 1}번 수문에 water가 할당되지 않아 물줄기·거품이 나오지 않습니다.");
+            }
+        }
 
         /// <summary>
         /// 물 무늬의 흐름 위상을 매 프레임 쌓아 셰이더에 넘긴다 (에디터에서는 인스펙터로 바꾼 개방량도 함께 반영한다).

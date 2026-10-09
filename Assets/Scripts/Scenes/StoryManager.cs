@@ -153,10 +153,10 @@ namespace Scenes
 
         /// <summary>
         /// 디버그 단축키(Space) — 모든 레벨을 해금하고 버튼을 바로 갱신한다.
-        /// 레벨을 고른 뒤(스토리 화면)에는 선택된 버튼이 다시 눌리지 않도록 무시한다.
         /// </summary>
         private void OnDebugShortcut(InputAction.CallbackContext _)
         {
+            // 레벨을 고른 뒤(스토리 화면)에는 선택된 버튼이 다시 눌리지 않도록 무시한다.
             if (_currentLevel) return;
 
             int lastIndex = levelDataList.Length - 1;
@@ -282,10 +282,10 @@ namespace Scenes
 
         /// <summary>
         /// &lt; 버튼 — 관리자 레벨 이동으로 들어온 판이면 타이틀의 관리자 화면으로, 아니면 레벨 선택 화면으로 돌아간다.
-        /// 레벨 선택 화면은 이 씬을 다시 불러 되돌린다(고른 레벨 버튼을 옮기고 별을 숨긴 연출을 하나씩 되돌리지 않기 위해).
         /// </summary>
         private void OnBackClicked()
         {
+            // 레벨 선택 화면은 이 씬을 다시 불러 되돌린다(고른 레벨 버튼을 옮기고 별을 숨긴 연출을 하나씩 되돌리지 않기 위해).
             if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
 
             bool toAdmin = _session != null && _session.isAdminLevelJump;

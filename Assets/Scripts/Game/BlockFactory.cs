@@ -13,9 +13,9 @@ namespace Game
 {
     public static class BlockFactory
     {
+        // 재귀 생성(Logic 체인 등)까지 같은 값을 넘기기 위해 한 번에 전달한다.
         /// <summary>
-        /// 블록 생성에 공통으로 필요한 드래그 기준 캔버스, 주입용 리졸버, 로거 묶음.
-        /// 재귀 생성(Logic 체인 등)까지 같은 값을 넘기기 위해 한 번에 전달한다.
+        /// 블록 생성에 공통으로 필요한 드래그 기준 캔버스, 주입용 리졸버, 로거를 묶는다.
         /// </summary>
         public readonly struct BuildContext
         {
@@ -39,10 +39,10 @@ namespace Game
 
         /// <summary>
         /// 코드로 조립하는 블록(동작·조건 동작·논리·아니면)의 스프라이트를 로드한다 (캐시 우선).
-        /// 나머지 카테고리는 프리팹이 아트를 갖고 있어 여기를 거치지 않는다.
         /// </summary>
         private static async UniTask<Sprite> LoadSpriteAsync(BlockCategory cat)
         {
+            // 나머지 카테고리는 프리팹이 아트를 갖고 있어 여기를 거치지 않는다.
             string name = cat switch
             {
                 BlockCategory.ConditionAction => Constants.BlockAssets.ConditionActionSprite,
@@ -111,9 +111,10 @@ namespace Game
             _ => cat.ToString()
         };
 
+        // 기능적으로 다른 카테고리를 하나의 탭으로 묶는다.
+        // (함수 사용/구현은 별도 카테고리지만 '함수' 탭 하나로 표시)
         /// <summary>
-        /// 인벤토리 선택 탭 그룹을 반환한다. 기능적으로 다른 카테고리를 하나의 탭으로 묶는다.
-        /// (함수 사용/구현은 별도 카테고리지만 '함수' 탭 하나로 표시)
+        /// 인벤토리 선택 탭 그룹을 반환한다.
         /// </summary>
         public static BlockCategory GetTabCategory(BlockCategory cat) => cat switch
         {
@@ -233,9 +234,9 @@ namespace Game
         // 부착 시점(AttachSockets)이 같은 함수를 호출해 서로 다른 결과를 낼 수 없게 한다.
         private enum FlowKind { Other, While, If }
 
+        // 반복하기는 '반복하기(무한)'처럼 표기가 붙으므로 키워드 포함으로 본다 (CodingBlock.IsRepeat와 같은 기준).
         /// <summary>
         /// 라벨로 FlowControl 블록 종류(반복하기/만약/기타)를 판별한다.
-        /// 반복하기는 '반복하기(무한)'처럼 표기가 붙으므로 키워드 포함으로 본다 (CodingBlock.IsRepeat와 같은 기준).
         /// </summary>
         private static FlowKind GetFlowKind(string label) =>
             label.Contains(Constants.BlockLabels.RepeatKeyword) ? FlowKind.While :
@@ -384,10 +385,10 @@ namespace Game
 
         /// <summary>
         /// 블록 카테고리에 따른 연결부 소켓을 생성·배치하고 블록 소유로 등록한다 (이미 붙였으면 건너뜀).
-        /// 생성 직후 한 번 붙인 뒤에도 드래그 시작·스냅·드롭마다 다시 불리므로, 소켓을 일일이 찾지 않도록 블록에 표시해 둔다.
         /// </summary>
         public static void AttachSockets(CodingBlock block)
         {
+            // 생성 직후 한 번 붙인 뒤에도 드래그 시작·스냅·드롭마다 다시 불리므로, 소켓을 일일이 찾지 않도록 블록에 표시해 둔다.
             if (block.SocketsAttached) return;
 
             BlockCategory cat = block.Category;
@@ -544,10 +545,10 @@ namespace Game
 
         /// <summary>
         /// ㄷ자 블록 안쪽 진입 하이라이트 머티리얼을 스프라이트별로 반환한다 (없으면 만든다).
-        /// 머리 아래 가장자리 아래만 보이고, 머리와 머리 아래 돌기만 부풀린다(왼쪽 팔 제외) — 픽셀 기준 값을 이 스프라이트의 비율로 바꾼다.
         /// </summary>
         public static Material GetInnerOutlineMaterial(Sprite sprite)
         {
+            // 머리 아래 가장자리 아래만 보이고, 머리와 머리 아래 돌기만 부풀린다(왼쪽 팔 제외) — 픽셀 기준 값을 이 스프라이트의 비율로 바꾼다.
             if (!sprite) return null;
             if (_innerOutlineMaterials.TryGetValue(sprite, out Material cached) && cached) return cached;
 
@@ -636,10 +637,10 @@ namespace Game
 
         /// <summary>
         /// 블록 본체용 시각 계층을 구성하고 만든 파츠를 반환한다.
-        /// 렌더링 순서 — sibling 0~2(하이라이트) → sibling 3(주 이미지) → sibling 4+(레이블·소켓).
         /// </summary>
         private static BodyParts AddBlockBody(GameObject go, Color color, Sprite sprite)
         {
+            // 렌더링 순서 — sibling 0~2(하이라이트) → sibling 3(주 이미지) → sibling 4+(레이블·소켓).
             if (sprite && go.TryGetComponent<RectTransform>(out RectTransform goRt))
                 goRt.sizeDelta = new Vector2(sprite.rect.width, sprite.rect.height);
 
@@ -676,10 +677,10 @@ namespace Game
 
         /// <summary>
         /// 스프라이트 블록용 하이라이트 오버레이 3종(기본 투명, 런타임에 색 변경)을 만든다.
-        /// sibling 0: SpriteOutline(전체, 컴파일 결과) / 1: ChainHighlight(아래, 체인 스냅) / 2: ValueHighlight(오른쪽, 값 스냅).
         /// </summary>
         private static (Image outline, Image chain, Image value) AddHighlightOverlays(GameObject blockGo, Sprite sprite)
         {
+            // sibling 0: SpriteOutline(전체, 컴파일 결과) / 1: ChainHighlight(아래, 체인 스냅) / 2: ValueHighlight(오른쪽, 값 스냅).
             Image outline = AddOverlay(Constants.BlockParts.Outline, blockGo, sprite, OutlineMaterial);
             Image chain = AddOverlay(Constants.BlockParts.ChainHighlight, blockGo, sprite, OutlineMaterialBottom);
             Image value = AddOverlay(Constants.BlockParts.ValueHighlight, blockGo, sprite, OutlineMaterialRight);
@@ -688,10 +689,10 @@ namespace Game
 
         /// <summary>
         /// 블록과 같은 크기의 투명한 하이라이트 오버레이 이미지 하나를 만들어 반환한다.
-        /// 이미지를 늘리지 않고 BlockOutlineMesh가 메시를 테두리 두께만큼 넓힌다.
         /// </summary>
         private static Image AddOverlay(string name, GameObject parent, Sprite sprite, Material mat)
         {
+            // 이미지를 늘리지 않고 BlockOutlineMesh가 메시를 테두리 두께만큼 넓힌다.
             GameObject go = new GameObject(name, typeof(RectTransform));
             go.transform.SetParent(parent.transform, false);
             go.TryGetComponent(out RectTransform rt);
@@ -729,11 +730,12 @@ namespace Game
         }
 
         /// <summary>
-        /// 블록 전체를 덮는 중앙 정렬 라벨 TMP를 만든다. 보통은 표시 전용이라 레이캐스트를 받지 않고(드래그는 블록 본체가 받는다),
-        /// 배경이 레이캐스트를 받지 않는 ㄷ자 블록 헤더에서는 isHitArea로 라벨이 드래그 영역을 맡는다.
+        /// 블록 전체를 덮는 중앙 정렬 라벨 TMP를 만든다.
         /// </summary>
         private static async UniTask AddLabel(GameObject go, string text, bool isHitArea = false)
         {
+            // 보통은 표시 전용이라 레이캐스트를 받지 않고(드래그는 블록 본체가 받는다),
+            // 배경이 레이캐스트를 받지 않는 ㄷ자 블록 헤더에서는 isHitArea로 라벨이 드래그 영역을 맡는다.
             TMPro.TMP_FontAsset font = await LoadLabelFontAsync();
             GameObject t = new GameObject(Constants.BlockParts.Label, typeof(RectTransform));
             t.SetActive(false);

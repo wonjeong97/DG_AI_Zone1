@@ -1,15 +1,14 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace Game
 {
+    // 이미지를 늘리지 않고 바깥 가장자리 정점만 민다. 셰이더는 블록 사각형 기준 좌표에서 둘레를 샘플링하고
+    // 9-slice 대응식으로 UV를 구하므로, 늘어난 칸 경계를 넘어도 테두리 두께가 같다.
+    // TEXCOORD0: 사각형 기준 좌표(xy)·두께/사각형 크기(zw) / TEXCOORD1: 9-slice 칸 경계 / TEXCOORD2·3: 가로·세로 경계의 UV.
     /// <summary>
     /// 블록 외곽선·스냅 하이라이트 이미지의 메시를 테두리 두께만큼 밖으로 넓히고, Custom/UI/BlockOutline 셰이더가 쓸 정보를 정점에 싣는다.
-    /// 이미지를 늘리지 않고 바깥 가장자리 정점만 민다. 셰이더는 블록 사각형 기준 좌표에서 둘레를 샘플링하고
-    /// 9-slice 대응식으로 UV를 구하므로, 늘어난 칸 경계를 넘어도 테두리 두께가 같다.
-    /// TEXCOORD0: 사각형 기준 좌표(xy)·두께/사각형 크기(zw) / TEXCOORD1: 9-slice 칸 경계 / TEXCOORD2·3: 가로·세로 경계의 UV.
     /// </summary>
     [RequireComponent(typeof(Image))]
     public class BlockOutlineMesh : BaseMeshEffect
@@ -27,7 +26,6 @@ namespace Game
         // 축별 경계 (x: 위치, y: 그 위치의 UV)
         private readonly static List<Vector2> _breaksX = new();
         private readonly static List<Vector2> _breaksY = new();
-        private readonly static Comparison<Vector2> ByPosition = (a, b) => a.x.CompareTo(b.x);
 
         /// <summary>
         /// 켜질 때 위쪽 캔버스들에 필요한 셰이더 채널을 켠다.
@@ -103,8 +101,8 @@ namespace Game
                 return;
             }
 
-            _breaksX.Sort(ByPosition);
-            _breaksY.Sort(ByPosition);
+            SortByPosition(_breaksX);
+            SortByPosition(_breaksY);
             Vector2 sliceX = ToSlice(_breaksX, min.x, size.x, out Vector4 uvX);
             Vector2 sliceY = ToSlice(_breaksY, min.y, size.y, out Vector4 uvY);
             Vector4 slice = new Vector4(sliceX.x, sliceX.y, sliceY.x, sliceY.y);
@@ -145,11 +143,29 @@ namespace Game
         }
 
         /// <summary>
+        /// 경계를 위치 순으로 정렬한다 — 펄스 중 매 프레임 불리고 4개 이하라 비교자 할당 없는 삽입 정렬로 충분하다.
+        /// </summary>
+        private static void SortByPosition(List<Vector2> breaks)
+        {
+            for (int i = 1; i < breaks.Count; i++)
+            {
+                Vector2 key = breaks[i];
+                int j = i - 1;
+                while (j >= 0 && breaks[j].x > key.x)
+                {
+                    breaks[j + 1] = breaks[j];
+                    j--;
+                }
+                breaks[j + 1] = key;
+            }
+        }
+
+        /// <summary>
         /// 정렬된 경계를 셰이더 형식으로 바꾼다 — 칸 경계 두 개(사각형 기준 좌표)와 0·경계·경계·1에서의 UV.
-        /// 경계가 2개(Simple)나 3개(한쪽 테두리 폭 0)면 빈 칸을 끝으로 몰아 구간별 대응이 같게 한다.
         /// </summary>
         private static Vector2 ToSlice(List<Vector2> breaks, float origin, float size, out Vector4 uv)
         {
+            // 경계가 2개(Simple)나 3개(한쪽 테두리 폭 0)면 빈 칸을 끝으로 몰아 구간별 대응이 같게 한다.
             Vector2 first = breaks[0];
             Vector2 last = breaks[breaks.Count - 1];
 

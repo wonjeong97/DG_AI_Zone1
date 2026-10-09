@@ -4,9 +4,9 @@ using UnityEngine;
 
 namespace Game
 {
+    // 여덟 개 소켓 스크립트가 거의 같은 코드를 각자 갖고 있던 것을 모았다.
     /// <summary>
-    /// 소켓 기즈모(마커·스냅 반원·라벨) 공용 드로잉.
-    /// 여덟 개 소켓 스크립트가 거의 같은 코드를 각자 갖고 있던 것을 모았다. 에디터 전용.
+    /// 소켓 기즈모(마커·스냅 반원·라벨)를 그리는 에디터 전용 공용 드로잉 유틸이다.
     /// </summary>
     internal static class SocketGizmos
     {

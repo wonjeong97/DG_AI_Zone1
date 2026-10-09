@@ -77,10 +77,10 @@ namespace Game
 
         /// <summary>
         /// 내부 체인 길이에 맞춰 Inner 높이와 부모(블록) 전체 높이를 갱신한다.
-        /// 블록이 붙을 때 스냅 트윈이 여러 프레임에 걸쳐 위치를 옮기고 안쪽 블록 높이도 바뀌므로 매 프레임 확인한다.
         /// </summary>
         private void LateUpdate()
         {
+            // 블록이 붙을 때 스냅 트윈이 여러 프레임에 걸쳐 위치를 옮기고 안쪽 블록 높이도 바뀌므로 매 프레임 확인한다.
             if (!_le || !socket) return;
 
             using (LateUpdateMarker.Auto())

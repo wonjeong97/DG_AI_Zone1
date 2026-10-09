@@ -42,12 +42,12 @@ namespace Scenes
 
         /// <summary>
         /// 영상 재생 진행률이 minProgress 이상이 될 때까지 기다린다(예: 0.05 = 5% 룰).
-        /// isPrepared·frame>=0만으로는 화면에 노출되는 시점이 너무 일러 부자연스러울 수 있기 때문이다.
-        /// 재생(Play)이 이미 시작된 VideoPlayer에만 사용할 것 — Play가 나중에 호출되면 frame이 계속 -1이라 대기가 끝나지 않는다.
         /// </summary>
         private static async UniTask WaitUntilVideoProgressAsync(VideoPlayer player, float minProgress, CancellationToken ct,
             Microsoft.Extensions.Logging.ILogger logger = null)
         {
+            // isPrepared·frame>=0만으로는 화면에 노출되는 시점이 너무 일러 부자연스러울 수 있기 때문이다.
+            // 재생(Play)이 이미 시작된 VideoPlayer에만 사용할 것 — Play가 나중에 호출되면 frame이 계속 -1이라 대기가 끝나지 않는다.
             if (!player)
             {
                 LogWarning(logger, "[SceneFader] VideoPlayer가 없어 영상 진행 대기를 건너뜁니다.");
@@ -68,12 +68,12 @@ namespace Scenes
 
         /// <summary>
         /// 씬 진입과 동시에 로봇 영상(00_Common.json의 robotVideoPath)을 재생한다 (isLooping은 컴포넌트에 설정된 값을 따름).
-        /// 이전 씬 잔상 제거 → 첫 프레임이 실제로 보일 때까지 페이드인을 미루도록 등록 → 경로 읽기·Prepare·재생.
-        /// 여러 씬 매니저가 같은 절차를 반복하던 것을 모았다.
         /// </summary>
         public static void PlayRobotVideo(VideoPlayer player, CancellationToken ct,
             Microsoft.Extensions.Logging.ILogger logger = null)
         {
+            // 이전 씬 잔상 제거 → 첫 프레임이 실제로 보일 때까지 페이드인을 미루도록 등록 → 경로 읽기·Prepare·재생.
+            // 여러 씬 매니저가 같은 절차를 반복하던 것을 모았다.
             if (!player)
             {
                 LogWarning(logger, "[SceneFader] VideoPlayer가 할당되지 않아 로봇 영상을 재생하지 않습니다.");
@@ -126,11 +126,11 @@ namespace Scenes
 
         /// <summary>
         /// 씬 전환 직후 VideoPlayer가 사용하는 RenderTexture를 검은색으로 즉시 초기화한다.
-        /// 여러 씬이 같은 RenderTexture 에셋(예: RobotRenderTexture)을 공유하면 이전 씬에서 그려진 마지막 프레임이
-        /// GPU에 남아있어, 새 영상이 실제로 그리기 전까지 이전 씬 잔상이 잠깐 비칠 수 있기 때문이다.
         /// </summary>
         private static void ClearVideoRenderTexture(VideoPlayer player)
         {
+            // 여러 씬이 같은 RenderTexture 에셋(예: RobotRenderTexture)을 공유하면 이전 씬에서 그려진 마지막 프레임이
+            // GPU에 남아있어, 새 영상이 실제로 그리기 전까지 이전 씬 잔상이 잠깐 비칠 수 있기 때문이다.
             if (!player || !player.targetTexture) return;
 
             RenderTexture rt = player.targetTexture;
@@ -142,7 +142,6 @@ namespace Scenes
 
         /// <summary>
         /// 페이드아웃 → 씬 로드 → 새 씬의 대기 작업 완료 → 페이드인 순서로 씬을 전환한다.
-        /// duration을 생략하면 StreamingAssets/Json/00_Common.json의 sceneTransitionFadeDuration을 사용한다.
         /// </summary>
         public static async UniTaskVoid FadeAndLoad(string sceneName, float? duration = null, Microsoft.Extensions.Logging.ILogger logger = null)
         {
@@ -151,6 +150,7 @@ namespace Scenes
 
             try
             {
+                // duration을 생략하면 StreamingAssets/Json/00_Common.json의 sceneTransitionFadeDuration을 사용한다.
                 float resolvedDuration = duration ?? (await GetCommonSettingsAsync()).sceneTransitionFadeDuration;
 
                 FadeManager fade = GetFadeManager(logger);
@@ -271,17 +271,18 @@ namespace Scenes
         // ── CanvasGroup 페이드 공용 헬퍼 (씬 매니저 간 중복 구현 통합) ──────────
 
         /// <summary>
-        /// 그룹의 alpha를 from→to로 보간한다. duration을 생략하면 00_Common.json의 panelFadeDuration을 사용한다.
-        /// 취소되면 트윈을 멈추고 OperationCanceledException을 던진다.
+        /// 그룹의 alpha를 from→to로 보간한다.
         /// </summary>
         public static async UniTask FadeCanvasGroupAsync(CanvasGroup group, float from, float to, float? duration = null, CancellationToken ct = default)
         {
             // 선택적 패널(씬마다 없을 수 있음)도 같은 호출로 처리하므로 없으면 건너뛴다 — 필수 패널은 호출부가 따로 경고한다
             if (!group) return;
 
+            // duration을 생략하면 00_Common.json의 panelFadeDuration을 사용한다.
             float resolvedDuration = duration ?? (await GetCommonSettingsAsync()).panelFadeDuration;
 
             group.alpha = from;
+            // 취소되면 트윈을 멈추고 OperationCanceledException을 던진다.
             await group.DOFade(to, resolvedDuration)
                 .SetEase(Ease.Linear)
                 .SetUpdate(true) // 씬 전환 페이드는 timeScale 0에서도 동작해야 하는 시스템 연출
@@ -301,12 +302,12 @@ namespace Scenes
 
         /// <summary>
         /// 씬 시작 시 패널 GameObject를 항상 켜두고 alpha/상호작용만으로 표시 여부를 정규화한다.
-        /// 패널 전환은 alpha만 조작하고 SetActive는 건드리지 않으므로, 에디터에서 패널을 꺼둔 채 플레이하면
-        /// alpha를 1로 페이드해도 화면에 나타나지 않는 문제를 막기 위함이다.
         /// </summary>
         public static void InitializePanelState(CanvasGroup panel, bool isVisible)
         {
             if (!panel) return;
+            // 패널 전환은 alpha만 조작하고 SetActive는 건드리지 않으므로, 에디터에서 패널을 꺼둔 채 플레이하면
+            // alpha를 1로 페이드해도 화면에 나타나지 않는 문제를 막기 위함이다.
             panel.gameObject.SetActive(true);
             panel.alpha = isVisible ? 1f : 0f;
             SetGroupInteractable(panel, isVisible);

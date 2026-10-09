@@ -131,10 +131,11 @@ namespace Admin
         }
 
         /// <summary>
-        /// 입력을 비운 한글 자판으로 창을 연다. 저장하면 입력한 이름으로 onSaved를 부르고, idleCloseSeconds 동안 입력이 없으면 닫는다.
+        /// 입력을 비운 한글 자판으로 창을 연다.
         /// </summary>
         public void Open(Action<string> onSaved, float idleCloseSeconds)
         {
+            // 저장하면 입력한 이름으로 onSaved를 부르고, idleCloseSeconds 동안 입력이 없으면 닫는다.
             _onSaved = onSaved;
             _idleCloseSeconds = idleCloseSeconds;
             _isEnglish = false;
@@ -183,10 +184,10 @@ namespace Admin
 
         /// <summary>
         /// 화면 키보드로만 입력받아야 하므로 입력란을 직접 터치해 커서를 옮기거나 글자를 선택하지 못하게 막는다.
-        /// 표시는 그대로 두기 위해 interactable 대신 raycastTarget만 끈다.
         /// </summary>
         private void BlockInputFieldPointerInput()
         {
+            // 표시는 그대로 두기 위해 interactable 대신 raycastTarget만 끈다.
             List<Graphic> graphics = new List<Graphic>();
             CollectInHierarchy(inputField.transform, graphics);
             foreach (Graphic graphic in graphics)
@@ -195,11 +196,11 @@ namespace Admin
 
         /// <summary>
         /// 부모 아래 계층을 직계 자식부터 차례로 내려가며 지정 컴포넌트를 모은다 (꺼진 오브젝트 포함).
-        /// 화면 키보드는 줄·키 묶음으로 깊이가 섞여 있고 키마다 이름으로 역할이 정해져 있어,
-        /// 인스펙터에 수십 개 키를 하나씩 연결하는 대신 계층을 직접 순회해 이름으로 고른다 — 빠진 키는 BindKeys가 경고한다.
         /// </summary>
         private static void CollectInHierarchy<T>(Transform parent, List<T> into) where T : Component
         {
+            // 화면 키보드는 줄·키 묶음으로 깊이가 섞여 있고 키마다 이름으로 역할이 정해져 있어,
+            // 인스펙터에 수십 개 키를 하나씩 연결하는 대신 계층을 직접 순회해 이름으로 고른다 — 빠진 키는 BindKeys가 경고한다.
             if (parent.TryGetComponent(out T own)) into.Add(own);
             foreach (Transform child in parent)
                 CollectInHierarchy(child, into);
@@ -224,7 +225,7 @@ namespace Admin
         }
 
         /// <summary>
-        /// 키 버튼 하나에 이름에 맞는 동작을 연결한다. 알 수 없는 이름이면 false.
+        /// 키 버튼 하나에 이름에 맞는 동작을 연결하고, 알 수 없는 이름이면 false를 돌려준다.
         /// </summary>
         private bool BindKey(Button button, string keyName)
         {
@@ -313,10 +314,11 @@ namespace Admin
         }
 
         /// <summary>
-        /// 지우기 키에 누름/뗌 이벤트를 연결한다. 짧게 누르면 한 단계만 지우고, 길게 누르면 전체를 지운다.
+        /// 지우기 키에 누름/뗌 이벤트를 연결한다.
         /// </summary>
         private void BindDeleteHold(Button button)
         {
+            // 짧게 누르면 한 단계만 지우고, 길게 누르면 전체를 지운다.
             if (!button.TryGetComponent(out EventTrigger trigger))
                 trigger = button.gameObject.AddComponent<EventTrigger>();
 
@@ -398,10 +400,11 @@ namespace Admin
         }
 
         /// <summary>
-        /// Shift를 누를 때마다 상태를 바꾼다. 한글은 Off/Once만, 영어는 Off → Once(1회 대문자) → Lock(대문자 고정) → Off 순이다.
+        /// Shift를 누를 때마다 상태를 바꾼다.
         /// </summary>
         private void OnShiftPressed()
         {
+            // 한글은 Off/Once만, 영어는 Off → Once(1회 대문자) → Lock(대문자 고정) → Off 순이다.
             if (_isEnglish)
             {
                 _shiftState = _shiftState switch
@@ -421,7 +424,7 @@ namespace Admin
         }
 
         /// <summary>
-        /// Once 상태였던 Shift는 글자 입력 한 번으로 풀린다. Lock은 유지된다.
+        /// Once 상태였던 Shift는 글자 입력 한 번으로 풀리고, Lock은 유지된다.
         /// </summary>
         private void ReleaseOneShotShift()
         {
@@ -522,11 +525,12 @@ namespace Admin
         }
 
         /// <summary>
-        /// 저장할 수 있는 이름인지 본다. 비었거나 첫 글자·끝 글자가 띄어쓰기면 문장 안에서 어긋난 여백으로 보이므로 막는다
-        /// (띄어쓰기만 넣은 이름도 첫 글자가 띄어쓰기라 함께 막힌다).
+        /// 저장할 수 있는 이름인지 본다.
         /// </summary>
         public static bool IsSavableName(string text)
         {
+            // 비었거나 첫 글자·끝 글자가 띄어쓰기면 문장 안에서 어긋난 여백으로 보이므로 막는다
+            // (띄어쓰기만 넣은 이름도 첫 글자가 띄어쓰기라 함께 막힌다).
             if (string.IsNullOrEmpty(text)) return false;
 
             return !char.IsWhiteSpace(text[0]) && !char.IsWhiteSpace(text[text.Length - 1]);

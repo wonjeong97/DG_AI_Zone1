@@ -27,11 +27,11 @@ namespace Data
         public float entryClickWindowSeconds = Constants.Admin.DefaultEntryClickWindowSeconds;
 
         /// <summary>
-        /// Admin.json을 읽는다. 시간·횟수가 1보다 작으면 경고를 남기고 기본값으로 바꾼다
-        /// (비밀번호 검사는 키패드 규칙을 아는 AdminPasswordPanel이 한다).
+        /// Admin.json을 읽고, 시간·횟수가 1보다 작으면 경고를 남기고 기본값으로 바꾼다.
         /// </summary>
         public static async UniTask<AdminSettings> LoadAsync(CancellationToken ct, ILogger logger)
         {
+            // 비밀번호 검사는 키패드 규칙을 아는 AdminPasswordPanel이 한다.
             AdminSettings settings = await JsonLoader.LoadAsync<AdminSettings>(Constants.SettingsFiles.Admin, ct, logger);
 
             // JsonLoader는 취소돼도 기본값을 돌려주므로, 파괴된 창에 기본 비밀번호·시간을 넣지 않도록 여기서 취소를 전달한다
@@ -67,11 +67,11 @@ namespace Data
         }
 
         /// <summary>
-        /// 1보다 작은 시간·횟수를 기본값으로 바꾼다 — 창이 열리자마자 닫히거나 숨은 버튼 진입이 동작하지 않는 일을 막는다.
-        /// 바꾼 값이 있으면 true를 돌려준다.
+        /// 1보다 작은 시간·횟수를 기본값으로 바꾸고, 바꾼 값이 있으면 true를 돌려준다.
         /// </summary>
         public bool ClampToValid()
         {
+            // 창이 열리자마자 닫히거나 숨은 버튼 진입이 동작하지 않는 일을 막는다.
             bool changed = false;
             if (idleCloseSeconds < 1f) { idleCloseSeconds = Constants.Admin.DefaultIdleCloseSeconds; changed = true; }
             if (passwordIdleCloseSeconds < 1f) { passwordIdleCloseSeconds = Constants.Admin.DefaultPasswordIdleCloseSeconds; changed = true; }

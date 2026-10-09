@@ -85,12 +85,13 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 서버 연동(isServerConnected)이면 "QR 코드를 인식하여 주세요"를 띄우고 시작 버튼을 숨긴 채 QR 입력을 기다린다.
-        /// 미연동이면 QR 단계 없이 "시작하기를 눌러주세요"와 시작 버튼을 바로 보여준다. 안내는 어느 쪽이든 천천히 깜빡인다.
-        /// 페이드 시간·QR 확인 시간·스캐너 글자 간격·안내 문구는 StreamingAssets/Json/0_Title.json(TitleSceneSettings)에서 읽어와 재빌드 없이 조정한다.
+        /// 서버 연동(isServerConnected)이면 "QR 코드를 인식하여 주세요"를 띄우고 시작 버튼을 숨긴 채 QR 입력을 기다리고,
+        /// 미연동이면 QR 단계 없이 "시작하기를 눌러주세요"와 시작 버튼을 바로 보여준다.
         /// </summary>
         private async UniTaskVoid ApplyGuideAsync(CancellationToken ct)
         {
+            // 안내는 어느 쪽이든 천천히 깜빡인다.
+            // 페이드 시간·QR 확인 시간·스캐너 글자 간격·안내 문구는 StreamingAssets/Json/0_Title.json(TitleSceneSettings)에서 읽어와 재빌드 없이 조정한다.
             // 서버 모드면 QR 인식 전까지 시작 버튼이 보이면 안 되므로 먼저 숨겨 둠
             if (startButton) startButton.gameObject.SetActive(false);
 
@@ -128,10 +129,11 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 0_Title.json의 스캐너 글자 사이 최대 간격을 적용한다. 0 이하면 경고를 남기고 기본값을 쓴다.
+        /// 0_Title.json의 스캐너 글자 사이 최대 간격을 적용한다.
         /// </summary>
         private void ApplyScanCharGap()
         {
+            // 0 이하면 경고를 남기고 기본값을 쓴다.
             float gap = _sceneSettings.scanCharGapSeconds;
             if (gap > 0f)
             {
@@ -155,11 +157,11 @@ namespace Scenes
 
         /// <summary>
         /// 키보드(바코드 스캐너) 문자 입력을 받기 시작한다.
-        /// 이미 받고 있으면(시작하기 안내 중) 모으던 글자를 지우지 않는다 — 시작하기 대기 시간이 끝나는 순간 들어오던 스캔의
-        /// 앞 글자가 잘려 '등록되지 않은 QR'이 되지 않게 한다. 오래 머문 글자는 ScanInputBuffer가 글자 간격으로 버린다.
         /// </summary>
         private void StartScanning()
         {
+            // 이미 받고 있으면(시작하기 안내 중) 모으던 글자를 지우지 않는다 — 시작하기 대기 시간이 끝나는 순간 들어오던 스캔의
+            // 앞 글자가 잘려 '등록되지 않은 QR'이 되지 않게 한다. 오래 머문 글자는 ScanInputBuffer가 글자 간격으로 버린다.
             if (!_isWaitingForQr) _scanBuffer.Clear();
             _isWaitingForQr = true;
 
@@ -217,14 +219,13 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 스캐너가 보낸 문자를 모은다. 스캐너가 Enter를 CR/LF 문자로 보내는 경우 그 자리에서 인식을 끝낸다.
-        /// 앞 글자와 scanCharGapSeconds(기본 0.5초)보다 벌어진 글자가 오면 앞에 모은 글자는 이번 스캔이 아니라 버린다
-        /// (uid에 생년월일이 있어 글자 내용 대신 개수만 로그에 남긴다).
+        /// 스캐너가 보낸 문자를 모은다.
         /// </summary>
         private void OnScanTextInput(char c)
         {
             if (!_isWaitingForQr) return;
 
+            // 스캐너가 Enter를 CR/LF 문자로 보내는 경우 그 자리에서 인식을 끝낸다.
             if (c == '\r' || c == '\n')
             {
                 SubmitScan();
@@ -234,6 +235,8 @@ namespace Scenes
             // Tab 등 제어 문자는 QR 값이 아니다
             if (char.IsControl(c)) return;
 
+            // 앞 글자와 scanCharGapSeconds(기본 0.5초)보다 벌어진 글자가 오면 앞에 모은 글자는 이번 스캔이 아니라 버린다
+            // (uid에 생년월일이 있어 글자 내용 대신 개수만 로그에 남긴다).
             int discarded = _scanBuffer.Append(c, Time.realtimeSinceStartup);
             if (discarded > 0 && _logger != null)
                 _logger.ZLogInformation($"[TitleSceneManager] 글자 사이가 {_scanBuffer.MaxCharGapSeconds}초 넘게 벌어져 앞에 모은 {discarded}글자를 버리고 새로 모읍니다.");
@@ -258,7 +261,6 @@ namespace Scenes
 
         /// <summary>
         /// 모은 문자열을 QR 값으로 처리한다 — 비어 있으면(Enter만 들어온 경우) 무시하고 계속 기다린다.
-        /// 마지막 글자 뒤로 scanCharGapSeconds(기본 0.5초)보다 늦게 온 Enter면 모은 글자는 스캔이 아니라 손으로 누른 키로 보고 버린다.
         /// </summary>
         private void SubmitScan()
         {
@@ -266,6 +268,7 @@ namespace Scenes
             string code = _scanBuffer.TakeAndClear();
             if (!_isWaitingForQr || string.IsNullOrWhiteSpace(code)) return;
 
+            // 마지막 글자 뒤로 scanCharGapSeconds(기본 0.5초)보다 늦게 온 Enter면 모은 글자는 스캔이 아니라 손으로 누른 키로 보고 버린다.
             if (isStale)
             {
                 if (_logger != null) _logger.ZLogInformation($"[TitleSceneManager] 마지막 글자보다 {_scanBuffer.MaxCharGapSeconds}초 넘게 늦게 Enter가 와서 모은 {code.Length}글자를 QR로 보지 않고 버립니다.");
@@ -277,10 +280,10 @@ namespace Scenes
 
         /// <summary>
         /// QR 인식이 끝나면 입력 대기를 멈추고 서버에 체험자를 확인한다.
-        /// 시작하기가 떠 있는 동안 다음 사람이 찍은 경우에도 앞사람 기록을 비우고 새로 확인한다.
         /// </summary>
         private void OnQrScanned(string code)
         {
+            // 시작하기가 떠 있는 동안 다음 사람이 찍은 경우에도 앞사람 기록을 비우고 새로 확인한다.
             StopWaitingForQr();
             CancelConfirmTimeout();
             if (startButton) startButton.gameObject.SetActive(false);
@@ -290,11 +293,12 @@ namespace Scenes
         }
 
         /// <summary>
-        /// QR uid로 서버에 체험자를 확인한다. '확인하고 있습니다'를 최소 시간만큼은 보여 준 뒤, 확인되면 시작하기 안내로 바꾸고
-        /// 아니면(체험 완료·없는 QR·서버 오류) 이유를 잠시 보여 준 뒤 다시 QR을 기다린다.
+        /// QR uid로 서버에 체험자를 확인한다.
         /// </summary>
         private async UniTaskVoid CheckVisitorAsync(string uid, CancellationToken ct)
         {
+            // '확인하고 있습니다'를 최소 시간만큼은 보여 준 뒤, 확인되면 시작하기 안내로 바꾸고
+            // 아니면(체험 완료·없는 QR·서버 오류) 이유를 잠시 보여 준 뒤 다시 QR을 기다린다.
             if (guideText) guideText.text = _sceneSettings.qrCheckingText;
             float checkStartTime = Time.realtimeSinceStartup;
 
@@ -352,7 +356,7 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 서버에 체험 가능 여부(checkActive)와 진행도(getUser)를 물어 체험자와 해금 레벨을 기록한다.
+        /// 서버에 체험 가능 여부(checkActive)와 진행도(getUser)를 물어 체험자와 해금 레벨을 기록하고,
         /// 체험할 수 없으면 하단에 보여 줄 안내 문구를, 확인되면 null을 돌려준다.
         /// </summary>
         private async UniTask<string> ConfirmVisitorAsync(string uid, CancellationToken ct)
@@ -407,7 +411,6 @@ namespace Scenes
 
         /// <summary>
         /// QR로 확인한 체험자에게 이름이 들어간 시작 안내와 시작 버튼을 보여 준다.
-        /// 다음 사람이 QR을 찍을 수 있게 스캐너 입력을 계속 받고, 시작하기를 기다린 시간을 재기 시작한다.
         /// </summary>
         private void ShowConfirmedVisitor()
         {
@@ -417,6 +420,7 @@ namespace Scenes
                 ? _sceneSettings.startGuideText
                 : _sceneSettings.startGuideWithNameText.Replace(VisitorInfoProvider.NamePlaceholder, serverName));
 
+            // 다음 사람이 QR을 찍을 수 있게 스캐너 입력을 계속 받고, 시작하기를 기다린 시간을 재기 시작한다.
             StartScanning();
             StartConfirmTimeout();
         }
@@ -456,11 +460,12 @@ namespace Scenes
 
         /// <summary>
         /// 비활동 타이머와 같은 설정(Settings.json의 useInactivityTimer·resetTime)으로, 시작하기를 누르지 않은 채
-        /// 그 시간이 지나면 서버에 move_idle_timeout을 한 번 보내고 확인한 체험자를 비운 뒤 다시 QR을 기다린다. 비활동 타이머가 꺼져 있으면 계속 기다린다.
-        /// 타이틀에서 난 비활동 타임아웃은 APIManager가 보내지 않으므로, 타이틀의 move_idle_timeout은 이 경우에만 남는다.
+        /// 그 시간이 지나면 서버에 move_idle_timeout을 한 번 보내고 확인한 체험자를 비운 뒤 다시 QR을 기다린다.
         /// </summary>
         private async UniTaskVoid ConfirmTimeoutAsync(CancellationTokenSource cts)
         {
+            // 비활동 타이머가 꺼져 있으면 계속 기다린다.
+            // 타이틀에서 난 비활동 타임아웃은 APIManager가 보내지 않으므로, 타이틀의 move_idle_timeout은 이 경우에만 남는다.
             // 취소 시 CancelConfirmTimeout이 CTS를 바로 해제하므로 토큰을 먼저 받아 둔다
             CancellationToken ct = cts.Token;
 
@@ -534,11 +539,11 @@ namespace Scenes
 
         /// <summary>
         /// 시작 버튼 클릭 시 게임 시작 효과음을 내고 인트로 씬으로 넘어간다.
-        /// 넘어가는 페이드 동안 QR이 찍혀 체험자가 바뀌거나 대기 시간이 지나 QR 대기로 돌아가지 않게 둘 다 멈춘다.
         /// </summary>
         private void OnStartButtonClicked()
         {
             if (_logger != null) _logger.ZLogInformation($"[TitleSceneManager] {VisitorInfoProvider.LogSubjectOf(_visitorInfoProvider)} 시작하기를 누름.");
+            // 넘어가는 페이드 동안 QR이 찍혀 체험자가 바뀌거나 대기 시간이 지나 QR 대기로 돌아가지 않게 둘 다 멈춘다.
             StopWaitingForQr();
             CancelConfirmTimeout();
             if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.GameStart);

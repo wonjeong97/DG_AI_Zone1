@@ -51,10 +51,11 @@ namespace Scenes
         public TypewriterTextTMP ValueText => valueText;
 
         /// <summary>
-        /// 항목 이름과 값을 채운다. 값은 재생 전까지 보이지 않는다(타이프라이터).
+        /// 항목 이름과 값을 채운다.
         /// </summary>
         public void Set(string label, string value)
         {
+            // 값은 재생 전까지 보이지 않는다(타이프라이터).
             if (labelText) labelText.text = label;
             else if (_logger != null) _logger.ZLogWarning($"[ResultRowView] {name}에 labelText가 할당되지 않았습니다.");
 

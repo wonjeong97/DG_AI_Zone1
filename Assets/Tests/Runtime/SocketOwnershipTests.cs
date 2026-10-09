@@ -187,6 +187,47 @@ namespace DG.Zone1.Tests
         }
 
         /// <summary>
+        /// 두 손가락으로 같은 빈 값·조건 자리를 노린 두 블록 중 먼저 붙은 블록이 있으면 뒤 블록은 손을 떼도 그 자리에 붙지 않는다.
+        /// </summary>
+        [Test]
+        public void 다른_블록이_먼저_찬_값_자리에는_놓을_때_붙지_않는다()
+        {
+            CodingBlock ifBlock = BlockTestUtil.MakeBlock(_zone, "만약", BlockCategory.FlowControl, _zone.transform);
+            ValueOutSocket slot = BlockTestUtil.AddConditionSocket(ifBlock);
+            CodingBlock first = BlockTestUtil.MakeBlock(_zone, "밤", BlockCategory.Condition, _zone.transform);
+            CodingBlock second = BlockTestUtil.MakeBlock(_zone, "낮", BlockCategory.Condition, _zone.transform);
+
+            Assert.IsTrue(second.CanAttachNow(slot), "빈 조건 자리를 받지 않음");
+
+            slot.Accept(first);
+
+            Assert.IsFalse(second.CanAttachNow(slot), "두 손가락으로 먼저 붙은 블록을 덮어쓸 수 있음");
+        }
+
+        /// <summary>
+        /// 소켓 주인 블록이 코딩 패널을 떠났으면(다른 손가락이 블록 목록으로 옮김) 그 소켓에 붙지 않는다.
+        /// </summary>
+        [Test]
+        public void 주인_블록이_코딩_패널을_떠난_소켓에는_붙지_않는다()
+        {
+            CodingBlock owner = MakeCommand("X");
+            CodingBlock incoming = MakeCommand("A");
+            ChainOutSocket chainOut = ChainOutSocket.OfBlock(owner);
+            Assert.IsTrue(incoming.CanAttachNow(chainOut), "코딩 패널 블록의 빈 체인 소켓을 받지 않음");
+
+            GameObject inventory = new GameObject("Inventory", typeof(RectTransform));
+            try
+            {
+                owner.transform.SetParent(inventory.transform, false);
+                Assert.IsFalse(incoming.CanAttachNow(chainOut), "블록 목록으로 옮겨진 블록에 붙을 수 있음");
+            }
+            finally
+            {
+                Object.DestroyImmediate(inventory);
+            }
+        }
+
+        /// <summary>
         /// 블록의 직속 체인 소켓은 내부 컨테이너 안 블록의 체인 소켓과 섞이지 않는다.
         /// </summary>
         [Test]

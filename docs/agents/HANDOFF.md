@@ -13,6 +13,29 @@
 
 ---
 
+### [2026-10-10] Claude → Antigravity · 3차 감사 지적 전부 수정 (fix/third-audit)
+- 요청(사용자): 기획 확인 사항은 B안(실행되지 않는 만약의 조건도 0점), 지적한 것 전부 수정.
+- 변경:
+  - 두 손가락 동시 드롭: `CodingBlock.CanAttachNow`가 손을 뗄 때 하이라이트한 소켓을 다시 검사한다(값·조건 소켓은 비어 있는지, 체인·안쪽은 CanAccept, 주인 블록이 코딩 패널 안인지). OnEndDrag가 이걸로 붙인다.
+  - 레벨4(B안): `BlockScorer.FindReachableFirstIf` — 첫 만약이 무한 반복 뒤라 실행되지 않으면 조건 0점, `GetConditionText` null(결과 '설정한 조건' '-').
+  - 낮음: 핀치 중 손가락 수가 바뀐 프레임은 배율을 바꾸지 않고 기준만 다시 잡음(CodingZoneZoom), 탭 전환 시 StopMovement(CategoryZone), 겹모음 지우기 JungSplit(HangulComposer), 스냅 반경 0 이하 → 120(SettingsClamp.Positive), 조명 깜빡임은 시작 기준 시간(LabLightGlow), DamGateFlow 로거 주입·Start에서 수문 참조 누락 경고.
+  - 정리: TryGetCompileHighlightTarget(에러·성공 표시 대상 선택 통합), StoryLineAnimator.AnimateWithVisitorNameAsync(인트로·아웃트로), ResultSequence.OnDestroy → HideTouchGuide, VisitorApiClient 닿지 않는 null 분기, BlockOutlineMesh 삽입 정렬.
+  - summary: 두 문장 이상 166곳을 한 문장으로 줄이고 나머지 문장은 `//` 주석으로 옮김(Claude 서브에이전트 4개, 처음 98곳 + 넓힌 기준 38곳 + 같은 파일 추가분). 스크립트로 HEAD 대비 주석·빈 줄을 뺀 코드 줄 변경이 위 의도한 수정뿐임을 확인했고, 남은 두 문장 summary 0곳.
+  - CHANGELOG Unreleased(Changed 2·Fixed 5), bundleVersion 26.10.10.
+- 새 테스트(4): SocketOwnershipTests 2(찬 값 자리·주인이 패널을 떠난 소켓), HangulComposerTests 겹모음 지우기, SettingsJsonTests 스냅 반경. BlockScorerTests 무한 반복 뒤 만약 기대값을 B안으로 바꾸고 조건 문구 검사 추가.
+- 테스트: Rider 에러 0, Unity 컴파일 에러 0, PlayMode 177/177(뒤에 EditorSettings 되돌림). 핀치 3손가락·두 손가락 동시 드롭은 에디터에서 터치를 흉내 낼 수 없어 Play 모드 재현은 하지 않았다(현장 터치스크린에서 확인 필요).
+- 확인 요청·결과(agy `gemini-3.8-flash-high`, 7묶음 병렬): 드롭 재검사·하이라이트 통합 2/2, 레벨4 채점 2/2, 입력 수정 3/3, 스냅 반경 2/2, 결과 연출 2/2, 정리 2/2, 문서 2/2 통과. 주석 전용 변경은 agy 대신 위 스크립트로 확인.
+
+### [2026-10-10] Claude → Antigravity · 3차 전체 코드 감사(스킬 위반·버그·성능·리팩터링) — 읽기 전용
+- 변경 파일: 없음(감사). agy 17묶음 병렬 → 시간 초과 7묶음은 11묶음으로 나눠 재요청 → 그래도 초과한 6묶음(소켓·코딩 영역·출력·App·Network·Data)과 TitleSceneManager(지난 감사에서도 3번 초과)는 Claude 직접 읽기와 서브에이전트 1개로 대신 확인. Claude는 규칙 grep(var·GetComponent·Find·Debug.Log·LINQ·static readonly 순서·코루틴·리플렉션·float 비교·DOTween 수명·Update 할당·미사용 상수·summary 누락)도 했다.
+- 확정(중간): 두 손가락으로 블록 두 개를 같은 빈 값·조건 자리에 차례로 놓으면 두 번째 블록의 OnEndDrag가 이미 찬 소켓에 Accept한다(CodingBlock.cs:735 → ValueOutSocket·ConditionOutSocket.Accept는 기존 점유를 덮어씀). 첫 블록이 소켓 아래 겹친 채 점유 기록에서 빠지고, 그 블록을 떼면 Release가 두 번째 블록 점유까지 지워 화면엔 값이 있는데 컴파일은 값 없음이 된다. 다른 손가락이 소켓 주인 블록을 목록으로 옮긴 뒤 놓는 경우도 같다. agy R_A2가 독립적으로 같은 결론. Play 모드 재현 전.
+- 확정(낮음): 핀치 중 세 번째 손가락이 닿거나 떨어지면 CountPressedTouches의 앞 두 손가락 쌍이 바뀌어 배율이 튐(CodingZoneZoom.cs:157-183) / 탭 전환 시 스크롤 관성이 남아 맨 위로 맞춘 뒤 다시 밀림(CategoryZone.cs:121, StopMovement 없음) / 이름 입력에서 겹모음(ㅘ 등) 지우기가 한 번에 모음 전체를 지움(HangulComposer.cs:154) / 3_Game.json snapRadius·chainSnapRadius가 0이면 그대로 써 블록이 안 붙음(GameSceneSettings.cs:40) / 연구소 조명 깜빡임이 Time.time 그대로 PerlinNoise에 들어가 며칠 켜 두면 계단식(LabLightGlow.cs:101) / DamGateFlow는 수문 참조 누락에 경고 없음.
+- 기획 확인: 레벨4에서 '만약'을 무한 반복 뒤에 두면 놀이시설은 실행되지 않는 것으로 보아 5점이지만, 조건 점수(그리고 10점)는 그대로 받는다(BlockScorer.cs:358, 25/30점=83%). 병원은 반복 안이라 항상 실행돼 해당 없고, 레벨5는 반복하기 블록이 없어 해당 없다(감사 보고 뒤 레이아웃 확인으로 정정).
+- 스킬 위반: 두 문장 이상 summary 98개(스킬 11번, TitleSceneManager 11·HangulComposer 7·CodingBlock 7·VisitorApiClient 7 등). 그 밖의 규칙 위반 0건, summary 누락 0건, 미사용 Constants 0건.
+- 정리(낮음): CodingBlock PlayErrorBlink·PlaySuccessFadeIn 대상 이미지 선택 중복, 인트로·아웃트로 문장 연출 순서 중복, ResultSequence.OnDestroy 트윈 정리가 HideTouchGuide와 중복, VisitorApiClient.cs:49 닿지 않는 null 분기, BlockOutlineMesh가 펄스 중 매 프레임 List.Sort(4개 이하).
+- 오탐(코드로 확인): 순수 C# is null(프로젝트 메모리상 허용), 정적 유틸 Debug 대체 출력, 결과 '다음'·관리자 버튼·넘어가기 연타(FadeManager가 페이드 시작과 동시에 화면 입력을 막음), 스토리 레벨·튜토리얼 연타(지난 감사와 같음), 체인 순환·자기 스냅(IsChildOf로 막음), 함수 호출 미사용 검사(함수 호출 필수 검사가 잡음), 레벨3 명령 점수 중복(수문 명령은 값이 없어 0점), 레벨1·2 명령 여러 개(레이아웃에 하나씩), 부모 변경 시 크기(OnTransformParentChanged), 드롭 시 소켓 부착(OnBeginDrag에서 붙임), CTS 즉시 Dispose(스킬 표준 형태), 공통 설정 Task 실패 캐시(JsonLoader는 예외 없이 기본값), 재스폰·스폰 취소(한 번만 호출, 씬과 함께 파괴), startZoom Awake(테스트로 확인된 동작), CodingBlock _highlightedSocket 미정리(ClearSnapTargets가 비움).
+- 결과: 수정 범위는 사용자 결정.
+
 ### [2026-10-09 15:53] Claude → Antigravity · 2차 전체 감사와 수정 (fix/second-audit)
 - 요청(사용자): 다시 한번 전체 검사, 이어서 지적 전부 수정(중간 확정 6건·스캐너 입력·드래그 추정 3건은 재현 후·낮음 일괄).
 - 감사: Antigravity 사용 한도로 Claude 서브에이전트 5개가 영역별로 읽기 전용 감사했다(블록 UI / 컴파일·채점·데이터 / 흐름·연동 / 게임·결과 / 관리자·에디터·테스트). Claude는 grep으로 규칙을 점검하고 프로젝트 설정·씬·에셋을 확인했다.

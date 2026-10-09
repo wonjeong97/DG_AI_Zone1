@@ -66,7 +66,7 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 행을 새로 만들어 채운다. 모든 행은 재생 전까지 투명하다.
+        /// 행을 새로 만들어 채운다.
         /// </summary>
         public void SetRows(IReadOnlyList<ResultRow> rows)
         {
@@ -93,6 +93,7 @@ namespace Scenes
                 ResultRowView view = _resolver.Instantiate(rowTemplate, container, false);
                 // 복제본은 템플릿처럼 꺼진 채 생성되므로, Awake(컴포넌트 캐싱)가 돌도록 먼저 켠다
                 view.gameObject.SetActive(true);
+                // 모든 행은 재생 전까지 투명하다.
                 view.Group.alpha = 0f;
                 view.Layout.preferredHeight = rowHeight;
                 view.Set(row.Label, row.Value);

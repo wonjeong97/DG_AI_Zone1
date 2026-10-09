@@ -9,13 +9,14 @@ namespace Admin
     public static class IndexedButtons
     {
         /// <summary>
-        /// 각 버튼에 onClick(순번)을 연결하고, 해제할 때 쓸 동작 배열을 반환한다. 비어 있는 칸은 onMissing(순번)으로 알린다.
+        /// 각 버튼에 onClick(순번)을 연결하고, 해제할 때 쓸 동작 배열을 반환한다.
         /// </summary>
         public static UnityAction[] Bind(Button[] buttons, Action<int> onClick, Action<int> onMissing)
         {
             UnityAction[] actions = new UnityAction[buttons.Length];
             for (int i = 0; i < buttons.Length; i++)
             {
+                // 비어 있는 칸은 onMissing(순번)으로 알린다.
                 if (!buttons[i])
                 {
                     onMissing(i);

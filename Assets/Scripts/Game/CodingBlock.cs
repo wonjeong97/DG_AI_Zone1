@@ -318,10 +318,10 @@ namespace Game
 
         /// <summary>
         /// 지정한 하이라이트 이미지에 무한 반복 알파 펄스를 재생한다.
-        /// 테두리 모양과 보일 영역(아래 체인·오른쪽 값 칸 등)은 이미지의 BlockOutlineMesh와 머티리얼이 정한다.
         /// </summary>
         private void PlaySnapPulse(Image img)
         {
+            // 테두리 모양과 보일 영역(아래 체인·오른쪽 값 칸 등)은 이미지의 BlockOutlineMesh와 머티리얼이 정한다.
             if (!img)
             {
                 if (_logger != null) _logger.ZLogWarning($"[CodingBlock] {name}에 스냅 하이라이트 이미지가 연결되지 않았습니다.");
@@ -388,39 +388,12 @@ namespace Game
         private void PlayErrorBlink()
         {
             StopCompileHighlightTween();
-
-            Color error = Constants.HighlightColors.Error;
-            Image target;
-            Color from;
-
-            if (Mode == HighlightMode.Tint)
-            {
-                SetHighlight(outlineImage, Color.clear);
-                target = bodyImage;
-                if (!target)
-                {
-                    if (_logger != null) _logger.ZLogWarning($"[CodingBlock] {name}에 본체 이미지가 연결되지 않아 에러 표시를 건너뜁니다.");
-                    return;
-                }
-                CacheBodyOriginalColor();
-                from = _bodyOriginalColor;
-            }
-            else
-            {
-                ResetBodyTint();
-                target = outlineImage;
-                if (!target)
-                {
-                    if (_logger != null) _logger.ZLogWarning($"[CodingBlock] {name}에 외곽선 이미지가 연결되지 않아 에러 표시를 건너뜁니다.");
-                    return;
-                }
-                from = Color.clear;
-            }
+            if (!TryGetCompileHighlightTarget("에러", out Image target, out Color from)) return;
 
             target.color = from;
             int toggles = (Settings?.errorBlinkCount ?? Constants.HighlightSettings.ErrorBlinkCount) * 2;
             _compileHighlightTween = target
-                .DOColor(error, Settings?.errorBlinkHalfDuration ?? Constants.HighlightSettings.ErrorBlinkHalfDuration)
+                .DOColor(Constants.HighlightColors.Error, Settings?.errorBlinkHalfDuration ?? Constants.HighlightSettings.ErrorBlinkHalfDuration)
                 .SetLoops(toggles, LoopType.Yoyo)
                 .SetEase(Ease.InOutSine)
                 .SetLink(gameObject)
@@ -433,34 +406,37 @@ namespace Game
         private void PlaySuccessFadeIn()
         {
             StopCompileHighlightTween();
+            if (!TryGetCompileHighlightTarget("성공", out Image target, out Color from)) return;
 
+            // 틴트는 본체 원래 색에 성공 색을 섞고, 외곽선은 성공 색 그대로 켠다
             Color success = Constants.HighlightColors.Success;
+            Color to = Mode == HighlightMode.Tint ? Color.Lerp(from, success, Constants.HighlightSettings.TintStrength) : success;
             float duration = Settings?.successWaveFadeInDuration ?? Constants.HighlightSettings.SuccessWaveFadeInDuration;
 
-            if (Mode == HighlightMode.Tint)
+            target.color = from;
+            _compileHighlightTween = target.DOColor(to, duration).SetEase(Ease.OutSine).SetLink(gameObject);
+        }
+
+        /// <summary>
+        /// HighlightMode에 맞는 컴파일 결과 표시 대상(본체 또는 외곽선)과 시작 색을 고르고 다른 쪽 표시는 지운다(대상이 없으면 경고 후 false).
+        /// </summary>
+        private bool TryGetCompileHighlightTarget(string purpose, out Image target, out Color from)
+        {
+            bool isTint = Mode == HighlightMode.Tint;
+            if (isTint) SetHighlight(outlineImage, Color.clear);
+            else ResetBodyTint();
+
+            target = isTint ? bodyImage : outlineImage;
+            if (!target)
             {
-                SetHighlight(outlineImage, Color.clear);
-                if (!bodyImage)
-                {
-                    if (_logger != null) _logger.ZLogWarning($"[CodingBlock] {name}에 본체 이미지가 연결되지 않아 성공 표시를 건너뜁니다.");
-                    return;
-                }
-                CacheBodyOriginalColor();
-                Color target = Color.Lerp(_bodyOriginalColor, success, Constants.HighlightSettings.TintStrength);
-                bodyImage.color = _bodyOriginalColor;
-                _compileHighlightTween = bodyImage.DOColor(target, duration).SetEase(Ease.OutSine).SetLink(gameObject);
+                if (_logger != null) _logger.ZLogWarning($"[CodingBlock] {name}에 {(isTint ? "본체" : "외곽선")} 이미지가 연결되지 않아 {purpose} 표시를 건너뜁니다.");
+                from = default;
+                return false;
             }
-            else
-            {
-                ResetBodyTint();
-                if (!outlineImage)
-                {
-                    if (_logger != null) _logger.ZLogWarning($"[CodingBlock] {name}에 외곽선 이미지가 연결되지 않아 성공 표시를 건너뜁니다.");
-                    return;
-                }
-                outlineImage.color = Color.clear;
-                _compileHighlightTween = outlineImage.DOColor(success, duration).SetEase(Ease.OutSine).SetLink(gameObject);
-            }
+
+            if (isTint) CacheBodyOriginalColor();
+            from = isTint ? _bodyOriginalColor : Color.clear;
+            return true;
         }
 
         /// <summary>
@@ -663,10 +639,10 @@ namespace Game
 
         /// <summary>
         /// 부모가 바뀌면 크기를 부모 기준 1로 맞춘다 — 확대/축소된 코딩 패널과 인벤토리를 오가도 블록이 놓인 곳의 배율을 따르게 한다.
-        /// 드래그 중(루트 캔버스 직속)에는 들어 올리기 전에 보이던 크기를 그대로 유지한다.
         /// </summary>
         private void OnTransformParentChanged()
         {
+            // 드래그 중(루트 캔버스 직속)에는 들어 올리기 전에 보이던 크기를 그대로 유지한다.
             if (_canvas && transform.parent == _canvas.transform) return;
             transform.localScale = Vector3.one;
         }
@@ -732,7 +708,7 @@ namespace Game
             ClearSnapTargets();
             _cg.blocksRaycasts = true;
 
-            if (highlighted && highlighted.isActiveAndEnabled && AttachTo(highlighted))
+            if (CanAttachNow(highlighted) && AttachTo(highlighted))
             {
                 LogDragResult(highlighted);
                 if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.BlockAssembled);
@@ -759,11 +735,11 @@ namespace Game
 
         /// <summary>
         /// 드래그 한 번의 결과를 체험자 행동 로그 한 줄로 남긴다 — 떼어 낸 자리와 놓은 자리(소켓·코딩 영역·블록 목록)를 함께 적는다.
-        /// 코딩 영역 안에서 옮기기만 했거나 블록 목록에서 집었다가 그대로 돌려놓은 것처럼 연결이 바뀌지 않았으면 남기지 않는다.
-        /// 밀려난 블록이 꼬리로 옮겨지는 것처럼 체험자가 직접 끌지 않은 이동은 이 경로를 타지 않는다.
         /// </summary>
         private void LogDragResult(BlockSocket attached)
         {
+            // 코딩 영역 안에서 옮기기만 했거나 블록 목록에서 집었다가 그대로 돌려놓은 것처럼 연결이 바뀌지 않았으면 남기지 않는다.
+            // 밀려난 블록이 꼬리로 옮겨지는 것처럼 체험자가 직접 끌지 않은 이동은 이 경로를 타지 않는다.
             if (_logger == null) return;
 
             // 떼었던 소켓에 그대로 다시 붙였으면 연결이 바뀌지 않았다
@@ -788,10 +764,10 @@ namespace Game
 
         /// <summary>
         /// 행동 로그에 쓸 소켓 자리를 주인 블록 이름과 소켓 종류로 적는다(예: "'시작하기' 아래", "'만약' 안", "'태양광 패널의 방향' 값 자리").
-        /// 만약 블록의 머리 슬롯은 값이 아니라 조건을 받으므로 "조건 자리"로 적는다.
         /// </summary>
         private static string DescribeSocket(BlockSocket socket)
         {
+            // 만약 블록의 머리 슬롯은 값이 아니라 조건을 받으므로 "조건 자리"로 적는다.
             CodingBlock owner = socket.Owner;
             bool isIfConditionSlot = owner && owner.Category == BlockCategory.FlowControl && !owner.IsRepeat;
             string place = socket switch
@@ -831,10 +807,11 @@ namespace Game
         }
 
         /// <summary>
-        /// 드래그를 취소하고 드래그 전 자리로 되돌린다. 이후 이 포인터의 OnDrag/OnDrop/OnEndDrag는 무시된다.
+        /// 드래그를 취소하고 드래그 전 자리로 되돌린다.
         /// </summary>
         private void CancelDrag()
         {
+            // 이후 이 포인터의 OnDrag/OnDrop/OnEndDrag는 무시된다.
             _activeDrags.Remove(this);
             if (!_isDragging) return;
 
@@ -849,10 +826,11 @@ namespace Game
         }
 
         /// <summary>
-        /// 드래그 시작 전 자리로 되돌린다. 소켓이었으면 다시 받게(Accept) 해서, 떼어낼 때 위로 이어 붙였던 아래 블록까지 원래 순서로 복원한다.
+        /// 드래그 시작 전 자리로 되돌린다.
         /// </summary>
         private void RestoreDragHome()
         {
+            // 소켓이었으면 다시 받게(Accept) 해서, 떼어낼 때 위로 이어 붙였던 아래 블록까지 원래 순서로 복원한다.
             Transform home = _homeParent;
             if (!home)
             {
@@ -891,10 +869,10 @@ namespace Game
 
         /// <summary>
         /// 지금 위치에서 하이라이트할 소켓을 고른다 — 손을 떼면 마지막으로 고른 이 소켓에 붙는다.
-        /// 가로 연결 블록은 조건 연결(ConditionOut)을 먼저, 없으면 값 슬롯(ValueOut)을, 세로 연결 블록은 체인·내부 소켓 중 더 가까운 쪽을 고른다.
         /// </summary>
         private BlockSocket FindBestSnapSocket()
         {
+            // 가로 연결 블록은 조건 연결(ConditionOut)을 먼저, 없으면 값 슬롯(ValueOut)을, 세로 연결 블록은 체인·내부 소켓 중 더 가까운 쪽을 고른다.
             if (SnapsHorizontally)
             {
                 if (PrefersConditionSocket)
@@ -911,6 +889,26 @@ namespace Game
             // 두 후보가 모두 범위 안이면 더 가까운 쪽 우선
             if (chainSocket && (!innerSocket || chainSqr <= innerSqr)) return chainSocket;
             return innerSocket;
+        }
+
+        /// <summary>
+        /// 드래그 중 하이라이트한 소켓이 손을 뗀 지금도 이 블록을 받을 수 있는지 다시 확인한다.
+        /// </summary>
+        public bool CanAttachNow(BlockSocket socket)
+        {
+            if (!socket || !socket.isActiveAndEnabled) return false;
+
+            // 다른 손가락이 같은 소켓에 먼저 붙였거나 소켓 주인 블록을 목록으로 옮겼을 수 있다 —
+            // 값·조건 소켓은 찬 자리에 받으면 먼저 붙은 블록을 덮어써 화면과 점유 기록이 어긋난다
+            CodingBlock owner = socket.Owner;
+            if (!owner || !_codingZone || !_codingZone.Contains(owner)) return false;
+
+            return socket switch
+            {
+                ChainOutSocket chainOut => chainOut.CanAccept(this),
+                InnerSocket inner       => inner.CanAccept(this),
+                _                       => socket.IsEmpty
+            };
         }
 
         /// <summary>
@@ -1250,10 +1248,10 @@ namespace Game
 
         /// <summary>
         /// 시작하기/완성하기 블록을 코딩 패널의 고정 자리(좌상단 / 좌하단)에 배치한다.
-        /// 최초 스폰(BlockSpawner)과 인벤토리 반입 시 복귀(ReturnToInventory)가 같은 규칙을 쓰도록 공유한다.
         /// </summary>
         public static void ApplyControlBlockLayout(RectTransform rt, bool isStart, CodingZone codingZone)
         {
+            // 최초 스폰(BlockSpawner)과 인벤토리 반입 시 복귀(ReturnToInventory)가 같은 규칙을 쓰도록 공유한다.
             if (!rt) return;
 
             rt.anchorMin = rt.anchorMax = new Vector2(0f, isStart ? 1f : 0f);

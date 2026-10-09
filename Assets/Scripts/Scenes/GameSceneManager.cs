@@ -524,7 +524,7 @@ namespace Scenes
         {
             _sceneSettings = await JsonLoader.LoadAsync<GameSceneSettings>(Constants.SettingsFiles.Game, destroyCancellationToken, _logger);
             if (_sceneSettings.ClampToValid() && _logger != null)
-                _logger.ZLogWarning($"[GameSceneManager] 3_Game.json에 음수 값이 있어 그 값은 0으로 씁니다.");
+                _logger.ZLogWarning($"[GameSceneManager] 3_Game.json에 범위를 벗어난 값이 있어 바로잡아 씁니다(음수는 0, 0 이하 스냅 반경은 기본값).");
             CodingBlock.Settings = _sceneSettings;
         }
     }

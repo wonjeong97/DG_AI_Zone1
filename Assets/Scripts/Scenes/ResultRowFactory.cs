@@ -17,11 +17,11 @@ namespace Scenes
 
         /// <summary>
         /// 레벨에 맞는 체험자 결과 행을 세션 값으로 만든다.
-        /// 코딩을 건너뛰었으면 체험자가 정한 값은 '-', 감지 항목은 OFF, 판단할 배치가 없는 채점 항목은 '-'로 두고
-        /// 문제로 주어진 값(바람 방향·발전소 상황)은 그대로 보여 준다.
         /// </summary>
         public static List<ResultRow> BuildPlayerRows(LevelKind kind, GameSession session, bool hasCoding, string status)
         {
+            // 코딩을 건너뛰었으면 체험자가 정한 값은 '-', 감지 항목은 OFF, 판단할 배치가 없는 채점 항목은 '-'로 두고
+            // 문제로 주어진 값(바람 방향·발전소 상황)은 그대로 보여 준다.
             switch (kind)
             {
                 case LevelKind.Wind:
@@ -96,9 +96,9 @@ namespace Scenes
             new ResultRow(Constants.ResultMessages.LabelStatus, status),
         };
 
+        // 반복하기 없이는 컴파일이 막히므로 정상 플레이에서 반복 감지는 항상 ON이다.
         /// <summary>
         /// 레벨2(풍력) 결과 행 — 문제로 나온 바람 방향 / 체험자가 맞춘 풍차 방향 / 반복하기 사용 여부.
-        /// 반복하기 없이는 컴파일이 막히므로 정상 플레이에서 반복 감지는 항상 ON이다.
         /// </summary>
         private static List<ResultRow> BuildWindRows(string windDirection, string bladeDirection, bool repeatUsed, string status) => new()
         {
@@ -108,10 +108,10 @@ namespace Scenes
             new ResultRow(Constants.ResultMessages.LabelStatus, status),
         };
 
+        // 조건 감지는 조건 블록 연결 여부 — 조건 없이는 컴파일이 막히므로 정상 플레이에선 항상 ON이다.
+        // 아니면과 수문 열기·닫기 순서는 채점 항목이라 틀렸을 때 AI 결과와 달라 보이도록 따로 표시한다.
         /// <summary>
         /// 레벨3(수력) 결과 행 — 체험자가 만약 블록에 연결한 수문 개방 높이 / 조건·아니면 사용 여부 / 수문 열기·닫기 순서.
-        /// 조건 감지는 조건 블록 연결 여부 — 조건 없이는 컴파일이 막히므로 정상 플레이에선 항상 ON이다.
-        /// 아니면과 수문 열기·닫기 순서는 채점 항목이라 틀렸을 때 AI 결과와 달라 보이도록 따로 표시한다.
         /// </summary>
         private static List<ResultRow> BuildHydroRows(string gateHeight, bool elseUsed, string gateOrder, string status) => new()
         {
@@ -122,9 +122,9 @@ namespace Scenes
             new ResultRow(Constants.ResultMessages.LabelStatus, status),
         };
 
+        // 뒤 두 항목은 놀이시설·병원 채점과 같은 기준이라 효율 %가 왜 그렇게 나왔는지 화면에서 읽힌다.
         /// <summary>
         /// 레벨4(발전소) 결과 행 — 고정 상황 / 체험자가 만약에 연결한 조건식 / 놀이시설 끄기 조건(만약)·병원 전력 유지.
-        /// 뒤 두 항목은 놀이시설·병원 채점과 같은 기준이라 효율 %가 왜 그렇게 나왔는지 화면에서 읽힌다.
         /// </summary>
         private static List<ResultRow> BuildPowerPlantRows(string condition, string amusementPowerCut, string hospitalPowerKept, string status) => new()
         {
@@ -137,10 +137,10 @@ namespace Scenes
 
         /// <summary>
         /// 레벨5(미래에너지) 결과 행 — 함수 사용 여부 / 에너지 블록별로 함수 안에 넣었는지 / 전력 수급 상태.
-        /// 에너지 행은 채점(함수 안 에너지 수)과 같은 기준이라 효율 %가 왜 그렇게 나왔는지 화면에서 읽힌다.
         /// </summary>
         private static List<ResultRow> BuildFutureEnergyRows(bool functionUsed, IReadOnlyCollection<string> energiesInFunction, string status)
         {
+            // 에너지 행은 채점(함수 안 에너지 수)과 같은 기준이라 효율 %가 왜 그렇게 나왔는지 화면에서 읽힌다.
             List<ResultRow> rows = new() { new ResultRow(Constants.ResultMessages.LabelFunctionUsed, OnOff(functionUsed)) };
             foreach (string energy in Constants.BlockLabels.FutureEnergies)
                 rows.Add(new ResultRow(energy, OnOff(Contains(energiesInFunction, energy))));

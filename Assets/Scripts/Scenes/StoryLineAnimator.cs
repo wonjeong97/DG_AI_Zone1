@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using App;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using TMPro;
@@ -15,10 +16,10 @@ namespace Scenes
     {
         /// <summary>
         /// 이번 프레임에 마우스 또는 터치 눌림이 있었는지 반환한다 (연출 스킵용 기본 판정).
-        /// AnimateAsync의 skipRequested 인자로 그대로 넘겨 쓴다.
         /// </summary>
         public static bool IsPointerPressedThisFrame()
         {
+            // AnimateAsync의 skipRequested 인자로 그대로 넘겨 쓴다.
             Pointer pointer = Pointer.current;
             return pointer != null && pointer.press.wasPressedThisFrame;
         }
@@ -44,18 +45,36 @@ namespace Scenes
         }
 
         /// <summary>
-        /// text의 각 줄을 아래에서 위로 올리며 순차적으로 페이드인한다. 보이는 문자가 없는 줄(간격용 빈 줄)은
-        /// 연출과 대기 없이 즉시 통과하고, skipRequested가 true를 반환하면 남은 줄까지 즉시 표시하고 종료한다.
-        /// inactivityTimer를 넘기면 연출이 진행되는 동안 비활동 타이머를 멈춘다 — 입력이 없어도 사용자는
-        /// 글을 읽고 있는 구간이라 타임아웃으로 타이틀에 튕기면 안 되며, 끝나거나 스킵하면 다시 켠다.
-        /// 씬을 떠나 취소된 경우에는 다음 씬을 불러올 때 GameManager가 타이머 상태를 정하므로 건드리지 않는다
-        /// (늦게 켜면 타이머를 멈춰 두는 타이틀에서 타이머가 돈다).
-        /// 정적 유틸리티라 호출부의 logger로 로그를 남기고, logger가 없을 때만 Unity 콘솔로 대체 출력한다.
+        /// 문장의 "{name}"을 체험자 이름으로 바꾼 뒤 공통 설정으로 한 줄씩 올라오는 연출을 재생한다(인트로·아웃트로가 함께 쓴다).
+        /// </summary>
+        public static async UniTask AnimateWithVisitorNameAsync(TMP_Text text, VisitorInfoProvider visitorInfoProvider,
+            CancellationToken token, InactivityTimer inactivityTimer, Microsoft.Extensions.Logging.ILogger logger)
+        {
+            // 이름을 바꾸기 전 원문이 한 프레임 보이지 않도록 먼저 숨긴다
+            HideBeforeAnimate(text);
+
+            if (visitorInfoProvider != null)
+                text.text = visitorInfoProvider.FillName(text.text);
+            else if (logger != null)
+                logger.ZLogWarning($"[StoryLineAnimator] VisitorInfoProvider가 주입되지 않아 {text.name}의 이름을 치환하지 않습니다.");
+
+            await AnimateWithCommonSettingsAsync(text, token, inactivityTimer, logger);
+        }
+
+        /// <summary>
+        /// text의 각 줄을 아래에서 위로 올리며 순차적으로 페이드인한다.
         /// </summary>
         public static async UniTask AnimateAsync(TMP_Text text, float lineMoveDuration, float lineInterval, float lineYOffset,
             Func<bool> skipRequested, CancellationToken token, InactivityTimer inactivityTimer = null,
             Microsoft.Extensions.Logging.ILogger logger = null)
         {
+            // 보이는 문자가 없는 줄(간격용 빈 줄)은 연출과 대기 없이 즉시 통과하고,
+            // skipRequested가 true를 반환하면 남은 줄까지 즉시 표시하고 종료한다.
+            // inactivityTimer를 넘기면 연출이 진행되는 동안 비활동 타이머를 멈춘다 — 입력이 없어도 사용자는
+            // 글을 읽고 있는 구간이라 타임아웃으로 타이틀에 튕기면 안 되며, 끝나거나 스킵하면 다시 켠다.
+            // 씬을 떠나 취소된 경우에는 다음 씬을 불러올 때 GameManager가 타이머 상태를 정하므로 건드리지 않는다
+            // (늦게 켜면 타이머를 멈춰 두는 타이틀에서 타이머가 돈다).
+            // 정적 유틸리티라 호출부의 logger로 로그를 남기고, logger가 없을 때만 Unity 콘솔로 대체 출력한다.
             if (!text)
             {
                 if (logger != null) logger.ZLogWarning($"[StoryLineAnimator] 연출할 텍스트가 없어 건너뜁니다.");
@@ -169,10 +188,10 @@ namespace Scenes
 
         /// <summary>
         /// 줄 사이 간격만큼 기다리되, 그 사이에 스킵 입력이 들어오면 바로 true를 반환한다.
-        /// 고정 Delay로 기다리면 연출 시간의 1/3쯤 되는 이 구간의 터치가 버려진다.
         /// </summary>
         private static async UniTask<bool> WaitIntervalOrSkipAsync(float seconds, Func<bool> skipRequested, CancellationToken token)
         {
+            // 고정 Delay로 기다리면 연출 시간의 1/3쯤 되는 이 구간의 터치가 버려진다.
             // 00_Common.json에 음수를 적어도 예외 없이 바로 다음 줄로 넘어간다
             float endTime = Time.time + Mathf.Max(0f, seconds);
             while (Time.time < endTime)
