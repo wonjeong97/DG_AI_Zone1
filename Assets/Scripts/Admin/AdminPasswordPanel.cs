@@ -89,6 +89,9 @@ namespace Admin
 
             if (closeButton) closeButton.onClick.AddListener(OnCloseClicked);
             else if (_logger != null) _logger.ZLogWarning($"[AdminPasswordPanel] closeButton이 할당되지 않았습니다.");
+
+            if (!maskedText && _logger != null) _logger.ZLogWarning($"[AdminPasswordPanel] maskedText가 할당되지 않아 입력한 자릿수를 표시하지 못합니다.");
+            if (!messageText && _logger != null) _logger.ZLogWarning($"[AdminPasswordPanel] messageText가 할당되지 않아 안내 문구를 표시하지 못합니다.");
         }
 
         /// <summary>
@@ -114,11 +117,11 @@ namespace Admin
         }
 
         /// <summary>
-        /// 비밀번호 변경용으로 창을 연다 — 새 비밀번호를 두 번 입력받는다 (관리자 화면 위에 뜬다).
-        /// 관리자 레벨 이동에서 돌아와 비밀번호 확인 없이 열린 경우도 있으므로 자동 닫기 시간을 다시 읽는다.
+        /// 비밀번호 변경용으로 창을 열어 새 비밀번호를 두 번 입력받는다 (관리자 화면 위에 뜬다).
         /// </summary>
         public void OpenForChange()
         {
+            // 관리자 레벨 이동에서 돌아와 비밀번호 확인 없이 열린 경우도 있으므로 자동 닫기 시간을 다시 읽는다
             OpenAt(Step.EnterNew);
             LoadSettingsAsync(destroyCancellationToken).Forget();
         }
@@ -157,7 +160,7 @@ namespace Admin
         }
 
         /// <summary>
-        /// Admin.json에서 비밀번호와 자동 닫기 시간을 읽는다. 파일이 없거나 키패드로 입력할 수 없는 값이면 기본 비밀번호를 쓴다.
+        /// Admin.json에서 비밀번호와 자동 닫기 시간을 읽는다 (키패드로 입력할 수 없는 비밀번호면 기본 비밀번호를 쓴다).
         /// </summary>
         private async UniTaskVoid LoadSettingsAsync(CancellationToken ct)
         {
@@ -189,7 +192,7 @@ namespace Admin
         /// </summary>
         private void OnDigitClicked(int digit)
         {
-            RegisterKeyPress();
+            PlayKeySound();
             if (!_input.TryAppend(digit)) return;
 
             SetMessage(string.Empty);
@@ -201,7 +204,7 @@ namespace Admin
         /// </summary>
         private void OnBackspaceClicked()
         {
-            RegisterKeyPress();
+            PlayKeySound();
             _input.RemoveLast();
             RefreshMasked();
         }
@@ -211,7 +214,7 @@ namespace Admin
         /// </summary>
         private void OnConfirmClicked()
         {
-            RegisterKeyPress();
+            PlayKeySound();
 
             if (!_input.HasValidLength)
             {
@@ -280,16 +283,23 @@ namespace Admin
 
         /// <summary>
         /// 새 비밀번호를 Admin.json에 저장하고 결과를 관리자 화면에 알린다.
-        /// 같은 파일의 다른 값(자동 닫기 시간·진입 클릭 수)을 지키도록 파일을 읽어 비밀번호만 바꿔 저장한다.
-        /// JsonLoader.SaveAsync는 실패를 로그로만 남기므로, 다시 읽어 실제로 저장됐는지 확인한다.
         /// </summary>
         private async UniTaskVoid SavePasswordAsync(string newPassword, CancellationToken ct)
         {
             try
             {
-                AdminSettings current = await JsonLoader.LoadAsync<AdminSettings>(Constants.SettingsFiles.Admin, ct, _logger);
+                // 같은 파일의 다른 값(자동 닫기 시간·진입 클릭 수)을 지키도록 파일을 읽어 비밀번호만 바꿔 저장한다.
+                // 파일이 깨져 있으면 기본값으로 읽혀 그 값들이 사라지므로 저장하지 않는다
+                if (!AdminSettings.TryReadForSave(out AdminSettings current))
+                {
+                    if (_logger != null) _logger.ZLogWarning($"[AdminPasswordPanel] Admin.json 형식이 올바르지 않아 새 비밀번호를 저장하지 않았습니다.");
+                    if (adminPanel) adminPanel.ShowStatus(Constants.Admin.PasswordSaveFailed);
+                    return;
+                }
+
                 current.password = newPassword;
                 await JsonLoader.SaveAsync(Constants.SettingsFiles.Admin, current, ct, _logger);
+                // JsonLoader.SaveAsync는 실패를 로그로만 남기므로, 다시 읽어 실제로 저장됐는지 확인한다
                 AdminSettings saved = await JsonLoader.LoadAsync<AdminSettings>(Constants.SettingsFiles.Admin, ct, _logger);
 
                 // 파일 입출력 뒤 관리자 화면 UI를 고치므로 메인 스레드로 돌아온다
@@ -323,7 +333,7 @@ namespace Admin
         /// <summary>
         /// 키 입력 효과음을 낸다 (무입력 시간은 IdleCloseTimer가 누르기 입력으로 다시 잰다).
         /// </summary>
-        private void RegisterKeyPress()
+        private void PlayKeySound()
         {
             if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
         }

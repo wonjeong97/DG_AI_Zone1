@@ -45,7 +45,8 @@ namespace Network
             CheckActiveResult result = CheckActiveResult.Parse(body);
             if (result.Status == CheckActiveStatus.Unknown)
             {
-                if (_logger != null) _logger.ZLogWarning($"[VisitorApiClient] checkActive 응답을 해석하지 못했습니다: '{body}'");
+                // 서버 오류 페이지가 요청 주소(uid)를 되돌려 보여 줄 수 있어 원문은 남기지 않는다
+                if (_logger != null) _logger.ZLogWarning($"[VisitorApiClient] checkActive 응답을 해석하지 못했습니다 (응답 {(body == null ? 0 : body.Length)}자).");
             }
             else if (_logger != null)
             {

@@ -125,10 +125,13 @@ namespace DG.Zone1.Tests
             IdleCloseTimer timer = new IdleCloseTimer();
             timer.Restart();
 
-            Assert.IsFalse(timer.HasExpired(timeoutSeconds), "다시 잰 직후에 끝남");
+            Assert.IsFalse(timer.HasExpired(timeoutSeconds, false), "다시 잰 직후에 끝남");
 
             await UniTask.Delay(TimeSpan.FromSeconds(timeoutSeconds * 2f), DelayType.UnscaledDeltaTime);
-            Assert.IsTrue(timer.HasExpired(timeoutSeconds), "입력 없이 제한 시간이 지났는데 끝나지 않음");
+            Assert.IsFalse(timer.HasExpired(timeoutSeconds, true), "누른 프레임에는 다시 재야 하는데 끝남");
+
+            await UniTask.Delay(TimeSpan.FromSeconds(timeoutSeconds * 2f), DelayType.UnscaledDeltaTime);
+            Assert.IsTrue(timer.HasExpired(timeoutSeconds, false), "입력 없이 제한 시간이 지났는데 끝나지 않음");
         });
 
         /// <summary>

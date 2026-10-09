@@ -146,15 +146,19 @@ namespace Scenes
             if (!playerImageGroup) _logger.ZLogWarning($"[ResultSequence] playerImageGroup이 할당되지 않았습니다.");
             if (!touchGuideGroup) _logger.ZLogWarning($"[ResultSequence] touchGuideGroup이 할당되지 않았습니다.");
             if (!nextButton) _logger.ZLogWarning($"[ResultSequence] nextButton이 할당되지 않아 다음 씬으로 넘어갈 수 없습니다.");
+            if (!resultPanel) _logger.ZLogWarning($"[ResultSequence] resultPanel이 할당되지 않았습니다.");
+            if (!completePanel) _logger.ZLogWarning($"[ResultSequence] completePanel이 할당되지 않아 다음 버튼이 있는 완료 화면을 띄울 수 없습니다.");
+            if (!aiResultGroup) _logger.ZLogWarning($"[ResultSequence] aiResultGroup이 할당되지 않았습니다.");
+            if (!aiImageGroup) _logger.ZLogWarning($"[ResultSequence] aiImageGroup이 할당되지 않았습니다.");
         }
 
         /// <summary>
         /// 시퀀스가 건드리는 모든 표시 상태를 첫 입장 기준으로 되돌린다.
-        /// 에디터에서 연출 중간 값(alpha, 꺼둔 패널, 흑백 머티리얼 등)을 저장해두고 플레이해도
-        /// 항상 같은 그림에서 연출이 시작되도록, 씬에 저장된 값에 의존하지 않는 것이 목적이다.
         /// </summary>
         private void InitializeSceneState()
         {
+            // 에디터에서 연출 중간 값(alpha, 꺼둔 패널, 흑백 머티리얼 등)을 저장해두고 플레이해도
+            // 항상 같은 그림에서 연출이 시작되도록, 씬에 저장된 값에 의존하지 않는 것이 목적이다.
             // 레벨에 맞는 3D 스테이지를 먼저 켠다 — 아래 SetNeutral()이 활성화된 컴포넌트에 닿도록
             ApplyLevelStage();
 
@@ -218,10 +222,10 @@ namespace Scenes
 
         /// <summary>
         /// 다음 레벨로 진행한다 — 방금 플레이한 레벨의 AfterResultScene을 따라간다 (마지막 레벨은 5_Outro).
-        /// 관리자 레벨 이동으로 시작한 판이면 타이틀의 관리자 화면으로 돌아간다.
         /// </summary>
         private void OnNextClicked()
         {
+            // 관리자 레벨 이동으로 시작한 판이면 타이틀의 관리자 화면으로 돌아간다.
             if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
             string nextScene = _session != null && _session.currentLevel ? _session.currentLevel.AfterResultScene : Constants.Scenes.Story;
 
@@ -303,11 +307,11 @@ namespace Scenes
 
         /// <summary>
         /// 서버 모드에서 QR로 확인한 체험자면 이번 레벨의 미션 결과(성공 1·실패 0, 넘어가기는 실패)를 서버에 올린다.
-        /// 관리자 레벨 이동으로 시작한 판은 체험자 기록에 섞이지 않도록 올리지 않는다.
-        /// 결과 화면을 빨리 넘겨도 끊기지 않도록 씬 수명과 묶지 않는다 — 요청은 Server.json의 시간 초과·재시도 횟수로 끝난다.
         /// </summary>
         private void UploadLevelResult(bool isSuccess)
         {
+            // 관리자 레벨 이동으로 시작한 판은 체험자 기록에 섞이지 않도록 올리지 않는다.
+            // 결과 화면을 빨리 넘겨도 끊기지 않도록 씬 수명과 묶지 않는다 — 요청은 Server.json의 시간 초과·재시도 횟수로 끝난다.
             if (_session == null || _visitorInfoProvider == null || _visitorApiClient == null)
             {
                 if (_logger != null) _logger.ZLogWarning($"[ResultSequence] 게임 세션·체험자 정보 제공자·서버 API 중 주입되지 않은 것이 있어 레벨 결과를 올리지 않습니다.");
@@ -381,8 +385,20 @@ namespace Scenes
         {
             await RunWithTimerPausedAsync(_inactivityTimer, PlaySequenceStepsAsync, destroyCancellationToken, ex =>
             {
-                if (_logger != null) _logger.ZLogError(ex, $"[ResultSequence] 결과 연출 중 오류가 발생해 비활동 타이머를 재개합니다.");
+                if (_logger != null) _logger.ZLogError(ex, $"[ResultSequence] 결과 연출 중 오류가 발생해 완료 화면을 바로 띄우고 비활동 타이머를 재개합니다.");
+                ShowCompletePanelImmediately();
             });
+        }
+
+        /// <summary>
+        /// 연출이 오류로 멈췄을 때 결과 패널을 거두고 다음 버튼이 있는 완료 패널을 바로 띄운다.
+        /// </summary>
+        private void ShowCompletePanelImmediately()
+        {
+            // 관람객이 결과 화면에 갇히지 않게 터치 안내 단계를 건너뛴다
+            HideTouchGuide();
+            SceneFader.InitializePanelState(resultPanel, false);
+            SceneFader.InitializePanelState(completePanel, true);
         }
 
         /// <summary>
@@ -459,11 +475,11 @@ namespace Scenes
         /// <summary>
         /// 플레이어 스테이지 연출을 재생한다 — 태양광은 패널 방향, 풍력은 풍차 회전 속도,
         /// 수력은 댐 수문 개방량, 발전소는 피스톤·수증기 강도, 연구소는 건물 안 조명.
-        /// 모두 에너지 효율(%)을 연출 강도로 쓴다(발전소는 부족 구간을 정지로 잘라내고,
-        /// 연구소는 부족 꺼짐·보통 약하게 깜빡임·양호 강하게로 단계를 나눈다).
         /// </summary>
         private async UniTask PlayPlayerStageAsync(CancellationToken ct)
         {
+            // 모두 에너지 효율(%)을 연출 강도로 쓴다(발전소는 부족 구간을 정지로 잘라내고,
+            // 연구소는 부족 꺼짐·보통 약하게 깜빡임·양호 강하게로 단계를 나눈다).
             if (_isWindStage)
             {
                 if (playerTurbineSpin) await playerTurbineSpin.ApplyAsync(_playerPercent, ct);
@@ -593,12 +609,12 @@ namespace Scenes
 
         /// <summary>
         /// 문구 뒤 점 슬롯을 0개→slotCount개 순서로 반복해 드러낸다 (취소될 때까지).
-        /// 문자열은 점을 모두 포함한 채로 두고 노출 개수만 바꾸므로 문구 폭이 고정되어 좌우로 흔들리지 않는다.
-        /// 간격은 4_Result.json을 늦게 읽어도 반영되도록 매번 다시 읽는다.
         /// </summary>
         private static async UniTaskVoid CycleDotsAsync(TMP_Text text, int baseLength, int slotLength, int slotCount,
             Func<int> getIntervalMs, CancellationToken ct)
         {
+            // 문자열은 점을 모두 포함한 채로 두고 노출 개수만 바꾸므로 문구 폭이 고정되어 좌우로 흔들리지 않는다.
+            // 간격은 4_Result.json을 늦게 읽어도 반영되도록 매번 다시 읽는다.
             int dotCount = 0;
             try
             {
@@ -619,6 +635,8 @@ namespace Scenes
         {
             _sceneSettings = await JsonLoader.LoadAsync<ResultSceneSettings>(Constants.SettingsFiles.Result, ct, _logger);
             if (_sceneSettings is null) return;
+            if (_sceneSettings.ClampToValid() && _logger != null)
+                _logger.ZLogWarning($"[ResultSequence] 4_Result.json에 음수 값이 있어 그 값은 0으로 씁니다.");
 
             if (playerRows)
             {
@@ -644,10 +662,10 @@ namespace Scenes
 
         /// <summary>
         /// 상단 안내 문구에 레벨별 문구와 말줄임 슬롯을 붙인다.
-        /// 문구가 비어 있는 레벨(미정)은 씬에 입력해둔 텍스트를 그대로 쓴다.
         /// </summary>
         private void ApplyTopText()
         {
+            // 문구가 비어 있는 레벨(미정)은 씬에 입력해둔 텍스트를 그대로 쓴다.
             if (!topText)
             {
                 if (_logger != null) _logger.ZLogWarning($"[ResultSequence] topText가 할당되지 않아 상단 안내 문구를 표시하지 않습니다.");

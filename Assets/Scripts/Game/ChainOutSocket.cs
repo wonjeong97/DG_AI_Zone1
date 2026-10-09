@@ -18,12 +18,10 @@ namespace Game
         /// </summary>
         public bool CanAccept(CodingBlock incoming)
         {
-            if (incoming && incoming.Category == BlockCategory.Control)
-            {
-                // Inner 컨테이너(InnerSocket 하위) 내부에 위치한 소켓일 경우 Control 블록(완성하기 등) 수락 불가
-                if (Owner && Owner.IsInsideInnerContainer())
-                    return false;
-            }
+            // Inner 컨테이너(InnerSocket 하위) 안의 소켓은 들어오는 체인 어디에든 Control 블록(완성하기 등)이 있으면 받지 않는다 —
+            // 머리만 보면 코딩 패널에 따로 이어 둔 'X → 완성하기'를 끌어 반복하기·만약 안에 넣을 수 있다
+            if (incoming && HasControlBlockInChain(incoming) && Owner && Owner.IsInsideInnerContainer())
+                return false;
 
             return CanFit(incoming, Occupant);
         }
@@ -49,6 +47,7 @@ namespace Game
         }
 
 #if UNITY_EDITOR
+        // 기즈모로 그리는 기준 반경 — 실제 스냅 반경은 3_Game.json(snapRadius·chainSnapRadius) × 코딩 패널 배율이라 다를 수 있다
         private const float SnapRadius = 120f;
 
         /// <summary>

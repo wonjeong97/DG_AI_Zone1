@@ -9,8 +9,7 @@ namespace Scenes
         public const float FrontYaw = 180f;
 
         /// <summary>
-        /// 방향 문자열 → root 기준 상대 yaw. root가 FrontYaw(180°)를 향하므로 남쪽=0, 동쪽=-90, ….
-        /// 알 수 없는 값이면 정면(0)을 반환한다.
+        /// 방향 문자열을 root 기준 상대 yaw로 바꾼다 (root가 FrontYaw(180°)를 향하므로 남쪽=0, 동쪽=-90, 알 수 없는 값은 정면 0).
         /// </summary>
         public static float DirectionToLocalYaw(string direction)
         {

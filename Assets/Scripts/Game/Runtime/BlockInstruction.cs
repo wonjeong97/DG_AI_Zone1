@@ -52,7 +52,7 @@ namespace Game.Runtime
         public List<BlockInstruction> Else;
 
         // '아니면' 블록이 실제로 배치됐는지 — Else가 비어 있어도(뒤에 아무 블록도 없어도) true일 수 있다.
-        // 표시용 판단(포매터가 빈 아니면 {}를 출력할지)에만 쓰인다.
+        // 포매터의 빈 아니면 {} 출력, 빈 아니면 컴파일 검사, 수력 채점(아니면 사용·수문 순서)에 쓰인다.
         public bool HasElseMarker;
 
         // HasElseMarker가 true일 때 그 '아니면' 블록 자신 — 컴파일 성공 시 초록 외곽선 표시용

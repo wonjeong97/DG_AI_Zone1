@@ -29,7 +29,7 @@ namespace DG.Zone1.Tests
         public void SetUp()
         {
             _canvasGo = new GameObject("StoryLineAnimatorTests", typeof(Canvas));
-            _canvasGo.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
+            if (_canvasGo.TryGetComponent(out Canvas canvas)) canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             GameObject textGo = new GameObject("Text", typeof(RectTransform));
             textGo.transform.SetParent(_canvasGo.transform, false);
             ((RectTransform)textGo.transform).sizeDelta = new Vector2(800f, 400f);

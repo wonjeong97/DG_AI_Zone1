@@ -392,16 +392,14 @@ namespace Game
 
             BlockCategory cat = block.Category;
 
-            // Command만 단일 ValueOutSocket — FlowControl은 헤더에 내장, Logic은 두 조건 슬롯 내장
+            // Command만 단일 ValueOutSocket — 만약의 조건 슬롯은 프리팹 헤더에 내장, Logic은 조건 체인 소켓(ConditionIn/Out)으로 잇는다
             // ValueKind.None인 Command는 값 슬롯 없는 블록이므로 소켓을 붙이지 않는다 (Value 스냅 불가)
             if (cat == BlockCategory.Command && block.ValueKind != ValueKind.None)
                 AttachValueOutSocket(block, Constants.Sockets.CommandValueOut);
 
-            // Logic은 전용 아트(Logic)라 좌측 노치 오프셋이 Condition과 다르다
+            // 값 슬롯에 끼우는 블록의 좌측 연결부 — Logic은 값 슬롯에 붙지 않으므로 붙이지 않는다
             if (cat == BlockCategory.Value)
                 AttachValueInSocket(block, Constants.Sockets.ValueValueIn);
-            else if (cat == BlockCategory.Logic)
-                AttachValueInSocket(block, Constants.Sockets.LogicConditionIn);
             else if (cat == BlockCategory.Condition)
                 AttachValueInSocket(block, Constants.Sockets.ConditionValueIn);
 
@@ -558,8 +556,8 @@ namespace Game
             Material mat = MakeOutlineMat("BlockOutlineInner", 0f, (h - Constants.HighlightSettings.InnerHighlightHeaderBottomPx) / h, 0f, 1f);
             if (mat)
             {
-                mat.SetFloat("_SrcXMin", Constants.HighlightSettings.InnerHighlightSourceLeftPx / w);
-                mat.SetFloat("_SrcYMin", (h - Constants.HighlightSettings.InnerHighlightSourceBottomPx) / h);
+                mat.SetFloat(OutlineSrcXMinId, Constants.HighlightSettings.InnerHighlightSourceLeftPx / w);
+                mat.SetFloat(OutlineSrcYMinId, (h - Constants.HighlightSettings.InnerHighlightSourceBottomPx) / h);
             }
             _innerOutlineMaterials[sprite] = mat;
             return mat;
@@ -588,12 +586,20 @@ namespace Game
             }
 
             Material mat = new Material(shader) { name = matName };
-            mat.SetFloat("_YMin", yMin);
-            mat.SetFloat("_YMax", yMax);
-            mat.SetFloat("_XMin", xMin);
-            mat.SetFloat("_XMax", xMax);
+            mat.SetFloat(OutlineYMinId, yMin);
+            mat.SetFloat(OutlineYMaxId, yMax);
+            mat.SetFloat(OutlineXMinId, xMin);
+            mat.SetFloat(OutlineXMaxId, xMax);
             return mat;
         }
+
+        // BlockOutline 셰이더 프로퍼티 — 하이라이트가 보일 영역과 ㄷ자 안쪽 하이라이트의 원본 영역
+        private readonly static int OutlineYMinId = Shader.PropertyToID("_YMin");
+        private readonly static int OutlineYMaxId = Shader.PropertyToID("_YMax");
+        private readonly static int OutlineXMinId = Shader.PropertyToID("_XMin");
+        private readonly static int OutlineXMaxId = Shader.PropertyToID("_XMax");
+        private readonly static int OutlineSrcXMinId = Shader.PropertyToID("_SrcXMin");
+        private readonly static int OutlineSrcYMinId = Shader.PropertyToID("_SrcYMin");
 
         // ── 공통 유틸 ───────────────────────────────────────────
 

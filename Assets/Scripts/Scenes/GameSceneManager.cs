@@ -104,6 +104,13 @@ namespace Scenes
 
             _currentLevel = level;
 
+            // 코딩 완료 없이 넘어가면 결과 씬에서 '-'로 표시되도록 이전 판 결과부터 지운다 — 레이아웃이 없어 아래에서 끝나도 남지 않게
+            if (_session != null)
+            {
+                _session.ResetLastResult();
+                _session.lastQuestionTime = null;
+            }
+
             BlockLayoutData layout = level ? level.blockLayout : null;
             if (!layout)
             {
@@ -134,12 +141,7 @@ namespace Scenes
             else if (_logger != null)
                 _logger.ZLogWarning($"[GameSceneManager] questionText가 할당되지 않아 문제 텍스트를 표시할 수 없습니다.");
 
-            // 코딩 완료 없이 넘어가면 결과 씬에서 '-'로 표시되도록 이전 결과 초기화
-            if (_session != null)
-            {
-                _session.ResetLastResult();
-                _session.lastQuestionTime = _questionTime;
-            }
+            if (_session != null) _session.lastQuestionTime = _questionTime;
         }
 
         /// <summary>
@@ -338,7 +340,7 @@ namespace Scenes
 
             _session.lastScore = score;
             _session.lastQuestionTime = _questionTime;
-            (_session.lastDirection, _, _session.lastCount) = BlockScorer.ExtractValues(instructions);
+            (_session.lastDirection, _session.lastCount) = BlockScorer.ExtractValues(instructions);
             _session.lastRepeatUsed = BlockScorer.ContainsRepeat(instructions);
             _session.lastGateHeight = BlockScorer.GetHydroGateHeight(instructions);
             _session.lastElseUsed = BlockScorer.HasHydroElse(instructions);
@@ -369,7 +371,7 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 실행기를 만든다 — 현재는 실행 자체가 연출로, 명령마다 일정 간격을 두고 진행한 뒤 결과 씬으로 넘어간다.
+        /// 실행기를 만든다 — 화면 변화 없이 명령마다 일정 간격만 기다린 뒤 결과 씬으로 넘어간다.
         /// </summary>
         private BlockExecutor CreateExecutor()
         {
@@ -390,10 +392,10 @@ namespace Scenes
 
         /// <summary>
         /// 코딩 완료(디버그 단축키면 검증) 결과를 행동 로그 한 줄로 남기고, 순회한 프로그램을 코드 형태(START/…/END)로 덧붙인다.
-        /// 순회 전에 실패했으면 결과 줄만 남긴다.
         /// </summary>
         private void LogCompileResult(CompileResult result, int? score, bool advanceScene)
         {
+            // 순회 전에 실패했으면 결과 줄만 남긴다.
             if (_logger == null) return;
 
             string action = advanceScene
@@ -521,6 +523,8 @@ namespace Scenes
         private async UniTask LoadSceneSettingsAsync()
         {
             _sceneSettings = await JsonLoader.LoadAsync<GameSceneSettings>(Constants.SettingsFiles.Game, destroyCancellationToken, _logger);
+            if (_sceneSettings.ClampToValid() && _logger != null)
+                _logger.ZLogWarning($"[GameSceneManager] 3_Game.json에 음수 값이 있어 그 값은 0으로 씁니다.");
             CodingBlock.Settings = _sceneSettings;
         }
     }

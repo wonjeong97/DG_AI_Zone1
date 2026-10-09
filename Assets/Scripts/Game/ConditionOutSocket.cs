@@ -16,6 +16,7 @@ namespace Game
         }
 
 #if UNITY_EDITOR
+        // 기즈모로 그리는 기준 반경 — 실제 스냅 반경은 3_Game.json(snapRadius·chainSnapRadius) × 코딩 패널 배율이라 다를 수 있다
         private const float SnapRadius = 120f;
 
         /// <summary>

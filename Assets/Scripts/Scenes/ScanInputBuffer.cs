@@ -8,7 +8,7 @@ namespace Scenes
     // 간격은 0_Title.json의 scanCharGapSeconds로 바꿀 수 있다(PC가 느려 스캔 글자가 늦게 들어오는 현장 대비).
     public class ScanInputBuffer
     {
-        // 0_Title.json을 읽기 전·잘못된 값일 때 쓰는 글자 사이 최대 간격(초)
+        // 0_Title.json 값이 없거나 잘못됐을 때 쓰는 글자 사이 최대 간격(초)
         public const float DefaultMaxCharGapSeconds = 0.5f;
 
         private readonly StringBuilder _buffer = new();

@@ -138,6 +138,28 @@ namespace DG.Zone1.Tests
         }
 
         /// <summary>
+        /// 내부 컨테이너 안의 체인 소켓은 꼬리에 완성하기가 달린 체인도 받지 않는다 — 메인 체인에는 그대로 붙는다.
+        /// 회귀: 머리 블록만 검사해 코딩 패널에 따로 이은 'X → 완성하기'를 반복하기 안에 넣을 수 있었다.
+        /// </summary>
+        [Test]
+        public void 내부_컨테이너_안의_체인_소켓은_완성하기가_달린_체인을_거부한다()
+        {
+            CodingBlock start = BlockTestUtil.MakeBlock(_zone, "시작하기", BlockCategory.Control, _zone.transform, role: ControlRole.Start);
+            CodingBlock repeat = BlockTestUtil.MakeBlock(_zone, Constants.BlockLabels.While, BlockCategory.FlowControl, _zone.transform);
+            InnerSocket inner = BlockTestUtil.AddInnerSocket(repeat);
+            CodingBlock cmd = MakeCommand("안쪽");
+            CodingBlock head = MakeCommand("따로 둔 머리");
+            CodingBlock end = BlockTestUtil.MakeBlock(_zone, "완성하기", BlockCategory.Control, _zone.transform, role: ControlRole.End);
+
+            ChainOutSocket.OfBlock(start).Accept(repeat);
+            inner.Accept(cmd);
+            ChainOutSocket.OfBlock(head).Accept(end);
+
+            Assert.IsFalse(ChainOutSocket.OfBlock(cmd).CanAccept(head), "내부 체인 끝에 완성하기가 달린 체인이 붙으면 안 됨");
+            Assert.IsTrue(ChainOutSocket.OfBlock(repeat).CanAccept(head), "메인 체인에는 완성하기가 달린 체인이 붙어야 함");
+        }
+
+        /// <summary>
         /// Inner 소켓의 수락 판정은 드래그 중 매 프레임 호출되므로 힙 할당이 없어야 한다
         /// (중첩된 반복하기가 있어 재귀 판정을 거치는 경우 포함).
         /// </summary>

@@ -13,12 +13,16 @@ namespace DG.Zone1.Tests
     public class SettingsJsonTests
     {
         /// <summary>
-        /// 영상·관리자·타이틀 설정 JSON에 설정 클래스의 모든 항목이 같은 이름으로 들어 있다 —
+        /// StreamingAssets 설정 JSON에 설정 클래스의 모든 항목이 같은 이름으로 들어 있다 —
         /// 키 이름이 틀리면 JsonUtility가 조용히 기본값을 써서 현장에서 고쳐도 반영되지 않는다.
         /// </summary>
         [TestCase(typeof(CommonSettings), Constants.SettingsFiles.Common)]
         [TestCase(typeof(AdminSettings), Constants.SettingsFiles.Admin)]
         [TestCase(typeof(TitleSceneSettings), Constants.SettingsFiles.Title)]
+        [TestCase(typeof(StorySceneSettings), Constants.SettingsFiles.Story)]
+        [TestCase(typeof(GameSceneSettings), Constants.SettingsFiles.Game)]
+        [TestCase(typeof(ResultSceneSettings), Constants.SettingsFiles.Result)]
+        [TestCase(typeof(ServerSettings), Constants.SettingsFiles.Server)]
         public void 설정_JSON에_모든_항목이_같은_이름으로_있다(Type settingsType, string fileName)
         {
             string json = ReadSettingsJson(fileName);

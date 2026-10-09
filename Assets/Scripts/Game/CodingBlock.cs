@@ -54,7 +54,6 @@ namespace Game
         public BlockCategory Category { get; private set; }
         public ValueKind ValueKind { get; private set; }
         public Data.ControlRole ControlRole { get; private set; }
-        public bool IsDragHandled { get; private set; }
 
         // BlockFactory.AttachSockets가 연결부 소켓을 이미 붙였는지 — 드래그마다 소켓을 다시 찾지 않도록 한 번만 붙인다
         public bool SocketsAttached { get; private set; }
@@ -101,6 +100,9 @@ namespace Game
 
         // 행동 로그용 — 드래그를 시작할 때 떼어 낸 소켓 자리(예: "'시작하기' 아래"), 소켓에 붙어 있지 않았으면 null
         private string _dragFromSocket;
+
+        // 드래그를 시작할 때 떼어 낸 소켓 — 같은 소켓에 다시 붙였는지 판단한다(붙는 순간 _homeParent는 새 소켓으로 바뀐다)
+        private BlockSocket _dragOriginSocket;
 
         // 행동 로그용 — 드래그를 시작할 때 블록 목록(인벤토리)에 있었는지
         private bool _dragFromInventory;
@@ -280,6 +282,12 @@ namespace Game
         // ── 하이라이트 ─────────────────────────────────────────────
         private CodingBlock _snapTarget;
         private InnerSocket _snapInnerSocket;
+
+        // 드래그 중 마지막으로 하이라이트한 소켓 — 손을 떼면 이 소켓에 붙는다
+        private BlockSocket _highlightedSocket;
+
+        // 드래그 중 붙을 소켓이 하이라이트돼 있는지 — 드롭 영역은 이때 블록을 옮기지 않고 OnEndDrag의 부착에 맡긴다
+        public bool HasSnapTarget => _highlightedSocket;
         private Color _bodyOriginalColor;
         private bool _bodyColorCached;
 
@@ -543,12 +551,14 @@ namespace Game
         /// </summary>
         private void OnDisable()
         {
+            // 블록 목록에 놓자마자 다른 탭이라 숨겨지면 OnEndDrag가 오지 않으므로 드래그 결과 행동 로그를 여기서 남긴다
+            if (_isDragging) LogDragResult(null);
+
             StopSnapPulse();
             // 드롭하자마자 다른 탭으로 숨겨지면 OnEndDrag가 오지 않으므로, 대상 소켓의 스냅 하이라이트(무한 펄스)를 여기서 끈다
             ClearSnapTargets();
             if (!_cg) TryGetComponent(out _cg);
             if (_cg) _cg.blocksRaycasts = true;
-            IsDragHandled = false;
             IsDragCancelled = false;
             _isDragging = false;
             _activeDrags.Remove(this);
@@ -568,14 +578,13 @@ namespace Game
         /// </summary>
         public void OnBeginDrag(PointerEventData e)
         {
-            // OnDrop이 OnEndDrag보다 먼저 오므로, 직전 드래그의 처리 표시가 남아 있으면 드롭 존이 이번 드롭을 무시한다
-            IsDragHandled = false;
             IsDragCancelled = false;
             _dragFromSocket = null;
+            _dragOriginSocket = null;
             _dragFromInventory = false;
 
-            // 두 손가락 이상이 닿아 있으면(핀치 중) 블록을 집지 않는다
-            if (CodingZoneZoom.IsMultiTouch)
+            // 코딩 패널에서 핀치 중이면 블록을 집지 않는다 — 패널 밖에 다른 손가락이 닿아 있는 것만으로는 막지 않는다
+            if (CodingZoneZoom.IsPinching)
             {
                 IsDragCancelled = true;
                 return;
@@ -681,6 +690,7 @@ namespace Game
             // 내부 소켓은 소켓 자체를, 나머지는 소켓을 가진 블록의 연결부를 강조한다
             InnerSocket newInnerSocket = socket as InnerSocket;
             CodingBlock newTarget = socket && !newInnerSocket ? socket.Owner : null;
+            _highlightedSocket = socket;
 
             if (newTarget == _snapTarget && newInnerSocket == _snapInnerSocket) return;
 
@@ -716,13 +726,15 @@ namespace Game
             _isDragging = false;
             _activeDrags.Remove(this);
 
+            // 드래그 중 마지막으로 하이라이트한 소켓에 붙인다 — 놓는 순간 코딩 패널 배율로 크기가 바뀌어도 보이던 대로 붙고,
+            // 하이라이트가 없었으면 붙지 않는다
+            BlockSocket highlighted = _highlightedSocket;
             ClearSnapTargets();
             _cg.blocksRaycasts = true;
-            IsDragHandled = false;
 
-            if (TrySnapToSocket(out BlockSocket snapped))
+            if (highlighted && highlighted.isActiveAndEnabled && AttachTo(highlighted))
             {
-                LogDragResult(snapped);
+                LogDragResult(highlighted);
                 if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.BlockAssembled);
                 ClearDragCache();
                 return;
@@ -740,7 +752,8 @@ namespace Game
         /// </summary>
         private void RememberDragOrigin()
         {
-            _dragFromSocket = _homeParent.TryGetComponent(out BlockSocket socket) ? DescribeSocket(socket) : null;
+            _dragOriginSocket = _homeParent.TryGetComponent(out BlockSocket socket) ? socket : null;
+            _dragFromSocket = _dragOriginSocket ? DescribeSocket(_dragOriginSocket) : null;
             _dragFromInventory = _homeParent == InventoryParent;
         }
 
@@ -752,6 +765,9 @@ namespace Game
         private void LogDragResult(BlockSocket attached)
         {
             if (_logger == null) return;
+
+            // 떼었던 소켓에 그대로 다시 붙였으면 연결이 바뀌지 않았다
+            if (attached && attached == _dragOriginSocket) return;
 
             string result = null;
             if (attached)
@@ -862,15 +878,6 @@ namespace Game
         }
 
         /// <summary>
-        /// 드롭 지점 주변에서 연결 가능한 소켓을 찾아 붙인다. 붙일 곳이 없으면 false.
-        /// </summary>
-        private bool TrySnapToSocket(out BlockSocket socket)
-        {
-            socket = FindBestSnapSocket();
-            return socket && AttachTo(socket);
-        }
-
-        /// <summary>
         /// 드래그 중 켜 둔 스냅 대상 소켓의 하이라이트를 끄고 대상을 비운다.
         /// </summary>
         private void ClearSnapTargets()
@@ -879,10 +886,11 @@ namespace Game
             _snapTarget = null;
             if (_snapInnerSocket) _snapInnerSocket.ClearSnapHighlight();
             _snapInnerSocket = null;
+            _highlightedSocket = null;
         }
 
         /// <summary>
-        /// 지금 위치에서 붙을 소켓을 고른다 — 드래그 중 하이라이트와 드롭 시 부착이 같은 기준을 쓰도록 한 곳에 모았다.
+        /// 지금 위치에서 하이라이트할 소켓을 고른다 — 손을 떼면 마지막으로 고른 이 소켓에 붙는다.
         /// 가로 연결 블록은 조건 연결(ConditionOut)을 먼저, 없으면 값 슬롯(ValueOut)을, 세로 연결 블록은 체인·내부 소켓 중 더 가까운 쪽을 고른다.
         /// </summary>
         private BlockSocket FindBestSnapSocket()
@@ -906,11 +914,10 @@ namespace Game
         }
 
         /// <summary>
-        /// 소켓 부착 공통 절차 — 드롭 처리 완료 표시 → 소켓 부착 → 대상 소켓에 인계.
+        /// 소켓 부착 공통 절차 — 이 블록의 소켓을 갖춘 뒤 대상 소켓에 인계한다.
         /// </summary>
         private bool AttachTo(BlockSocket socket)
         {
-            IsDragHandled = true;
             BlockFactory.AttachSockets(this);
             socket.Accept(this);
             return true;
@@ -919,7 +926,6 @@ namespace Game
         // GetWorldCorners 인덱스 — 0:좌하 1:좌상 2:우상 3:우하
         private const int CornerBottomLeft = 0;
         private const int CornerTopLeft    = 1;
-        private const int CornerTopRight   = 2;
 
         // GetWorldCorners 결과 재사용 버퍼 — 드래그 중 매 프레임 호출되므로 프레임당 할당을 피한다.
         // 값을 즉시 소비하고 메인 스레드에서만 쓰이므로 공유해도 안전하다.
@@ -935,19 +941,13 @@ namespace Game
         }
 
         /// <summary>
-        /// ChainInSocket 위치 또는 블록 상단 중앙을 체인 스냅 기준점으로 반환한다.
+        /// ChainInSocket 위치를 체인 스냅 기준점으로 반환한다 — 진입 소켓이 없는 블록(시작하기·함수 정의)은 다른 블록 아래나 안에 붙지 않는다.
         /// </summary>
         private bool TryGetChainSnapOrigin(out Vector2 pos)
         {
             if (_chainInSocket)
             {
                 pos = (Vector2)_chainInSocket.transform.position;
-                return true;
-            }
-
-            if (_rt)
-            {
-                pos = EdgeCenter(_rt, CornerTopLeft, CornerTopRight);
                 return true;
             }
 
@@ -977,8 +977,7 @@ namespace Game
         }
 
         /// <summary>
-        /// 이 블록의 체인 기준점 아래쪽 반경 안에서 가장 가까운 ChainOutSocket을 찾는다
-        /// (ChainInSocket이 없는 인벤토리 블록은 블록 상단 중앙을 기준점으로 사용).
+        /// 이 블록의 체인 진입 소켓 아래쪽 반경 안에서 가장 가까운 ChainOutSocket을 찾는다.
         /// </summary>
         private ChainOutSocket FindSnapOutSocket(out float bestSqr)
         {
@@ -1075,9 +1074,10 @@ namespace Game
                         // Command가 허용하는 값 타입만 스냅 (None인 Command는 소켓이 없어 대상에서 제외됨)
                         if (targetBlock.ValueKind != ValueKind.None && targetBlock.ValueKind != ValueKind) continue;
                     }
-                    if (Category == BlockCategory.Condition && targetBlock.Category != BlockCategory.FlowControl && targetBlock.Category != BlockCategory.Logic) continue;
+                    if (Category == BlockCategory.Condition && targetBlock.Category != BlockCategory.FlowControl) continue;
 
-                    // 반복하기의 헤더 슬롯은 조건용이 아니므로 조건 블록은 스냅 제외 (만약 전용)
+                    // 반복하기의 헤더 슬롯은 조건용이 아니므로 조건 블록은 스냅 제외 (만약 전용) —
+                    // 지금 반복하기 프리팹에는 값 슬롯이 없지만, 생기더라도 조건을 받지 않게 막아 둔다
                     if (Category == BlockCategory.Condition
                         && targetBlock.IsRepeat)
                         continue;
@@ -1357,7 +1357,6 @@ namespace Game
 
             if (isInside)
             {
-                IsDragHandled = true;
                 transform.SetParent(zone.transform, true);
                 SetHome(zone.transform);
             }

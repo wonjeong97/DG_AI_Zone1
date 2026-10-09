@@ -72,6 +72,9 @@ namespace DG.Zone1.Tests
             Assert.AreEqual(1, performedCount, "Ctrl 조합으로 실행되지 않음");
         }
 
+        /// <summary>
+        /// 가상 키보드의 눌린 키를 지정한 키들로 바꾼다.
+        /// </summary>
         private void SetPressedKeys(params Key[] keys) => InputState.Change(_keyboard, new KeyboardState(keys));
     }
 }

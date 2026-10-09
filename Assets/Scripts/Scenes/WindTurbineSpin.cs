@@ -60,10 +60,10 @@ namespace Scenes
 
         /// <summary>
         /// 현재 속도만큼 블레이드 각도를 누적해 두 나셀의 회전을 재구성한다.
-        /// 각도는 한 바퀴 안으로 접어 오래 돌려도 float 정밀도가 떨어지지 않게 한다.
         /// </summary>
         private void Update()
         {
+            // 각도는 한 바퀴 안으로 접어 오래 돌려도 float 정밀도가 떨어지지 않게 한다.
             _angle = Mathf.Repeat(_angle - _currentSpeed * Time.deltaTime, FullTurn);
             Quaternion rot = Quaternion.Euler(_angle, FixedYZ, FixedYZ);
             if (cylinder002) cylinder002.localRotation = rot;

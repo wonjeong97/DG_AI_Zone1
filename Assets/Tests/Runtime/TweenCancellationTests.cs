@@ -80,7 +80,7 @@ namespace DG.Zone1.Tests
         });
 
         /// <summary>
-        /// 풍차 회전 램프업 도중 취소하면 목표 속도로 점프하지 않고 예외로 중단된다.
+        /// 풍차 회전 램프업 도중 취소하면 예외로 중단되어 호출부가 다음 연출을 이어 가지 않는다.
         /// </summary>
         [UnityTest]
         public IEnumerator 풍차_회전_연출을_취소하면_예외로_중단된다() => UniTask.ToCoroutine(async () =>

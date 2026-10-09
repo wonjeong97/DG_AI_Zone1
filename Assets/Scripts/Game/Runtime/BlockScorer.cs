@@ -7,8 +7,8 @@ using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace Game.Runtime
 {
-    // Command 블록에 연결된 Value 블록의 값에 따라 점수를 부여한다.
-    // 각 Command 블록당 1회 채점 — 반복/조건 내부 블록도 배치 기준으로 1회.
+    // 레벨별 규칙으로 프로그램을 채점한다 — 레벨1·2는 Command 블록에 연결한 값 블록으로(각 Command 블록당 1회, 반복/조건 내부도 배치 기준 1회),
+    // 레벨3은 첫 만약의 조건·아니면·수문 순서로, 레벨4는 만약·반복하기 배치로, 레벨5는 함수 안 에너지 블록 수로 채점한다.
     public static class BlockScorer
     {
         /// <summary>
@@ -244,11 +244,11 @@ namespace Game.Runtime
         // ── 프로그램에서 플레이어가 조립한 값 추출 ──────────────────
 
         /// <summary>
-        /// 프로그램에서 플레이어가 조립한 방향·각도·개수 값을 추출한다 (같은 타입의 Command가 여러 개면 마지막 값).
+        /// 프로그램에서 플레이어가 조립한 방향·개수 값을 추출한다 (같은 타입의 Command가 여러 개면 마지막 값).
         /// </summary>
-        public static (string direction, string angle, string count) ExtractValues(List<BlockInstruction> instructions)
+        public static (string direction, string count) ExtractValues(List<BlockInstruction> instructions)
         {
-            string direction = null, angle = null, count = null;
+            string direction = null, count = null;
 
             foreach (BlockInstruction instr in InstructionTree.Traverse(instructions))
             {
@@ -257,12 +257,11 @@ namespace Game.Runtime
                 switch (cmd.ValueKind)
                 {
                     case ValueKind.Direction: direction = cmd.Value; break;
-                    case ValueKind.Angle:     angle     = cmd.Value; break;
                     case ValueKind.Count:     count     = cmd.Value; break;
                 }
             }
 
-            return (direction, angle, count);
+            return (direction, count);
         }
 
         /// <summary>
@@ -280,8 +279,6 @@ namespace Game.Runtime
                     return correctAnswer is not null && cmd.Value == correctAnswer
                         ? Constants.Scores.DirectionCorrectScore
                         : Constants.Scores.DirectionWrongScore;
-                case ValueKind.Angle:
-                    return ScoreFromTable(Constants.Scores.AngleScore, cmd.Value, logger);
                 case ValueKind.Count:
                     return ScoreFromTable(Constants.Scores.CountScore, cmd.Value, logger);
                 default:

@@ -99,8 +99,12 @@ namespace Game
             foreach (BlockEntry entry in entries)
             {
                 GameObject go = await BlockFactory.Create(entry, ctx);
-                // 어드레서블 로드를 기다리는 동안 씬을 떠났으면 더 만들지 않는다
-                ct.ThrowIfCancellationRequested();
+                // 어드레서블 로드를 기다리는 동안 씬을 떠났으면 방금 만든 블록을 지우고 더 만들지 않는다 — 다음 씬 루트에 남지 않게
+                if (ct.IsCancellationRequested)
+                {
+                    if (go) Destroy(go);
+                    ct.ThrowIfCancellationRequested();
+                }
                 RegisterSpawnedBlock(go);
 
                 if (entry.category == BlockCategory.Control)

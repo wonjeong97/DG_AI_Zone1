@@ -54,10 +54,10 @@ namespace Scenes
 
         /// <summary>
         /// 현재 레벨의 힌트 패널만 켜고 문제 값에 맞는 변형을 표시한다.
-        /// level은 현재 플레이 중인 레벨로, 진행도가 아닌 실제 로드된 레벨을 기준으로 골라야 testLevel 단독 테스트에서도 올바른 패널이 열린다.
         /// </summary>
         public void Show(LevelData level, string questionValueKey = null)
         {
+            // level은 현재 플레이 중인 레벨로, 진행도가 아닌 실제 로드된 레벨을 기준으로 골라야 testLevel 단독 테스트에서도 올바른 패널이 열린다.
             int levelIndex = level ? level.levelIndex : -1;
             bool hasPanel = levelIndex >= 0 && levelIndex < levelPanels.Length && levelPanels[levelIndex];
             if (!hasPanel && _logger != null)

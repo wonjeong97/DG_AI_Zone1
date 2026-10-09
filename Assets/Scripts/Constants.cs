@@ -18,7 +18,7 @@ public static class Constants
         // 인트로·스토리·아웃트로 로봇 영상의 기본 경로(StreamingAssets 기준) — 00_Common.json의 robotVideoPath가 비었거나 그 파일이 없을 때 쓴다
         public const string RobotRelative = "Videos/Robot_260728.webm";
 
-        // 씬 전환 시 영상이 화면에 드러나기 전 최소 재생 진행률 (%) — 재생 시작 직후의 어색한 첫 프레임을 가림
+        // 씬 전환 시 영상이 화면에 드러나기 전 최소 재생 진행 비율(0.01 = 1%) — 재생 시작 직후의 어색한 첫 프레임을 가림
         public const float MinPlaybackProgressBeforeReveal = 0.01f;
     }
 
@@ -93,7 +93,7 @@ public static class Constants
         public const int HydroElsePlacedScore  = 5;
         public const int HydroElseMissingScore = 1;
 
-        // 레벨3(수력) 개방/폐쇄 순서 채점 — 개방하기(Then) → 아니면 → 폐쇄하기(Else) 순서인지 여부
+        // 레벨3(수력) 수문 순서 채점 — 수문 열기(Then) → 아니면 → 수문 닫기(Else) 순서인지 여부
         public const int HydroGateOrderCorrectScore = 5;
         public const int HydroGateOrderWrongScore   = 1;
 
@@ -115,13 +115,6 @@ public static class Constants
 
         // 레벨5(미래에너지) 채점 — '미래 에너지 만들기' 함수 안에 넣은 에너지 블록 1개당 점수 (4개 모두 넣으면 100%)
         public const int FutureEnergyBlockScore = 1;
-
-        public readonly static System.Collections.Generic.IReadOnlyDictionary<string, int> AngleScore = new System.Collections.Generic.Dictionary<string, int>
-        {
-            ["30도"] = 3,
-            ["45도"] = 5,
-            ["60도"] = 1,
-        };
 
         public readonly static System.Collections.Generic.IReadOnlyDictionary<string, int> CountScore = new System.Collections.Generic.Dictionary<string, int>
         {
@@ -250,7 +243,7 @@ public static class Constants
         // 라벨 부분 일치 판정용 — "반복하기"의 사용자 표기 흔들림을 흡수한다
         public const string RepeatKeyword = "반복";
 
-        // 채점 기준 블록 라벨 — 레벨별 BlockLayoutData 에셋의 라벨과 일치해야 한다(BlockLabelTests가 대조).
+        // 채점 기준 블록 라벨 — 레벨별 BlockLayoutData 에셋의 라벨과 일치해야 한다(LevelQuestionDataTests.채점에_쓰는_블록_라벨이_레벨_블록에_있다가 대조).
         // 채점은 블록 이름으로 명령을 구분하므로 에셋 라벨만 바꾸면 컴파일 오류 없이 해당 항목이 0점이 된다
         public const string And = "그리고";
 
@@ -280,7 +273,7 @@ public static class Constants
         public const float DefaultWidth  = 220f;
         public const float DefaultHeight = 56f;
 
-        // 값 슬롯 없는 Command 블록 (개방하기 …) — CommandNoValue 스프라이트 네이티브 사이즈
+        // 값 슬롯 없는 Command 블록 (수문 열기 …) — CommandNoValue 스프라이트 네이티브 사이즈
         public const float CommandNoValueWidth  = 361f;
         public const float CommandNoValueHeight = 121f;
 
@@ -329,7 +322,7 @@ public static class Constants
         public readonly static UnityEngine.Vector2 IfChainOut = new(-130.5f, 10f);
         public readonly static UnityEngine.Vector2 IfChainIn  = new(-130.5f, -10f);
 
-        // 값 슬롯 없는 Command (개방하기 …) / Function(함수 사용) 공용 — CommandNoValue와
+        // 값 슬롯 없는 Command (수문 열기 …) / Function(함수 사용) 공용 — CommandNoValue와
         // Func가 노치/탭 위치까지 동일(중심 x=40.5, 폭 361)해서 그대로 공유 가능
         public readonly static UnityEngine.Vector2 CommandNoValueChainOut = new(-140f, 10f);
         public readonly static UnityEngine.Vector2 CommandNoValueChainIn  = new(-140f, -10f);

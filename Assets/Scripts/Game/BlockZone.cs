@@ -34,6 +34,10 @@ namespace Game
             // 핀치로 취소된 드래그는 이미 제자리로 돌아갔다
             if (block.IsDragCancelled) return;
 
+            // 붙을 소켓이 하이라이트돼 있으면 OnEndDrag가 그 소켓에 붙인다 — 여기서 먼저 옮기면 붙어 있던 블록만 목록으로 갈라진다.
+            // 핀치 취소 뒤 탭 전환으로 숨겨진 블록도 옮기지 않는다
+            if (block.HasSnapTarget || !block.isActiveAndEnabled) return;
+
             // 시작하기/완성하기는 코딩 패널 전용 — 인벤토리 반입 금지 (거부 시 원래 자리로 복귀)
             if (block.Category == BlockCategory.Control) return;
 

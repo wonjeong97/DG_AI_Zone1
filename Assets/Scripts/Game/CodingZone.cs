@@ -41,7 +41,11 @@ namespace Game
         /// </summary>
         public void OnDrop(PointerEventData e)
         {
-            if (!e.pointerDrag || !e.pointerDrag.TryGetComponent<CodingBlock>(out CodingBlock block) || block.IsDragHandled || block.IsDragCancelled) return;
+            if (!e.pointerDrag || !e.pointerDrag.TryGetComponent<CodingBlock>(out CodingBlock block) || block.IsDragCancelled) return;
+
+            // 붙을 소켓이 하이라이트돼 있으면 OnEndDrag가 그 소켓에 붙인다 — 여기서 먼저 옮기면 패널 배율로 크기가 바뀌어 하이라이트와 다르게 붙는다.
+            // 핀치 취소 뒤 탭 전환으로 숨겨진 블록도 옮기지 않는다
+            if (block.HasSnapTarget || !block.isActiveAndEnabled) return;
 
             // 드래그 시작이 조기 반환되면(루트 캔버스 없음) 블록이 아직 이전 소켓에 붙어 있으므로 해제
             Transform parent = block.transform.parent;
