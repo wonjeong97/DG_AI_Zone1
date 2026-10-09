@@ -13,6 +13,29 @@
 
 ---
 
+### [2026-10-10] Claude → Antigravity · 4차 검사 지적 전부 수정 (fix/third-audit)
+- 요청(사용자): 지적 전부 수정, 효율 표시 형식({0:D2}%)은 그대로.
+- 변경:
+  - 같은 블록 두 손가락: CodingBlock이 드래그 손가락(_dragPointerId)을 기억하고 OnDrag·OnEndDrag·CodingZone·BlockZone.OnDrop은 그 손가락(IsDragPointer)만 따른다. OnBeginDrag는 다른 손가락이 '지금 끄는 중(_isDragging)'일 때만 거부한다 — 입력 모듈(InputSystemUIInputModule.RemovePointerAtIndex)은 포인터를 지울 때 OnEndDrag를 보내지 않아, 주인 기록만 보고 막으면 핀치 취소 뒤 블록을 다시 집을 수 없게 되기 때문(처음 구현에서 발견해 바꿈).
+  - 자기 순환 방지: BlockSocket.CanFit는 displaced == incoming이면 거부, AttachDisplacedToTail도 같은 경우 건너뜀.
+  - OnBeginDrag는 떼어 낸 소켓의 점유자가 자기일 때만 Release(아니면 경고). 핀치 복귀(RestoreDragHome)는 CanAttachNow를 거쳐 실패하면 블록 목록으로.
+  - 결과 화면: RunWithTimerPausedAsync는 씬 이탈 취소(ct 취소)면 Resume하지 않음(StoryLineAnimator와 같은 기준), ApplySessionResults는 currentLevel로 게임 씬 경유 판정.
+  - 관리자 레벨 이동은 QR로 확인한 체험자를 비우고(ClearServerVisitor, AdminPanel에 VisitorInfoProvider 주입), 타이틀 시작하기 대기 타이머는 isAdminLevelJump면 시간 초과 처리를 건너뜀.
+  - 튜토리얼 이미지 로드 실패 시 그 장 핸들을 풀고 캐시에서 지움.
+  - CHANGELOG Unreleased Fixed 4줄 추가(타이머·결과 판정은 화면 변화 없어 제외).
+- 새 테스트(4): SocketOwnershipTests 같은 블록 두 손가락·핀치 취소 뒤 다시 집기·자기 자신 재수락, ResultSequenceTimerTests 씬 이탈 취소 시 타이머 그대로.
+- 테스트: Rider 에러 0, Unity 컴파일 에러 0, PlayMode 181/181(뒤에 EditorSettings 되돌림). 멀티터치는 에디터에서 흉내 낼 수 없어 현장 터치스크린 확인 필요.
+- 확인 요청·결과(agy, 3묶음): 드래그 손가락 소유·재집기 경로·Release 동작 2/2, 핀치 복귀·자기 순환 가드·드롭 가드·테스트 2/2, 결과 타이머·결과 판정·관리자·튜토리얼 2/2 통과. 지적 1건(테스트에서 CanvasGroup 중복 추가 — RequireComponent로 이미 있음)은 반영 후 181/181 다시 통과.
+
+### [2026-10-10] Claude → Antigravity · 4차(마지막) 전체 검사 — 읽기 전용
+- 방식: 파일 단위로 본 앞 감사와 다르게, Claude 서브에이전트 3개가 여러 파일에 걸친 흐름(드래그·소켓 상태 / 씬 간 세션 상태·비활동 타이머 / 결과·관리자·스토리 UI)을 따라갔다. agy는 그 밖의 파일을 300줄 안팎 14묶음으로(11묶음 문제 없음, BlockFactory·실행기 3묶음은 5분 초과 — 3차 감사에서 본 뒤 주석만 바뀌어 재요청하지 않음). Claude는 규칙 grep(위반 0, Debug는 허용 경우만), 빠진 스크립트·끊긴 GUID(0), 설정 JSON 9개 형식, 빌드 씬 6개를 확인했다.
+- 확정(높음): 두 손가락이 같은 블록을 동시에 잡으면 OnBeginDrag가 포인터마다 와서(InputSystemUIInputModule.ProcessPointerButtonDrag는 다른 포인터가 같은 대상을 끄는지 보지 않음) 상태가 꼬인다. 한 손가락이 소켓 S에 붙인 뒤 다른 손가락이 계속 끌어 다른 곳에 놓으면 S.Occupant가 남고, S에 다시 놓으면 CanFit(A, A)가 통과해 AttachDisplacedToTail(A, A)가 A를 자기 꼬리에 붙여 Occupant가 순환 → 컴파일(WalkChain)·FindChainTailOut·HasControlBlockInChain·FlowInnerResize가 무한 루프로 앱이 멈출 수 있다(CodingBlock.cs OnBeginDrag). 제안: 드래그 포인터 ID를 기억해 다른 포인터의 Begin/Drag/End와 드롭 영역 OnDrop을 무시.
+- 확정(중간): 핀치 취소 복귀(RestoreDragHome)가 CanAttachNow 없이 homeSocket.Accept — 그 사이 다른 손가락이 같은 값·조건 자리를 채웠으면 덮어써 앞 블록이 기록에서 빠지고, 그 블록을 떼면 OnBeginDrag가 점유자 확인 없이 Release해 보이는 값까지 지운다. 복귀할 소켓 주인이 블록 목록으로 옮겨졌으면 목록 안 블록 아래 붙어 숨는다(낮음). 제안: 복귀 전 CanAttachNow, Release는 점유자가 자기일 때만.
+- 낮음: 결과 화면 터치 안내 대기(WaitUntil) 중 타임아웃으로 타이틀에 가면 catch의 Resume이 타이틀 Pause 뒤에 와서 타이틀에서 타이머가 돈다(지금은 GameManager·APIManager가 타이틀을 무시해 로그만, ResultSequence.cs:417-421) / 관리자 레벨 이동이 앞서 QR로 확인한 체험자와 시작하기 대기 타이머를 비우지 않아 관리자 판 행동 로그 주어가 그 체험자 이름이 되고, 대기 타이머가 끝나면 move_idle_timeout이 가고 해금 레벨이 0이 됨(AdminPanel.cs OnLevelClicked, 업로드는 isAdminLevelJump로 막힘) / 결과 유무를 lastQuestionTime으로 판정해 문제 값 후보 없는 레벨 데이터면 결과 처리·업로드를 건너뜀(지금 데이터 5개는 모두 후보 있음, ResultSequence.cs:275) / 튜토리얼 이미지 로드 실패 핸들이 캐시에 남아 다시 시도하지 않음(TutorialImageSlider.cs:133).
+- 확인: 효율 표시 형식 {0:D2}%라 5%가 '05%', 0%가 '00%'로 보임 — 디자인 의도인지.
+- 오탐: is null(순수 C#, 메모리상 허용) 다수.
+- 결과: 수정 범위는 사용자 결정.
+
 ### [2026-10-10] Claude → Antigravity · 3차 감사 지적 전부 수정 (fix/third-audit)
 - 요청(사용자): 기획 확인 사항은 B안(실행되지 않는 만약의 조건도 0점), 지적한 것 전부 수정.
 - 변경:

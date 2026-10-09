@@ -2,6 +2,7 @@ using Data;
 using Game;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace DG.Zone1.Tests
 {
@@ -12,6 +13,7 @@ namespace DG.Zone1.Tests
     public class SocketOwnershipTests
     {
         private CodingZone _zone;
+        private Canvas _canvas;
 
         /// <summary>
         /// 코딩 패널을 준비한다.
@@ -29,6 +31,7 @@ namespace DG.Zone1.Tests
         public void TearDown()
         {
             if (_zone) Object.DestroyImmediate(_zone.gameObject);
+            if (_canvas) Object.DestroyImmediate(_canvas.gameObject);
         }
 
         /// <summary>
@@ -97,6 +100,23 @@ namespace DG.Zone1.Tests
         /// </summary>
         private CodingBlock MakeCommand(string label)
             => BlockTestUtil.MakeBlock(_zone, label, BlockCategory.Command, _zone.transform);
+
+        /// <summary>
+        /// 실제로 끌기를 시작할 수 있도록 루트 캔버스를 지정한 명령 블록을 만든다.
+        /// </summary>
+        private CodingBlock MakeDraggableCommand(string label)
+        {
+            if (!_canvas)
+            {
+                GameObject canvasGo = new GameObject("RootCanvas", typeof(RectTransform));
+                _canvas = canvasGo.AddComponent<Canvas>();
+            }
+
+            // CanvasGroup은 CodingBlock의 RequireComponent로 이미 붙어 있다 — 루트 캔버스만 지정해 다시 초기화한다
+            CodingBlock block = MakeCommand(label);
+            block.Init(BlockCategory.Command, _canvas);
+            return block;
+        }
 
         /// <summary>
         /// 반복하기 내부에 들어간 블록은 여러 단계를 거쳐도 내부 컨테이너 안으로 판정된다.
@@ -225,6 +245,61 @@ namespace DG.Zone1.Tests
             {
                 Object.DestroyImmediate(inventory);
             }
+        }
+
+        /// <summary>
+        /// 두 손가락이 같은 블록을 잡으면 먼저 끌기 시작한 손가락만 따르고, 다른 손가락이 끝나도 드래그 주인이 바뀌지 않는다.
+        /// </summary>
+        [Test]
+        public void 같은_블록을_두_손가락이_잡으면_먼저_잡은_손가락만_따른다()
+        {
+            CodingBlock block = MakeDraggableCommand("A");
+            PointerEventData first = new PointerEventData(null) { pointerId = 1 };
+            PointerEventData second = new PointerEventData(null) { pointerId = 2 };
+
+            block.OnBeginDrag(first);
+            block.OnBeginDrag(second);
+
+            Assert.IsTrue(block.IsDragPointer(first), "먼저 잡은 손가락이 드래그 주인이 아님");
+            Assert.IsFalse(block.IsDragPointer(second), "두 번째 손가락이 같은 블록의 드래그를 가져감");
+
+            block.OnEndDrag(second);
+            Assert.IsTrue(block.IsDragPointer(first), "다른 손가락이 끝나자 먼저 잡은 손가락의 드래그가 풀림");
+        }
+
+        /// <summary>
+        /// 핀치로 드래그가 취소된 뒤에는 처음 손가락의 끝이 오지 않아도 다른 손가락이 블록을 다시 집을 수 있다.
+        /// </summary>
+        [Test]
+        public void 핀치로_취소된_블록은_다른_손가락이_다시_집을_수_있다()
+        {
+            CodingBlock block = MakeDraggableCommand("A");
+            PointerEventData first = new PointerEventData(null) { pointerId = 1 };
+            PointerEventData second = new PointerEventData(null) { pointerId = 2 };
+
+            block.OnBeginDrag(first);
+            CodingBlock.CancelActiveDrags();
+            block.OnBeginDrag(second);
+
+            Assert.IsTrue(block.IsDragPointer(second), "핀치 취소 뒤 다른 손가락이 블록을 집을 수 없음");
+            Assert.IsFalse(block.IsDragPointer(first), "취소된 손가락이 여전히 드래그 주인임");
+        }
+
+        /// <summary>
+        /// 블록이 이미 붙어 있는 체인 소켓에 자기 자신을 다시 받으면 자기 꼬리에 붙어 순환하지 않는다.
+        /// </summary>
+        [Test]
+        public void 같은_소켓에_자기_자신을_다시_받아도_순환하지_않는다()
+        {
+            CodingBlock x = MakeCommand("X");
+            CodingBlock a = MakeCommand("A");
+            ChainOutSocket xOut = ChainOutSocket.OfBlock(x);
+            xOut.Accept(a);
+
+            Assert.IsFalse(xOut.CanAccept(a), "이미 붙은 블록을 자기 자신을 밀어내며 다시 받을 수 있음");
+
+            xOut.Accept(a);
+            Assert.AreNotSame(a, ChainOutSocket.OfBlock(a).Occupant, "블록이 자기 꼬리에 붙어 체인이 순환함");
         }
 
         /// <summary>

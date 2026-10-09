@@ -77,6 +77,16 @@ namespace Game
         private readonly static List<CodingBlock> _cancelBuffer = new();
         private bool _isDragging;
 
+        // 이 블록을 끌고 있는 손가락(포인터) — 두 손가락이 같은 블록을 동시에 잡으면 손가락마다 OnBeginDrag가 오므로 처음 잡은 손가락만 따른다.
+        // 둘 다 따르면 한 손가락이 소켓에 붙인 블록을 다른 손가락이 계속 끌어 소켓 기록과 실제 자리가 어긋나고, 최악에는 블록이 자기 아래에 붙어 순환한다
+        private const int NoDragPointer = int.MinValue;
+        private int _dragPointerId = NoDragPointer;
+
+        /// <summary>
+        /// 이 포인터 이벤트가 지금 이 블록을 끄는 손가락의 것인지 확인한다(드롭 영역은 다른 손가락의 놓기로 블록을 옮기지 않는다).
+        /// </summary>
+        public bool IsDragPointer(PointerEventData e) => _dragPointerId != NoDragPointer && e.pointerId == _dragPointerId;
+
         public Image OutlineImage => outlineImage;
         public Image ValueHighlightImage => valueHighlightImage;
         public TMP_Text LabelText => labelText;
@@ -537,6 +547,7 @@ namespace Game
             if (_cg) _cg.blocksRaycasts = true;
             IsDragCancelled = false;
             _isDragging = false;
+            _dragPointerId = NoDragPointer;
             _activeDrags.Remove(this);
             ClearDragCache();
         }
@@ -554,6 +565,11 @@ namespace Game
         /// </summary>
         public void OnBeginDrag(PointerEventData e)
         {
+            // 다른 손가락이 지금 이 블록을 끌고 있으면(두 손가락으로 같은 블록을 누름) 이 손가락의 드래그는 따르지 않는다.
+            // 끌고 있지 않으면 새 손가락이 주인이 된다 — 입력 모듈은 포인터를 지울 때 OnEndDrag를 보내지 않아, 주인 기록만 보고 막으면 다시 집을 수 없게 된다
+            if (_isDragging) return;
+            _dragPointerId = e.pointerId;
+
             IsDragCancelled = false;
             _dragFromSocket = null;
             _dragOriginSocket = null;
@@ -590,19 +606,20 @@ namespace Game
             _homeAnchoredPos = _rt.anchoredPosition;
             RememberDragOrigin();
 
-            if (_homeParent.TryGetComponent<ValueOutSocket>(out ValueOutSocket vos))
-                vos.Release();
-            else if (_homeParent.TryGetComponent<ConditionOutSocket>(out ConditionOutSocket condOut))
-                condOut.Release();
-            else if (_homeParent.TryGetComponent<ChainOutSocket>(out ChainOutSocket cs))
+            if (_homeParent.TryGetComponent(out BlockSocket homeSocket))
             {
-                cs.Release();
-                SpliceOutChild(cs.Accept);
-            }
-            else if (_homeParent.TryGetComponent<InnerSocket>(out InnerSocket ins))
-            {
-                ins.Release();
-                SpliceOutChild(ins.Accept);
+                // 점유 기록이 이 블록일 때만 비운다 — 기록이 다른 블록이면 화면에 붙어 있는 그 블록의 자리를 지우게 된다
+                if (homeSocket.Occupant == this)
+                {
+                    homeSocket.Release();
+
+                    // 체인·안쪽 자리에서 떼면 아래에 붙어 있던 블록을 그 자리에 이어 붙인다
+                    if (homeSocket is ChainOutSocket or InnerSocket) SpliceOutChild(homeSocket.Accept);
+                }
+                else if (_logger != null)
+                {
+                    _logger.ZLogWarning($"[CodingBlock] {name}이 붙어 있던 소켓의 점유 기록이 다른 블록이라 소켓을 비우지 않습니다.");
+                }
             }
 
             transform.SetParent(_canvas.transform, true);
@@ -631,7 +648,7 @@ namespace Game
         /// </summary>
         public void OnDrag(PointerEventData e)
         {
-            if (!_canvas || IsDragCancelled) return;
+            if (!IsDragPointer(e) || !_canvas || IsDragCancelled) return;
 
             _rt.anchoredPosition += e.delta / _canvas.scaleFactor;
             UpdateSnapHighlight();
@@ -692,6 +709,10 @@ namespace Game
         /// </summary>
         public void OnEndDrag(PointerEventData e)
         {
+            // 같은 블록을 함께 누르고 있던 다른 손가락의 끝은 무시한다
+            if (!IsDragPointer(e)) return;
+            _dragPointerId = NoDragPointer;
+
             // 핀치로 취소된 드래그는 이미 제자리로 돌아갔으므로 손가락을 뗀 위치에 놓지 않는다
             if (IsDragCancelled)
             {
@@ -841,7 +862,18 @@ namespace Game
             BlockFactory.AttachSockets(this);
 
             if (home.TryGetComponent(out BlockSocket homeSocket))
-                homeSocket.Accept(this);
+            {
+                // 끄는 사이 다른 손가락이 그 자리를 채웠거나 주인 블록을 블록 목록으로 옮겼으면 덮어쓰지 않고 블록 목록으로 돌린다
+                if (CanAttachNow(homeSocket))
+                {
+                    homeSocket.Accept(this);
+                }
+                else
+                {
+                    if (_logger != null) _logger.ZLogInformation($"[CodingBlock] {name}의 원래 자리를 다른 블록이 쓰고 있어 블록 목록으로 되돌립니다.");
+                    ReturnToInventory();
+                }
+            }
             else if (_codingZone && home == _codingZone.transform)
             {
                 transform.SetParent(home, false);

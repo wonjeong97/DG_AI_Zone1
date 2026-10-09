@@ -489,6 +489,9 @@ namespace Scenes
 
                 await UniTask.Delay(TimeSpan.FromSeconds(settings.resetTime), DelayType.UnscaledDeltaTime, cancellationToken: ct);
 
+                // 관리자 레벨 이동으로 타이틀을 떠나는 중이면 체험자 대기가 아니므로 시간 초과 로그와 해금 초기화를 하지 않는다
+                if (_session != null && _session.isAdminLevelJump) return;
+
                 if (_logger != null) _logger.ZLogInformation($"[TitleSceneManager] {VisitorInfoProvider.LogSubjectOf(_visitorInfoProvider)} {settings.resetTime}초 동안 시작하기를 누르지 않아 QR 대기로 돌아감.");
 
                 // 로그 전송은 씬과 상관없이 끝까지 보내도록 이 오브젝트의 토큰을 넘기지 않는다

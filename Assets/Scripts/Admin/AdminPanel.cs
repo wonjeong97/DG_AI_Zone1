@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using App;
 using Cysharp.Threading.Tasks;
 using Data;
 using Microsoft.Extensions.Logging;
@@ -60,17 +61,20 @@ namespace Admin
         private SoundManager _soundManager;
         private VisitorSettings _visitorSettings;
         private GameSession _session;
+        private VisitorInfoProvider _visitorInfoProvider;
 
         /// <summary>
-        /// 로거, 사운드 매니저, 체험자 설정, 게임 세션을 주입받는다.
+        /// 로거, 사운드 매니저, 체험자 설정, 게임 세션, 체험자 정보 제공자를 주입받는다.
         /// </summary>
         [Inject]
-        public void Construct(ILogger<AdminPanel> logger, SoundManager soundManager, VisitorSettings visitorSettings, GameSession session)
+        public void Construct(ILogger<AdminPanel> logger, SoundManager soundManager, VisitorSettings visitorSettings, GameSession session,
+            VisitorInfoProvider visitorInfoProvider)
         {
             _logger = logger;
             _soundManager = soundManager;
             _visitorSettings = visitorSettings;
             _session = session;
+            _visitorInfoProvider = visitorInfoProvider;
         }
 
         /// <summary>
@@ -311,6 +315,11 @@ namespace Admin
             _session.unlockedLevelIndex = Mathf.Max(_session.unlockedLevelIndex, index);
             _session.pendingStoryLevelIndex = index;
             _session.isAdminLevelJump = true;
+
+            // 관리자 시험 판이 타이틀에서 QR로 확인해 둔 체험자의 이름으로 행동 로그에 남지 않게 비운다
+            if (_visitorInfoProvider != null) _visitorInfoProvider.ClearServerVisitor();
+            else if (_logger != null) _logger.ZLogWarning($"[AdminPanel] VisitorInfoProvider가 주입되지 않아 QR로 확인한 체험자를 비우지 못했습니다.");
+
             if (_logger != null) _logger.ZLogInformation($"[AdminPanel] 레벨{index + 1} 스토리 화면으로 이동합니다.");
 
             _isLeaving = true;

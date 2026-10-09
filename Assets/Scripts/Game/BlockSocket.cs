@@ -96,7 +96,8 @@ namespace Game
         /// </summary>
         protected static bool CanFit(CodingBlock incoming, CodingBlock displaced)
         {
-            return !displaced || FindChainTailOut(incoming);
+            // 자기 자신을 밀어낼 수는 없다 — 받으면 블록이 자기 꼬리에 붙어 체인이 순환한다
+            return !displaced || (displaced != incoming && FindChainTailOut(incoming));
         }
 
         /// <summary>
@@ -106,7 +107,7 @@ namespace Game
         {
             // 코딩 패널에 따로 놓아 둔 체인의 머리를 끌면 아래 블록을 단 채 들어오므로, 머리 바로 아래가 아니라 꼬리에 붙여야
             // 순서가 섞이지 않는다(A→B를 X→Y 사이에 넣으면 X→A→B→Y).
-            if (!displaced) return;
+            if (!displaced || displaced == incoming) return;
 
             ChainOutSocket tailOut = FindChainTailOut(incoming);
             if (tailOut)

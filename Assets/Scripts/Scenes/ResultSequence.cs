@@ -272,7 +272,8 @@ namespace Scenes
         /// </summary>
         private void ApplySessionResults()
         {
-            if (_session == null || _session.lastQuestionTime is null)
+            // 문제 값은 레벨 데이터에 후보가 없으면 비어 있을 수 있어, 게임 씬을 거쳤는지는 레벨로 판단한다
+            if (_session == null || !_session.currentLevel)
             {
                 if (_logger != null) _logger.ZLogInformation($"[ResultSequence] 게임 씬 결과가 없어 씬 기본 텍스트를 그대로 표시합니다.");
                 return;
@@ -403,7 +404,7 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 비활동 타이머를 멈춘 채 연출을 진행하고, 취소나 오류로 중간에 빠져나가도 타이머를 다시 켠다.
+        /// 비활동 타이머를 멈춘 채 연출을 진행하고, 씬을 떠나지 않은 채 취소나 오류로 빠져나가면 타이머를 다시 켠다.
         /// </summary>
         public static async UniTask RunWithTimerPausedAsync(InactivityTimer timer, Func<CancellationToken, UniTask> steps,
             CancellationToken ct, Action<Exception> onError = null)
@@ -416,9 +417,10 @@ namespace Scenes
             }
             catch (OperationCanceledException)
             {
-                // 시퀀스 도중 씬 전환(다음 버튼 등)으로 오브젝트가 파괴된 경우 — 정상 종료.
-                // 터치 안내가 뜨기 전에 빠져나갔다면 타이머가 멈춘 채 남으므로 여기서 되돌린다.
-                if (timer) timer.Resume();
+                // 씬을 떠나 취소된 경우에는 다음 씬을 불러올 때 GameManager가 타이머 상태를 정하므로 건드리지 않는다 —
+                // 취소는 다음 프레임에 처리돼, 여기서 다시 켜면 타이머를 멈춰 두는 타이틀에서 타이머가 돈다(StoryLineAnimator와 같은 기준).
+                // 씬을 떠나지 않았는데 연출이 취소로 끝났다면 타이머가 멈춘 채 남으므로 되돌린다
+                if (timer && !ct.IsCancellationRequested) timer.Resume();
             }
             catch (Exception ex)
             {

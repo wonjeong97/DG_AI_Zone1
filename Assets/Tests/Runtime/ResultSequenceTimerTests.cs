@@ -89,5 +89,23 @@ namespace DG.Zone1.Tests
             Assert.IsFalse(_timer.IsPaused, "취소로 끝난 뒤 비활동 타이머가 멈춘 채 남음");
             Assert.IsNull(reported, "정상 취소가 오류로 보고됨");
         });
+
+        /// <summary>
+        /// 씬을 떠나 연출 토큰이 취소되면 타이머를 다시 켜지 않는다 — 다음 씬(타이틀은 멈춤)이 정한 상태를 늦게 덮어쓰지 않게 한다.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator 씬을_떠나_취소되면_비활동_타이머를_다시_켜지_않는다() => UniTask.ToCoroutine(async () =>
+        {
+            using CancellationTokenSource cts = new CancellationTokenSource();
+
+            await ResultSequence.RunWithTimerPausedAsync(_timer, ct =>
+            {
+                cts.Cancel();
+                ct.ThrowIfCancellationRequested();
+                return UniTask.CompletedTask;
+            }, cts.Token).AwaitWithRealtimeTimeout();
+
+            Assert.IsTrue(_timer.IsPaused, "씬을 떠난 뒤 비활동 타이머를 다시 켬");
+        });
     }
 }
