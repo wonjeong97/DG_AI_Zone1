@@ -82,6 +82,10 @@ namespace Game
         private const int NoDragPointer = int.MinValue;
         private int _dragPointerId = NoDragPointer;
 
+        // 끄는 손가락의 이벤트와 그때 끌던 대상 — 입력 모듈이 끝 신호 없이 포인터를 지우면 이벤트의 pointerDrag가 비는 것으로 알아챈다
+        private PointerEventData _dragEvent;
+        private GameObject _dragTarget;
+
         /// <summary>
         /// 이 포인터 이벤트가 지금 이 블록을 끄는 손가락의 것인지 확인한다(드롭 영역은 다른 손가락의 놓기로 블록을 옮기지 않는다).
         /// </summary>
@@ -548,6 +552,7 @@ namespace Game
             IsDragCancelled = false;
             _isDragging = false;
             _dragPointerId = NoDragPointer;
+            ForgetDragEvent();
             _activeDrags.Remove(this);
             ClearDragCache();
         }
@@ -627,7 +632,31 @@ namespace Game
             _cg.blocksRaycasts = false;
 
             _isDragging = true;
+            _dragEvent = e;
+            _dragTarget = e.pointerDrag;
             _activeDrags.Add(this);
+        }
+
+        /// <summary>
+        /// 끄는 중인 손가락이 끝 신호 없이 사라졌으면 드래그를 취소해 원래 자리로 돌린다.
+        /// </summary>
+        private void LateUpdate()
+        {
+            // 입력 모듈은 포인터를 지울 때(마우스로 끄는 중 화면 터치, 터치 장치 재연결 등) OnEndDrag를 보내지 않고 이벤트의 pointerDrag만 비운다 —
+            // 그대로 두면 블록이 레이캐스트를 받지 않은 채 캔버스 위에 떠 있어 어떤 손가락으로도 다시 집을 수 없다
+            if (!_isDragging || !_dragTarget || _dragEvent == null || _dragEvent.pointerDrag == _dragTarget) return;
+
+            if (_logger != null) _logger.ZLogInformation($"[CodingBlock] {name}을 끌던 손가락이 끝 신호 없이 사라져 원래 자리로 되돌립니다.");
+            CancelDrag();
+        }
+
+        /// <summary>
+        /// 기억해 둔 드래그 이벤트를 놓는다(드래그가 끝나거나 취소될 때).
+        /// </summary>
+        private void ForgetDragEvent()
+        {
+            _dragEvent = null;
+            _dragTarget = null;
         }
 
         /// <summary>
@@ -712,6 +741,7 @@ namespace Game
             // 같은 블록을 함께 누르고 있던 다른 손가락의 끝은 무시한다
             if (!IsDragPointer(e)) return;
             _dragPointerId = NoDragPointer;
+            ForgetDragEvent();
 
             // 핀치로 취소된 드래그는 이미 제자리로 돌아갔으므로 손가락을 뗀 위치에 놓지 않는다
             if (IsDragCancelled)
@@ -822,59 +852,95 @@ namespace Game
 
             _cancelBuffer.Clear();
             _cancelBuffer.AddRange(_activeDrags);
+            for (int i = _cancelBuffer.Count - 1; i >= 0; i--)
+            {
+                CodingBlock block = _cancelBuffer[i];
+                if (!block || !block.StopDrag()) _cancelBuffer.RemoveAt(i);
+            }
+
+            // 같은 체인의 위·아래 블록을 함께 들고 있으면 위 블록이 먼저 제자리에 가야 아래 블록이 붙을 자리가 생긴다 —
+            // 원래 소켓에 못 붙은 블록은 다른 블록이 돌아간 뒤 다시 시도하고, 더 붙는 블록이 없을 때 남은 블록만 블록 목록으로 보낸다
+            bool restoredAny = true;
+            while (_cancelBuffer.Count > 0 && restoredAny)
+            {
+                restoredAny = false;
+                for (int i = _cancelBuffer.Count - 1; i >= 0; i--)
+                {
+                    CodingBlock block = _cancelBuffer[i];
+                    if (block && !block.TryRestoreDragHome(fallbackToInventory: false)) continue;
+
+                    _cancelBuffer.RemoveAt(i);
+                    restoredAny = true;
+                }
+            }
+
             foreach (CodingBlock block in _cancelBuffer)
-                if (block) block.CancelDrag();
+                if (block) block.TryRestoreDragHome(fallbackToInventory: true);
             _cancelBuffer.Clear();
         }
 
         /// <summary>
-        /// 드래그를 취소하고 드래그 전 자리로 되돌린다.
+        /// 드래그를 취소하고 드래그 전 자리로 되돌린다(원래 자리를 쓸 수 없으면 블록 목록으로).
         /// </summary>
         private void CancelDrag()
         {
-            // 이후 이 포인터의 OnDrag/OnDrop/OnEndDrag는 무시된다.
-            _activeDrags.Remove(this);
-            if (!_isDragging) return;
-
-            _isDragging = false;
-            IsDragCancelled = true;
-
-            ClearSnapTargets();
-            _cg.blocksRaycasts = true;
-
-            RestoreDragHome();
-            ClearDragCache();
+            if (StopDrag()) TryRestoreDragHome(fallbackToInventory: true);
         }
 
         /// <summary>
-        /// 드래그 시작 전 자리로 되돌린다.
+        /// 끄는 중이던 드래그를 멈추고 취소 표시를 남긴다(끄는 중이 아니었으면 false).
         /// </summary>
-        private void RestoreDragHome()
+        private bool StopDrag()
+        {
+            // 이후 이 포인터의 OnDrag/OnDrop/OnEndDrag는 무시된다.
+            _activeDrags.Remove(this);
+            if (!_isDragging) return false;
+
+            _isDragging = false;
+            IsDragCancelled = true;
+            ForgetDragEvent();
+
+            ClearSnapTargets();
+            _cg.blocksRaycasts = true;
+            ClearDragCache();
+            return true;
+        }
+
+        /// <summary>
+        /// 드래그 시작 전 자리로 되돌리고, 원래 소켓을 지금 쓸 수 없는데 블록 목록으로 보내지 않기로 했으면 false를 돌려준다.
+        /// </summary>
+        private bool TryRestoreDragHome(bool fallbackToInventory)
         {
             // 소켓이었으면 다시 받게(Accept) 해서, 떼어낼 때 위로 이어 붙였던 아래 블록까지 원래 순서로 복원한다.
             Transform home = _homeParent;
             if (!home)
             {
                 ReturnToInventory();
-                return;
+                return true;
             }
 
             BlockFactory.AttachSockets(this);
 
             if (home.TryGetComponent(out BlockSocket homeSocket))
             {
-                // 끄는 사이 다른 손가락이 그 자리를 채웠거나 주인 블록을 블록 목록으로 옮겼으면 덮어쓰지 않고 블록 목록으로 돌린다
                 if (CanAttachNow(homeSocket))
                 {
                     homeSocket.Accept(this);
+                    return true;
                 }
-                else
-                {
-                    if (_logger != null) _logger.ZLogInformation($"[CodingBlock] {name}의 원래 자리를 다른 블록이 쓰고 있어 블록 목록으로 되돌립니다.");
-                    ReturnToInventory();
-                }
+
+                // 끄는 사이 다른 손가락이 그 자리를 채웠거나 주인 블록을 블록 목록으로 옮겼으면 덮어쓰지 않는다
+                if (!fallbackToInventory) return false;
+
+                if (_logger != null) _logger.ZLogInformation($"[CodingBlock] {name}의 원래 자리를 쓸 수 없어 블록 목록으로 되돌립니다.");
+                ReturnToInventory();
+
+                // 체험자가 놓지 않았어도 소켓에서 빠졌으므로 행동 로그를 남긴다
+                LogDragResult(null);
+                return true;
             }
-            else if (_codingZone && home == _codingZone.transform)
+
+            if (_codingZone && home == _codingZone.transform)
             {
                 transform.SetParent(home, false);
                 transform.SetSiblingIndex(_homeIndex);
@@ -885,6 +951,7 @@ namespace Game
                 ReturnToInventory();
                 if (transform.parent == home) transform.SetSiblingIndex(_homeIndex);
             }
+            return true;
         }
 
         /// <summary>

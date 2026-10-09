@@ -1,8 +1,10 @@
+using System.Collections;
 using Data;
 using Game;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.TestTools;
 
 namespace DG.Zone1.Tests
 {
@@ -283,6 +285,45 @@ namespace DG.Zone1.Tests
 
             Assert.IsTrue(block.IsDragPointer(second), "핀치 취소 뒤 다른 손가락이 블록을 집을 수 없음");
             Assert.IsFalse(block.IsDragPointer(first), "취소된 손가락이 여전히 드래그 주인임");
+        }
+
+        /// <summary>
+        /// 끌던 손가락이 끝 신호 없이 사라지면(입력 모듈이 포인터를 지우며 pointerDrag만 비움) 블록이 원래 자리로 돌아가 다시 집을 수 있다.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator 끌던_손가락이_끝_신호_없이_사라지면_원래_자리로_돌아간다()
+        {
+            CodingBlock block = MakeDraggableCommand("A");
+            PointerEventData pointer = new PointerEventData(null) { pointerId = 1, pointerDrag = block.gameObject };
+
+            block.OnBeginDrag(pointer);
+            Assert.AreSame(_canvas.transform, block.transform.parent, "끌기를 시작했는데 캔버스로 들어 올리지 않음");
+
+            pointer.pointerDrag = null;
+            yield return null;
+
+            Assert.AreSame(_zone.transform, block.transform.parent, "사라진 손가락의 블록이 캔버스 위에 떠 있음");
+            Assert.IsTrue(block.TryGetComponent(out CanvasGroup group) && group.blocksRaycasts, "돌아간 블록이 터치를 받지 않음");
+        }
+
+        /// <summary>
+        /// 같은 체인의 위·아래 블록을 함께 들고 있다가 핀치로 취소되면 어느 블록이 먼저 처리되든 원래 순서로 돌아간다.
+        /// </summary>
+        [Test]
+        public void 같은_체인의_두_블록을_들고_핀치로_취소되면_원래_순서로_돌아간다()
+        {
+            CodingBlock q = MakeDraggableCommand("Q");
+            CodingBlock p = MakeDraggableCommand("P");
+            CodingBlock x = MakeDraggableCommand("X");
+            ChainOutSocket.OfBlock(q).Accept(p);
+            ChainOutSocket.OfBlock(p).Accept(x);
+
+            x.OnBeginDrag(new PointerEventData(null) { pointerId = 1 });
+            p.OnBeginDrag(new PointerEventData(null) { pointerId = 2 });
+            CodingBlock.CancelActiveDrags();
+
+            Assert.AreSame(p, ChainOutSocket.OfBlock(q).Occupant, "위 블록이 원래 자리로 돌아가지 않음");
+            Assert.AreSame(x, ChainOutSocket.OfBlock(p).Occupant, "아래 블록이 위 블록 아래로 돌아가지 않고 블록 목록으로 감");
         }
 
         /// <summary>

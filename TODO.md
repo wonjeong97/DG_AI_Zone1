@@ -8,6 +8,7 @@
 
 ## 할 일
 
+- [ ] (템플릿 갱신 뒤) Template 패키지 Reporter 문자열 캐시 수정이 머지되면 Packages/packages-lock.json의 com.huliacdev.template 고정 커밋을 올리기
 - [ ] (출시 후) ResultSequence의 3D 연출 4종(풍력·수력·발전소·연구소)을 공통 베이스(SetNeutral·ApplyAsync)로 묶기 — 직렬화 필드 타입이 바뀌어 4_Result 씬 재연결 필요
 - [ ] (출시 후) CodingBlock(1300줄)의 컴파일 결과 하이라이트 부분을 별도 컴포넌트로 분리 — 블록 프리팹 재연결 필요
 - [ ] (출시 후) TitleSceneManager의 QR 스캐너 입력을 별도 클래스로 분리하고 대기·확인·시작하기 상태를 HuliacDev.Core StateMachine으로
@@ -15,6 +16,8 @@
 
 ## 완료
 
+- [x] 5차 검사 지적 수정 — 끝 신호 없이 사라진 손가락의 드래그 복귀, 핀치 복귀 순서 재시도·행동 로그, 레벨5 스토리 오타(계선→계산), 템플릿 Reporter는 별도 프롬프트로 — PlayMode 183/183 — 담당: Claude / 검증: Antigravity (2026-10-10)
+- [x] 5차 전체 검사(수정 회귀·장시간 운영·데이터 정합성) — 4차 수정 회귀 없음, 중간 2건(OnEndDrag 없이 포인터가 지워지면 블록이 떠 있음, 템플릿 Reporter 문자열 캐시 증가)·낮음 2건·레벨5 스토리 오타 확인, 목록은 docs/agents/HANDOFF.md — 담당: Claude / 검증: Antigravity + Claude 서브에이전트 (2026-10-10)
 - [x] 4차 검사 지적 전부 수정 — 같은 블록 두 손가락(먼저 끈 손가락만, 자기 순환 방지), 핀치 복귀 재검사, 결과 타이머 재개·관리자 레벨 이동 체험자·결과 판정·튜토리얼 이미지 — PlayMode 181/181, 멀티터치는 현장 확인 필요 — 담당: Claude / 검증: Antigravity (2026-10-10)
 - [x] 4차(마지막) 전체 검사 — 높음 1건(두 손가락이 같은 블록을 동시에 잡으면 소켓 상태가 꼬이고 최악에 무한 루프), 중간 1건(핀치 복귀가 찬 소켓 덮어씀), 낮음 4건·확인 1건, 목록은 docs/agents/HANDOFF.md — 담당: Claude / 검증: Antigravity + Claude 서브에이전트 (2026-10-10)
 - [x] 3차 감사 지적 전부 수정 — 두 손가락 동시 드롭(놓을 때 소켓 재검사), 낮음 6건, 레벨4 실행되지 않는 만약의 조건 0점(B안), 정리 5건, 여러 문장 summary 166곳 한 문장으로 — PlayMode 177/177, 터치 2건은 현장 확인 필요 — 담당: Claude / 검증: Antigravity (2026-10-10)

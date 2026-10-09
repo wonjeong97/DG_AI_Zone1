@@ -13,6 +13,29 @@
 
 ---
 
+### [2026-10-10] Claude → Antigravity · 5차 검사 지적 수정 (fix/third-audit)
+- 요청(사용자): 전부 수정, 스토리 문구는 '계산', 템플릿은 수정용 프롬프트를 따로 받음.
+- 변경:
+  - CodingBlock: OnBeginDrag에서 끄는 이벤트·대상(_dragEvent·_dragTarget)을 기억하고, LateUpdate에서 끄는 중인데 이벤트의 pointerDrag가 대상이 아니면(입력 모듈이 OnEndDrag 없이 포인터를 지움) CancelDrag로 원래 자리로 되돌린다. 끝·취소·비활성 때 참조를 놓는다(ForgetDragEvent). pointerDrag 없는 이벤트(테스트)는 감시하지 않는다.
+  - 핀치 취소: CancelDrag를 StopDrag(상태 정리)와 TryRestoreDragHome(fallbackToInventory)로 나누고, CancelActiveDrags는 원래 소켓에 못 붙은 블록을 다른 블록이 돌아간 뒤 다시 시도(더 붙는 블록이 없으면 끝), 남은 블록만 블록 목록으로. 블록 목록으로 대체될 때 행동 로그 한 줄(LogDragResult).
+  - 05_FutureEnergyData storyText '계선하려면' → '계산하려면'.
+  - CHANGELOG Unreleased Fixed 3줄.
+  - 템플릿 Reporter cachedString은 이 저장소에서 고치지 않고 사용자에게 Template 수정 프롬프트를 드림.
+- 새 테스트(2): SocketOwnershipTests 끝 신호 없이 사라진 손가락(UnityTest, 한 프레임 뒤 코딩 영역으로 복귀·blocksRaycasts), 같은 체인 두 블록 핀치 복귀 순서.
+- 테스트: Rider 에러 0, Unity 컴파일 에러 0, PlayMode 183/183(뒤에 EditorSettings 되돌림).
+- 확인 요청·결과(agy, 3묶음): 사라진 손가락 감지·참조 해제 2/2, 핀치 재시도 종료·순서·로그·상태 정리·테스트 2/2, 스토리 한 글자 교체 1/1 통과.
+
+### [2026-10-10] Claude → Antigravity · 5차 전체 검사(수정 회귀·장시간 운영·데이터 정합성) — 읽기 전용
+- 방식: Claude 서브에이전트 3개(바뀐 드래그 코드를 상태 기계로 다시 추적 / 하루 종일 반복 운영의 누수·정밀도·흐름 정지 / 블록 라벨·레벨 데이터·씬 참조·Addressables·Always Included 셰이더 정합성) + agy 4묶음(바뀐 코드 구간, 4/4 문제 없음).
+- 수정 회귀: 4차 수정으로 새로 생긴 소프트락·blocksRaycasts 잔류·점유 불일치·로그 중복 없음(같은 블록 두 손가락, 핀치 취소 후 재집기, 탭 전환, 씬 이탈, 다른 블록 두 손가락 시나리오).
+- 중간(기존 문제): 입력 모듈이 OnEndDrag 없이 포인터를 지우면(마우스로 끄는 중 화면 터치 — SingleMouseOrPenButMultiTouchAndTrack이 마우스 포인터 제거, 터치 장치 재연결 추정) 블록이 캔버스 위에 뜬 채 blocksRaycasts=false라 다시 집을 수 없고, 코딩 패널 핀치나 씬 이탈로만 풀린다(CodingBlock.cs OnBeginDrag 이후). 제안: OnBeginDrag의 eventData를 기억해, 끄는 중인데 그 eventData.pointerDrag가 이 블록이 아니면(RemovePointerAtIndex가 비움) CancelDrag.
+- 중간(템플릿): Reporter(Runtime/ThirdParty/LogViewer/Reporter/Reporter.cs)의 cachedString 사전이 AddLog마다 커지는데 Clear()(20MB 상한)가 비우지 않음 — ZLogger 시각 접두사로 거의 모든 줄이 달라 앱이 켜져 있는 동안 계속 쌓인다(Reporter는 GameLifetimeScope 프리팹에 켜져 있음). Template TODO 대상.
+- 낮음: 같은 체인의 두 블록을 두 손가락이 끄는 중 핀치 취소 순서(HashSet 순회)에 따라 아래 블록이 위 블록보다 먼저 복귀하면 CanAttachNow 실패로 블록 목록으로 감 / 핀치 복귀가 블록 목록으로 대체될 때 체험자 행동 로그가 남지 않음.
+- 확인(콘텐츠): 05_FutureEnergyData storyText '여러 가지 에너지를 하나씩 계선하려면' 오타(개선·계산?), 같은 문구가 '원자력'을 언급하지만 레벨5 블록에 원자력 없음.
+- 정합성 문제 없음: 레벨 1~5 정답 조립 시 실제 라벨로 만점·성공, 씬·프리팹 참조 빈 칸 0, Addressables 키·Always Included 셰이더·빌드 씬 모두 있음.
+- 오탐: CategoryZone 버튼 프리팹 Release 없음(정적 필드라 한 번만 로드).
+- 결과: 수정 범위는 사용자 결정.
+
 ### [2026-10-10] Claude → Antigravity · 4차 검사 지적 전부 수정 (fix/third-audit)
 - 요청(사용자): 지적 전부 수정, 효율 표시 형식({0:D2}%)은 그대로.
 - 변경:
