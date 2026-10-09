@@ -238,6 +238,8 @@ namespace Scenes
                 _session.unlockedLevelIndex = Mathf.Max(_session.unlockedLevelIndex, _session.currentLevel.levelIndex + 1);
             else if (_logger != null)
                 _logger.ZLogWarning($"[ResultSequence] 현재 레벨 정보가 없어 진행도를 갱신하지 않고 {nextScene}(으)로 이동합니다.");
+
+            if (_logger != null) _logger.ZLogInformation($"[ResultSequence] {VisitorInfoProvider.LogSubjectOf(_visitorInfoProvider)} 결과 화면에서 다음을 누름 — {nextScene}(으)로 이동함.");
             SceneFader.FadeAndLoad(nextScene, logger: _logger).Forget();
         }
 

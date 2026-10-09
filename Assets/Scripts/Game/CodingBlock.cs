@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using App;
+using Cysharp.Text;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using Microsoft.Extensions.Logging;
@@ -85,14 +87,23 @@ namespace Game
         private SoundManager _soundManager;
 
         /// <summary>
-        /// 로거와 사운드 매니저를 주입받는다.
+        /// 로거, 사운드 매니저, 체험자 정보를 주입받는다.
         /// </summary>
         [Inject]
-        public void Construct(ILogger<CodingBlock> logger, SoundManager soundManager)
+        public void Construct(ILogger<CodingBlock> logger, SoundManager soundManager, VisitorInfoProvider visitorInfoProvider)
         {
             _logger = logger;
             _soundManager = soundManager;
+            _visitorInfoProvider = visitorInfoProvider;
         }
+
+        private VisitorInfoProvider _visitorInfoProvider; // 행동 로그 주어
+
+        // 행동 로그용 — 드래그를 시작할 때 떼어 낸 소켓 자리(예: "'시작하기' 아래"), 소켓에 붙어 있지 않았으면 null
+        private string _dragFromSocket;
+
+        // 행동 로그용 — 드래그를 시작할 때 블록 목록(인벤토리)에 있었는지
+        private bool _dragFromInventory;
 
         private Canvas _canvas;
         private RectTransform _rt;
@@ -560,6 +571,8 @@ namespace Game
             // OnDrop이 OnEndDrag보다 먼저 오므로, 직전 드래그의 처리 표시가 남아 있으면 드롭 존이 이번 드롭을 무시한다
             IsDragHandled = false;
             IsDragCancelled = false;
+            _dragFromSocket = null;
+            _dragFromInventory = false;
 
             // 두 손가락 이상이 닿아 있으면(핀치 중) 블록을 집지 않는다
             if (CodingZoneZoom.IsMultiTouch)
@@ -590,6 +603,7 @@ namespace Game
             _homeParent = transform.parent;
             _homeIndex = transform.GetSiblingIndex();
             _homeAnchoredPos = _rt.anchoredPosition;
+            RememberDragOrigin();
 
             if (_homeParent.TryGetComponent<ValueOutSocket>(out ValueOutSocket vos))
                 vos.Release();
@@ -706,8 +720,9 @@ namespace Game
             _cg.blocksRaycasts = true;
             IsDragHandled = false;
 
-            if (TrySnapToSocket())
+            if (TrySnapToSocket(out BlockSocket snapped))
             {
+                LogDragResult(snapped);
                 if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.BlockAssembled);
                 ClearDragCache();
                 return;
@@ -716,8 +731,74 @@ namespace Game
             if (!_canvas || transform.parent == _canvas.transform)
                 ReturnHomeOrRelease(e);
 
+            LogDragResult(null);
             ClearDragCache();
         }
+
+        /// <summary>
+        /// 행동 로그용으로 드래그를 시작한 자리(떼어 낸 소켓·블록 목록)를 기억한다 — 소켓을 비우기 전에 불러야 한다.
+        /// </summary>
+        private void RememberDragOrigin()
+        {
+            _dragFromSocket = _homeParent.TryGetComponent(out BlockSocket socket) ? DescribeSocket(socket) : null;
+            _dragFromInventory = _homeParent == InventoryParent;
+        }
+
+        /// <summary>
+        /// 드래그 한 번의 결과를 체험자 행동 로그 한 줄로 남긴다 — 떼어 낸 자리와 놓은 자리(소켓·코딩 영역·블록 목록)를 함께 적는다.
+        /// 코딩 영역 안에서 옮기기만 했거나 블록 목록에서 집었다가 그대로 돌려놓은 것처럼 연결이 바뀌지 않았으면 남기지 않는다.
+        /// 밀려난 블록이 꼬리로 옮겨지는 것처럼 체험자가 직접 끌지 않은 이동은 이 경로를 타지 않는다.
+        /// </summary>
+        private void LogDragResult(BlockSocket attached)
+        {
+            if (_logger == null) return;
+
+            string result = null;
+            if (attached)
+                result = ZString.Concat(DescribeSocket(attached), AttachVerb(attached));
+            else if (_codingZone && transform.parent == _codingZone.transform)
+                result = _dragFromSocket != null || _dragFromInventory ? "코딩 영역에 놓음" : null;
+            else if (transform.parent == InventoryParent && !_dragFromInventory)
+                result = "블록 목록으로 되돌림";
+
+            if (result == null) return;
+
+            string subject = VisitorInfoProvider.LogSubjectOf(_visitorInfoProvider);
+            if (_dragFromSocket != null)
+                _logger.ZLogInformation($"[CodingBlock] {subject} '{name}' 블록을 {_dragFromSocket}에서 떼어 {result}.");
+            else
+                _logger.ZLogInformation($"[CodingBlock] {subject} '{name}' 블록을 {result}.");
+        }
+
+        /// <summary>
+        /// 행동 로그에 쓸 소켓 자리를 주인 블록 이름과 소켓 종류로 적는다(예: "'시작하기' 아래", "'만약' 안", "'태양광 패널의 방향' 값 자리").
+        /// 만약 블록의 머리 슬롯은 값이 아니라 조건을 받으므로 "조건 자리"로 적는다.
+        /// </summary>
+        private static string DescribeSocket(BlockSocket socket)
+        {
+            CodingBlock owner = socket.Owner;
+            bool isIfConditionSlot = owner && owner.Category == BlockCategory.FlowControl && !owner.IsRepeat;
+            string place = socket switch
+            {
+                ChainOutSocket     => " 아래",
+                InnerSocket        => " 안",
+                ValueOutSocket     => isIfConditionSlot ? " 조건 자리" : " 값 자리",
+                ConditionOutSocket => " 뒤",
+                _                  => string.Empty
+            };
+            return ZString.Concat("'", owner ? owner.name : "알 수 없는 블록", "'", place);
+        }
+
+        /// <summary>
+        /// 행동 로그에 쓸 소켓 종류별 붙이는 동작(체인은 붙임, 안쪽은 넣음, 값은 끼움, 조건은 이음).
+        /// </summary>
+        private static string AttachVerb(BlockSocket socket) => socket switch
+        {
+            InnerSocket        => "에 넣음",
+            ValueOutSocket     => "에 끼움",
+            ConditionOutSocket => "에 이음",
+            _                  => "에 붙임"
+        };
 
         /// <summary>
         /// 핀치가 시작되면 집어 든 블록을 모두 드래그 전 자리로 되돌린다 — 두 손가락 조작이 블록을 옮기지 않게 한다.
@@ -783,9 +864,9 @@ namespace Game
         /// <summary>
         /// 드롭 지점 주변에서 연결 가능한 소켓을 찾아 붙인다. 붙일 곳이 없으면 false.
         /// </summary>
-        private bool TrySnapToSocket()
+        private bool TrySnapToSocket(out BlockSocket socket)
         {
-            BlockSocket socket = FindBestSnapSocket();
+            socket = FindBestSnapSocket();
             return socket && AttachTo(socket);
         }
 

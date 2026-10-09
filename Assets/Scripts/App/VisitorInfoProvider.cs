@@ -15,6 +15,9 @@ namespace App
 
         private const int NoVisitorIdx = -1;
 
+        // 행동 로그 주어를 정할 수 없을 때(provider 없음) 쓰는 주어
+        private const string UnknownLogSubject = "체험자가";
+
         private readonly VisitorSettings _settings;
         private readonly ILogger<VisitorInfoProvider> _logger;
 
@@ -57,14 +60,44 @@ namespace App
         /// <summary>
         /// 화면에 표시할 체험자 이름을 반환한다. 서버 모드면 QR로 확인한 서버 이름, 아니면 VisitorSettings의 이름이다.
         /// </summary>
-        public string GetName()
+        public string GetName() => ResolveName(true);
+
+        /// <summary>
+        /// 행동 로그의 주어(예: "홍길동이", "김철수가")를 반환한다. 이름은 GetName과 같은 규칙으로 정하되,
+        /// 기본 이름으로 바꿀 때의 경고는 화면에 이름을 띄울 때 GetName이 이미 남기므로 행동 로그마다 되풀이하지 않는다.
+        /// </summary>
+        public string LogSubject => AppendSubjectParticle(ResolveName(false));
+
+        /// <summary>
+        /// 행동 로그 주어를 provider 없이도 얻는다. provider가 null이면(주입 전·테스트에서 만든 오브젝트) "체험자가"를 쓴다.
+        /// </summary>
+        public static string LogSubjectOf(VisitorInfoProvider provider) => provider != null ? provider.LogSubject : UnknownLogSubject;
+
+        /// <summary>
+        /// word 뒤에 받침 유무에 맞는 주격 조사를 붙인다(예: 홍길동이, 김철수가). 마지막 글자가 한글 음절이 아니면(영문 이니셜 등) "이(가)"를 붙인다.
+        /// </summary>
+        public static string AppendSubjectParticle(string word)
+        {
+            if (string.IsNullOrEmpty(word)) return UnknownLogSubject;
+
+            char last = word[word.Length - 1];
+            if (last < '가' || last > '힣') return ZString.Concat(word, "이(가)");
+
+            bool hasFinalConsonant = (last - '가') % 28 != 0;
+            return ZString.Concat(word, hasFinalConsonant ? "이" : "가");
+        }
+
+        /// <summary>
+        /// GetName의 이름 규칙. warnOnFallback이면 서버 모드인데 확인한 이름이 없어 기본 이름으로 바꿀 때 경고를 남긴다.
+        /// </summary>
+        private string ResolveName(bool warnOnFallback)
         {
             if (_settings.IsServerConnected)
             {
                 if (!string.IsNullOrEmpty(ServerVisitorName)) return ServerVisitorName;
 
                 // 관리자 화면의 레벨 이동처럼 QR 확인 없이 시작한 판이거나 서버 이름이 비어 있는 경우
-                if (_logger != null) _logger.ZLogWarning($"[VisitorInfoProvider] 서버 모드이지만 QR로 확인한 체험자 이름이 없어 기본 이름으로 대체합니다.");
+                if (warnOnFallback && _logger != null) _logger.ZLogWarning($"[VisitorInfoProvider] 서버 모드이지만 QR로 확인한 체험자 이름이 없어 기본 이름으로 대체합니다.");
             }
 
             string visitorName = _settings.VisitorName;

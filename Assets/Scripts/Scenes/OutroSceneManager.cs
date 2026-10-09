@@ -108,6 +108,7 @@ namespace Scenes
             if (_isLeaving) return;
             _isLeaving = true;
 
+            if (_logger != null) _logger.ZLogInformation($"[OutroSceneManager] {VisitorInfoProvider.LogSubjectOf(_visitorInfoProvider)} 종료를 누름 — 타이틀로 돌아감.");
             if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
             if (_moveIdlePublisher != null)
                 _moveIdlePublisher.Publish(new MoveIdleEvent());
