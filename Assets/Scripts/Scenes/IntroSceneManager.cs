@@ -62,7 +62,7 @@ namespace Scenes
             if (tutorialSlider) tutorialSlider.Finished += OnTutorialFinished;
             else if (_logger != null) _logger.ZLogWarning($"[IntroSceneManager] tutorialSlider가 할당되지 않아 스토리 씬으로 넘어갈 수 없습니다.");
 
-            SceneFader.PlayLoopingVideo(robotVideoPlayer, Constants.VideoPaths.RobotUrl, destroyCancellationToken, _logger);
+            SceneFader.PlayRobotVideo(robotVideoPlayer, destroyCancellationToken, _logger);
 
             ApplyVisitorNameAsync(destroyCancellationToken).Forget();
         }

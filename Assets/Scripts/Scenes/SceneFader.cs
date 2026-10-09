@@ -67,25 +67,54 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 씬 진입과 동시에 루프 영상을 재생한다 (isLooping은 컴포넌트에 설정된 값을 따름).
-        /// 이전 씬 잔상 제거 → URL 지정 → Prepare → 첫 프레임이 실제로 보일 때까지 페이드인을 미루도록 등록 → 재생.
+        /// 씬 진입과 동시에 로봇 영상(00_Common.json의 robotVideoPath)을 재생한다 (isLooping은 컴포넌트에 설정된 값을 따름).
+        /// 이전 씬 잔상 제거 → 첫 프레임이 실제로 보일 때까지 페이드인을 미루도록 등록 → 경로 읽기·Prepare·재생.
         /// 여러 씬 매니저가 같은 절차를 반복하던 것을 모았다.
         /// </summary>
-        public static void PlayLoopingVideo(VideoPlayer player, string url, CancellationToken ct,
+        public static void PlayRobotVideo(VideoPlayer player, CancellationToken ct,
             Microsoft.Extensions.Logging.ILogger logger = null)
         {
             if (!player)
             {
-                LogWarning(logger, "[SceneFader] VideoPlayer가 할당되지 않아 루프 영상을 재생하지 않습니다.");
+                LogWarning(logger, "[SceneFader] VideoPlayer가 할당되지 않아 로봇 영상을 재생하지 않습니다.");
                 return;
             }
 
             ClearVideoRenderTexture(player);
+
+            // 경로를 읽는 동안에도 페이드인이 기다리도록 대기 작업은 바로 등록한다
+            RegisterPendingTask(StartRobotVideoAsync(player, ct, logger));
+        }
+
+        /// <summary>
+        /// 로봇 영상 경로를 읽어 재생을 시작하고, 첫 프레임이 실제로 보일 때까지 기다린다.
+        /// </summary>
+        private static async UniTask StartRobotVideoAsync(VideoPlayer player, CancellationToken ct,
+            Microsoft.Extensions.Logging.ILogger logger)
+        {
+            string url = await GetRobotVideoUrlAsync(logger);
+            if (!player || ct.IsCancellationRequested) return;
+
             player.url = url;
             player.Prepare();
-            RegisterPendingTask(WaitUntilVideoProgressAsync(
-                player, Constants.VideoPaths.MinPlaybackProgressBeforeReveal, ct, logger));
             player.Play();
+            await WaitUntilVideoProgressAsync(player, Constants.VideoPaths.MinPlaybackProgressBeforeReveal, ct, logger);
+        }
+
+        /// <summary>
+        /// 00_Common.json의 robotVideoPath를 StreamingAssets 기준 전체 경로로 바꾼다.
+        /// 비었거나 그 파일이 없으면 경고를 남기고 기본 경로(Constants.VideoPaths.RobotRelative)를 쓴다.
+        /// </summary>
+        private static async UniTask<string> GetRobotVideoUrlAsync(Microsoft.Extensions.Logging.ILogger logger)
+        {
+            CommonSettings settings = await GetCommonSettingsAsync();
+            string relative = settings.robotVideoPath;
+            string path = string.IsNullOrEmpty(relative) ? null : System.IO.Path.Combine(Application.streamingAssetsPath, relative);
+            if (path != null && System.IO.File.Exists(path)) return path;
+
+            LogWarning(logger, ZString.Concat("[SceneFader] 00_Common.json의 robotVideoPath '", relative,
+                "' 파일이 없어 기본 영상 ", Constants.VideoPaths.RobotRelative, "을 재생합니다."));
+            return System.IO.Path.Combine(Application.streamingAssetsPath, Constants.VideoPaths.RobotRelative);
         }
 
         /// <summary>

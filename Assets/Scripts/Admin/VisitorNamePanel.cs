@@ -24,8 +24,6 @@ namespace Admin
         [SerializeField] private Button closeButton;
         [Tooltip("Shift가 켜져 있는 동안 Shift 키 배경색")]
         [SerializeField] private Color shiftPressedColor = new(0.55f, 0.7f, 0.95f, 1f);
-        [Tooltip("이 시간(초) 동안 입력이 없으면 저장하지 않고 창을 닫는다")]
-        [SerializeField, Min(1f)] private float idleTimeout = 60f;
 
         private const string ShiftKey    = "Button_shift";
         private const string DeleteKey   = "Button_delete";
@@ -73,6 +71,9 @@ namespace Admin
 
         private readonly HangulComposer _composer = new();
         private readonly IdleCloseTimer _idleTimer = new();
+
+        // 이 시간(초) 동안 입력이 없으면 저장하지 않고 창을 닫는다 — 관리자 화면과 같은 값(Admin.json idleCloseSeconds)을 열 때 받는다
+        private float _idleCloseSeconds = Constants.Admin.DefaultIdleCloseSeconds;
         private readonly Dictionary<string, TMP_Text> _keyLabels = new();
         private Image _shiftButtonImage;
         private Color _shiftNormalColor;
@@ -130,11 +131,12 @@ namespace Admin
         }
 
         /// <summary>
-        /// 입력을 비운 한글 자판으로 창을 연다. 저장하면 입력한 이름으로 onSaved를 부른다.
+        /// 입력을 비운 한글 자판으로 창을 연다. 저장하면 입력한 이름으로 onSaved를 부르고, idleCloseSeconds 동안 입력이 없으면 닫는다.
         /// </summary>
-        public void Open(Action<string> onSaved)
+        public void Open(Action<string> onSaved, float idleCloseSeconds)
         {
             _onSaved = onSaved;
+            _idleCloseSeconds = idleCloseSeconds;
             _isEnglish = false;
             gameObject.SetActive(true);
             _idleTimer.Restart();
@@ -156,9 +158,9 @@ namespace Admin
         /// </summary>
         private void Update()
         {
-            if (_idleTimer.HasExpired(idleTimeout))
+            if (_idleTimer.HasExpired(_idleCloseSeconds))
             {
-                if (_logger != null) _logger.ZLogInformation($"[VisitorNamePanel] {idleTimeout}초 동안 입력이 없어 이름 입력 창을 닫습니다.");
+                if (_logger != null) _logger.ZLogInformation($"[VisitorNamePanel] {_idleCloseSeconds}초 동안 입력이 없어 이름 입력 창을 닫습니다.");
                 Close();
                 return;
             }

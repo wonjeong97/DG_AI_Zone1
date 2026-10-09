@@ -15,9 +15,8 @@ public static class Constants
     // ── 2. 비디오 파일 경로 ──────────────────────────────────────
     public static class VideoPaths
     {
+        // 인트로·스토리·아웃트로 로봇 영상의 기본 경로(StreamingAssets 기준) — 00_Common.json의 robotVideoPath가 비었거나 그 파일이 없을 때 쓴다
         public const string RobotRelative = "Videos/Robot_260728.webm";
-
-        public static string RobotUrl => System.IO.Path.Combine(UnityEngine.Application.streamingAssetsPath, RobotRelative);
 
         // 씬 전환 시 영상이 화면에 드러나기 전 최소 재생 진행률 (%) — 재생 시작 직후의 어색한 첫 프레임을 가림
         public const float MinPlaybackProgressBeforeReveal = 0.01f;
@@ -51,7 +50,7 @@ public static class Constants
         public const string Story  = Folder + "/2_Story";
         public const string Game   = Folder + "/3_Game";
         public const string Result = Folder + "/4_Result";
-        public const string Admin  = Folder + "/Admin";     // 관리자 비밀번호
+        public const string Admin  = Folder + "/Admin";     // 관리자 비밀번호·자동 닫기 시간·진입 클릭 수
         public const string Server = Folder + "/Server";    // 체험자 서버 주소·재시도
     }
 
@@ -479,13 +478,14 @@ public static class Constants
     }
 
     // ── 20. 타이틀 하단 안내 문구 ───────────────────────────────────
+    // 기본 문구 — 현장에서는 0_Title.json(TitleSceneSettings)의 같은 문구를 고쳐 재빌드 없이 바꾼다
     public static class TitleMessages
     {
         public const string QrGuide    = "QR 코드를 인식하여 주세요.";
         public const string StartGuide = "시작하기를 눌러주세요.";
 
-        // 서버 모드에서 QR로 확인한 체험자에게 보이는 시작 안내 — {0}에 체험자 이름
-        public const string StartGuideWithNameFormat = "{0}님, 시작하기를 눌러주세요.";
+        // 서버 모드에서 QR로 확인한 체험자에게 보이는 시작 안내 — {name}에 체험자 이름(VisitorInfoProvider.NamePlaceholder)
+        public const string StartGuideWithName = "{name}님, 시작하기를 눌러주세요.";
 
         // 서버 모드에서 QR을 찍은 뒤 체험자 확인 결과 안내 — 확인 중을 빼면 잠시 보여 준 뒤 QrGuide로 돌아간다
         public const string QrChecking    = "QR 코드를 확인하고 있습니다.";
@@ -539,6 +539,12 @@ public static class Constants
 
         // 체험자 이름 최대 글자 수 — 인트로·아웃트로 문장 안에 들어가므로 한 줄을 넘지 않게 제한한다
         public const int VisitorNameMaxLength = 8;
+
+        // Admin.json(AdminSettings)에 값이 없거나 1보다 작을 때 쓰는 기본값
+        public const float DefaultIdleCloseSeconds         = 60f; // 관리자 화면·이름 입력 창 무입력 자동 닫기
+        public const float DefaultPasswordIdleCloseSeconds = 10f; // 비밀번호 창 무입력 자동 닫기
+        public const int   DefaultEntryClickCount          = 10;  // 숨은 버튼 연속 클릭 횟수
+        public const float DefaultEntryClickWindowSeconds  = 3f;  // 연속 클릭으로 인정하는 시간
     }
 
     // ── 23. 체험자 서버 API (서버 모드에서 타이틀 QR uid로 체험자 확인) ──────

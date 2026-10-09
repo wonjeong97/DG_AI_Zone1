@@ -1,3 +1,5 @@
+using System;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using Data;
 using Microsoft.Extensions.Logging;
@@ -41,8 +43,8 @@ namespace Admin
         [Tooltip("변경 결과 안내 문구")]
         [SerializeField] private TMP_Text statusText;
 
-        [Tooltip("이 시간(초) 동안 입력이 없으면 관리자 화면을 닫는다 — 열어 둔 채 자리를 뜨면 관람객이 설정을 바꿀 수 있다")]
-        [SerializeField, Min(1f)] private float idleTimeout = 60f;
+        // 이 시간(초) 동안 입력이 없으면 관리자 화면을 닫는다 — 열 때마다 Admin.json(idleCloseSeconds)에서 다시 읽는다
+        private float _idleCloseSeconds = Constants.Admin.DefaultIdleCloseSeconds;
 
         private readonly IdleCloseTimer _idleTimer = new();
         private UnityAction[] _levelActions;
@@ -118,6 +120,7 @@ namespace Admin
         {
             gameObject.SetActive(true);
             _idleTimer.Restart();
+            LoadIdleCloseSecondsAsync(destroyCancellationToken).Forget();
             if (_logger != null) _logger.ZLogInformation($"[AdminPanel] 관리자 화면을 열었습니다.");
             if (!statusText && _logger != null) _logger.ZLogWarning($"[AdminPanel] statusText가 할당되지 않아 변경 결과를 표시하지 못합니다.");
 
@@ -127,6 +130,22 @@ namespace Admin
             RefreshMode();
             RefreshVisitorName();
             ShowStatus(string.Empty);
+        }
+
+        /// <summary>
+        /// 현장에서 바뀌었을 수 있는 자동 닫기 시간을 Admin.json에서 다시 읽는다.
+        /// </summary>
+        private async UniTaskVoid LoadIdleCloseSecondsAsync(CancellationToken ct)
+        {
+            try
+            {
+                AdminSettings settings = await AdminSettings.LoadAsync(ct, _logger);
+                _idleCloseSeconds = settings.idleCloseSeconds;
+            }
+            catch (OperationCanceledException)
+            {
+                // 읽는 도중 씬 전환 등으로 오브젝트가 파괴된 경우 — 정상 종료
+            }
         }
 
         /// <summary>
@@ -142,9 +161,9 @@ namespace Admin
         /// </summary>
         private void Update()
         {
-            if (_isLeaving || !_idleTimer.HasExpired(idleTimeout)) return;
+            if (_isLeaving || !_idleTimer.HasExpired(_idleCloseSeconds)) return;
 
-            if (_logger != null) _logger.ZLogInformation($"[AdminPanel] {idleTimeout}초 동안 입력이 없어 관리자 화면을 닫습니다.");
+            if (_logger != null) _logger.ZLogInformation($"[AdminPanel] {_idleCloseSeconds}초 동안 입력이 없어 관리자 화면을 닫습니다.");
             if (namePanel) namePanel.Close();
             if (passwordPanel) passwordPanel.Close();
             Close();
@@ -240,7 +259,7 @@ namespace Admin
             if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
             ShowStatus(string.Empty);
 
-            if (namePanel) namePanel.Open(OnVisitorNameSaved);
+            if (namePanel) namePanel.Open(OnVisitorNameSaved, _idleCloseSeconds);
             else if (_logger != null) _logger.ZLogWarning($"[AdminPanel] namePanel이 할당되지 않아 이름 입력 창을 열 수 없습니다.");
         }
 

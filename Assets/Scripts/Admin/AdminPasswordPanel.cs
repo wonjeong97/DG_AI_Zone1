@@ -34,8 +34,8 @@ namespace Admin
 
         [SerializeField] private AdminPanel adminPanel;
 
-        [Tooltip("이 시간(초) 동안 키패드 입력이 없으면 창을 닫는다")]
-        [SerializeField, Min(1f)] private float idleTimeout = 10f;
+        // 이 시간(초) 동안 키패드 입력이 없으면 창을 닫는다 — 열 때마다 Admin.json(passwordIdleCloseSeconds)에서 다시 읽는다
+        private float _idleCloseSeconds = Constants.Admin.DefaultPasswordIdleCloseSeconds;
 
         // 지금 받는 입력 — 관리자 진입 비밀번호 확인, 또는 비밀번호 변경의 새 비밀번호·한 번 더 입력
         private enum Step
@@ -104,21 +104,23 @@ namespace Admin
         }
 
         /// <summary>
-        /// 관리자 진입용으로 창을 열고, 현장에서 바뀌었을 수 있는 비밀번호를 파일에서 다시 읽는다.
+        /// 관리자 진입용으로 창을 열고, 현장에서 바뀌었을 수 있는 비밀번호·자동 닫기 시간을 파일에서 다시 읽는다.
         /// </summary>
         public void Open()
         {
             _isPasswordLoaded = false;
             OpenAt(Step.Verify);
-            LoadPasswordAsync(destroyCancellationToken).Forget();
+            LoadSettingsAsync(destroyCancellationToken).Forget();
         }
 
         /// <summary>
         /// 비밀번호 변경용으로 창을 연다 — 새 비밀번호를 두 번 입력받는다 (관리자 화면 위에 뜬다).
+        /// 관리자 레벨 이동에서 돌아와 비밀번호 확인 없이 열린 경우도 있으므로 자동 닫기 시간을 다시 읽는다.
         /// </summary>
         public void OpenForChange()
         {
             OpenAt(Step.EnterNew);
+            LoadSettingsAsync(destroyCancellationToken).Forget();
         }
 
         /// <summary>
@@ -147,21 +149,22 @@ namespace Admin
         /// </summary>
         private void Update()
         {
-            if (_idleTimer.HasExpired(idleTimeout))
+            if (_idleTimer.HasExpired(_idleCloseSeconds))
             {
-                if (_logger != null) _logger.ZLogInformation($"[AdminPasswordPanel] {idleTimeout}초 동안 입력이 없어 비밀번호 창을 닫습니다.");
+                if (_logger != null) _logger.ZLogInformation($"[AdminPasswordPanel] {_idleCloseSeconds}초 동안 입력이 없어 비밀번호 창을 닫습니다.");
                 Close();
             }
         }
 
         /// <summary>
-        /// Admin.json에서 비밀번호를 읽는다. 파일이 없거나 키패드로 입력할 수 없는 값이면 기본 비밀번호를 쓴다.
+        /// Admin.json에서 비밀번호와 자동 닫기 시간을 읽는다. 파일이 없거나 키패드로 입력할 수 없는 값이면 기본 비밀번호를 쓴다.
         /// </summary>
-        private async UniTaskVoid LoadPasswordAsync(CancellationToken ct)
+        private async UniTaskVoid LoadSettingsAsync(CancellationToken ct)
         {
             try
             {
-                AdminSettings settings = await JsonLoader.LoadAsync<AdminSettings>(Constants.SettingsFiles.Admin, ct, _logger);
+                AdminSettings settings = await AdminSettings.LoadAsync(ct, _logger);
+                _idleCloseSeconds = settings.passwordIdleCloseSeconds;
 
                 if (PasswordInput.IsValidPassword(settings.password))
                 {
@@ -277,13 +280,16 @@ namespace Admin
 
         /// <summary>
         /// 새 비밀번호를 Admin.json에 저장하고 결과를 관리자 화면에 알린다.
+        /// 같은 파일의 다른 값(자동 닫기 시간·진입 클릭 수)을 지키도록 파일을 읽어 비밀번호만 바꿔 저장한다.
         /// JsonLoader.SaveAsync는 실패를 로그로만 남기므로, 다시 읽어 실제로 저장됐는지 확인한다.
         /// </summary>
         private async UniTaskVoid SavePasswordAsync(string newPassword, CancellationToken ct)
         {
             try
             {
-                await JsonLoader.SaveAsync(Constants.SettingsFiles.Admin, new AdminSettings { password = newPassword }, ct, _logger);
+                AdminSettings current = await JsonLoader.LoadAsync<AdminSettings>(Constants.SettingsFiles.Admin, ct, _logger);
+                current.password = newPassword;
+                await JsonLoader.SaveAsync(Constants.SettingsFiles.Admin, current, ct, _logger);
                 AdminSettings saved = await JsonLoader.LoadAsync<AdminSettings>(Constants.SettingsFiles.Admin, ct, _logger);
 
                 // 파일 입출력 뒤 관리자 화면 UI를 고치므로 메인 스레드로 돌아온다

@@ -58,7 +58,7 @@ namespace Scenes
                 endButton.onClick.AddListener(OnEndButtonClicked);
 
             // 로봇 영상 — 진입과 동시에 루프 재생 (isLooping은 컴포넌트에 설정됨)
-            SceneFader.PlayLoopingVideo(robotVideoPlayer, Constants.VideoPaths.RobotUrl, destroyCancellationToken, _logger);
+            SceneFader.PlayRobotVideo(robotVideoPlayer, destroyCancellationToken, _logger);
 
             PlayEndingTextAsync(destroyCancellationToken).Forget();
         }

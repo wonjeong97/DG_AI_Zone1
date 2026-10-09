@@ -1,5 +1,4 @@
 using App;
-using Cysharp.Text;
 using Cysharp.Threading.Tasks;
 using Data;
 using DG.Tweening;
@@ -88,7 +87,7 @@ namespace Scenes
         /// <summary>
         /// 서버 연동(isServerConnected)이면 "QR 코드를 인식하여 주세요"를 띄우고 시작 버튼을 숨긴 채 QR 입력을 기다린다.
         /// 미연동이면 QR 단계 없이 "시작하기를 눌러주세요"와 시작 버튼을 바로 보여준다. 안내는 어느 쪽이든 천천히 깜빡인다.
-        /// 페이드 시간·QR 확인 시간·스캐너 글자 간격은 StreamingAssets/Json/0_Title.json(TitleSceneSettings)에서 읽어와 재빌드 없이 조정한다.
+        /// 페이드 시간·QR 확인 시간·스캐너 글자 간격·안내 문구는 StreamingAssets/Json/0_Title.json(TitleSceneSettings)에서 읽어와 재빌드 없이 조정한다.
         /// </summary>
         private async UniTaskVoid ApplyGuideAsync(CancellationToken ct)
         {
@@ -97,6 +96,10 @@ namespace Scenes
 
             try
             {
+                // 첫 안내부터 0_Title.json의 문구로 보이도록 설정을 먼저 읽는다 — 안내가 없어도 QR 확인·스캐너 값은 써야 하므로 항상 읽는다
+                _sceneSettings = await JsonLoader.LoadAsync<TitleSceneSettings>(Constants.SettingsFiles.Title, ct, _logger);
+                ApplyScanCharGap();
+
                 bool isServerConnected = false;
                 if (_visitorInfoProvider != null)
                     isServerConnected = _visitorInfoProvider.IsServerConnected;
@@ -104,16 +107,11 @@ namespace Scenes
                     _logger.ZLogWarning($"[TitleSceneManager] VisitorInfoProvider가 주입되지 않아 서버 미연동으로 보고 시작하기 안내를 표시합니다.");
 
                 if (isServerConnected) WaitForQr();
-                else ShowStartGuide(Constants.TitleMessages.StartGuide);
+                else ShowStartGuide(_sceneSettings.startGuideText);
 
                 // qrCanvasGroup 누락은 Start에서 이미 경고했다
-                if (qrCanvasGroup) qrCanvasGroup.gameObject.SetActive(true);
-
-                // 안내가 없어도 QR 확인·스캐너 값은 써야 하므로 설정은 항상 읽는다
-                _sceneSettings = await JsonLoader.LoadAsync<TitleSceneSettings>(Constants.SettingsFiles.Title, ct, _logger);
-                ApplyScanCharGap();
-
                 if (!qrCanvasGroup) return;
+                qrCanvasGroup.gameObject.SetActive(true);
 
                 _qrBlinkTween = qrCanvasGroup.DOFade(_sceneSettings.qrBlinkMinAlpha, _sceneSettings.qrFadeDuration)
                     .SetLoops(-1, LoopType.Yoyo)
@@ -148,7 +146,7 @@ namespace Scenes
         private void WaitForQr()
         {
             if (startButton) startButton.gameObject.SetActive(false);
-            if (guideText) guideText.text = Constants.TitleMessages.QrGuide;
+            if (guideText) guideText.text = _sceneSettings.qrGuideText;
             StartScanning();
         }
 
@@ -294,7 +292,7 @@ namespace Scenes
         /// </summary>
         private async UniTaskVoid CheckVisitorAsync(string uid, CancellationToken ct)
         {
-            if (guideText) guideText.text = Constants.TitleMessages.QrChecking;
+            if (guideText) guideText.text = _sceneSettings.qrCheckingText;
             float checkStartTime = Time.realtimeSinceStartup;
 
             try
@@ -326,7 +324,7 @@ namespace Scenes
                 // 예상하지 못한 오류로 '확인하고 있습니다'에 멈추지 않게 한다 — 타이틀은 비활동 타이머도 멈춰 있어 앱을 다시 켜야 하게 된다
                 if (_logger != null) _logger.ZLogError($"[TitleSceneManager] 체험자 확인 중 오류가 나 QR 대기로 돌아갑니다: {ex}");
                 ClearConfirmedVisitor();
-                ShowScanFailureThenForget(Constants.TitleMessages.QrCheckFailed, ct);
+                ShowScanFailureThenForget(_sceneSettings.qrCheckFailedText, ct);
             }
         }
 
@@ -360,14 +358,14 @@ namespace Scenes
             if (_visitorApiClient == null)
             {
                 if (_logger != null) _logger.ZLogError($"[TitleSceneManager] VisitorApiClient가 주입되지 않아 체험자를 확인할 수 없습니다.");
-                return Constants.TitleMessages.QrCheckFailed;
+                return _sceneSettings.qrCheckFailedText;
             }
 
             CheckActiveResult active = await _visitorApiClient.CheckActiveAsync(uid, ct);
             if (active.Status != CheckActiveStatus.Active) return GetScanFailMessage(active.Status);
 
             GetUserResult progress = await _visitorApiClient.GetUserAsync(uid, ct);
-            if (!progress.IsFound) return Constants.TitleMessages.QrCheckFailed;
+            if (!progress.IsFound) return _sceneSettings.qrCheckFailedText;
 
             if (_visitorInfoProvider != null)
                 _visitorInfoProvider.SetServerVisitor(active.IdxUser, active.Name);
@@ -386,13 +384,13 @@ namespace Scenes
         /// <summary>
         /// 체험할 수 없는 QR 확인 결과를 하단 안내 문구로 바꾼다.
         /// </summary>
-        private static string GetScanFailMessage(CheckActiveStatus status)
+        private string GetScanFailMessage(CheckActiveStatus status)
         {
             return status switch
             {
-                CheckActiveStatus.Completed => Constants.TitleMessages.QrCompleted,
-                CheckActiveStatus.NotFound  => Constants.TitleMessages.QrNotFound,
-                _                           => Constants.TitleMessages.QrCheckFailed
+                CheckActiveStatus.Completed => _sceneSettings.qrCompletedText,
+                CheckActiveStatus.NotFound  => _sceneSettings.qrNotFoundText,
+                _                           => _sceneSettings.qrCheckFailedText
             };
         }
 
@@ -413,8 +411,8 @@ namespace Scenes
         {
             string visitorName = _visitorInfoProvider != null ? _visitorInfoProvider.GetName() : null;
             ShowStartGuide(string.IsNullOrEmpty(visitorName)
-                ? Constants.TitleMessages.StartGuide
-                : ZString.Format(Constants.TitleMessages.StartGuideWithNameFormat, visitorName));
+                ? _sceneSettings.startGuideText
+                : _sceneSettings.startGuideWithNameText.Replace(VisitorInfoProvider.NamePlaceholder, visitorName));
 
             StartScanning();
             StartConfirmTimeout();
