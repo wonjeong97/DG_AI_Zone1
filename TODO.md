@@ -8,7 +8,7 @@
 
 ## 할 일
 
-- [ ] (템플릿 갱신 뒤) Template 패키지 Reporter 문자열 캐시 수정이 머지되면 Packages/packages-lock.json의 com.huliacdev.template 고정 커밋을 올리기
+- [ ] (낮음, 템플릿 갱신 뒤) Template 패키지 Reporter 문자열 캐시 수정이 머지되면 Packages/packages-lock.json의 com.huliacdev.template 고정 커밋을 올리기 — 매일 재시작 전제라 하루 약 10~30MB 누적은 문제없음, 출시를 막지 않음
 - [ ] (출시 후) ResultSequence의 3D 연출 4종(풍력·수력·발전소·연구소)을 공통 베이스(SetNeutral·ApplyAsync)로 묶기 — 직렬화 필드 타입이 바뀌어 4_Result 씬 재연결 필요
 - [ ] (출시 후) CodingBlock(1300줄)의 컴파일 결과 하이라이트 부분을 별도 컴포넌트로 분리 — 블록 프리팹 재연결 필요
 - [ ] (출시 후) TitleSceneManager의 QR 스캐너 입력을 별도 클래스로 분리하고 대기·확인·시작하기 상태를 HuliacDev.Core StateMachine으로
