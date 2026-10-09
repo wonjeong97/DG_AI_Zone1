@@ -113,6 +113,22 @@ namespace DG.Zone1.Tests
         }
 
         /// <summary>
+        /// 겹모음은 지우기를 한 번 누르면 뒤쪽 모음만 지워 앞 모음이 남는다(과 → 고 → ㄱ).
+        /// </summary>
+        [Test]
+        public void 백스페이스는_겹모음의_뒤쪽_모음만_지운다()
+        {
+            Push("ㄱㅗㅏ");
+            Assert.AreEqual("과", _composer.Text, "겹모음이 만들어지지 않음");
+
+            _composer.Backspace();
+            Assert.AreEqual("고", _composer.Text, "겹모음 전체가 한 번에 지워짐");
+
+            _composer.Backspace();
+            Assert.AreEqual("ㄱ", _composer.Text);
+        }
+
+        /// <summary>
         /// TryAppendRaw는 최대 글자 수에 도달하면 거부해야 한다.
         /// </summary>
         [Test]

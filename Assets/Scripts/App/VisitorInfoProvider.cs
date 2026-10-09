@@ -58,29 +58,31 @@ namespace App
         }
 
         /// <summary>
-        /// 화면에 표시할 체험자 이름을 반환한다. 서버 모드면 QR로 확인한 서버 이름, 아니면 VisitorSettings의 이름이다.
+        /// 화면에 표시할 체험자 이름을 반환한다 — 서버 모드면 QR로 확인한 서버 이름, 아니면 VisitorSettings의 이름이다.
         /// </summary>
         public string GetName() => ResolveName(true);
 
+        // 이름은 GetName과 같은 규칙으로 정하되,
+        // 기본 이름으로 바꿀 때의 경고는 화면에 이름을 띄울 때 GetName이 이미 남기므로 행동 로그마다 되풀이하지 않는다.
         /// <summary>
-        /// 행동 로그의 주어(예: "홍길동이", "김철수가")를 반환한다. 이름은 GetName과 같은 규칙으로 정하되,
-        /// 기본 이름으로 바꿀 때의 경고는 화면에 이름을 띄울 때 GetName이 이미 남기므로 행동 로그마다 되풀이하지 않는다.
+        /// 행동 로그의 주어(예: "홍길동이", "김철수가")를 반환한다.
         /// </summary>
         public string LogSubject => AppendSubjectParticle(ResolveName(false));
 
         /// <summary>
-        /// 행동 로그 주어를 provider 없이도 얻는다. provider가 null이면(주입 전·테스트에서 만든 오브젝트) "체험자가"를 쓴다.
+        /// 행동 로그 주어를 provider 없이도 얻으며, provider가 null이면(주입 전·테스트에서 만든 오브젝트) "체험자가"를 쓴다.
         /// </summary>
         public static string LogSubjectOf(VisitorInfoProvider provider) => provider != null ? provider.LogSubject : UnknownLogSubject;
 
         /// <summary>
-        /// word 뒤에 받침 유무에 맞는 주격 조사를 붙인다(예: 홍길동이, 김철수가). 마지막 글자가 한글 음절이 아니면(영문 이니셜 등) "이(가)"를 붙인다.
+        /// word 뒤에 받침 유무에 맞는 주격 조사를 붙인다(예: 홍길동이, 김철수가).
         /// </summary>
         public static string AppendSubjectParticle(string word)
         {
             if (string.IsNullOrEmpty(word)) return UnknownLogSubject;
 
             char last = word[word.Length - 1];
+            // 마지막 글자가 한글 음절이 아니면(영문 이니셜 등) "이(가)"를 붙인다.
             if (last < '가' || last > '힣') return ZString.Concat(word, "이(가)");
 
             bool hasFinalConsonant = (last - '가') % 28 != 0;
@@ -88,10 +90,11 @@ namespace App
         }
 
         /// <summary>
-        /// GetName의 이름 규칙. warnOnFallback이면 서버 모드인데 확인한 이름이 없어 기본 이름으로 바꿀 때 경고를 남긴다.
+        /// GetName의 이름 규칙으로 이름을 정한다.
         /// </summary>
         private string ResolveName(bool warnOnFallback)
         {
+            // warnOnFallback이면 서버 모드인데 확인한 이름이 없어 기본 이름으로 바꿀 때 경고를 남긴다.
             if (_settings.IsServerConnected)
             {
                 if (!string.IsNullOrEmpty(ServerVisitorName)) return ServerVisitorName;

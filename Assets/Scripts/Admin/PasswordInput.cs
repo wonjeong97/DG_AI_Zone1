@@ -13,7 +13,7 @@ namespace Admin
         public bool HasValidLength => Length >= Constants.Admin.PasswordMinLength;
 
         /// <summary>
-        /// 숫자 한 자리를 덧붙인다. 0~9가 아니거나 이미 최대 자릿수면 무시하고 false를 돌려준다.
+        /// 숫자 한 자리를 덧붙이되, 0~9가 아니거나 이미 최대 자릿수면 무시하고 false를 돌려준다.
         /// </summary>
         public bool TryAppend(int digit)
         {
@@ -24,7 +24,7 @@ namespace Admin
         }
 
         /// <summary>
-        /// 마지막 자리를 지운다. 비어 있으면 아무것도 하지 않는다.
+        /// 마지막 자리를 지우고, 비어 있으면 아무것도 하지 않는다.
         /// </summary>
         public void RemoveLast()
         {

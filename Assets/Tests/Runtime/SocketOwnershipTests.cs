@@ -1,7 +1,10 @@
+using System.Collections;
 using Data;
 using Game;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.TestTools;
 
 namespace DG.Zone1.Tests
 {
@@ -12,6 +15,7 @@ namespace DG.Zone1.Tests
     public class SocketOwnershipTests
     {
         private CodingZone _zone;
+        private Canvas _canvas;
 
         /// <summary>
         /// 코딩 패널을 준비한다.
@@ -29,6 +33,7 @@ namespace DG.Zone1.Tests
         public void TearDown()
         {
             if (_zone) Object.DestroyImmediate(_zone.gameObject);
+            if (_canvas) Object.DestroyImmediate(_canvas.gameObject);
         }
 
         /// <summary>
@@ -97,6 +102,23 @@ namespace DG.Zone1.Tests
         /// </summary>
         private CodingBlock MakeCommand(string label)
             => BlockTestUtil.MakeBlock(_zone, label, BlockCategory.Command, _zone.transform);
+
+        /// <summary>
+        /// 실제로 끌기를 시작할 수 있도록 루트 캔버스를 지정한 명령 블록을 만든다.
+        /// </summary>
+        private CodingBlock MakeDraggableCommand(string label)
+        {
+            if (!_canvas)
+            {
+                GameObject canvasGo = new GameObject("RootCanvas", typeof(RectTransform));
+                _canvas = canvasGo.AddComponent<Canvas>();
+            }
+
+            // CanvasGroup은 CodingBlock의 RequireComponent로 이미 붙어 있다 — 루트 캔버스만 지정해 다시 초기화한다
+            CodingBlock block = MakeCommand(label);
+            block.Init(BlockCategory.Command, _canvas);
+            return block;
+        }
 
         /// <summary>
         /// 반복하기 내부에 들어간 블록은 여러 단계를 거쳐도 내부 컨테이너 안으로 판정된다.
@@ -184,6 +206,190 @@ namespace DG.Zone1.Tests
 
             Assert.AreEqual(0, allocated, "드래그 중 매 프레임 호출되는 수락 판정에서 힙 할당이 발생함");
             Assert.IsTrue(outerInner.CanAccept(nested), "제어 블록이 없는 체인은 받아야 함");
+        }
+
+        /// <summary>
+        /// 두 손가락으로 같은 빈 값·조건 자리를 노린 두 블록 중 먼저 붙은 블록이 있으면 뒤 블록은 손을 떼도 그 자리에 붙지 않는다.
+        /// </summary>
+        [Test]
+        public void 다른_블록이_먼저_찬_값_자리에는_놓을_때_붙지_않는다()
+        {
+            CodingBlock ifBlock = BlockTestUtil.MakeBlock(_zone, "만약", BlockCategory.FlowControl, _zone.transform);
+            ValueOutSocket slot = BlockTestUtil.AddConditionSocket(ifBlock);
+            CodingBlock first = BlockTestUtil.MakeBlock(_zone, "밤", BlockCategory.Condition, _zone.transform);
+            CodingBlock second = BlockTestUtil.MakeBlock(_zone, "낮", BlockCategory.Condition, _zone.transform);
+
+            Assert.IsTrue(second.CanAttachNow(slot), "빈 조건 자리를 받지 않음");
+
+            slot.Accept(first);
+
+            Assert.IsFalse(second.CanAttachNow(slot), "두 손가락으로 먼저 붙은 블록을 덮어쓸 수 있음");
+        }
+
+        /// <summary>
+        /// 소켓 주인 블록이 코딩 패널을 떠났으면(다른 손가락이 블록 목록으로 옮김) 그 소켓에 붙지 않는다.
+        /// </summary>
+        [Test]
+        public void 주인_블록이_코딩_패널을_떠난_소켓에는_붙지_않는다()
+        {
+            CodingBlock owner = MakeCommand("X");
+            CodingBlock incoming = MakeCommand("A");
+            ChainOutSocket chainOut = ChainOutSocket.OfBlock(owner);
+            Assert.IsTrue(incoming.CanAttachNow(chainOut), "코딩 패널 블록의 빈 체인 소켓을 받지 않음");
+
+            GameObject inventory = new GameObject("Inventory", typeof(RectTransform));
+            try
+            {
+                owner.transform.SetParent(inventory.transform, false);
+                Assert.IsFalse(incoming.CanAttachNow(chainOut), "블록 목록으로 옮겨진 블록에 붙을 수 있음");
+            }
+            finally
+            {
+                Object.DestroyImmediate(inventory);
+            }
+        }
+
+        /// <summary>
+        /// 두 손가락이 같은 블록을 잡으면 먼저 끌기 시작한 손가락만 따르고, 다른 손가락이 끝나도 드래그 주인이 바뀌지 않는다.
+        /// </summary>
+        [Test]
+        public void 같은_블록을_두_손가락이_잡으면_먼저_잡은_손가락만_따른다()
+        {
+            CodingBlock block = MakeDraggableCommand("A");
+            PointerEventData first = new PointerEventData(null) { pointerId = 1 };
+            PointerEventData second = new PointerEventData(null) { pointerId = 2 };
+
+            block.OnBeginDrag(first);
+            block.OnBeginDrag(second);
+
+            Assert.IsTrue(block.IsDragPointer(first), "먼저 잡은 손가락이 드래그 주인이 아님");
+            Assert.IsFalse(block.IsDragPointer(second), "두 번째 손가락이 같은 블록의 드래그를 가져감");
+
+            block.OnEndDrag(second);
+            Assert.IsTrue(block.IsDragPointer(first), "다른 손가락이 끝나자 먼저 잡은 손가락의 드래그가 풀림");
+        }
+
+        /// <summary>
+        /// 핀치로 드래그가 취소된 뒤에는 처음 손가락의 끝이 오지 않아도 다른 손가락이 블록을 다시 집을 수 있다.
+        /// </summary>
+        [Test]
+        public void 핀치로_취소된_블록은_다른_손가락이_다시_집을_수_있다()
+        {
+            CodingBlock block = MakeDraggableCommand("A");
+            PointerEventData first = new PointerEventData(null) { pointerId = 1 };
+            PointerEventData second = new PointerEventData(null) { pointerId = 2 };
+
+            block.OnBeginDrag(first);
+            CodingBlock.CancelActiveDrags();
+            block.OnBeginDrag(second);
+
+            Assert.IsTrue(block.IsDragPointer(second), "핀치 취소 뒤 다른 손가락이 블록을 집을 수 없음");
+            Assert.IsFalse(block.IsDragPointer(first), "취소된 손가락이 여전히 드래그 주인임");
+        }
+
+        /// <summary>
+        /// 끌던 손가락이 끝 신호 없이 사라지면(입력 모듈이 포인터를 지우며 pointerDrag만 비움) 블록이 원래 자리로 돌아가 다시 집을 수 있다.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator 끌던_손가락이_끝_신호_없이_사라지면_원래_자리로_돌아간다()
+        {
+            CodingBlock block = MakeDraggableCommand("A");
+            PointerEventData pointer = new PointerEventData(null) { pointerId = 1, pointerDrag = block.gameObject };
+
+            block.OnBeginDrag(pointer);
+            Assert.AreSame(_canvas.transform, block.transform.parent, "끌기를 시작했는데 캔버스로 들어 올리지 않음");
+
+            pointer.pointerDrag = null;
+            yield return null;
+
+            Assert.AreSame(_zone.transform, block.transform.parent, "사라진 손가락의 블록이 캔버스 위에 떠 있음");
+            Assert.IsTrue(block.TryGetComponent(out CanvasGroup group) && group.blocksRaycasts, "돌아간 블록이 터치를 받지 않음");
+        }
+
+        /// <summary>
+        /// 같은 체인의 위·아래 블록을 함께 들고 있다가 핀치로 취소되면 어느 블록이 먼저 처리되든 원래 순서로 돌아간다.
+        /// </summary>
+        [Test]
+        public void 같은_체인의_두_블록을_들고_핀치로_취소되면_원래_순서로_돌아간다()
+        {
+            CodingBlock q = MakeDraggableCommand("Q");
+            CodingBlock p = MakeDraggableCommand("P");
+            CodingBlock x = MakeDraggableCommand("X");
+            ChainOutSocket.OfBlock(q).Accept(p);
+            ChainOutSocket.OfBlock(p).Accept(x);
+
+            x.OnBeginDrag(new PointerEventData(null) { pointerId = 1 });
+            p.OnBeginDrag(new PointerEventData(null) { pointerId = 2 });
+            CodingBlock.CancelActiveDrags();
+
+            Assert.AreSame(p, ChainOutSocket.OfBlock(q).Occupant, "위 블록이 원래 자리로 돌아가지 않음");
+            Assert.AreSame(x, ChainOutSocket.OfBlock(p).Occupant, "아래 블록이 위 블록 아래로 돌아가지 않고 블록 목록으로 감");
+        }
+
+        /// <summary>
+        /// 같은 자리에서 차례로 떼어 낸 두 블록(X→A→C에서 A를 든 뒤 올라온 C를 듦)이 핀치로 취소되면 나중에 집은 블록부터 돌아가 원래 순서가 된다.
+        /// </summary>
+        [Test]
+        public void 같은_자리에서_떼어_낸_두_블록은_핀치_취소_뒤_원래_순서로_돌아간다()
+        {
+            CodingBlock x = MakeDraggableCommand("X");
+            CodingBlock a = MakeDraggableCommand("A");
+            CodingBlock c = MakeDraggableCommand("C");
+            CodingBlock d = MakeDraggableCommand("D");
+            ChainOutSocket.OfBlock(x).Accept(a);
+            ChainOutSocket.OfBlock(a).Accept(c);
+            ChainOutSocket.OfBlock(c).Accept(d);
+
+            a.OnBeginDrag(new PointerEventData(null) { pointerId = 1 });
+            Assert.AreSame(c, ChainOutSocket.OfBlock(x).Occupant, "A를 떼었는데 C가 X 아래로 올라오지 않음");
+            c.OnBeginDrag(new PointerEventData(null) { pointerId = 2 });
+            CodingBlock.CancelActiveDrags();
+
+            Assert.AreSame(a, ChainOutSocket.OfBlock(x).Occupant, "X 아래가 A가 아님");
+            Assert.AreSame(c, ChainOutSocket.OfBlock(a).Occupant, "A 아래가 C가 아님 — 순서가 뒤집힘");
+            Assert.AreSame(d, ChainOutSocket.OfBlock(c).Occupant, "C 아래가 D가 아님");
+        }
+
+        /// <summary>
+        /// 같은 체인의 위·아래 블록을 든 두 손가락이 같은 프레임에 끝 신호 없이 사라지면 한꺼번에 원래 순서로 돌아간다.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator 같은_체인의_두_블록을_든_손가락이_함께_사라지면_원래_순서로_돌아간다()
+        {
+            CodingBlock q = MakeDraggableCommand("Q");
+            CodingBlock p = MakeDraggableCommand("P");
+            CodingBlock x = MakeDraggableCommand("X");
+            ChainOutSocket.OfBlock(q).Accept(p);
+            ChainOutSocket.OfBlock(p).Accept(x);
+
+            PointerEventData lower = new PointerEventData(null) { pointerId = 1, pointerDrag = x.gameObject };
+            PointerEventData upper = new PointerEventData(null) { pointerId = 2, pointerDrag = p.gameObject };
+            x.OnBeginDrag(lower);
+            p.OnBeginDrag(upper);
+
+            lower.pointerDrag = null;
+            upper.pointerDrag = null;
+            yield return null;
+
+            Assert.AreSame(p, ChainOutSocket.OfBlock(q).Occupant, "위 블록이 원래 자리로 돌아가지 않음");
+            Assert.AreSame(x, ChainOutSocket.OfBlock(p).Occupant, "아래 블록이 위 블록 아래로 돌아가지 않음");
+        }
+
+        /// <summary>
+        /// 블록이 이미 붙어 있는 체인 소켓에 자기 자신을 다시 받으면 자기 꼬리에 붙어 순환하지 않는다.
+        /// </summary>
+        [Test]
+        public void 같은_소켓에_자기_자신을_다시_받아도_순환하지_않는다()
+        {
+            CodingBlock x = MakeCommand("X");
+            CodingBlock a = MakeCommand("A");
+            ChainOutSocket xOut = ChainOutSocket.OfBlock(x);
+            xOut.Accept(a);
+
+            Assert.IsFalse(xOut.CanAccept(a), "이미 붙은 블록을 자기 자신을 밀어내며 다시 받을 수 있음");
+
+            xOut.Accept(a);
+            Assert.AreNotSame(a, ChainOutSocket.OfBlock(a).Occupant, "블록이 자기 꼬리에 붙어 체인이 순환함");
         }
 
         /// <summary>

@@ -20,14 +20,15 @@ namespace Data
         public float errorBlinkHalfDuration = Constants.HighlightSettings.ErrorBlinkHalfDuration;
 
         // 블록 스냅 판정 반경(px) — 터치 스크린 감도에 맞춰 조정
-        public float snapRadius = 120f;
-        public float chainSnapRadius = 120f;
+        public const float DefaultSnapRadius = 120f;
+        public float snapRadius = DefaultSnapRadius;
+        public float chainSnapRadius = DefaultSnapRadius;
 
         // 블록이 스냅 위치로 붙는 데 걸리는 시간(초)
         public float blockSnapDuration = 0.15f;
 
         /// <summary>
-        /// 음수 시간·간격·횟수·반경을 0으로 바꾸고, 바꾼 값이 있으면 true를 돌려준다.
+        /// 음수 시간·간격·횟수는 0으로, 0 이하 스냅 반경은 기본값으로 바꾸고, 바꾼 값이 있으면 true를 돌려준다.
         /// </summary>
         public bool ClampToValid()
         {
@@ -37,8 +38,9 @@ namespace Data
             successWaveFadeInDuration = SettingsClamp.NonNegative(successWaveFadeInDuration, ref changed);
             errorBlinkCount = SettingsClamp.NonNegative(errorBlinkCount, ref changed);
             errorBlinkHalfDuration = SettingsClamp.NonNegative(errorBlinkHalfDuration, ref changed);
-            snapRadius = SettingsClamp.NonNegative(snapRadius, ref changed);
-            chainSnapRadius = SettingsClamp.NonNegative(chainSnapRadius, ref changed);
+            // 반경이 0이면 블록이 어떤 소켓에도 붙지 않아 코딩을 완성할 수 없다
+            snapRadius = SettingsClamp.Positive(snapRadius, DefaultSnapRadius, ref changed);
+            chainSnapRadius = SettingsClamp.Positive(chainSnapRadius, DefaultSnapRadius, ref changed);
             blockSnapDuration = SettingsClamp.NonNegative(blockSnapDuration, ref changed);
             return changed;
         }

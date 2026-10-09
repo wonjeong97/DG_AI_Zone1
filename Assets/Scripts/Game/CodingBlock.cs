@@ -75,7 +75,25 @@ namespace Game
         // 지금 집어 든 블록들 — 핀치가 시작되면 모두 드래그 전 자리로 되돌린다 (여러 손가락이 각각 블록을 들 수 있음)
         private readonly static HashSet<CodingBlock> _activeDrags = new();
         private readonly static List<CodingBlock> _cancelBuffer = new();
+
+        // 끌기를 시작한 순서 — 함께 취소할 때 나중에 집은 블록부터 되돌려야 같은 자리에서 떼어 낸 블록들이 원래 순서로 돌아간다
+        private static int _dragStartCounter;
+        private int _dragStartOrder;
         private bool _isDragging;
+
+        // 이 블록을 끌고 있는 손가락(포인터) — 두 손가락이 같은 블록을 동시에 잡으면 손가락마다 OnBeginDrag가 오므로 처음 잡은 손가락만 따른다.
+        // 둘 다 따르면 한 손가락이 소켓에 붙인 블록을 다른 손가락이 계속 끌어 소켓 기록과 실제 자리가 어긋나고, 최악에는 블록이 자기 아래에 붙어 순환한다
+        private const int NoDragPointer = int.MinValue;
+        private int _dragPointerId = NoDragPointer;
+
+        // 끄는 손가락의 이벤트와 그때 끌던 대상 — 입력 모듈이 끝 신호 없이 포인터를 지우면 이벤트의 pointerDrag가 비는 것으로 알아챈다
+        private PointerEventData _dragEvent;
+        private GameObject _dragTarget;
+
+        /// <summary>
+        /// 이 포인터 이벤트가 지금 이 블록을 끄는 손가락의 것인지 확인한다(드롭 영역은 다른 손가락의 놓기로 블록을 옮기지 않는다).
+        /// </summary>
+        public bool IsDragPointer(PointerEventData e) => _dragPointerId != NoDragPointer && e.pointerId == _dragPointerId;
 
         public Image OutlineImage => outlineImage;
         public Image ValueHighlightImage => valueHighlightImage;
@@ -318,10 +336,10 @@ namespace Game
 
         /// <summary>
         /// 지정한 하이라이트 이미지에 무한 반복 알파 펄스를 재생한다.
-        /// 테두리 모양과 보일 영역(아래 체인·오른쪽 값 칸 등)은 이미지의 BlockOutlineMesh와 머티리얼이 정한다.
         /// </summary>
         private void PlaySnapPulse(Image img)
         {
+            // 테두리 모양과 보일 영역(아래 체인·오른쪽 값 칸 등)은 이미지의 BlockOutlineMesh와 머티리얼이 정한다.
             if (!img)
             {
                 if (_logger != null) _logger.ZLogWarning($"[CodingBlock] {name}에 스냅 하이라이트 이미지가 연결되지 않았습니다.");
@@ -388,39 +406,12 @@ namespace Game
         private void PlayErrorBlink()
         {
             StopCompileHighlightTween();
-
-            Color error = Constants.HighlightColors.Error;
-            Image target;
-            Color from;
-
-            if (Mode == HighlightMode.Tint)
-            {
-                SetHighlight(outlineImage, Color.clear);
-                target = bodyImage;
-                if (!target)
-                {
-                    if (_logger != null) _logger.ZLogWarning($"[CodingBlock] {name}에 본체 이미지가 연결되지 않아 에러 표시를 건너뜁니다.");
-                    return;
-                }
-                CacheBodyOriginalColor();
-                from = _bodyOriginalColor;
-            }
-            else
-            {
-                ResetBodyTint();
-                target = outlineImage;
-                if (!target)
-                {
-                    if (_logger != null) _logger.ZLogWarning($"[CodingBlock] {name}에 외곽선 이미지가 연결되지 않아 에러 표시를 건너뜁니다.");
-                    return;
-                }
-                from = Color.clear;
-            }
+            if (!TryGetCompileHighlightTarget("에러", out Image target, out Color from)) return;
 
             target.color = from;
             int toggles = (Settings?.errorBlinkCount ?? Constants.HighlightSettings.ErrorBlinkCount) * 2;
             _compileHighlightTween = target
-                .DOColor(error, Settings?.errorBlinkHalfDuration ?? Constants.HighlightSettings.ErrorBlinkHalfDuration)
+                .DOColor(Constants.HighlightColors.Error, Settings?.errorBlinkHalfDuration ?? Constants.HighlightSettings.ErrorBlinkHalfDuration)
                 .SetLoops(toggles, LoopType.Yoyo)
                 .SetEase(Ease.InOutSine)
                 .SetLink(gameObject)
@@ -433,34 +424,37 @@ namespace Game
         private void PlaySuccessFadeIn()
         {
             StopCompileHighlightTween();
+            if (!TryGetCompileHighlightTarget("성공", out Image target, out Color from)) return;
 
+            // 틴트는 본체 원래 색에 성공 색을 섞고, 외곽선은 성공 색 그대로 켠다
             Color success = Constants.HighlightColors.Success;
+            Color to = Mode == HighlightMode.Tint ? Color.Lerp(from, success, Constants.HighlightSettings.TintStrength) : success;
             float duration = Settings?.successWaveFadeInDuration ?? Constants.HighlightSettings.SuccessWaveFadeInDuration;
 
-            if (Mode == HighlightMode.Tint)
+            target.color = from;
+            _compileHighlightTween = target.DOColor(to, duration).SetEase(Ease.OutSine).SetLink(gameObject);
+        }
+
+        /// <summary>
+        /// HighlightMode에 맞는 컴파일 결과 표시 대상(본체 또는 외곽선)과 시작 색을 고르고 다른 쪽 표시는 지운다(대상이 없으면 경고 후 false).
+        /// </summary>
+        private bool TryGetCompileHighlightTarget(string purpose, out Image target, out Color from)
+        {
+            bool isTint = Mode == HighlightMode.Tint;
+            if (isTint) SetHighlight(outlineImage, Color.clear);
+            else ResetBodyTint();
+
+            target = isTint ? bodyImage : outlineImage;
+            if (!target)
             {
-                SetHighlight(outlineImage, Color.clear);
-                if (!bodyImage)
-                {
-                    if (_logger != null) _logger.ZLogWarning($"[CodingBlock] {name}에 본체 이미지가 연결되지 않아 성공 표시를 건너뜁니다.");
-                    return;
-                }
-                CacheBodyOriginalColor();
-                Color target = Color.Lerp(_bodyOriginalColor, success, Constants.HighlightSettings.TintStrength);
-                bodyImage.color = _bodyOriginalColor;
-                _compileHighlightTween = bodyImage.DOColor(target, duration).SetEase(Ease.OutSine).SetLink(gameObject);
+                if (_logger != null) _logger.ZLogWarning($"[CodingBlock] {name}에 {(isTint ? "본체" : "외곽선")} 이미지가 연결되지 않아 {purpose} 표시를 건너뜁니다.");
+                from = default;
+                return false;
             }
-            else
-            {
-                ResetBodyTint();
-                if (!outlineImage)
-                {
-                    if (_logger != null) _logger.ZLogWarning($"[CodingBlock] {name}에 외곽선 이미지가 연결되지 않아 성공 표시를 건너뜁니다.");
-                    return;
-                }
-                outlineImage.color = Color.clear;
-                _compileHighlightTween = outlineImage.DOColor(success, duration).SetEase(Ease.OutSine).SetLink(gameObject);
-            }
+
+            if (isTint) CacheBodyOriginalColor();
+            from = isTint ? _bodyOriginalColor : Color.clear;
+            return true;
         }
 
         /// <summary>
@@ -561,6 +555,8 @@ namespace Game
             if (_cg) _cg.blocksRaycasts = true;
             IsDragCancelled = false;
             _isDragging = false;
+            _dragPointerId = NoDragPointer;
+            ForgetDragEvent();
             _activeDrags.Remove(this);
             ClearDragCache();
         }
@@ -578,6 +574,11 @@ namespace Game
         /// </summary>
         public void OnBeginDrag(PointerEventData e)
         {
+            // 다른 손가락이 지금 이 블록을 끌고 있으면(두 손가락으로 같은 블록을 누름) 이 손가락의 드래그는 따르지 않는다.
+            // 끌고 있지 않으면 새 손가락이 주인이 된다 — 입력 모듈은 포인터를 지울 때 OnEndDrag를 보내지 않아, 주인 기록만 보고 막으면 다시 집을 수 없게 된다
+            if (_isDragging) return;
+            _dragPointerId = e.pointerId;
+
             IsDragCancelled = false;
             _dragFromSocket = null;
             _dragOriginSocket = null;
@@ -614,19 +615,20 @@ namespace Game
             _homeAnchoredPos = _rt.anchoredPosition;
             RememberDragOrigin();
 
-            if (_homeParent.TryGetComponent<ValueOutSocket>(out ValueOutSocket vos))
-                vos.Release();
-            else if (_homeParent.TryGetComponent<ConditionOutSocket>(out ConditionOutSocket condOut))
-                condOut.Release();
-            else if (_homeParent.TryGetComponent<ChainOutSocket>(out ChainOutSocket cs))
+            if (_homeParent.TryGetComponent(out BlockSocket homeSocket))
             {
-                cs.Release();
-                SpliceOutChild(cs.Accept);
-            }
-            else if (_homeParent.TryGetComponent<InnerSocket>(out InnerSocket ins))
-            {
-                ins.Release();
-                SpliceOutChild(ins.Accept);
+                // 점유 기록이 이 블록일 때만 비운다 — 기록이 다른 블록이면 화면에 붙어 있는 그 블록의 자리를 지우게 된다
+                if (homeSocket.Occupant == this)
+                {
+                    homeSocket.Release();
+
+                    // 체인·안쪽 자리에서 떼면 아래에 붙어 있던 블록을 그 자리에 이어 붙인다
+                    if (homeSocket is ChainOutSocket or InnerSocket) SpliceOutChild(homeSocket.Accept);
+                }
+                else if (_logger != null)
+                {
+                    _logger.ZLogWarning($"[CodingBlock] {name}이 붙어 있던 소켓의 점유 기록이 다른 블록이라 소켓을 비우지 않습니다.");
+                }
             }
 
             transform.SetParent(_canvas.transform, true);
@@ -634,7 +636,34 @@ namespace Game
             _cg.blocksRaycasts = false;
 
             _isDragging = true;
+            _dragEvent = e;
+            _dragTarget = e.pointerDrag;
+            _dragStartOrder = ++_dragStartCounter;
             _activeDrags.Add(this);
+        }
+
+        // 끄는 중인 손가락이 끝 신호 없이 사라졌는지 — 입력 모듈은 포인터를 지울 때 OnEndDrag 없이 이벤트의 pointerDrag만 비운다
+        private bool IsDragOrphaned => _isDragging && _dragTarget && _dragEvent != null && _dragEvent.pointerDrag != _dragTarget;
+
+        /// <summary>
+        /// 끄는 중인 손가락이 끝 신호 없이 사라졌으면 드래그를 취소해 원래 자리로 돌린다.
+        /// </summary>
+        private void LateUpdate()
+        {
+            // 그대로 두면 블록이 레이캐스트를 받지 않은 채 캔버스 위에 떠 있어 어떤 손가락으로도 다시 집을 수 없다(터치 장치 재연결 등).
+            // 같은 프레임에 사라진 블록을 한꺼번에 되돌려야 같은 체인의 위·아래 블록이 원래 순서로 돌아가므로, 처음 알아챈 블록이 모두 처리한다
+            if (!IsDragOrphaned) return;
+
+            CancelDrags(onlyOrphaned: true);
+        }
+
+        /// <summary>
+        /// 기억해 둔 드래그 이벤트를 놓는다(드래그가 끝나거나 취소될 때).
+        /// </summary>
+        private void ForgetDragEvent()
+        {
+            _dragEvent = null;
+            _dragTarget = null;
         }
 
         /// <summary>
@@ -655,7 +684,7 @@ namespace Game
         /// </summary>
         public void OnDrag(PointerEventData e)
         {
-            if (!_canvas || IsDragCancelled) return;
+            if (!IsDragPointer(e) || !_canvas || IsDragCancelled) return;
 
             _rt.anchoredPosition += e.delta / _canvas.scaleFactor;
             UpdateSnapHighlight();
@@ -663,10 +692,10 @@ namespace Game
 
         /// <summary>
         /// 부모가 바뀌면 크기를 부모 기준 1로 맞춘다 — 확대/축소된 코딩 패널과 인벤토리를 오가도 블록이 놓인 곳의 배율을 따르게 한다.
-        /// 드래그 중(루트 캔버스 직속)에는 들어 올리기 전에 보이던 크기를 그대로 유지한다.
         /// </summary>
         private void OnTransformParentChanged()
         {
+            // 드래그 중(루트 캔버스 직속)에는 들어 올리기 전에 보이던 크기를 그대로 유지한다.
             if (_canvas && transform.parent == _canvas.transform) return;
             transform.localScale = Vector3.one;
         }
@@ -716,6 +745,11 @@ namespace Game
         /// </summary>
         public void OnEndDrag(PointerEventData e)
         {
+            // 같은 블록을 함께 누르고 있던 다른 손가락의 끝은 무시한다
+            if (!IsDragPointer(e)) return;
+            _dragPointerId = NoDragPointer;
+            ForgetDragEvent();
+
             // 핀치로 취소된 드래그는 이미 제자리로 돌아갔으므로 손가락을 뗀 위치에 놓지 않는다
             if (IsDragCancelled)
             {
@@ -732,7 +766,7 @@ namespace Game
             ClearSnapTargets();
             _cg.blocksRaycasts = true;
 
-            if (highlighted && highlighted.isActiveAndEnabled && AttachTo(highlighted))
+            if (CanAttachNow(highlighted) && AttachTo(highlighted))
             {
                 LogDragResult(highlighted);
                 if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.BlockAssembled);
@@ -759,11 +793,11 @@ namespace Game
 
         /// <summary>
         /// 드래그 한 번의 결과를 체험자 행동 로그 한 줄로 남긴다 — 떼어 낸 자리와 놓은 자리(소켓·코딩 영역·블록 목록)를 함께 적는다.
-        /// 코딩 영역 안에서 옮기기만 했거나 블록 목록에서 집었다가 그대로 돌려놓은 것처럼 연결이 바뀌지 않았으면 남기지 않는다.
-        /// 밀려난 블록이 꼬리로 옮겨지는 것처럼 체험자가 직접 끌지 않은 이동은 이 경로를 타지 않는다.
         /// </summary>
         private void LogDragResult(BlockSocket attached)
         {
+            // 코딩 영역 안에서 옮기기만 했거나 블록 목록에서 집었다가 그대로 돌려놓은 것처럼 연결이 바뀌지 않았으면 남기지 않는다.
+            // 밀려난 블록이 꼬리로 옮겨지는 것처럼 체험자가 직접 끌지 않은 이동은 이 경로를 타지 않는다.
             if (_logger == null) return;
 
             // 떼었던 소켓에 그대로 다시 붙였으면 연결이 바뀌지 않았다
@@ -788,10 +822,10 @@ namespace Game
 
         /// <summary>
         /// 행동 로그에 쓸 소켓 자리를 주인 블록 이름과 소켓 종류로 적는다(예: "'시작하기' 아래", "'만약' 안", "'태양광 패널의 방향' 값 자리").
-        /// 만약 블록의 머리 슬롯은 값이 아니라 조건을 받으므로 "조건 자리"로 적는다.
         /// </summary>
         private static string DescribeSocket(BlockSocket socket)
         {
+            // 만약 블록의 머리 슬롯은 값이 아니라 조건을 받으므로 "조건 자리"로 적는다.
             CodingBlock owner = socket.Owner;
             bool isIfConditionSlot = owner && owner.Category == BlockCategory.FlowControl && !owner.IsRepeat;
             string place = socket switch
@@ -819,52 +853,132 @@ namespace Game
         /// <summary>
         /// 핀치가 시작되면 집어 든 블록을 모두 드래그 전 자리로 되돌린다 — 두 손가락 조작이 블록을 옮기지 않게 한다.
         /// </summary>
-        public static void CancelActiveDrags()
+        public static void CancelActiveDrags() => CancelDrags(onlyOrphaned: false);
+
+        /// <summary>
+        /// 들고 있는 블록(onlyOrphaned면 손가락이 사라진 블록만)의 드래그를 멈추고 드래그 전 자리로 함께 되돌린다.
+        /// </summary>
+        private static void CancelDrags(bool onlyOrphaned)
         {
             if (_activeDrags.Count == 0) return;
 
             _cancelBuffer.Clear();
-            _cancelBuffer.AddRange(_activeDrags);
+            foreach (CodingBlock block in _activeDrags)
+                if (block && (!onlyOrphaned || block.IsDragOrphaned)) _cancelBuffer.Add(block);
+
+            // 나중에 집은 블록부터 되돌린다 — X→A→C에서 A를 든 뒤 올라온 C를 또 들면, C가 먼저 X 아래로 가야 A가 그 위로 다시 끼어 X→A→C가 된다
+            SortByDragStartDescending(_cancelBuffer);
+
+            for (int i = _cancelBuffer.Count - 1; i >= 0; i--)
+            {
+                CodingBlock block = _cancelBuffer[i];
+                if (!block.StopDrag())
+                {
+                    _cancelBuffer.RemoveAt(i);
+                    continue;
+                }
+
+                if (onlyOrphaned && block._logger != null)
+                    block._logger.ZLogInformation($"[CodingBlock] {block.name}을 끌던 손가락이 끝 신호 없이 사라져 원래 자리로 되돌립니다.");
+            }
+
+            // 같은 체인의 위·아래 블록을 함께 들고 있으면 위 블록이 먼저 제자리에 가야 아래 블록이 붙을 자리가 생긴다 —
+            // 원래 소켓에 못 붙은 블록은 다른 블록이 돌아간 뒤 다시 시도하고, 더 붙는 블록이 없을 때 남은 블록만 블록 목록으로 보낸다
+            bool restoredAny = true;
+            while (_cancelBuffer.Count > 0 && restoredAny)
+            {
+                restoredAny = false;
+                for (int i = 0; i < _cancelBuffer.Count;)
+                {
+                    CodingBlock block = _cancelBuffer[i];
+                    if (block && !block.TryRestoreDragHome(fallbackToInventory: false))
+                    {
+                        i++;
+                        continue;
+                    }
+
+                    _cancelBuffer.RemoveAt(i);
+                    restoredAny = true;
+                }
+            }
+
             foreach (CodingBlock block in _cancelBuffer)
-                if (block) block.CancelDrag();
+                if (block) block.TryRestoreDragHome(fallbackToInventory: true);
             _cancelBuffer.Clear();
         }
 
         /// <summary>
-        /// 드래그를 취소하고 드래그 전 자리로 되돌린다. 이후 이 포인터의 OnDrag/OnDrop/OnEndDrag는 무시된다.
+        /// 블록을 끌기 시작한 순서의 역순(나중에 집은 블록 먼저)으로 정렬한다 — 함께 든 블록은 몇 개뿐이라 할당 없는 삽입 정렬로 충분하다.
         /// </summary>
-        private void CancelDrag()
+        private static void SortByDragStartDescending(List<CodingBlock> blocks)
         {
-            _activeDrags.Remove(this);
-            if (!_isDragging) return;
-
-            _isDragging = false;
-            IsDragCancelled = true;
-
-            ClearSnapTargets();
-            _cg.blocksRaycasts = true;
-
-            RestoreDragHome();
-            ClearDragCache();
+            for (int i = 1; i < blocks.Count; i++)
+            {
+                CodingBlock key = blocks[i];
+                int j = i - 1;
+                while (j >= 0 && blocks[j]._dragStartOrder < key._dragStartOrder)
+                {
+                    blocks[j + 1] = blocks[j];
+                    j--;
+                }
+                blocks[j + 1] = key;
+            }
         }
 
         /// <summary>
-        /// 드래그 시작 전 자리로 되돌린다. 소켓이었으면 다시 받게(Accept) 해서, 떼어낼 때 위로 이어 붙였던 아래 블록까지 원래 순서로 복원한다.
+        /// 끄는 중이던 드래그를 멈추고 취소 표시를 남긴다(끄는 중이 아니었으면 false).
         /// </summary>
-        private void RestoreDragHome()
+        private bool StopDrag()
         {
+            // 이후 이 포인터의 OnDrag/OnDrop/OnEndDrag는 무시된다.
+            _activeDrags.Remove(this);
+            if (!_isDragging) return false;
+
+            _isDragging = false;
+            IsDragCancelled = true;
+            ForgetDragEvent();
+
+            ClearSnapTargets();
+            _cg.blocksRaycasts = true;
+            ClearDragCache();
+            return true;
+        }
+
+        /// <summary>
+        /// 드래그 시작 전 자리로 되돌리고, 원래 소켓을 지금 쓸 수 없는데 블록 목록으로 보내지 않기로 했으면 false를 돌려준다.
+        /// </summary>
+        private bool TryRestoreDragHome(bool fallbackToInventory)
+        {
+            // 소켓이었으면 다시 받게(Accept) 해서, 떼어낼 때 위로 이어 붙였던 아래 블록까지 원래 순서로 복원한다.
             Transform home = _homeParent;
             if (!home)
             {
                 ReturnToInventory();
-                return;
+                return true;
             }
 
             BlockFactory.AttachSockets(this);
 
             if (home.TryGetComponent(out BlockSocket homeSocket))
-                homeSocket.Accept(this);
-            else if (_codingZone && home == _codingZone.transform)
+            {
+                if (CanAttachNow(homeSocket))
+                {
+                    homeSocket.Accept(this);
+                    return true;
+                }
+
+                // 끄는 사이 다른 손가락이 그 자리를 채웠거나 주인 블록을 블록 목록으로 옮겼으면 덮어쓰지 않는다
+                if (!fallbackToInventory) return false;
+
+                if (_logger != null) _logger.ZLogInformation($"[CodingBlock] {name}의 원래 자리를 쓸 수 없어 블록 목록으로 되돌립니다.");
+                ReturnToInventory();
+
+                // 체험자가 놓지 않았어도 소켓에서 빠졌으므로 행동 로그를 남긴다
+                LogDragResult(null);
+                return true;
+            }
+
+            if (_codingZone && home == _codingZone.transform)
             {
                 transform.SetParent(home, false);
                 transform.SetSiblingIndex(_homeIndex);
@@ -875,6 +989,7 @@ namespace Game
                 ReturnToInventory();
                 if (transform.parent == home) transform.SetSiblingIndex(_homeIndex);
             }
+            return true;
         }
 
         /// <summary>
@@ -891,10 +1006,10 @@ namespace Game
 
         /// <summary>
         /// 지금 위치에서 하이라이트할 소켓을 고른다 — 손을 떼면 마지막으로 고른 이 소켓에 붙는다.
-        /// 가로 연결 블록은 조건 연결(ConditionOut)을 먼저, 없으면 값 슬롯(ValueOut)을, 세로 연결 블록은 체인·내부 소켓 중 더 가까운 쪽을 고른다.
         /// </summary>
         private BlockSocket FindBestSnapSocket()
         {
+            // 가로 연결 블록은 조건 연결(ConditionOut)을 먼저, 없으면 값 슬롯(ValueOut)을, 세로 연결 블록은 체인·내부 소켓 중 더 가까운 쪽을 고른다.
             if (SnapsHorizontally)
             {
                 if (PrefersConditionSocket)
@@ -911,6 +1026,26 @@ namespace Game
             // 두 후보가 모두 범위 안이면 더 가까운 쪽 우선
             if (chainSocket && (!innerSocket || chainSqr <= innerSqr)) return chainSocket;
             return innerSocket;
+        }
+
+        /// <summary>
+        /// 드래그 중 하이라이트한 소켓이 손을 뗀 지금도 이 블록을 받을 수 있는지 다시 확인한다.
+        /// </summary>
+        public bool CanAttachNow(BlockSocket socket)
+        {
+            if (!socket || !socket.isActiveAndEnabled) return false;
+
+            // 다른 손가락이 같은 소켓에 먼저 붙였거나 소켓 주인 블록을 목록으로 옮겼을 수 있다 —
+            // 값·조건 소켓은 찬 자리에 받으면 먼저 붙은 블록을 덮어써 화면과 점유 기록이 어긋난다
+            CodingBlock owner = socket.Owner;
+            if (!owner || !_codingZone || !_codingZone.Contains(owner)) return false;
+
+            return socket switch
+            {
+                ChainOutSocket chainOut => chainOut.CanAccept(this),
+                InnerSocket inner       => inner.CanAccept(this),
+                _                       => socket.IsEmpty
+            };
         }
 
         /// <summary>
@@ -1250,10 +1385,10 @@ namespace Game
 
         /// <summary>
         /// 시작하기/완성하기 블록을 코딩 패널의 고정 자리(좌상단 / 좌하단)에 배치한다.
-        /// 최초 스폰(BlockSpawner)과 인벤토리 반입 시 복귀(ReturnToInventory)가 같은 규칙을 쓰도록 공유한다.
         /// </summary>
         public static void ApplyControlBlockLayout(RectTransform rt, bool isStart, CodingZone codingZone)
         {
+            // 최초 스폰(BlockSpawner)과 인벤토리 반입 시 복귀(ReturnToInventory)가 같은 규칙을 쓰도록 공유한다.
             if (!rt) return;
 
             rt.anchorMin = rt.anchorMax = new Vector2(0f, isStart ? 1f : 0f);

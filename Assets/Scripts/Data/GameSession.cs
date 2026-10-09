@@ -56,10 +56,10 @@ namespace Data
 
         /// <summary>
         /// 결과 씬 표시용 값을 초기화한다 — 게임 씬 진입 시, 그리고 넘어가기로 실패 처리할 때.
-        /// 문제 값(lastQuestionTime)은 결과 씬에서도 계속 쓰이므로 건드리지 않는다.
         /// </summary>
         public void ResetLastResult()
         {
+            // 문제 값(lastQuestionTime)은 결과 씬에서도 계속 쓰이므로 건드리지 않는다.
             lastScore = 0;
             lastDirection = null;
             lastCount = null;

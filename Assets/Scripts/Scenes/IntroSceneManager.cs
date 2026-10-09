@@ -78,14 +78,7 @@ namespace Scenes
                 // visitorNameText 누락은 Start에서 이미 경고했다 — 연출 없이 화면 터치만 열어 준다
                 if (!visitorNameText) return;
 
-                StoryLineAnimator.HideBeforeAnimate(visitorNameText);
-
-                if (_visitorInfoProvider != null)
-                    visitorNameText.text = _visitorInfoProvider.FillName(visitorNameText.text);
-                else if (_logger != null)
-                    _logger.ZLogWarning($"[IntroSceneManager] VisitorInfoProvider가 주입되지 않아 이름을 치환하지 않습니다.");
-
-                await StoryLineAnimator.AnimateWithCommonSettingsAsync(visitorNameText, ct, _inactivityTimer, _logger);
+                await StoryLineAnimator.AnimateWithVisitorNameAsync(visitorNameText, _visitorInfoProvider, ct, _inactivityTimer, _logger);
             }
             catch (System.OperationCanceledException)
             {

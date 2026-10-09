@@ -76,8 +76,9 @@ namespace Scenes
             _yawRestCaptured = true;
         }
 
+        // 값이 없으면 0(=45도 취급).
         /// <summary>
-        /// 각도 문자열("30도")을 tiltPivot local Y(45도 기준 오프셋)로 바꾼다. 값이 없으면 0(=45도 취급).
+        /// 각도 문자열("30도")을 tiltPivot local Y(45도 기준 오프셋)로 바꾼다.
         /// </summary>
         private static float AngleToTilt(string angle)
             => PanelPoseMath.TryParseAngleDegrees(angle, out int deg) ? deg - BaselineAngle : 0f;

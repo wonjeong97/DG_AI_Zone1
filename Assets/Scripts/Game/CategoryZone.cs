@@ -96,10 +96,10 @@ namespace Game
 
         /// <summary>
         /// 선택한 카테고리의 블록만 인벤토리에 보이게 하고 버튼 강조 상태를 갱신한다.
-        /// 탭으로 묶인 카테고리(함수 정의, 아니면)가 들어와도 그 탭을 고른다.
         /// </summary>
         public void Select(BlockCategory cat)
         {
+            // 탭으로 묶인 카테고리(함수 정의, 아니면)가 들어와도 그 탭을 고른다.
             cat = BlockFactory.GetTabCategory(cat);
             CurrentCategory = cat;
             if (inventoryContent)
@@ -118,6 +118,8 @@ namespace Game
             if (inventoryScrollRect)
             {
                 LayoutRebuilder.ForceRebuildLayoutImmediate(inventoryScrollRect.content);
+                // 목록을 밀던 관성이 남아 있으면 맨 위로 맞춘 뒤에도 다시 밀려 내려간다
+                inventoryScrollRect.StopMovement();
                 inventoryScrollRect.verticalNormalizedPosition = 1f;
             }
             else if (_logger != null)

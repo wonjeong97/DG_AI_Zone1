@@ -2,9 +2,9 @@ using System.Collections.Generic;
 
 namespace Game.Runtime
 {
+    // 컴파일 검증·채점·코드 출력이 각자 같은 재귀를 따로 구현하던 것을 한곳으로 모았다.
     /// <summary>
-    /// 명령 트리(반복/만약/함수의 중첩 본문) 순회 공용 유틸.
-    /// 컴파일 검증·채점·코드 출력이 각자 같은 재귀를 따로 구현하던 것을 한곳으로 모았다.
+    /// 명령 트리(반복/만약/함수의 중첩 본문)를 순회하는 공용 유틸이다.
     /// </summary>
     public static class InstructionTree
     {
@@ -32,11 +32,11 @@ namespace Game.Runtime
         }
 
         /// <summary>
-        /// 전위 순회(자기 자신 → 하위 본문 순). 검사 루틴이 "가장 먼저 만나는 블록"을 반환하던
-        /// 기존 재귀 구현과 방문 순서가 동일하다.
+        /// 명령 트리를 전위 순회(자기 자신 → 하위 본문 순)로 돌려준다.
         /// </summary>
         public static IEnumerable<BlockInstruction> Traverse(IEnumerable<BlockInstruction> instructions)
         {
+            // 검사 루틴이 "가장 먼저 만나는 블록"을 반환하던 기존 재귀 구현과 방문 순서가 동일하다.
             if (instructions is null) yield break;
 
             foreach (BlockInstruction instr in instructions)

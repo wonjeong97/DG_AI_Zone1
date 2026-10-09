@@ -4,8 +4,9 @@ using UnityEngine;
 
 namespace Game.Runtime
 {
+    // 호출부가 에러 메시지 문자열을 비교하지 않고 분기할 수 있게 한다.
     /// <summary>
-    /// 컴파일 실패 사유 분류. 호출부가 에러 메시지 문자열을 비교하지 않고 분기할 수 있게 한다.
+    /// 컴파일 실패 사유를 분류한다.
     /// </summary>
     public enum CompileErrorKind
     {
@@ -232,8 +233,7 @@ namespace Game.Runtime
         }
 
         /// <summary>
-        /// ChainOutSocket.Occupant를 따라 체인을 순회한다.
-        /// Control 블록(완성하기)에 도달하면 그 블록을 반환하고, 체인이 끊기면 null을 반환한다.
+        /// ChainOutSocket.Occupant를 따라 체인을 순회해 Control 블록(완성하기)에 도달하면 그 블록을, 체인이 끊기면 null을 반환한다.
         /// </summary>
         private static CodingBlock WalkChain(CompileContext ctx, CodingBlock current, List<BlockInstruction> output)
         {
@@ -382,13 +382,13 @@ namespace Game.Runtime
         }
 
         /// <summary>
-        /// 만약 블록의 Inner 체인을 탐색한다 — "아니면" 블록을 만나면 그 이후 블록부터는 els로 출력 대상을 전환한다.
-        /// "아니면" 블록 자신은 구분 표시일 뿐이라 어느 분기에도 포함되지 않으며,
-        /// 실제로 만난 "아니면" 블록을 반환한다 (없으면 null — els가 비어 있어도 마커가 있었는지 구분하는 용도).
+        /// 만약 블록의 Inner 체인을 탐색해 "아니면" 블록 이후는 els로 출력 대상을 전환하고, 실제로 만난 "아니면" 블록을 반환한다 (없으면 null).
         /// </summary>
         private static CodingBlock WalkInnerWithElse(CompileContext ctx, InnerSocket innerSocket,
             List<BlockInstruction> then, List<BlockInstruction> els)
         {
+            // "아니면" 블록 자신은 구분 표시일 뿐이라 어느 분기에도 포함되지 않는다.
+            // 반환값은 els가 비어 있어도 마커가 있었는지 구분하는 용도다.
             CodingBlock current = innerSocket ? innerSocket.Occupant : null;
             CodingBlock elseMarker = null;
             List<BlockInstruction> output = then;
@@ -434,10 +434,10 @@ namespace Game.Runtime
 
         /// <summary>
         /// Command 블록 중 Value가 연결되지 않은 첫 번째 블록을 찾는다 (중첩 본문 포함).
-        /// ValueKind.None(값 슬롯 없는 동작 블록)은 검사 대상에서 제외한다.
         /// </summary>
         private static CodingBlock FindCommandWithoutValue(List<BlockInstruction> instructions)
         {
+            // ValueKind.None(값 슬롯 없는 동작 블록)은 검사 대상에서 제외한다.
             foreach (BlockInstruction instr in InstructionTree.Traverse(instructions))
             {
                 if (instr is CommandInstruction cmd && cmd.Value is null
@@ -465,9 +465,9 @@ namespace Game.Runtime
             return unused.ToArray();
         }
 
+        // 움직이기(Command) 블록은 쓰지 않아도 된다 — 빠진 만큼 채점에서 점수를 받지 못할 뿐이다.
         /// <summary>
         /// 실행 흐름에 반드시 편입돼야 하는 카테고리인지 확인한다 (값·조건·제어 블록은 단독으로 남아도 무방).
-        /// 움직이기(Command) 블록은 쓰지 않아도 된다 — 빠진 만큼 채점에서 점수를 받지 못할 뿐이다.
         /// </summary>
         private static bool IsExecutable(BlockCategory category) =>
             category is BlockCategory.FlowControl
@@ -476,11 +476,11 @@ namespace Game.Runtime
 
         /// <summary>
         /// FlowControl(만약) 블록의 헤더 조건 슬롯에서 조건식을 읽는다.
-        /// 체인: [조건1] -ConditionOut→ConditionIn- [그리고/또는] -ConditionOut→ConditionIn- [조건2]
-        /// 조건2 뒤에 더 이은 블록은 조건식에 넣지 않고 Overflow에 모아 컴파일 에러로 알린다.
         /// </summary>
         private static ConditionExpr BuildConditionExpr(CodingBlock flowBlock)
         {
+            // 체인: [조건1] -ConditionOut→ConditionIn- [그리고/또는] -ConditionOut→ConditionIn- [조건2]
+            // 조건2 뒤에 더 이은 블록은 조건식에 넣지 않고 Overflow에 모아 컴파일 에러로 알린다.
             ValueOutSocket vos = flowBlock.GetSocket<ValueOutSocket>();
             if (!vos || !vos.Occupant) return null;
 
@@ -575,10 +575,10 @@ namespace Game.Runtime
 
         /// <summary>
         /// 내부가 비어 있는 제어 블록(반복하기/만약/아니면)을 찾는다.
-        /// 아니면은 놓았을 때만 검사한다 — 아니면 블록 없이 만약만 쓰는 것은 허용한다.
         /// </summary>
         private static CodingBlock FindFlowControlWithEmptyInner(List<BlockInstruction> instructions)
         {
+            // 아니면은 놓았을 때만 검사한다 — 아니면 블록 없이 만약만 쓰는 것은 허용한다.
             foreach (BlockInstruction instr in InstructionTree.Traverse(instructions))
             {
                 switch (instr)
@@ -612,10 +612,10 @@ namespace Game.Runtime
 
         /// <summary>
         /// 반복하기 블록의 헤더에 달린 Value 블록에서 횟수를 읽는다.
-        /// 값이 없으면 무한 반복(-1) — 실제 실행은 BlockExecutor가 1회로 제한한다.
         /// </summary>
         private static int ReadRepeatCount(CodingBlock block, out CodingBlock valueSource)
         {
+            // 값이 없으면 무한 반복(-1) — 실제 실행은 BlockExecutor가 1회로 제한한다.
             ValueOutSocket vos = block.GetSocket<ValueOutSocket>();
             if (vos && vos.Occupant && int.TryParse(vos.Occupant.name, out int n))
             {

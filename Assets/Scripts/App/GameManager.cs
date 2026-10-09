@@ -107,11 +107,11 @@ namespace App
         }
 
         /// <summary>
-        /// 일정 시간 입력이 없으면 화면 페이드와 함께 타이틀 씬으로 되돌아감.
-        /// 이미 타이틀 씬이면(타이머가 일시 정지 상태라 발생하지 않아야 하지만) 아무 동작도 하지 않음.
+        /// 일정 시간 입력이 없으면 화면 페이드와 함께 타이틀 씬으로 되돌아간다.
         /// </summary>
         private void OnInactivityTimeout()
         {
+            // 이미 타이틀 씬이면(타이머가 일시 정지 상태라 발생하지 않아야 하지만) 아무 동작도 하지 않는다.
             if (SceneManager.GetActiveScene().name == Constants.Scenes.Title) return;
 
             SceneFader.FadeAndLoad(Constants.Scenes.Title, logger: _logger).Forget();

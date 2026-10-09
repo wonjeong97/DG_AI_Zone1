@@ -13,11 +13,11 @@ namespace Game.Runtime
     {
         /// <summary>
         /// 프로그램 전체를 레벨 규칙에 맞게 채점해 총점을 반환한다 — 정답 방향은 출제 때 고른 문제 값의 정답(LevelData)을 받는다.
-        /// 레벨 데이터와 블록 라벨이 어긋나 값을 읽지 못하면 logger(없으면 Unity 콘솔)에 경고를 남긴다.
         /// </summary>
         public static int ScoreProgram(List<BlockInstruction> instructions, string questionValueKey, string correctAnswer,
             LevelKind kind, ILogger logger = null)
         {
+            // 레벨 데이터와 블록 라벨이 어긋나 값을 읽지 못하면 logger(없으면 Unity 콘솔)에 경고를 남긴다.
             // 레벨4(발전소)는 명령에 값이 없어 아래 순회 채점과 무관 — 놀이시설/조건/병원 3항목을 더한 별도 채점
             if (kind == LevelKind.PowerPlant)
                 return ScorePowerPlant(instructions);
@@ -57,10 +57,11 @@ namespace Game.Runtime
         // ── 최고 점수 값 조회 (AI 코딩 결과 표시용) ─────────────────
 
         /// <summary>
-        /// 레벨별 최고 점수를 반환한다. 레벨3(수력)은 조건×아니면×순서 3항목을 곱한 점수 체계라 별도 계산식을 쓴다.
+        /// 레벨별 최고 점수를 반환한다.
         /// </summary>
         public static int GetMaxScore(LevelKind kind)
         {
+            // 레벨3(수력)은 조건×아니면×순서 3항목을 곱한 점수 체계라 별도 계산식을 쓴다.
             if (kind == LevelKind.Hydro)
                 return Constants.Scores.HydroExactScore
                      * Constants.Scores.HydroElsePlacedScore
@@ -94,10 +95,10 @@ namespace Game.Runtime
 
         /// <summary>
         /// 첫 '만약' 블록에 연결된 조건 높이를 "5m" 형태로 반환한다 — 레벨3 결과의 '수문 개방 높이'/'조건 감지' 표시용.
-        /// 조건 블록이 없거나 높이를 읽을 수 없으면 null (= 조건 감지 OFF).
         /// </summary>
         public static string GetHydroGateHeight(List<BlockInstruction> instructions)
         {
+            // 조건 블록이 없거나 높이를 읽을 수 없으면 null (= 조건 감지 OFF).
             IfInstruction ifInstr = FindFirst<IfInstruction>(instructions);
             if (ifInstr?.Condition is not SimpleConditionExpr simple) return null;
 
@@ -121,12 +122,12 @@ namespace Game.Runtime
         }
 
         /// <summary>
-        /// 첫 '만약' 블록에 연결된 조건식을 반환한다 — 레벨4 결과의 '설정한 조건' 표시용. 만약/조건이 없으면 null.
-        /// 결과 텍스트는 폭이 좁아 '그리고'를 가운뎃점으로 줄인다 (디버그 코드 표시는 원문 그대로).
+        /// 실행될 수 있는 첫 '만약' 블록의 조건식을 레벨4 결과의 '설정한 조건' 문구로 반환한다(없거나 무한 반복 뒤라 실행되지 않으면 null).
         /// </summary>
         public static string GetConditionText(List<BlockInstruction> instructions)
         {
-            IfInstruction ifInstr = FindFirst<IfInstruction>(instructions);
+            // 결과 텍스트는 폭이 좁아 '그리고'를 가운뎃점으로 줄인다 (디버그 코드 표시는 원문 그대로)
+            IfInstruction ifInstr = FindReachableFirstIf(instructions);
             return ifInstr?.Condition switch
             {
                 SimpleConditionExpr s => s.Name,
@@ -140,10 +141,10 @@ namespace Game.Runtime
         /// <summary>
         /// '놀이시설 불 끄기'가 첫 '만약' 안(중첩 포함)에서 실제로 실행될 수 있고 함정 '놀이시설 불 켜기'를 쓰지 않았는지 확인한다 —
         /// 레벨4 놀이시설 채점과 결과의 '놀이시설 끄기 조건(만약)'이 같은 기준을 쓴다.
-        /// 무한 반복하기 뒤에 놓여 실행되지 않는 블록은 인정하지 않는다.
         /// </summary>
         public static bool IsAmusementPowerCut(List<BlockInstruction> instructions)
         {
+            // 무한 반복하기 뒤에 놓여 실행되지 않는 블록은 인정하지 않는다.
             IfInstruction ifInstr = FindFirst<IfInstruction>(instructions);
             if (ifInstr is null || ContainsCommandDeep(instructions, Constants.BlockLabels.AmusementOn)) return false;
 
@@ -156,11 +157,25 @@ namespace Game.Runtime
         }
 
         /// <summary>
-        /// 실행 순서대로 도달할 수 있는 명령을 모은다 — 무한 반복하기는 끝나지 않으므로 그 뒤 블록은 같은 목록이든 바깥 목록이든 실행되지 않는다.
-        /// 이 목록의 실행이 끝나지 않으면(무한 반복에 갇히면) true를 반환한다.
+        /// 첫 '만약'이 실행될 수 있으면 돌려주고, 없거나 무한 반복하기 뒤에 놓여 실행되지 않으면 null을 돌려준다.
+        /// </summary>
+        private static IfInstruction FindReachableFirstIf(List<BlockInstruction> instructions)
+        {
+            // 레벨4 조건 채점과 결과의 '설정한 조건'이 같은 기준을 쓴다 — 실행되지 않는 만약의 조건은 인정하지 않는다
+            IfInstruction ifInstr = FindFirst<IfInstruction>(instructions);
+            if (ifInstr is null) return null;
+
+            HashSet<BlockInstruction> reachable = new HashSet<BlockInstruction>();
+            CollectReachable(instructions, reachable);
+            return reachable.Contains(ifInstr) ? ifInstr : null;
+        }
+
+        /// <summary>
+        /// 실행 순서대로 도달할 수 있는 명령을 모으고, 이 목록의 실행이 끝나지 않으면(무한 반복에 갇히면) true를 반환한다.
         /// </summary>
         private static bool CollectReachable(List<BlockInstruction> list, HashSet<BlockInstruction> reachable)
         {
+            // 무한 반복하기는 끝나지 않으므로 그 뒤 블록은 같은 목록이든 바깥 목록이든 실행되지 않는다.
             if (list is null) return false;
 
             foreach (BlockInstruction instr in list)
@@ -188,10 +203,11 @@ namespace Game.Runtime
 
         /// <summary>
         /// '병원 불 켜기'가 반복하기 안에 있고 함정 '병원 불 끄기'를 쓰지 않았는지 확인한다 —
-        /// 레벨4 병원 채점과 결과의 '병원 전력 유지'가 같은 기준을 쓴다. 반복하기가 만약 안이든 밖이든 상관없다.
+        /// 레벨4 병원 채점과 결과의 '병원 전력 유지'가 같은 기준을 쓴다.
         /// </summary>
         public static bool IsHospitalPowerKept(List<BlockInstruction> instructions)
         {
+            // 반복하기가 만약 안이든 밖이든 상관없다.
             RepeatInstruction repInstr = FindFirst<RepeatInstruction>(instructions);
             return repInstr is not null
                 && ContainsCommandDeep(repInstr.Body, Constants.BlockLabels.HospitalOn)
@@ -345,11 +361,12 @@ namespace Game.Runtime
 
         /// <summary>
         /// 레벨4를 채점한다 — 놀이시설(만약 안에서 끄기) + 조건(단일/그리고/또는) + 병원(반복하기 안에서 켜기) 3항목을 더한다.
-        /// 함정 블록(놀이시설 불 켜기·병원 불 끄기·낮·전기 여유)을 쓰면 관련 항목이 감점된다.
         /// </summary>
         private static int ScorePowerPlant(List<BlockInstruction> instructions)
         {
-            IfInstruction ifInstr = FindFirst<IfInstruction>(instructions);
+            // 함정 블록(놀이시설 불 켜기·병원 불 끄기·낮·전기 여유)을 쓰면 관련 항목이 감점된다.
+            // 무한 반복하기 뒤에 놓여 실행되지 않는 만약은 조건도 0점이다
+            IfInstruction ifInstr = FindReachableFirstIf(instructions);
 
             int amusementScore = IsAmusementPowerCut(instructions)
                 ? Constants.Scores.PowerPlantAmusementOffScore
@@ -424,9 +441,9 @@ namespace Game.Runtime
             return false;
         }
 
+        // 둘 다 한쪽에 몰려있거나 순서가 반대(수문 닫기가 Then, 수문 열기가 Else)면 1점.
         /// <summary>
         /// 수력 레벨 개방/폐쇄 순서를 채점한다 — 수문 열기가 Then에, 수문 닫기가 Else에 있어야 정답(5점).
-        /// 둘 다 한쪽에 몰려있거나 순서가 반대(수문 닫기가 Then, 수문 열기가 Else)면 1점.
         /// </summary>
         private static int ScoreHydroGateOrder(IfInstruction ifInstr)
             => IsHydroGateOrderCorrect(ifInstr)

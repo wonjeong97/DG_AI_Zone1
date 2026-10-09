@@ -21,10 +21,10 @@ namespace Game.Runtime
 
         /// <summary>
         /// 명령 목록을 START…END 코드 문자열로 만든다.
-        /// includeEnd: 체인이 완성하기(End)까지 도달했을 때만 END를 출력(미연결이면 생략).
         /// </summary>
         public static string ToCode(IReadOnlyList<BlockInstruction> program, bool includeEnd)
         {
+            // includeEnd: 체인이 완성하기(End)까지 도달했을 때만 END를 출력(미연결이면 생략).
             // 하위 메서드에 ref로 넘기므로 using 대신 finally에서 직접 반환한다
             Utf16ValueStringBuilder sb = ZString.CreateStringBuilder();
             try
@@ -76,10 +76,10 @@ namespace Game.Runtime
 
         /// <summary>
         /// 반복/만약 안에 들어간 함수 호출까지 수집한다.
-        /// 함수 본문 안의 함수는 수집하지 않는다 — 중첩 함수 정의는 지원 대상이 아니다.
         /// </summary>
         private static void CollectFunctions(BlockInstruction instr, List<FunctionInstruction> functions)
         {
+            // 함수 본문 안의 함수는 수집하지 않는다 — 중첩 함수 정의는 지원 대상이 아니다.
             if (instr is FunctionInstruction fn)
             {
                 functions.Add(fn);

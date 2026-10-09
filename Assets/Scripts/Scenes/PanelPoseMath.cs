@@ -25,7 +25,7 @@ namespace Scenes
         }
 
         /// <summary>
-        /// "30도" 같은 라벨에서 각도를 읽는다. 숫자가 없거나 0 이하면 false를 반환한다.
+        /// "30도" 같은 라벨에서 각도를 읽고, 숫자가 없거나 0 이하면 false를 반환한다.
         /// </summary>
         public static bool TryParseAngleDegrees(string angle, out int degrees)
         {

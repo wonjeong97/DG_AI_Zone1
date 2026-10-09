@@ -38,10 +38,10 @@ namespace Game
 
         /// <summary>
         /// 레이아웃의 인벤토리 블록을 생성해 인벤토리(제어 블록은 코딩 패널)에 배치하고 카테고리 탭을 구성한다.
-        /// 만드는 동안 인벤토리를 숨기고, 중간에 예외·취소로 빠져나가도 다시 보이게 한다.
         /// </summary>
         public async UniTask Spawn(BlockLayoutData layout, CancellationToken ct)
         {
+            // 만드는 동안 인벤토리를 숨기고, 중간에 예외·취소로 빠져나가도 다시 보이게 한다.
             if (!HasDependencies()) return;
 
             // 스폰 및 카테고리 구성 중 인벤토리 깜빡임 방지를 위해 숨김 처리

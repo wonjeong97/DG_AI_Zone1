@@ -44,11 +44,11 @@ namespace Scenes
 
         /// <summary>
         /// 현재 레벨의 헤더 이미지와 스토리 패널을 켜고 LevelData의 스토리 문구를 채운다.
-        /// level은 현재 플레이 중인 레벨로, 진행도가 아닌 실제 로드된 레벨을 기준으로 골라야 testLevel 단독 테스트에서도 올바른 패널이 열린다.
-        /// 헤더 이미지·패널·스토리 텍스트 배열은 모두 레벨 순서(레벨1=0번)라 LevelData.levelIndex로 고른다.
         /// </summary>
         public void Show(LevelData level)
         {
+            // level은 현재 플레이 중인 레벨로, 진행도가 아닌 실제 로드된 레벨을 기준으로 골라야 testLevel 단독 테스트에서도 올바른 패널이 열린다.
+            // 헤더 이미지·패널·스토리 텍스트 배열은 모두 레벨 순서(레벨1=0번)라 LevelData.levelIndex로 고른다.
             int index = level ? level.levelIndex : -1;
 
             Sprite header = ItemAt(levelHeaderImages, index);

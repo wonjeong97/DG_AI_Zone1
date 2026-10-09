@@ -43,6 +43,9 @@ namespace App
         {
             builder.RegisterComponentInHierarchy<GameManager>();
             builder.Register<VisitorInfoProvider>(Lifetime.Singleton);
+
+            // 관리자 창이 열려 있는지 — 타이틀이 그동안 찍힌 QR을 서버로 보내지 않게 한다
+            builder.Register<Admin.AdminScreenState>(Lifetime.Singleton);
             builder.Register<Network.VisitorApiClient>(Lifetime.Singleton);
 
             // 한 판의 진행 상태 — 앱을 켤 때마다 새 인스턴스로 시작하므로 처음부터 시작한다
@@ -53,7 +56,7 @@ namespace App
         }
 
         /// <summary>
-        /// 템플릿 컴포넌트를 즉시 만들고, 템플릿 디버그 단축키를 이 프로젝트의 입력과 겹치지 않게 바꾼다.
+        /// 템플릿 컴포넌트를 즉시 만든다.
         /// </summary>
         private static void ConfigureTemplateComponents(IContainerBuilder builder)
         {
@@ -64,11 +67,15 @@ namespace App
                 container.Resolve<GameCloser>();
                 container.Resolve<SystemCanvas>();
             });
+        }
 
-            // 템플릿 디버그 단축키(D·I·M)를 Ctrl 조합으로 — QR 스캐너가 입력하는 uid 문자와 겹치지 않게
-            // GameManagerBase가 주입받는 것과 같은 싱글톤 인스턴스라 그대로 반영된다
-            builder.RegisterBuildCallback(container =>
-                DebugShortcutBindings.Apply(container.Resolve<TemplateInputActions>()));
+        /// <summary>
+        /// 템플릿 단축키(D·I·M·F)를 Ctrl 조합으로 바꾼다 — QR 스캐너가 입력하는 uid 문자와 겹치지 않게 한다.
+        /// </summary>
+        protected override void ConfigureInputBindings(TemplateInputActions inputActions)
+        {
+            // 템플릿이 입력 액션을 만든 직후 어떤 소비자가 켜기 전에 불러 준다
+            DebugShortcutBindings.Apply(inputActions);
         }
 
         /// <summary>
@@ -91,12 +98,11 @@ namespace App
         }
 
         /// <summary>
-        /// 체험자 설정(VisitorSettings SO)을 Addressables로 불러온다. Configure는 동기 실행이라 WaitForCompletion으로 동기 로드한다.
-        /// 불러오지 못하면 null이 등록돼 루트 빌드가 깨지지 않도록, 에셋 기본값과 같은 임시 인스턴스로 대체하고 에러를 남긴다
-        /// (관리자 페이지에서 바꾼 PlayerPrefs 값은 그대로 읽힌다).
+        /// 체험자 설정(VisitorSettings SO)을 Addressables로 불러온다.
         /// </summary>
         private static VisitorSettings LoadVisitorSettings()
         {
+            // Configure는 동기 실행이라 WaitForCompletion으로 동기 로드한다.
             try
             {
                 VisitorSettings settings = Addressables.LoadAssetAsync<VisitorSettings>(Constants.ResourcePaths.VisitorSettingsKey).WaitForCompletion();
@@ -108,18 +114,20 @@ namespace App
                 Debug.LogError($"[GameLifetimeScope] VisitorSettings 로드 중 예외: {ex.Message}");
             }
 
+            // 불러오지 못하면 null이 등록돼 루트 빌드가 깨지지 않도록, 에셋 기본값과 같은 임시 인스턴스로 대체하고 에러를 남긴다
+            // (관리자 페이지에서 바꾼 PlayerPrefs 값은 그대로 읽힌다).
             Debug.LogError($"[GameLifetimeScope] Addressables 주소 '{Constants.ResourcePaths.VisitorSettingsKey}'의 VisitorSettings를 불러오지 못해 기본값으로 대체합니다.");
             return ScriptableObject.CreateInstance<VisitorSettings>();
         }
 
         /// <summary>
         /// Addressables로 관리하는 TMP 폰트를 MaterialReferenceManager 캐시에 미리 등록한다.
-        /// TMP의 &lt;font="..."&gt; 태그는 이 캐시를 먼저 조회하고, 없으면 Resources에서만 폰트를 찾는다.
-        /// 등록해 두지 않으면 태그가 해석되지 않고 문자열 그대로 화면에 출력된다.
-        /// 첫 씬이 그려지기 전에 끝나야 하므로 동기 로드한다.
         /// </summary>
         private static void RegisterTmpFonts(Microsoft.Extensions.Logging.ILogger logger)
         {
+            // TMP의 <font="..."> 태그는 이 캐시를 먼저 조회하고, 없으면 Resources에서만 폰트를 찾는다.
+            // 등록해 두지 않으면 태그가 해석되지 않고 문자열 그대로 화면에 출력된다.
+            // 첫 씬이 그려지기 전에 끝나야 하므로 동기 로드한다.
             try
             {
                 IList<TMP_FontAsset> fonts = Addressables
@@ -168,10 +176,10 @@ namespace App
 
         /// <summary>
         /// 새로 로드된 씬의 오브젝트에 [Inject]를 주입한다.
-        /// App(DontDestroyOnLoad) 하위는 컨테이너 빌드 시 이미 주입되므로 제외한다.
         /// </summary>
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
+            // App(DontDestroyOnLoad) 하위는 컨테이너 빌드 시 이미 주입되므로 제외한다.
             if (scene == gameObject.scene) return;
 
             // 타이틀로 돌아온 경우(아웃트로 종료 버튼·비활동 타임아웃) 진행도 처리
@@ -184,15 +192,12 @@ namespace App
 
         /// <summary>
         /// 타이틀로 돌아오면 그 체험자의 체험이 끝나므로 운영 모드와 상관없이 진행도와 체험자 기록을 비운다.
-        /// <para>
-        /// 서버 미사용: 다음 체험자는 부팅 때처럼 레벨1부터 시작한다. 비활동 타임아웃으로 중간에 이탈한 경우도 같다.
-        /// </para>
-        /// <para>
-        /// 서버 사용: 진행도는 서버에 남아 있어, 다음에 QR을 찍으면 타이틀이 getUser로 그 체험자의 진행도를 다시 받는다.
-        /// </para>
         /// </summary>
         private void HandleReturnToTitle()
         {
+            // 서버 미사용: 다음 체험자는 부팅 때처럼 레벨1부터 시작한다. 비활동 타임아웃으로 중간에 이탈한 경우도 같다.
+            // 서버 사용: 진행도는 서버에 남아 있어, 다음에 QR을 찍으면 타이틀이 getUser로 그 체험자의 진행도를 다시 받는다.
+
             // 관리자 레벨 이동 표시(isAdminLevelJump)도 함께 비워진다 — 다음 체험자의 스토리 < 버튼·결과 다음 버튼이
             // 관리자 화면으로 가지 않는다
             Container.Resolve<GameSession>().ResetProgress();

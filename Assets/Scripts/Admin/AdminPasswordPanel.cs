@@ -60,15 +60,33 @@ namespace Admin
 
         private ILogger<AdminPasswordPanel> _logger;
         private SoundManager _soundManager;
+        private AdminScreenState _screenState;
 
         /// <summary>
-        /// 로거와 사운드 매니저를 주입받는다.
+        /// 로거, 사운드 매니저, 관리자 창 상태를 주입받는다.
         /// </summary>
         [Inject]
-        public void Construct(ILogger<AdminPasswordPanel> logger, SoundManager soundManager)
+        public void Construct(ILogger<AdminPasswordPanel> logger, SoundManager soundManager, AdminScreenState screenState)
         {
             _logger = logger;
             _soundManager = soundManager;
+            _screenState = screenState;
+        }
+
+        /// <summary>
+        /// 창이 켜졌음을 알린다 — 열려 있는 동안 타이틀은 찍힌 QR을 서버로 보내지 않는다.
+        /// </summary>
+        private void OnEnable()
+        {
+            if (_screenState != null) _screenState.SetOpen(this, true);
+        }
+
+        /// <summary>
+        /// 창이 꺼졌음을 알린다.
+        /// </summary>
+        private void OnDisable()
+        {
+            if (_screenState != null) _screenState.SetOpen(this, false);
         }
 
         /// <summary>
@@ -188,7 +206,7 @@ namespace Admin
         }
 
         /// <summary>
-        /// 숫자 한 자리를 입력한다. 최대 자릿수를 넘는 입력은 무시한다.
+        /// 숫자 한 자리를 입력하고, 최대 자릿수를 넘는 입력은 무시한다.
         /// </summary>
         private void OnDigitClicked(int digit)
         {
@@ -265,7 +283,7 @@ namespace Admin
         }
 
         /// <summary>
-        /// 한 번 더 입력한 값이 새 비밀번호와 같으면 창을 닫고 저장한다. 다르면 새 비밀번호부터 다시 받는다.
+        /// 한 번 더 입력한 값이 새 비밀번호와 같으면 창을 닫고 저장하며, 다르면 새 비밀번호부터 다시 받는다.
         /// </summary>
         private void ConfirmNewPassword()
         {

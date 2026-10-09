@@ -49,6 +49,14 @@ namespace Admin
             { ('ㅡ', 'ㅣ'), 'ㅢ' }
         };
 
+        // 겹모음 → 지울 때 남길 앞 모음. 지우기를 한 번 누르면 겹모음의 뒤쪽만 지운다(ㅘ → ㅗ)
+        private readonly static Dictionary<char, char> JungSplit = new()
+        {
+            { 'ㅘ', 'ㅗ' }, { 'ㅙ', 'ㅗ' }, { 'ㅚ', 'ㅗ' },
+            { 'ㅝ', 'ㅜ' }, { 'ㅞ', 'ㅜ' }, { 'ㅟ', 'ㅜ' },
+            { 'ㅢ', 'ㅡ' }
+        };
+
         private readonly StringBuilder _committed = new();
 
         private int _cho = -1;
@@ -76,11 +84,12 @@ namespace Admin
         private int TextLength => _committed.Length + (RenderActiveChar() == NoActiveSyllable ? 0 : 1);
 
         /// <summary>
-        /// 자모 하나를 입력한다. 초성/중성/종성 자리와 겹모음·겹받침 결합 여부를 판단해 조합을 이어가거나
-        /// 현재 음절을 완성 텍스트로 확정하고 새 음절을 시작한다.
+        /// 자모 하나를 입력한다.
         /// </summary>
         public void Push(char jamo)
         {
+            // 초성/중성/종성 자리와 겹모음·겹받침 결합 여부를 판단해 조합을 이어가거나
+            // 현재 음절을 완성 텍스트로 확정하고 새 음절을 시작한다.
             int choIndex = Array.IndexOf(Cho, jamo);
             if (choIndex >= 0)
             {
@@ -96,21 +105,22 @@ namespace Admin
         }
 
         /// <summary>
-        /// 조합 없이 문자 하나를 그대로 확정 텍스트에 붙인다. 영문·숫자처럼 조합이 필요 없는 문자를 넣을 때 쓴다.
-        /// 조합 중이던 한글 음절이 있으면 먼저 확정한 뒤 이어 붙인다.
+        /// 조합 없이 문자 하나를 그대로 확정 텍스트에 붙인다.
         /// </summary>
         public void AppendRaw(char c)
         {
+            // 영문·숫자처럼 조합이 필요 없는 문자를 넣을 때 쓴다.
+            // 조합 중이던 한글 음절이 있으면 먼저 확정한 뒤 이어 붙인다.
             Commit();
             _committed.Append(c);
         }
 
         /// <summary>
-        /// 결과 길이가 maxLength를 넘지 않을 때만 자모를 입력한다. 넘으면 입력 전 상태를 그대로 두고 false를 돌려준다.
-        /// 이미 maxLength에 도달했어도 조합 중인 음절에 받침을 더하는 것처럼 길이가 늘지 않는 입력은 허용한다.
+        /// 결과 길이가 maxLength를 넘지 않을 때만 자모를 입력하고, 넘으면 입력 전 상태를 그대로 두고 false를 돌려준다.
         /// </summary>
         public bool TryPush(char jamo, int maxLength)
         {
+            // 이미 maxLength에 도달했어도 조합 중인 음절에 받침을 더하는 것처럼 길이가 늘지 않는 입력은 허용한다.
             // Push는 _committed에 덧붙이기만 하고 지우지 않으므로, 되돌릴 때는 길이만 잘라내면 된다
             int committedLength = _committed.Length;
             int cho = _cho;
@@ -128,11 +138,11 @@ namespace Admin
         }
 
         /// <summary>
-        /// 길이가 maxLength 미만일 때만 문자 하나를 그대로 붙인다. AppendRaw는 항상 한 글자만 늘리므로
-        /// 미리 길이만 확인하면 된다.
+        /// 길이가 maxLength 미만일 때만 문자 하나를 그대로 붙인다.
         /// </summary>
         public bool TryAppendRaw(char c, int maxLength)
         {
+            // AppendRaw는 항상 한 글자만 늘리므로 미리 길이만 확인하면 된다.
             if (TextLength >= maxLength) return false;
 
             AppendRaw(c);
@@ -140,11 +150,11 @@ namespace Admin
         }
 
         /// <summary>
-        /// 조합 중인 음절을 한 단계 되돌린다(종성 → 중성 → 초성 순으로 제거). 조합 중인 음절이
-        /// 없으면 이미 확정된 텍스트의 마지막 글자를 지운다.
+        /// 조합 중인 음절을 한 단계 되돌린다(종성 → 중성 → 초성 순으로 제거, 겹받침·겹모음은 뒤쪽만).
         /// </summary>
         public void Backspace()
         {
+            // 조합 중인 음절이 없으면 이미 확정된 텍스트의 마지막 글자를 지운다.
             if (_cho >= 0)
             {
                 if (_jong != 0)
@@ -153,7 +163,7 @@ namespace Admin
                 }
                 else if (_jung >= 0)
                 {
-                    _jung = -1;
+                    _jung = JungSplit.TryGetValue(Jung[_jung], out char firstJung) ? Array.IndexOf(Jung, firstJung) : -1;
                 }
                 else
                 {
@@ -181,12 +191,12 @@ namespace Admin
         }
 
         /// <summary>
-        /// 자음 하나를 조합 중인 음절에 넣는다. 비어 있으면 초성이 되고, 초성과 중성이 이미 있으면
-        /// 종성으로 붙거나 앞선 종성과 겹받침(ㄱ+ㅅ → ㄳ 등)으로 합쳐진다.
-        /// 종성이 될 수 없는 자음(ㄸ/ㅃ/ㅉ)이거나 더 합칠 수 없으면 지금까지를 확정하고 새 음절을 시작한다.
+        /// 자음 하나를 조합 중인 음절에 넣는다.
         /// </summary>
         private void PushCho(int choIndex, char jamo)
         {
+            // 비어 있으면 초성이 되고, 초성과 중성이 이미 있으면 종성으로 붙거나 앞선 종성과 겹받침(ㄱ+ㅅ → ㄳ 등)으로 합쳐진다.
+            // 종성이 될 수 없는 자음(ㄸ/ㅃ/ㅉ)이거나 더 합칠 수 없으면 지금까지를 확정하고 새 음절을 시작한다.
             if (_cho < 0)
             {
                 _cho = choIndex;
@@ -227,13 +237,12 @@ namespace Admin
         }
 
         /// <summary>
-        /// 모음 하나를 조합 중인 음절에 넣는다. 중성이 비었으면 그 자리에 들어가고, 이미 있으면
-        /// 앞선 모음과 겹모음(ㅗ+ㅏ → ㅘ 등)으로 합쳐진다.
-        /// 종성이 있는 상태에서 모음이 오면 그 종성을 다음 음절의 초성으로 넘긴다(겹받침이면 뒤쪽만 넘긴다).
-        /// 초성 없는 모음은 조합될 수 없는 낱자이므로 그대로 확정 텍스트에 붙인다.
+        /// 모음 하나를 조합 중인 음절에 넣는다.
         /// </summary>
         private void PushJung(int jungIndex, char jamo)
         {
+            // 중성이 비었으면 그 자리에 들어가고, 이미 있으면 앞선 모음과 겹모음(ㅗ+ㅏ → ㅘ 등)으로 합쳐진다.
+            // 종성이 있는 상태에서 모음이 오면 그 종성을 다음 음절의 초성으로 넘긴다(겹받침이면 뒤쪽만 넘긴다).
             if (_cho < 0)
             {
                 // 초성 없는 모음은 조합될 수 없는 낱자이므로 그대로 확정 텍스트에 붙인다
@@ -294,11 +303,11 @@ namespace Admin
         }
 
         /// <summary>
-        /// 지금 조합 중인 음절을 글자 하나로 만든다. 초성만/중성만 있으면 그 낱자를, 둘 다 있으면
-        /// 완성형 음절을 돌려주고, 조합 중인 것이 없으면 NoActiveSyllable을 돌려준다.
+        /// 지금 조합 중인 음절을 글자 하나로 만든다.
         /// </summary>
         private char RenderActiveChar()
         {
+            // 초성만/중성만 있으면 그 낱자를, 둘 다 있으면 완성형 음절을 돌려주고, 조합 중인 것이 없으면 NoActiveSyllable을 돌려준다.
             if (_cho < 0 && _jung < 0) return NoActiveSyllable;
             if (_cho < 0) return Jung[_jung];
             if (_jung < 0) return Cho[_cho];

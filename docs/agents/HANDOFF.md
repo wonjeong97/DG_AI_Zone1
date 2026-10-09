@@ -13,6 +13,100 @@
 
 ---
 
+### [2026-10-10] Claude → Antigravity · HuliacDev Template 26.10.10-1 반영 (fix/third-audit)
+- 요청(사용자): 템플릿에 창 포커스 복구·Reporter 수정을 넣어 패키지를 올렸으니 이어서 진행.
+- 템플릿 변경: WindowFocusRestorer(앱이 포커스를 잃으면 3초 뒤 창을 다시 앞으로, Windows 스탠드얼론 빌드만, 기본 켜짐, System/ToggleFocusRestore 기본 F), RootLifetimeScope.ConfigureInputBindings 훅, Reporter.Clear가 cachedString도 비움. packages-lock 고정 커밋 640d05e → 36ec69a(사용자가 갱신).
+- 이 프로젝트 변경: F가 단일 키면 QR 스캐너의 대문자 F로 포커스 복구가 꺼지므로 DebugShortcutBindings에 ToggleFocusRestore를 추가해 Ctrl+F로. 적용 위치를 GameLifetimeScope 빌드 콜백에서 ConfigureInputBindings override로 옮김(템플릿이 입력 액션 생성 직후 소비자보다 먼저 호출). Settings.json focusRestoreDelay·focusRestoreRetryInterval 3. DebugShortcutBindingsTests에 F 케이스. CHANGELOG Added 1줄, TODO, 프로젝트 메모리(template-debug-keys-override) 갱신.
+- 테스트: Rider 에러 0, Unity 컴파일 에러 0, PlayMode 186/186(뒤에 EditorSettings 되돌림). 포커스 복구는 빌드에서만 동작해 현장 빌드에서 확인 필요.
+- 확인 요청·결과(agy 1묶음): 단축키 오버라이드·훅 호출 시점·빌드 콜백 제거, 설정 키 이름·CHANGELOG·TODO 2/2 통과.
+- PR #91 확인: 코멘트·리뷰 없음, CI 없음, 병합 가능(CLEAN). 추가 수정 없이 머지. CHANGELOG [Unreleased] 항목은 2026-10-10 섹션으로 옮김. 현장 빌드 확인(멀티터치·한 손가락 드래그·포커스 복구·Ctrl+F)은 남아 있음.
+
+### [2026-10-10] Claude → Antigravity · 6차 검사 지적 수정 (fix/third-audit)
+- 요청(사용자): 전부 수정. 관리자 창이 열렸을 때 QR을 서버로 보내지 않기. 설정·운영 1·2·3은 그대로, 4(포커스를 잃으면 스캐너 입력 무시)는 막되 포커스 복구 기능은 Template 패키지에 넣기로 하고 Reporter 수정과 함께 Template 수정 프롬프트를 받음. 실제 플레이는 터치 모니터만이라 마우스·펜 전환 문제는 고치지 않음(프로젝트 메모리 touch-only-input).
+- 변경:
+  - Admin/AdminScreenState(새 파일, DI 싱글턴): 비밀번호 창·관리자 화면이 OnEnable/OnDisable로 열림을 기록. TitleSceneManager.IsAdminBusy(관리자 창 열림 또는 isAdminLevelJump)면 SubmitScan이 QR을 버리고, ConfirmVisitorAsync는 checkActive·getUser 뒤마다 확인해 기록하지 않고 (discarded) 반환 → CheckVisitorAsync가 QR 대기로.
+  - CodingBlock: CancelDrags(onlyOrphaned) — 손가락이 사라진 블록은 처음 알아챈 블록의 LateUpdate가 같은 프레임에 모아 핀치 취소와 같은 재시도로 되돌림. 함께 되돌릴 때 끌기 시작 순서(_dragStartOrder)의 역순(나중에 집은 블록 먼저)으로 정렬. 쓰이지 않게 된 CancelDrag 삭제.
+  - CHANGELOG Unreleased Changed 1·Fixed 1.
+- 새 테스트(2): SocketOwnershipTests 같은 자리에서 떼어 낸 두 블록 핀치 취소 순서, 같은 체인 두 블록 손가락이 함께 사라짐(UnityTest).
+- 테스트: Rider 에러 0, Unity 컴파일 에러 0, PlayMode 185/185(뒤에 EditorSettings 되돌림).
+- 확인 요청·결과(agy, 2묶음): 드래그 일괄 복귀·순서·종료·호출처·테스트 2/2, 관리자 창 상태·QR 무시·늦은 결과 버림·DI 주입·닫은 뒤 재동작 2/2 통과.
+
+### [2026-10-10] Claude → Antigravity · 6차 전체 검사(5차 수정 회귀·빌드 환경 차이·비동기 경합) — 읽기 전용
+- 방식: Claude 서브에이전트 3개 + agy 3묶음(바뀐 드래그 코드·테스트, 3/3 문제 없음). 마감 기준 제안: 중간 이상 코드 버그 0건인 검사가 나오면 마감.
+- 결과: 중간 이상 코드 버그 0건. 5차 수정(LateUpdate 사라진 손가락 감지, 핀치 복귀 재시도)이 정상 드래그를 잘못 취소하는 경로 없음 — 입력 모듈이 pointerDrag를 바꾸는 곳은 누름·뗌(OnDrop→OnEndDrag→null, 같은 Process 안)·RemovePointerAtIndex뿐이고 EventSystem.Update가 LateUpdate보다 먼저.
+- 낮음(코드): 관리자 창이 떠 있는 동안 찍은 QR의 서버 응답이 레벨 이동 뒤 페이드 중에 오면 체험자·해금 레벨을 다시 채움(TitleSceneManager.ConfirmVisitorAsync, 업로드는 isAdminLevelJump로 막힘) / LateUpdate 감지 경로는 같은 체인 위·아래 블록이 한 프레임에 함께 취소될 때 재시도가 없음(마우스·터치 섞임, 장치 재연결) / 같은 소켓으로 돌아갈 블록이 둘이면 HashSet 순서에 따라 순서가 뒤집힐 수 있음(추정) / 마우스와 펜을 번갈아 쓰면 이벤트 객체를 공유해 pointerId만 바뀌어 블록이 뜰 수 있음(펜 장치가 있을 때만, 추정).
+- 설정·운영(결정 필요): VisitorSettings 에셋 defaultServerConnected 0이라 새 PC 첫 실행은 로컬 모드(에디터와 플레이어 PlayerPrefs가 다름) / Addressables 'Build Addressables on Player Build'가 PC별 EditorPrefs를 따름 — 꺼진 PC에서 빌드하면 예전 콘텐츠 / Admin.json이 StreamingAssets에 있어 재배포로 덮으면 바꾼 비밀번호가 기본값으로 / Input System 기본 배경 동작이라 앱이 포커스를 잃으면 키보드(스캐너) 입력이 화면을 한 번 터치할 때까지 무시될 수 있음(추정) / 4_Result CanvasScaler Match만 0(16:9에서는 차이 없음).
+- 결과: 수정 범위는 사용자 결정.
+
+### [2026-10-10] Claude → Antigravity · 5차 검사 지적 수정 (fix/third-audit)
+- 요청(사용자): 전부 수정, 스토리 문구는 '계산', 템플릿은 수정용 프롬프트를 따로 받음.
+- 변경:
+  - CodingBlock: OnBeginDrag에서 끄는 이벤트·대상(_dragEvent·_dragTarget)을 기억하고, LateUpdate에서 끄는 중인데 이벤트의 pointerDrag가 대상이 아니면(입력 모듈이 OnEndDrag 없이 포인터를 지움) CancelDrag로 원래 자리로 되돌린다. 끝·취소·비활성 때 참조를 놓는다(ForgetDragEvent). pointerDrag 없는 이벤트(테스트)는 감시하지 않는다.
+  - 핀치 취소: CancelDrag를 StopDrag(상태 정리)와 TryRestoreDragHome(fallbackToInventory)로 나누고, CancelActiveDrags는 원래 소켓에 못 붙은 블록을 다른 블록이 돌아간 뒤 다시 시도(더 붙는 블록이 없으면 끝), 남은 블록만 블록 목록으로. 블록 목록으로 대체될 때 행동 로그 한 줄(LogDragResult).
+  - 05_FutureEnergyData storyText '계선하려면' → '계산하려면'.
+  - CHANGELOG Unreleased Fixed 3줄.
+  - 템플릿 Reporter cachedString은 이 저장소에서 고치지 않고 사용자에게 Template 수정 프롬프트를 드림.
+- 새 테스트(2): SocketOwnershipTests 끝 신호 없이 사라진 손가락(UnityTest, 한 프레임 뒤 코딩 영역으로 복귀·blocksRaycasts), 같은 체인 두 블록 핀치 복귀 순서.
+- 테스트: Rider 에러 0, Unity 컴파일 에러 0, PlayMode 183/183(뒤에 EditorSettings 되돌림).
+- 확인 요청·결과(agy, 3묶음): 사라진 손가락 감지·참조 해제 2/2, 핀치 재시도 종료·순서·로그·상태 정리·테스트 2/2, 스토리 한 글자 교체 1/1 통과.
+
+### [2026-10-10] Claude → Antigravity · 5차 전체 검사(수정 회귀·장시간 운영·데이터 정합성) — 읽기 전용
+- 방식: Claude 서브에이전트 3개(바뀐 드래그 코드를 상태 기계로 다시 추적 / 하루 종일 반복 운영의 누수·정밀도·흐름 정지 / 블록 라벨·레벨 데이터·씬 참조·Addressables·Always Included 셰이더 정합성) + agy 4묶음(바뀐 코드 구간, 4/4 문제 없음).
+- 수정 회귀: 4차 수정으로 새로 생긴 소프트락·blocksRaycasts 잔류·점유 불일치·로그 중복 없음(같은 블록 두 손가락, 핀치 취소 후 재집기, 탭 전환, 씬 이탈, 다른 블록 두 손가락 시나리오).
+- 중간(기존 문제): 입력 모듈이 OnEndDrag 없이 포인터를 지우면(마우스로 끄는 중 화면 터치 — SingleMouseOrPenButMultiTouchAndTrack이 마우스 포인터 제거, 터치 장치 재연결 추정) 블록이 캔버스 위에 뜬 채 blocksRaycasts=false라 다시 집을 수 없고, 코딩 패널 핀치나 씬 이탈로만 풀린다(CodingBlock.cs OnBeginDrag 이후). 제안: OnBeginDrag의 eventData를 기억해, 끄는 중인데 그 eventData.pointerDrag가 이 블록이 아니면(RemovePointerAtIndex가 비움) CancelDrag.
+- 중간(템플릿): Reporter(Runtime/ThirdParty/LogViewer/Reporter/Reporter.cs)의 cachedString 사전이 AddLog마다 커지는데 Clear()(20MB 상한)가 비우지 않음 — ZLogger 시각 접두사로 거의 모든 줄이 달라 앱이 켜져 있는 동안 계속 쌓인다(Reporter는 GameLifetimeScope 프리팹에 켜져 있음). Template TODO 대상.
+- 낮음: 같은 체인의 두 블록을 두 손가락이 끄는 중 핀치 취소 순서(HashSet 순회)에 따라 아래 블록이 위 블록보다 먼저 복귀하면 CanAttachNow 실패로 블록 목록으로 감 / 핀치 복귀가 블록 목록으로 대체될 때 체험자 행동 로그가 남지 않음.
+- 확인(콘텐츠): 05_FutureEnergyData storyText '여러 가지 에너지를 하나씩 계선하려면' 오타(개선·계산?), 같은 문구가 '원자력'을 언급하지만 레벨5 블록에 원자력 없음.
+- 정합성 문제 없음: 레벨 1~5 정답 조립 시 실제 라벨로 만점·성공, 씬·프리팹 참조 빈 칸 0, Addressables 키·Always Included 셰이더·빌드 씬 모두 있음.
+- 오탐: CategoryZone 버튼 프리팹 Release 없음(정적 필드라 한 번만 로드).
+- 결과: 수정 범위는 사용자 결정.
+
+### [2026-10-10] Claude → Antigravity · 4차 검사 지적 전부 수정 (fix/third-audit)
+- 요청(사용자): 지적 전부 수정, 효율 표시 형식({0:D2}%)은 그대로.
+- 변경:
+  - 같은 블록 두 손가락: CodingBlock이 드래그 손가락(_dragPointerId)을 기억하고 OnDrag·OnEndDrag·CodingZone·BlockZone.OnDrop은 그 손가락(IsDragPointer)만 따른다. OnBeginDrag는 다른 손가락이 '지금 끄는 중(_isDragging)'일 때만 거부한다 — 입력 모듈(InputSystemUIInputModule.RemovePointerAtIndex)은 포인터를 지울 때 OnEndDrag를 보내지 않아, 주인 기록만 보고 막으면 핀치 취소 뒤 블록을 다시 집을 수 없게 되기 때문(처음 구현에서 발견해 바꿈).
+  - 자기 순환 방지: BlockSocket.CanFit는 displaced == incoming이면 거부, AttachDisplacedToTail도 같은 경우 건너뜀.
+  - OnBeginDrag는 떼어 낸 소켓의 점유자가 자기일 때만 Release(아니면 경고). 핀치 복귀(RestoreDragHome)는 CanAttachNow를 거쳐 실패하면 블록 목록으로.
+  - 결과 화면: RunWithTimerPausedAsync는 씬 이탈 취소(ct 취소)면 Resume하지 않음(StoryLineAnimator와 같은 기준), ApplySessionResults는 currentLevel로 게임 씬 경유 판정.
+  - 관리자 레벨 이동은 QR로 확인한 체험자를 비우고(ClearServerVisitor, AdminPanel에 VisitorInfoProvider 주입), 타이틀 시작하기 대기 타이머는 isAdminLevelJump면 시간 초과 처리를 건너뜀.
+  - 튜토리얼 이미지 로드 실패 시 그 장 핸들을 풀고 캐시에서 지움.
+  - CHANGELOG Unreleased Fixed 4줄 추가(타이머·결과 판정은 화면 변화 없어 제외).
+- 새 테스트(4): SocketOwnershipTests 같은 블록 두 손가락·핀치 취소 뒤 다시 집기·자기 자신 재수락, ResultSequenceTimerTests 씬 이탈 취소 시 타이머 그대로.
+- 테스트: Rider 에러 0, Unity 컴파일 에러 0, PlayMode 181/181(뒤에 EditorSettings 되돌림). 멀티터치는 에디터에서 흉내 낼 수 없어 현장 터치스크린 확인 필요.
+- 확인 요청·결과(agy, 3묶음): 드래그 손가락 소유·재집기 경로·Release 동작 2/2, 핀치 복귀·자기 순환 가드·드롭 가드·테스트 2/2, 결과 타이머·결과 판정·관리자·튜토리얼 2/2 통과. 지적 1건(테스트에서 CanvasGroup 중복 추가 — RequireComponent로 이미 있음)은 반영 후 181/181 다시 통과.
+
+### [2026-10-10] Claude → Antigravity · 4차(마지막) 전체 검사 — 읽기 전용
+- 방식: 파일 단위로 본 앞 감사와 다르게, Claude 서브에이전트 3개가 여러 파일에 걸친 흐름(드래그·소켓 상태 / 씬 간 세션 상태·비활동 타이머 / 결과·관리자·스토리 UI)을 따라갔다. agy는 그 밖의 파일을 300줄 안팎 14묶음으로(11묶음 문제 없음, BlockFactory·실행기 3묶음은 5분 초과 — 3차 감사에서 본 뒤 주석만 바뀌어 재요청하지 않음). Claude는 규칙 grep(위반 0, Debug는 허용 경우만), 빠진 스크립트·끊긴 GUID(0), 설정 JSON 9개 형식, 빌드 씬 6개를 확인했다.
+- 확정(높음): 두 손가락이 같은 블록을 동시에 잡으면 OnBeginDrag가 포인터마다 와서(InputSystemUIInputModule.ProcessPointerButtonDrag는 다른 포인터가 같은 대상을 끄는지 보지 않음) 상태가 꼬인다. 한 손가락이 소켓 S에 붙인 뒤 다른 손가락이 계속 끌어 다른 곳에 놓으면 S.Occupant가 남고, S에 다시 놓으면 CanFit(A, A)가 통과해 AttachDisplacedToTail(A, A)가 A를 자기 꼬리에 붙여 Occupant가 순환 → 컴파일(WalkChain)·FindChainTailOut·HasControlBlockInChain·FlowInnerResize가 무한 루프로 앱이 멈출 수 있다(CodingBlock.cs OnBeginDrag). 제안: 드래그 포인터 ID를 기억해 다른 포인터의 Begin/Drag/End와 드롭 영역 OnDrop을 무시.
+- 확정(중간): 핀치 취소 복귀(RestoreDragHome)가 CanAttachNow 없이 homeSocket.Accept — 그 사이 다른 손가락이 같은 값·조건 자리를 채웠으면 덮어써 앞 블록이 기록에서 빠지고, 그 블록을 떼면 OnBeginDrag가 점유자 확인 없이 Release해 보이는 값까지 지운다. 복귀할 소켓 주인이 블록 목록으로 옮겨졌으면 목록 안 블록 아래 붙어 숨는다(낮음). 제안: 복귀 전 CanAttachNow, Release는 점유자가 자기일 때만.
+- 낮음: 결과 화면 터치 안내 대기(WaitUntil) 중 타임아웃으로 타이틀에 가면 catch의 Resume이 타이틀 Pause 뒤에 와서 타이틀에서 타이머가 돈다(지금은 GameManager·APIManager가 타이틀을 무시해 로그만, ResultSequence.cs:417-421) / 관리자 레벨 이동이 앞서 QR로 확인한 체험자와 시작하기 대기 타이머를 비우지 않아 관리자 판 행동 로그 주어가 그 체험자 이름이 되고, 대기 타이머가 끝나면 move_idle_timeout이 가고 해금 레벨이 0이 됨(AdminPanel.cs OnLevelClicked, 업로드는 isAdminLevelJump로 막힘) / 결과 유무를 lastQuestionTime으로 판정해 문제 값 후보 없는 레벨 데이터면 결과 처리·업로드를 건너뜀(지금 데이터 5개는 모두 후보 있음, ResultSequence.cs:275) / 튜토리얼 이미지 로드 실패 핸들이 캐시에 남아 다시 시도하지 않음(TutorialImageSlider.cs:133).
+- 확인: 효율 표시 형식 {0:D2}%라 5%가 '05%', 0%가 '00%'로 보임 — 디자인 의도인지.
+- 오탐: is null(순수 C#, 메모리상 허용) 다수.
+- 결과: 수정 범위는 사용자 결정.
+
+### [2026-10-10] Claude → Antigravity · 3차 감사 지적 전부 수정 (fix/third-audit)
+- 요청(사용자): 기획 확인 사항은 B안(실행되지 않는 만약의 조건도 0점), 지적한 것 전부 수정.
+- 변경:
+  - 두 손가락 동시 드롭: `CodingBlock.CanAttachNow`가 손을 뗄 때 하이라이트한 소켓을 다시 검사한다(값·조건 소켓은 비어 있는지, 체인·안쪽은 CanAccept, 주인 블록이 코딩 패널 안인지). OnEndDrag가 이걸로 붙인다.
+  - 레벨4(B안): `BlockScorer.FindReachableFirstIf` — 첫 만약이 무한 반복 뒤라 실행되지 않으면 조건 0점, `GetConditionText` null(결과 '설정한 조건' '-').
+  - 낮음: 핀치 중 손가락 수가 바뀐 프레임은 배율을 바꾸지 않고 기준만 다시 잡음(CodingZoneZoom), 탭 전환 시 StopMovement(CategoryZone), 겹모음 지우기 JungSplit(HangulComposer), 스냅 반경 0 이하 → 120(SettingsClamp.Positive), 조명 깜빡임은 시작 기준 시간(LabLightGlow), DamGateFlow 로거 주입·Start에서 수문 참조 누락 경고.
+  - 정리: TryGetCompileHighlightTarget(에러·성공 표시 대상 선택 통합), StoryLineAnimator.AnimateWithVisitorNameAsync(인트로·아웃트로), ResultSequence.OnDestroy → HideTouchGuide, VisitorApiClient 닿지 않는 null 분기, BlockOutlineMesh 삽입 정렬.
+  - summary: 두 문장 이상 166곳을 한 문장으로 줄이고 나머지 문장은 `//` 주석으로 옮김(Claude 서브에이전트 4개, 처음 98곳 + 넓힌 기준 38곳 + 같은 파일 추가분). 스크립트로 HEAD 대비 주석·빈 줄을 뺀 코드 줄 변경이 위 의도한 수정뿐임을 확인했고, 남은 두 문장 summary 0곳.
+  - CHANGELOG Unreleased(Changed 2·Fixed 5), bundleVersion 26.10.10.
+- 새 테스트(4): SocketOwnershipTests 2(찬 값 자리·주인이 패널을 떠난 소켓), HangulComposerTests 겹모음 지우기, SettingsJsonTests 스냅 반경. BlockScorerTests 무한 반복 뒤 만약 기대값을 B안으로 바꾸고 조건 문구 검사 추가.
+- 테스트: Rider 에러 0, Unity 컴파일 에러 0, PlayMode 177/177(뒤에 EditorSettings 되돌림). 핀치 3손가락·두 손가락 동시 드롭은 에디터에서 터치를 흉내 낼 수 없어 Play 모드 재현은 하지 않았다(현장 터치스크린에서 확인 필요).
+- 확인 요청·결과(agy `gemini-3.8-flash-high`, 7묶음 병렬): 드롭 재검사·하이라이트 통합 2/2, 레벨4 채점 2/2, 입력 수정 3/3, 스냅 반경 2/2, 결과 연출 2/2, 정리 2/2, 문서 2/2 통과. 주석 전용 변경은 agy 대신 위 스크립트로 확인.
+
+### [2026-10-10] Claude → Antigravity · 3차 전체 코드 감사(스킬 위반·버그·성능·리팩터링) — 읽기 전용
+- 변경 파일: 없음(감사). agy 17묶음 병렬 → 시간 초과 7묶음은 11묶음으로 나눠 재요청 → 그래도 초과한 6묶음(소켓·코딩 영역·출력·App·Network·Data)과 TitleSceneManager(지난 감사에서도 3번 초과)는 Claude 직접 읽기와 서브에이전트 1개로 대신 확인. Claude는 규칙 grep(var·GetComponent·Find·Debug.Log·LINQ·static readonly 순서·코루틴·리플렉션·float 비교·DOTween 수명·Update 할당·미사용 상수·summary 누락)도 했다.
+- 확정(중간): 두 손가락으로 블록 두 개를 같은 빈 값·조건 자리에 차례로 놓으면 두 번째 블록의 OnEndDrag가 이미 찬 소켓에 Accept한다(CodingBlock.cs:735 → ValueOutSocket·ConditionOutSocket.Accept는 기존 점유를 덮어씀). 첫 블록이 소켓 아래 겹친 채 점유 기록에서 빠지고, 그 블록을 떼면 Release가 두 번째 블록 점유까지 지워 화면엔 값이 있는데 컴파일은 값 없음이 된다. 다른 손가락이 소켓 주인 블록을 목록으로 옮긴 뒤 놓는 경우도 같다. agy R_A2가 독립적으로 같은 결론. Play 모드 재현 전.
+- 확정(낮음): 핀치 중 세 번째 손가락이 닿거나 떨어지면 CountPressedTouches의 앞 두 손가락 쌍이 바뀌어 배율이 튐(CodingZoneZoom.cs:157-183) / 탭 전환 시 스크롤 관성이 남아 맨 위로 맞춘 뒤 다시 밀림(CategoryZone.cs:121, StopMovement 없음) / 이름 입력에서 겹모음(ㅘ 등) 지우기가 한 번에 모음 전체를 지움(HangulComposer.cs:154) / 3_Game.json snapRadius·chainSnapRadius가 0이면 그대로 써 블록이 안 붙음(GameSceneSettings.cs:40) / 연구소 조명 깜빡임이 Time.time 그대로 PerlinNoise에 들어가 며칠 켜 두면 계단식(LabLightGlow.cs:101) / DamGateFlow는 수문 참조 누락에 경고 없음.
+- 기획 확인: 레벨4에서 '만약'을 무한 반복 뒤에 두면 놀이시설은 실행되지 않는 것으로 보아 5점이지만, 조건 점수(그리고 10점)는 그대로 받는다(BlockScorer.cs:358, 25/30점=83%). 병원은 반복 안이라 항상 실행돼 해당 없고, 레벨5는 반복하기 블록이 없어 해당 없다(감사 보고 뒤 레이아웃 확인으로 정정).
+- 스킬 위반: 두 문장 이상 summary 98개(스킬 11번, TitleSceneManager 11·HangulComposer 7·CodingBlock 7·VisitorApiClient 7 등). 그 밖의 규칙 위반 0건, summary 누락 0건, 미사용 Constants 0건.
+- 정리(낮음): CodingBlock PlayErrorBlink·PlaySuccessFadeIn 대상 이미지 선택 중복, 인트로·아웃트로 문장 연출 순서 중복, ResultSequence.OnDestroy 트윈 정리가 HideTouchGuide와 중복, VisitorApiClient.cs:49 닿지 않는 null 분기, BlockOutlineMesh가 펄스 중 매 프레임 List.Sort(4개 이하).
+- 오탐(코드로 확인): 순수 C# is null(프로젝트 메모리상 허용), 정적 유틸 Debug 대체 출력, 결과 '다음'·관리자 버튼·넘어가기 연타(FadeManager가 페이드 시작과 동시에 화면 입력을 막음), 스토리 레벨·튜토리얼 연타(지난 감사와 같음), 체인 순환·자기 스냅(IsChildOf로 막음), 함수 호출 미사용 검사(함수 호출 필수 검사가 잡음), 레벨3 명령 점수 중복(수문 명령은 값이 없어 0점), 레벨1·2 명령 여러 개(레이아웃에 하나씩), 부모 변경 시 크기(OnTransformParentChanged), 드롭 시 소켓 부착(OnBeginDrag에서 붙임), CTS 즉시 Dispose(스킬 표준 형태), 공통 설정 Task 실패 캐시(JsonLoader는 예외 없이 기본값), 재스폰·스폰 취소(한 번만 호출, 씬과 함께 파괴), startZoom Awake(테스트로 확인된 동작), CodingBlock _highlightedSocket 미정리(ClearSnapTargets가 비움).
+- 결과: 수정 범위는 사용자 결정.
+
 ### [2026-10-09 15:53] Claude → Antigravity · 2차 전체 감사와 수정 (fix/second-audit)
 - 요청(사용자): 다시 한번 전체 검사, 이어서 지적 전부 수정(중간 확정 6건·스캐너 입력·드래그 추정 3건은 재현 후·낮음 일괄).
 - 감사: Antigravity 사용 한도로 Claude 서브에이전트 5개가 영역별로 읽기 전용 감사했다(블록 UI / 컴파일·채점·데이터 / 흐름·연동 / 게임·결과 / 관리자·에디터·테스트). Claude는 grep으로 규칙을 점검하고 프로젝트 설정·씬·에셋을 확인했다.

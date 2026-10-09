@@ -44,6 +44,9 @@ namespace Scenes
         private float _noiseSeed;
         private float _nextDropoutAt;
         private float _dropoutEndAt;
+
+        // 깜빡임을 시작한 뒤 흐른 시간 — 앱 가동 시간(Time.time)을 그대로 노이즈에 넣으면 며칠 켜 둔 뒤 float 정밀도가 떨어져 깜빡임이 계단식이 된다
+        private float _flickerTime;
         private ILogger<LabLightGlow> _logger;
 
         /// <summary>
@@ -88,7 +91,8 @@ namespace Scenes
         {
             if (!_flickering) return;
 
-            float now = Time.time;
+            _flickerTime += Time.deltaTime;
+            float now = _flickerTime;
             if (now >= _nextDropoutAt)
             {
                 _dropoutEndAt = now + Random.Range(dropoutDuration.x, dropoutDuration.y);
@@ -128,10 +132,11 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 효율(%)을 단계 조명 세기로 바꾼다 — 부족 0 / 보통 weakIntensity / 양호 strongIntensity. 경계는 결과 텍스트와 같은 기준을 쓴다.
+        /// 효율(%)을 단계 조명 세기로 바꾼다 — 부족 0 / 보통 weakIntensity / 양호 strongIntensity.
         /// </summary>
         private float ToIntensity(int percent)
         {
+            // 경계는 결과 텍스트와 같은 기준을 쓴다.
             if (percent < Constants.ResultMessages.NormalThresholdPercent) return 0f;
             return IsNormal(percent) ? weakIntensity : strongIntensity;
         }
@@ -149,8 +154,9 @@ namespace Scenes
         private void StartFlicker()
         {
             _noiseSeed = Random.value * 100f;
+            _flickerTime = 0f;
             _dropoutEndAt = 0f;
-            _nextDropoutAt = Time.time + Random.Range(dropoutInterval.x, dropoutInterval.y);
+            _nextDropoutAt = Random.Range(dropoutInterval.x, dropoutInterval.y);
             _flickering = true;
         }
 

@@ -12,9 +12,10 @@ namespace Network
         RequestFailed  // 서버 주소 미설정·연결 실패·시간 초과
     }
 
+    // 응답은 JSON이 아닌 평문이다
+    // — 체험 가능 "idx_user,name"(예: "10,LLL"), 체험 완료 "체험을 완료한 유저입니다", 없는 uid "NOT_FOUND".
     /// <summary>
-    /// 체험자 서버 checkActive 호출 결과. 응답은 JSON이 아닌 평문이다
-    /// — 체험 가능 "idx_user,name"(예: "10,LLL"), 체험 완료 "체험을 완료한 유저입니다", 없는 uid "NOT_FOUND".
+    /// 체험자 서버 checkActive 호출 결과를 담는다.
     /// </summary>
     public readonly struct CheckActiveResult
     {
@@ -40,11 +41,12 @@ namespace Network
         public static CheckActiveResult Failed() => new(CheckActiveStatus.RequestFailed);
 
         /// <summary>
-        /// checkActive 응답 본문을 해석한다. .cfm 출력의 앞뒤 공백·줄바꿈은 무시하고,
-        /// 숫자 idx 뒤 첫 쉼표 이후를 이름으로 본다. 약속한 형식이 아니면 Unknown이다.
+        /// checkActive 응답 본문을 해석한다.
         /// </summary>
         public static CheckActiveResult Parse(string body)
         {
+            // .cfm 출력의 앞뒤 공백·줄바꿈은 무시하고,
+            // 숫자 idx 뒤 첫 쉼표 이후를 이름으로 본다. 약속한 형식이 아니면 Unknown이다.
             string text = body == null ? string.Empty : body.Trim();
 
             if (text == Constants.VisitorApi.NotFoundResponse) return new(CheckActiveStatus.NotFound);

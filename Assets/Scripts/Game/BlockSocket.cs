@@ -3,10 +3,10 @@ using UnityEngine;
 
 namespace Game
 {
+    // 점유 상태 관리와 스냅 오프셋 계산처럼 네 소켓(Chain/Inner/Value/Condition Out)이
+    // 똑같이 갖고 있던 코드를 모았다. 구체 소켓 타입 이름은 그대로라 프리팹 참조에는 영향이 없다.
     /// <summary>
-    /// 블록을 최대 1개 물고 있을 수 있는 연결부의 공통 기반.
-    /// 점유 상태 관리와 스냅 오프셋 계산처럼 네 소켓(Chain/Inner/Value/Condition Out)이
-    /// 똑같이 갖고 있던 코드를 모았다. 구체 소켓 타입 이름은 그대로라 프리팹 참조에는 영향이 없다.
+    /// 블록을 최대 1개 물고 있을 수 있는 연결부의 공통 기반이다.
     /// </summary>
     public abstract class BlockSocket : MonoBehaviour
     {
@@ -39,11 +39,11 @@ namespace Game
         protected void SetOccupant(CodingBlock block) => _occupant = block;
 
         /// <summary>
-        /// 이름으로 직계 자식을 찾아 컴포넌트를 반환한다. 자식이나 컴포넌트가 없으면 null.
-        /// 소켓 자식 이름은 BlockFactory가 Constants.Sockets 상수로 직접 만든 것이라 이름 탐색이 허용된다.
+        /// 이름으로 직계 자식을 찾아 컴포넌트를 반환한다(자식이나 컴포넌트가 없으면 null).
         /// </summary>
         public static T FindChildComponent<T>(Transform parent, string childName) where T : Component
         {
+            // 소켓 자식 이름은 BlockFactory가 Constants.Sockets 상수로 직접 만든 것이라 이름 탐색이 허용된다.
             Transform child = parent.Find(childName);
             if (child && child.TryGetComponent(out T component)) return component;
             return null;
@@ -96,17 +96,18 @@ namespace Game
         /// </summary>
         protected static bool CanFit(CodingBlock incoming, CodingBlock displaced)
         {
-            return !displaced || FindChainTailOut(incoming);
+            // 자기 자신을 밀어낼 수는 없다 — 받으면 블록이 자기 꼬리에 붙어 체인이 순환한다
+            return !displaced || (displaced != incoming && FindChainTailOut(incoming));
         }
 
         /// <summary>
         /// 밀려난 블록(아래 체인째)을 들어온 체인의 꼬리에 이어 붙인다 — 붙일 곳이 없으면 코딩 존으로 옮긴다.
-        /// 코딩 패널에 따로 놓아 둔 체인의 머리를 끌면 아래 블록을 단 채 들어오므로, 머리 바로 아래가 아니라 꼬리에 붙여야
-        /// 순서가 섞이지 않는다(A→B를 X→Y 사이에 넣으면 X→A→B→Y).
         /// </summary>
         protected static void AttachDisplacedToTail(CodingBlock incoming, CodingBlock displaced)
         {
-            if (!displaced) return;
+            // 코딩 패널에 따로 놓아 둔 체인의 머리를 끌면 아래 블록을 단 채 들어오므로, 머리 바로 아래가 아니라 꼬리에 붙여야
+            // 순서가 섞이지 않는다(A→B를 X→Y 사이에 넣으면 X→A→B→Y).
+            if (!displaced || displaced == incoming) return;
 
             ChainOutSocket tailOut = FindChainTailOut(incoming);
             if (tailOut)
@@ -117,10 +118,10 @@ namespace Game
 
         /// <summary>
         /// 체인 맨 끝 블록의 비어 있는 ChainOutSocket을 반환한다 — 끝 블록에 ChainOut이 없으면(완성하기 등) null.
-        /// 직속 소켓만 따라가 컨테이너 내부의 하위 체인 소켓과 혼동하지 않는다.
         /// </summary>
         private static ChainOutSocket FindChainTailOut(CodingBlock head)
         {
+            // 직속 소켓만 따라가 컨테이너 내부의 하위 체인 소켓과 혼동하지 않는다.
             ChainOutSocket tailOut = ChainOutSocket.OfBlock(head);
             while (tailOut && tailOut.Occupant)
                 tailOut = ChainOutSocket.OfBlock(tailOut.Occupant);

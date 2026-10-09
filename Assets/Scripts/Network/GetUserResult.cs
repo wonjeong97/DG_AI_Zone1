@@ -6,10 +6,10 @@ using UnityEngine;
 
 namespace Network
 {
+    // 응답 예: {"result": true, "user": {"idx_user": 10, ..., "A1": null, ..., "D5": null}} — 값은 성공 1·실패 0·기록 없음 null.
+    // 없는 uid면 {"result":false,"message":"NOT_FOUND"}.
     /// <summary>
-    /// 체험자 서버 getUser 호출 결과 중 이 존(1존)의 진행도.
-    /// 응답 예: {"result": true, "user": {"idx_user": 10, ..., "A1": null, ..., "D5": null}} — 값은 성공 1·실패 0·기록 없음 null.
-    /// 없는 uid면 {"result":false,"message":"NOT_FOUND"}.
+    /// 체험자 서버 getUser 호출 결과 중 이 존(1존)의 진행도를 담는다.
     /// </summary>
     public readonly struct GetUserResult
     {
@@ -44,11 +44,12 @@ namespace Network
         public static GetUserResult Failed(string reason) => new(false, NoRecord, reason);
 
         /// <summary>
-        /// getUser 응답 본문을 해석한다. JSON 앞뒤에 붙은 글자는 무시하고, result가 true일 때만 찾은 것으로 보며,
-        /// 이 존의 레벨(A1~A5) 값 중 null이 아닌 마지막 레벨을 찾는다.
+        /// getUser 응답 본문을 해석한다.
         /// </summary>
         public static GetUserResult Parse(string body)
         {
+            // JSON 앞뒤에 붙은 글자는 무시하고, result가 true일 때만 찾은 것으로 보며,
+            // 이 존의 레벨(A1~A5) 값 중 null이 아닌 마지막 레벨을 찾는다.
             if (string.IsNullOrWhiteSpace(body)) return Failed("빈 응답");
 
             string json = ApiJson.ExtractObject(body);

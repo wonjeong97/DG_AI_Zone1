@@ -149,6 +149,13 @@ namespace Scenes
             catch (Exception ex)
             {
                 if (_logger != null) _logger.ZLogError($"[TutorialImageSlider] 튜토리얼 이미지 {page}장을 불러오지 못했습니다: {ex.Message}");
+
+                // 실패한 핸들을 캐시에 두면 그 장으로 다시 와도 불러오지 않고 이전 장 그림이 남으므로 풀고 지워 다음에 다시 시도한다
+                if (_spriteHandles.TryGetValue(page, out AsyncOperationHandle<Sprite> failed) && failed.Equals(handle))
+                {
+                    _spriteHandles.Remove(page);
+                    if (failed.IsValid()) Addressables.Release(failed);
+                }
                 return;
             }
 

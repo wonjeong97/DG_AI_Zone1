@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using App;
 using Cysharp.Threading.Tasks;
 using Data;
 using Microsoft.Extensions.Logging;
@@ -60,17 +61,38 @@ namespace Admin
         private SoundManager _soundManager;
         private VisitorSettings _visitorSettings;
         private GameSession _session;
+        private VisitorInfoProvider _visitorInfoProvider;
+        private AdminScreenState _screenState;
 
         /// <summary>
-        /// 로거, 사운드 매니저, 체험자 설정, 게임 세션을 주입받는다.
+        /// 로거, 사운드 매니저, 체험자 설정, 게임 세션, 체험자 정보 제공자, 관리자 창 상태를 주입받는다.
         /// </summary>
         [Inject]
-        public void Construct(ILogger<AdminPanel> logger, SoundManager soundManager, VisitorSettings visitorSettings, GameSession session)
+        public void Construct(ILogger<AdminPanel> logger, SoundManager soundManager, VisitorSettings visitorSettings, GameSession session,
+            VisitorInfoProvider visitorInfoProvider, AdminScreenState screenState)
         {
             _logger = logger;
             _soundManager = soundManager;
             _visitorSettings = visitorSettings;
             _session = session;
+            _visitorInfoProvider = visitorInfoProvider;
+            _screenState = screenState;
+        }
+
+        /// <summary>
+        /// 관리자 화면이 켜졌음을 알린다 — 열려 있는 동안 타이틀은 찍힌 QR을 서버로 보내지 않는다.
+        /// </summary>
+        private void OnEnable()
+        {
+            if (_screenState != null) _screenState.SetOpen(this, true);
+        }
+
+        /// <summary>
+        /// 관리자 화면이 꺼졌음을 알린다.
+        /// </summary>
+        private void OnDisable()
+        {
+            if (_screenState != null) _screenState.SetOpen(this, false);
         }
 
         /// <summary>
@@ -181,7 +203,7 @@ namespace Admin
         }
 
         /// <summary>
-        /// 관리자 화면을 닫는다. 모드가 바뀌었으면 타이틀을 다시 불러 반영한다.
+        /// 관리자 화면을 닫고, 모드가 바뀌었으면 타이틀을 다시 불러 반영한다.
         /// </summary>
         private void Close()
         {
@@ -295,10 +317,10 @@ namespace Admin
 
         /// <summary>
         /// 고른 레벨까지 해금하고, 그 레벨을 고른 상태로 스토리 화면에 들어가도록 2_Story로 이동한다.
-        /// 이 판은 스토리의 &lt; 버튼이나 결과 화면의 다음 버튼으로 타이틀의 관리자 화면에 돌아온다.
         /// </summary>
         private void OnLevelClicked(int index)
         {
+            // 이 판은 스토리의 < 버튼이나 결과 화면의 다음 버튼으로 타이틀의 관리자 화면에 돌아온다.
             if (_isLeaving) return;
 
             if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
@@ -311,6 +333,11 @@ namespace Admin
             _session.unlockedLevelIndex = Mathf.Max(_session.unlockedLevelIndex, index);
             _session.pendingStoryLevelIndex = index;
             _session.isAdminLevelJump = true;
+
+            // 관리자 시험 판이 타이틀에서 QR로 확인해 둔 체험자의 이름으로 행동 로그에 남지 않게 비운다
+            if (_visitorInfoProvider != null) _visitorInfoProvider.ClearServerVisitor();
+            else if (_logger != null) _logger.ZLogWarning($"[AdminPanel] VisitorInfoProvider가 주입되지 않아 QR로 확인한 체험자를 비우지 못했습니다.");
+
             if (_logger != null) _logger.ZLogInformation($"[AdminPanel] 레벨{index + 1} 스토리 화면으로 이동합니다.");
 
             _isLeaving = true;

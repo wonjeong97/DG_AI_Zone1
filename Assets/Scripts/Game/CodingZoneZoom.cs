@@ -35,6 +35,9 @@ namespace Game
         private bool _isPinching;
         private float _lastPinchDistance;
 
+        // 지난 프레임에 눌려 있던 손가락 수 — 앞 두 손가락으로 거리를 재므로, 세 번째 손가락이 닿거나 떨어지면 쌍이 바뀔 수 있다
+        private int _pinchTouchCount;
+
         // 코딩 패널에서 핀치 중인지 — 핀치 중에는 블록을 집지 못하게 하는 데 쓴다(두 손가락이 모두 패널 안일 때만 핀치다)
         public static bool IsPinching { get; private set; }
 
@@ -54,11 +57,12 @@ namespace Game
         }
 
         /// <summary>
-        /// 시작 배율을 적용한다. 완성하기 블록은 놓일 때의 배율로 첫 화면 아래쪽 자리를 정하므로,
-        /// 블록 스폰(GameSceneManager.Start)보다 먼저 실행되도록 Awake에서 한다 (실패 로그는 주입 뒤인 Start에서 남긴다).
+        /// 시작 배율을 적용한다.
         /// </summary>
         private void Awake()
         {
+            // 완성하기 블록은 놓일 때의 배율로 첫 화면 아래쪽 자리를 정하므로,
+            // 블록 스폰(GameSceneManager.Start)보다 먼저 실행되도록 Awake에서 한다 (실패 로그는 주입 뒤인 Start에서 남긴다).
             if (!TryGetComponent(out ScrollRect scrollRect) || !scrollRect.content) return;
 
             RectTransform content = scrollRect.content;
@@ -167,6 +171,7 @@ namespace Game
                     _isPinching = true;
                     IsPinching = true;
                     _lastPinchDistance = distance;
+                    _pinchTouchCount = pressedCount;
                     SetPanEnabled(false);
 
                     // 첫 손가락이 블록을 집고 있었다면 그 블록은 옮기지 않고 제자리로 돌려놓는다
@@ -177,6 +182,14 @@ namespace Game
                 // 핀치 도중 한 손가락을 뗀 사이에 남은 손가락으로 블록을 집었을 수 있으므로, 두 손가락이 닿아 있는 동안 계속 되돌린다
                 CodingBlock.CancelActiveDrags();
 
+                // 손가락 수가 바뀐 프레임은 거리를 재는 두 손가락이 달라졌을 수 있어 배율을 바꾸지 않고 새 기준만 잡는다
+                if (pressedCount != _pinchTouchCount)
+                {
+                    _pinchTouchCount = pressedCount;
+                    _lastPinchDistance = distance;
+                    return;
+                }
+
                 if (_lastPinchDistance > 0f)
                     ZoomAt((first + second) * 0.5f, distance / _lastPinchDistance);
                 _lastPinchDistance = distance;
@@ -185,6 +198,7 @@ namespace Game
             {
                 // 한 손가락을 뗐다가 다시 대면 다른 두 점 사이 거리와 비교해 배율이 튀므로, 다음 두 손가락 입력을 새 기준으로 삼는다
                 _lastPinchDistance = 0f;
+                _pinchTouchCount = pressedCount;
             }
             else if (_isPinching && pressedCount == 0)
             {
@@ -211,10 +225,11 @@ namespace Game
         }
 
         /// <summary>
-        /// 빈 곳 드래그 이동을 켜거나 끈다. 끌 때는 남은 관성도 멈춘다.
+        /// 빈 곳 드래그 이동을 켜거나 끈다.
         /// </summary>
         private void SetPanEnabled(bool isEnabled)
         {
+            // 끌 때는 남은 관성도 멈춘다.
             _scrollRect.horizontal = isEnabled && _defaultHorizontal;
             _scrollRect.vertical = isEnabled && _defaultVertical;
             if (!isEnabled) _scrollRect.StopMovement();

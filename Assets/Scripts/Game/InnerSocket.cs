@@ -84,10 +84,10 @@ namespace Game
 
         /// <summary>
         /// 소유 블록의 외곽선 옆에 내부 진입 하이라이트 이미지를 (없으면 만들어) 반환한다.
-        /// 블록 외곽선과 같은 크기·스프라이트 설정으로 만들고, 머티리얼이 ㄷ자 안쪽 진입부(머리 아래 가장자리·돌기)만 남긴다.
         /// </summary>
         private Image GetOrAddHighlightImage()
         {
+            // 블록 외곽선과 같은 크기·스프라이트 설정으로 만들고, 머티리얼이 ㄷ자 안쪽 진입부(머리 아래 가장자리·돌기)만 남긴다.
             if (_highlightImg) return _highlightImg;
 
             CodingBlock parentBlock = Owner;

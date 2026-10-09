@@ -43,6 +43,9 @@ namespace Game
         {
             if (!e.pointerDrag || !e.pointerDrag.TryGetComponent<CodingBlock>(out CodingBlock block) || block.IsDragCancelled) return;
 
+            // 같은 블록을 함께 누르고 있던 다른 손가락이 놓은 것이면 옮기지 않는다
+            if (!block.IsDragPointer(e)) return;
+
             // 붙을 소켓이 하이라이트돼 있으면 OnEndDrag가 그 소켓에 붙인다 — 여기서 먼저 옮기면 패널 배율로 크기가 바뀌어 하이라이트와 다르게 붙는다.
             // 핀치 취소 뒤 탭 전환으로 숨겨진 블록도 옮기지 않는다
             if (block.HasSnapTarget || !block.isActiveAndEnabled) return;

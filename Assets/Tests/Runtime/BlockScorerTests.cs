@@ -185,7 +185,7 @@ namespace DG.Zone1.Tests
         };
 
         /// <summary>
-        /// 무한 반복하기 뒤에 놓여 실행되지 않는 놀이시설 불 끄기는 인정하지 않고, 반복 안에서 상황을 확인하는 만약은 인정한다.
+        /// 무한 반복하기 뒤에 놓여 실행되지 않는 만약은 놀이시설 불 끄기와 조건을 모두 인정하지 않고, 반복 안에서 상황을 확인하는 만약은 인정한다.
         /// </summary>
         [Test]
         public void 무한_반복_뒤에_있어_실행되지_않는_놀이시설_끄기는_인정하지_않는다()
@@ -193,8 +193,9 @@ namespace DG.Zone1.Tests
             List<BlockInstruction> ifAfterRepeat = new List<BlockInstruction>
                 { Repeat(Cmd("병원 불 켜기")), PlantIf(Cmd("놀이시설 불 끄기")) };
             Assert.IsFalse(BlockScorer.IsAmusementPowerCut(ifAfterRepeat), "만약이 무한 반복 뒤");
-            Assert.AreEqual(Constants.Scores.PowerPlantAmusementOtherScore + Constants.Scores.PowerPlantConditionAndScore + Constants.Scores.PowerPlantHospitalKeptScore,
-                BlockScorer.ScoreProgram(ifAfterRepeat, null, null, LevelKind.PowerPlant));
+            Assert.AreEqual(Constants.Scores.PowerPlantAmusementOtherScore + Constants.Scores.PowerPlantHospitalKeptScore,
+                BlockScorer.ScoreProgram(ifAfterRepeat, null, null, LevelKind.PowerPlant), "실행되지 않는 만약의 조건은 0점");
+            Assert.IsNull(BlockScorer.GetConditionText(ifAfterRepeat), "실행되지 않는 만약의 조건을 결과에 표시함");
 
             List<BlockInstruction> offAfterRepeatInIf = new List<BlockInstruction>
                 { PlantIf(Repeat(Cmd("병원 불 켜기")), Cmd("놀이시설 불 끄기")) };
@@ -205,6 +206,7 @@ namespace DG.Zone1.Tests
             Assert.IsTrue(BlockScorer.IsAmusementPowerCut(ifInsideRepeat), "반복 안에서 상황 확인");
             Assert.AreEqual(BlockScorer.GetMaxScore(LevelKind.PowerPlant),
                 BlockScorer.ScoreProgram(ifInsideRepeat, null, null, LevelKind.PowerPlant));
+            Assert.IsNotNull(BlockScorer.GetConditionText(ifInsideRepeat), "반복 안의 만약 조건을 결과에 표시하지 않음");
 
             // 반복하기(무한) { 놀이시설 불 끄기 } → 만약(전기 과부하 또는 낮) { 놀이시설 불 켜기 }
             List<BlockInstruction> alwaysOff = new List<BlockInstruction>
