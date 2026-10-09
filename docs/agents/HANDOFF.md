@@ -13,6 +13,31 @@
 
 ---
 
+### [2026-10-09 14:56] Claude → Antigravity · 로그 정리, 체험자 행동을 이름과 함께 한 줄로 (refactor/visitor-action-logs)
+- 요청(사용자): 로그 정리, 체험자 행동은 '{name}이 ~를 했다' 식으로. 사용자 선택: 정리 기준은 '운영 진단 + 행동'(4존 T53과 같음, 경고·오류는 그대로), 행동 범위는 화면 이동·코딩 조작·블록 붙이기와 떼기(인트로 문장·튜토리얼 넘기기와 블록 탭 고르기는 제외), 문장 끝은 '~함'(4존과 같게).
+- 변경 파일:
+  - `App/VisitorInfoProvider.cs`: LogSubject·정적 LogSubjectOf(provider가 없으면 '체험자가')·AppendSubjectParticle(받침이면 '이', 아니면 '가', 한글로 안 끝나면 '이(가)')를 추가했다. ResolveName(warnOnFallback)을 두고 GetName은 예전과 같은 이름과 경고를 낸다.
+  - `Game/CodingBlock.cs`: VisitorInfoProvider를 주입받는다. OnBeginDrag의 RememberDragOrigin(떼어 낸 소켓 자리·블록 목록 여부)과 OnEndDrag의 LogDragResult로 드래그 한 번을 한 줄로 남긴다(소켓에 붙임·넣음·끼움·이음, 코딩 영역에 놓음, 블록 목록으로 되돌림). 만약의 머리 슬롯은 '조건 자리'로 적는다. 연결이 바뀌지 않으면(코딩 영역 안에서만 옮김, 목록에서 집었다 되돌림) 남기지 않는다. TrySnapToSocket은 붙은 소켓을 out으로 돌려준다.
+  - `Scenes/GameSceneManager.cs`: VisitorInfoProvider를 주입받는다. 코딩 완료를 'N레벨 성공, 점수(문제 값)/실패: 사유' 한 줄과 순회한 코드로 남긴다(실패도 정보 로그, 디버그 Space는 '디버그 단축키로 코딩을 검증함'). 미션 다시보기·힌트·건너뛰기 행동 로그를 넣었다. 실행 재생 로그(블록 실행·Command·Action·ConditionAction·실행 완료)와 '컴파일만 수행'·'점수:' 줄을 지우고, CreateExecutor의 score 매개변수도 지웠다.
+  - `Game/Runtime/ProgramFormatter.cs`: ToCode의 점수 출력을 지웠다(행동 줄로 옮김, 다른 호출처 없음).
+  - `Scenes/TitleSceneManager.cs`: QR 확인 성공·시작하기·대기 초과에 행동 로그를 넣고 'QR 인식 완료(길이)'를 지웠다. 실패 사유는 VisitorApiClient의 checkActive 결과 로그에 남는다.
+  - `Scenes/StoryManager.cs`: VisitorInfoProvider를 주입받는다. 레벨 고름·스토리 시작·뒤로 행동 로그를 넣었다.
+  - `Scenes/ResultSequence.cs`(다음)·`Scenes/OutroSceneManager.cs`(종료): 행동 로그를 넣었다.
+  - `Scenes/SceneFader.cs`: 대기 작업 정보 로그 2줄을 지웠다.
+  - 테스트 `VisitorSettingsTests`(조사 1개), `CHANGELOG.md`, `TODO.md`. 버전은 이미 26.10.9다.
+- 테스트: Rider 에러 0, Unity 컴파일 에러 0, PlayMode 156/156(뒤에 EditorSettings 되돌림).
+- Play 모드 확인(Claude, 로컬 모드, 이름 기본값이라 주어 '체험자가'): 타이틀 시작하기, 스토리 1레벨 고름·시작, 블록 붙임·끼움·떼어 블록 목록으로 되돌림을 확인했다. 이때 사용자가 직접 끈 드래그 2건도 '떼어 코딩 영역에 놓음'·'붙임'으로 한 줄씩 남았다. 코딩 완료 실패(순회 전·값 없음, 코드 포함), 힌트, 미션 다시보기, 코딩 완료 성공('1레벨 성공, 10점(문제 값 오전 10시)' + 코드), 결과 다음, 2레벨 고름, 뒤로, 2레벨 시작, 건너뛰기('2레벨 실패로 처리함'), 아웃트로 종료 2번 누름(1줄)도 확인했다. 경고·오류는 없었다. 코드 끝에 점수가 겹쳐 붙던 것을 이때 발견해 ToCode에서 지웠다. Play 모드에서 동적 폰트 아틀라스(GamtanRoadTantan SDF·Outline)에 붙은 글리프 변경은 되돌렸다.
+- 확인 요청·결과(agy `gemini-3.8-flash-high`, 3묶음 병렬):
+  - (L1, CodingBlock) 드래그 한 번에 한 줄, 자동 이동·핀치 취소에서 로그 없음, 동작 변화 없음 → 2/2 통과.
+  - (L2, 이름 주어·타이틀·스토리·결과·아웃트로·조사 테스트) → 3/3 통과.
+  - (L3, 게임 씬·ProgramFormatter·SceneFader) agy 사용 한도에 걸려 결과 없이 중단했다. 사용자 지시로 Claude가 L1~L3을 모두 직접 검증했다.
+- Claude 검증:
+  - L3: BlockExecutor는 OnBlockEnter를 `?.Invoke`로 부르고, ToCode 호출처는 GameSceneManager 한 곳뿐(테스트 없음)이다. 실패 로그가 경고에서 정보로 바뀌지만 이를 기대하는 LogAssert가 없다. 성공·실패·순회 전 실패·디버그 줄과 score null(`?? 0`), _questionTime null('없음')도 안전하다 → 통과.
+  - L1: 핀치 취소는 OnEndDrag가 바로 반환하고, AttachDisplacedToTail·SpliceOutChild·RestoreDragHome은 OnBeginDrag/OnEndDrag를 거치지 않는다. 매 드래그 시작에 이전 값을 비운다. 소켓 Owner는 내장 소켓(builtInSockets)과 코드로 만든 소켓(RegisterSocket) 모두 채워진다 → 통과.
+  - L2: GetName 동작이 같고, QR 성공 로그는 SetServerVisitor 뒤, 대기 초과 로그는 ClearConfirmedVisitor 앞이다. 관리자 레벨 이동의 자동 선택(SelectLevel 직접 호출)은 행동 로그를 남기지 않는다. QR 글자 간격·늦은 Enter 진단, 서버 응답, 관리자 로그는 그대로다 → 통과.
+  - 참고: 결과 화면 '다음'은 원래부터 연타 가드가 없어 두 번 누르면 두 줄이 남는다(이번 변경 전과 같은 동작, 진행도 갱신은 Max라 영향 없음).
+  - PR #88 확인: 코멘트·리뷰 없음, CI 없음, 병합 가능(CLEAN). 추가 수정 없이 머지. CHANGELOG 항목은 2026-10-09 섹션의 Changed로 옮김(agy 한도로 Claude가 확인).
+
 ### [2026-10-09 14:20] Claude → Antigravity · 출시 전 감사 결과 수정 (fix/pre-release-audit)
 - 변경 파일: 96개. 컴파일러·채점·출력(BlockCompiler·BlockInstruction·InstructionTree·BlockScorer·ProgramFormatter), 블록 UI(소켓 4종·CodingBlock·CodingZone·BlockFactory·BlockSpawner·CategoryZone·BlockZone·BlockOutlineMesh), 씬(Game·Title·Intro·Outro·Story·Hint·StoryPanel·ResultSequence·SceneFader·TutorialImageSlider·StoryLineAnimator·3D 연출 5종), 관리자(AdminPanel·AdminPasswordPanel·VisitorNamePanel·HangulComposer), App·Data·Constants, 새 파일 ResultRowFactory·IdleCloseTimer·IndexedButtons, 삭제 SolarPanelPose.cs·UIOutline.shader·GameSession.asset(Addressables 항목 포함). 씬 0_Title(QR 그룹 하위 Canvas)·2_Story(내장 Grayscale 머티리얼 제거)·3_Game(HintPanel levelPanels 순서), 블록 프리팹 7개(라벨 Raycast Target 끔), 아이콘 Mipmap 끔, 테스트(새 파일 3개·기존 12개 보강), CHANGELOG·TODO.
 - 확인 요청: agy 13묶음(컴파일러 / 채점·출력 / 결과 / 게임 씬·힌트 / 소켓·블록 / 스폰·프리팹 / 타이틀·인트로·아웃트로·스토리 / 페이드·튜토리얼·씬 에셋 / 3D 연출 / 관리자 / App·Data·Constants / 테스트 2)과 문서 1묶음. 묶음마다 변경 의도와 동작 변화·회귀·규칙 위반 확인 항목 2~4개. 5분 제한에 걸린 8묶음은 둘씩, 다시 걸린 컴파일러·채점 묶음은 항목 하나씩 나눠 다시 맡김.

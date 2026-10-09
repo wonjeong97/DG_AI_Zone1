@@ -38,16 +38,19 @@ namespace Scenes
         private GameSession _session;
         private ILogger<GameSceneManager> _logger;
         private SoundManager _soundManager;
+        private VisitorInfoProvider _visitorInfoProvider; // 행동 로그 주어
 
         /// <summary>
-        /// 게임 세션, 로거, 사운드 매니저를 주입받는다.
+        /// 게임 세션, 로거, 사운드 매니저, 체험자 정보를 주입받는다.
         /// </summary>
         [Inject]
-        public void Construct(GameSession session, ILogger<GameSceneManager> logger, SoundManager soundManager)
+        public void Construct(GameSession session, ILogger<GameSceneManager> logger, SoundManager soundManager,
+            VisitorInfoProvider visitorInfoProvider)
         {
             _session = session;
             _logger = logger;
             _soundManager = soundManager;
+            _visitorInfoProvider = visitorInfoProvider;
         }
 
         // 명령 하나를 실행한 것처럼 보이도록 두는 간격 — 3_Game.json 로드 전까지의 폴백 기본값
@@ -64,6 +67,9 @@ namespace Scenes
 
         // 레벨 없이 진입하면(testLevel 미지정) 태양광 규칙으로 동작한다
         private LevelKind CurrentLevelKind => _currentLevel ? _currentLevel.kind : LevelKind.Solar;
+
+        // 행동 로그에 쓰는 레벨 번호(1부터) — 레벨 데이터가 없으면 0
+        private int LevelNumber => _currentLevel ? _currentLevel.levelIndex + 1 : 0;
 
         /// <summary>
         /// 레벨을 결정해 블록을 스폰하고 문제를 출제한 뒤 버튼 동작을 연결한다.
@@ -150,6 +156,7 @@ namespace Scenes
             if (storyButton && storyPanel)
                 storyButton.onClick.AddListener(() =>
                 {
+                    if (_logger != null) _logger.ZLogInformation($"[GameSceneManager] {VisitorInfoProvider.LogSubjectOf(_visitorInfoProvider)} 미션 다시보기를 누름.");
                     if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.HintEpisode);
                     storyPanel.Show(_currentLevel);
                 });
@@ -159,6 +166,7 @@ namespace Scenes
             if (hintButton && hintPanel)
                 hintButton.onClick.AddListener(() =>
                 {
+                    if (_logger != null) _logger.ZLogInformation($"[GameSceneManager] {VisitorInfoProvider.LogSubjectOf(_visitorInfoProvider)} 힌트를 누름.");
                     if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.HintEpisode);
                     hintPanel.Show(_currentLevel, _questionTime);
                 });
@@ -269,8 +277,8 @@ namespace Scenes
                     ? BlockScorer.ScoreProgram(result.Instructions, _questionTime, _correctAnswer, CurrentLevelKind, _logger)
                     : null;
 
-                // 컴파일 결과를 코드 형태로 로그 (실패 시에도 순회된 프로그램을 표시)
-                LogCompileResult(result, score);
+                // 코딩 완료 결과를 행동 로그로 남기고 순회한 프로그램을 코드 형태로 덧붙인다 (실패 시에도 표시)
+                LogCompileResult(result, score, advanceScene);
 
                 if (!result.Success)
                 {
@@ -289,16 +297,11 @@ namespace Scenes
                 await PlaySuccessWaveAsync(BuildSuccessOrder(codingZone, result.Instructions), ct);
 
                 // 스페이스바: 컴파일 검증까지만 — 채점·실행·씬 전환은 완료 버튼 전용
-                if (!advanceScene)
-                {
-                    if (_logger != null) _logger.ZLogInformation($"[GameSceneManager] 컴파일만 수행 — 씬 전환 없음");
-                    return;
-                }
+                if (!advanceScene) return;
 
                 SaveResultToSession(result.Instructions, score.Value);
-                if (_logger != null) _logger.ZLogInformation($"[GameSceneManager] 점수: {score}점 (기준 시간: {_questionTime})");
 
-                BlockExecutor executor = CreateExecutor(score.Value);
+                BlockExecutor executor = CreateExecutor();
                 await executor.RunAsync(result.Instructions, ct);
             }
             catch (OperationCanceledException)
@@ -366,64 +369,44 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 실행기를 만든다 — 현재는 실행 자체가 로그 재생 연출로, 각 명령을 로그로 남기고
-        /// 일정 간격으로 진행한 뒤 결과 씬으로 넘어간다.
+        /// 실행기를 만든다 — 현재는 실행 자체가 연출로, 명령마다 일정 간격을 두고 진행한 뒤 결과 씬으로 넘어간다.
         /// </summary>
-        private BlockExecutor CreateExecutor(int score)
+        private BlockExecutor CreateExecutor()
         {
             BlockExecutor executor = new BlockExecutor();
 
-            executor.OnBlockEnter = block =>
+            executor.OnExecute = async (_, ct) =>
             {
-                if (block && _logger != null) _logger.ZLogInformation($"[GameSceneManager] 블록 실행: {block.name}");
-            };
-            executor.OnExecute = async (instr, ct) =>
-            {
-                if (_logger != null)
-                {
-                    switch (instr)
-                    {
-                        case CommandInstruction cmd:
-                            _logger.ZLogInformation($"[GameSceneManager]   Command: {cmd.Command}  Value: {cmd.Value ?? "(없음)"}");
-                            break;
-                        case ActionInstruction act:
-                            _logger.ZLogInformation($"[GameSceneManager]   Action: {act.Action}");
-                            break;
-                        case ConditionActionInstruction cond:
-                            _logger.ZLogInformation($"[GameSceneManager]   ConditionAction: {cond.Action}");
-                            break;
-                    }
-                }
                 await UniTask.Delay(_sceneSettings?.executeStepDelayMs ?? StepDelayMs, cancellationToken: ct);
                 return true;
             };
 
             // 조건 평가기는 아직 미구현 — 항상 else 분기를 탄다
             executor.OnCondition = _ => false;
-            executor.OnComplete += () =>
-            {
-                if (_logger != null) _logger.ZLogInformation($"[GameSceneManager] 실행 완료 — {score}점");
-                SceneFader.FadeAndLoad(Constants.Scenes.Result, logger: _logger).Forget();
-            };
+            executor.OnComplete += () => SceneFader.FadeAndLoad(Constants.Scenes.Result, logger: _logger).Forget();
 
             return executor;
         }
 
         /// <summary>
-        /// 컴파일 결과를 코드 형태(START/…/END)로 로그에 남긴다. 순회 전 실패면 결과 라인만 출력한다.
+        /// 코딩 완료(디버그 단축키면 검증) 결과를 행동 로그 한 줄로 남기고, 순회한 프로그램을 코드 형태(START/…/END)로 덧붙인다.
+        /// 순회 전에 실패했으면 결과 줄만 남긴다.
         /// </summary>
-        private void LogCompileResult(CompileResult result, int? score)
+        private void LogCompileResult(CompileResult result, int? score, bool advanceScene)
         {
             if (_logger == null) return;
 
-            string prefix = result.Program is not null
-                ? ZString.Concat("\n", ProgramFormatter.ToCode(result.Program, result.ReachedEnd, score), "\n\n결과: ")
-                : "결과: ";
+            string action = advanceScene
+                ? ZString.Concat(VisitorInfoProvider.LogSubjectOf(_visitorInfoProvider), " 코딩 완료를 누름")
+                : "디버그 단축키로 코딩을 검증함";
+            string outcome = result.Success
+                ? ZString.Concat("성공, ", score ?? 0, "점(문제 값 ", _questionTime ?? "없음", ")")
+                : ZString.Concat("실패: ", result.Error);
+            string code = result.Program is not null
+                ? ZString.Concat("\n", ProgramFormatter.ToCode(result.Program, result.ReachedEnd))
+                : string.Empty;
 
-            if (result.Success)
-                _logger.ZLogInformation($"[GameSceneManager] {prefix}컴파일 성공");
-            else
-                _logger.ZLogWarning($"[GameSceneManager] {prefix}컴파일 실패 - {result.Error}");
+            _logger.ZLogInformation($"[GameSceneManager] {action} — {LevelNumber}레벨 {outcome}.{code}");
         }
 
         /// <summary>
@@ -434,6 +417,7 @@ namespace Scenes
             // 디버그 컴파일 검증이 돌고 있어도 결과를 덮어쓰지 않도록 멈춘다
             CancelRun();
 
+            if (_logger != null) _logger.ZLogInformation($"[GameSceneManager] {VisitorInfoProvider.LogSubjectOf(_visitorInfoProvider)} 건너뛰기를 누름 — {LevelNumber}레벨 실패로 처리함.");
             if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
             if (_session != null)
             {

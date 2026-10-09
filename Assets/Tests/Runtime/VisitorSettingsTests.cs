@@ -69,6 +69,22 @@ namespace DG.Zone1.Tests
         }
 
         /// <summary>
+        /// 행동 로그 주어는 이름 끝 글자의 받침에 맞춰 '이/가'를 붙이고, 한글로 끝나지 않으면(서버 영문 이니셜) '이(가)'를 붙인다.
+        /// </summary>
+        [Test]
+        public void 행동_로그_주어는_받침에_맞는_조사를_붙인다()
+        {
+            Assert.AreEqual("홍길동이", VisitorInfoProvider.AppendSubjectParticle("홍길동"));
+            Assert.AreEqual("김철수가", VisitorInfoProvider.AppendSubjectParticle("김철수"));
+            Assert.AreEqual("LLL이(가)", VisitorInfoProvider.AppendSubjectParticle("LLL"));
+            Assert.AreEqual("체험자가", VisitorInfoProvider.LogSubjectOf(null));
+
+            VisitorInfoProvider provider = new VisitorInfoProvider(_settings, null);
+            _settings.VisitorName = "홍길동";
+            Assert.AreEqual("홍길동이", VisitorInfoProvider.LogSubjectOf(provider));
+        }
+
+        /// <summary>
         /// 관리자 페이지에서 바꾼 적이 없으면 에셋 기본값(로컬 모드, '체험자')을 쓴다.
         /// </summary>
         [Test]

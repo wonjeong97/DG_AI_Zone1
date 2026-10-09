@@ -18,21 +18,18 @@ namespace Game.Runtime
         private const string UnreachedEndMarker = "(완성하기 미연결)";
         private const string InfiniteCount = "무한";
         private const string NullValue = "null";
-        private const string ScorePrefix = "점수: ";
-        private const string ScoreSuffix = "점";
 
         /// <summary>
         /// 명령 목록을 START…END 코드 문자열로 만든다.
         /// includeEnd: 체인이 완성하기(End)까지 도달했을 때만 END를 출력(미연결이면 생략).
-        /// score: 계산된 최종 점수(컴파일 성공 시에만 값이 있음) — 있으면 코드 뒤에 함께 표시.
         /// </summary>
-        public static string ToCode(IReadOnlyList<BlockInstruction> program, bool includeEnd, int? score = null)
+        public static string ToCode(IReadOnlyList<BlockInstruction> program, bool includeEnd)
         {
             // 하위 메서드에 ref로 넘기므로 using 대신 finally에서 직접 반환한다
             Utf16ValueStringBuilder sb = ZString.CreateStringBuilder();
             try
             {
-                AppendProgram(ref sb, program, includeEnd, score);
+                AppendProgram(ref sb, program, includeEnd);
                 return sb.ToString();
             }
             finally
@@ -42,9 +39,9 @@ namespace Game.Runtime
         }
 
         /// <summary>
-        /// 시작 표시 → 명령 → 끝 표시 → 함수 정의 → 점수 순서로 코드를 쓴다.
+        /// 시작 표시 → 명령 → 끝 표시 → 함수 정의 순서로 코드를 쓴다.
         /// </summary>
-        private static void AppendProgram(ref Utf16ValueStringBuilder sb, IReadOnlyList<BlockInstruction> program, bool includeEnd, int? score)
+        private static void AppendProgram(ref Utf16ValueStringBuilder sb, IReadOnlyList<BlockInstruction> program, bool includeEnd)
         {
             sb.AppendLine(StartMarker);
 
@@ -74,15 +71,6 @@ namespace Game.Runtime
                 sb.AppendLine(" {");
                 AppendBody(ref sb, fn.Body, 1);
                 sb.Append('}');
-            }
-
-            if (score.HasValue)
-            {
-                sb.AppendLine();
-                sb.AppendLine();
-                sb.Append(ScorePrefix);
-                sb.Append(score.Value);
-                sb.Append(ScoreSuffix);
             }
         }
 

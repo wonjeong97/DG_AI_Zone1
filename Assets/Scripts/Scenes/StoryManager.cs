@@ -39,17 +39,20 @@ namespace Scenes
         private GameInputActions _input; // 디버그 단축키(Space) — 모든 레벨 해금
         private InactivityTimer _inactivityTimer;
         private SoundManager _soundManager;
+        private VisitorInfoProvider _visitorInfoProvider; // 행동 로그 주어
 
         /// <summary>
-        /// 게임 세션, 로거, 비활동 타이머, 사운드 매니저를 주입받는다.
+        /// 게임 세션, 로거, 비활동 타이머, 사운드 매니저, 체험자 정보를 주입받는다.
         /// </summary>
         [Inject]
-        public void Construct(GameSession session, ILogger<StoryManager> log, InactivityTimer inactivityTimer, SoundManager soundManager)
+        public void Construct(GameSession session, ILogger<StoryManager> log, InactivityTimer inactivityTimer, SoundManager soundManager,
+            VisitorInfoProvider visitorInfoProvider)
         {
             _session = session;
             _logger = log;
             _inactivityTimer = inactivityTimer;
             _soundManager = soundManager;
+            _visitorInfoProvider = visitorInfoProvider;
         }
 
         private LevelData _currentLevel;
@@ -167,6 +170,7 @@ namespace Scenes
         /// </summary>
         private void OnLevelButtonClicked(int index)
         {
+            if (_logger != null) _logger.ZLogInformation($"[StoryManager] {VisitorInfoProvider.LogSubjectOf(_visitorInfoProvider)} {index + 1}레벨을 고름.");
             if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
             SelectLevel(index);
         }
@@ -281,7 +285,10 @@ namespace Scenes
         {
             if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
 
-            if (_session != null && _session.isAdminLevelJump)
+            bool toAdmin = _session != null && _session.isAdminLevelJump;
+            if (_logger != null) _logger.ZLogInformation($"[StoryManager] {VisitorInfoProvider.LogSubjectOf(_visitorInfoProvider)} 뒤로를 누름 — {(toAdmin ? "관리자 화면" : "레벨 선택")}으로 돌아감.");
+
+            if (toAdmin)
             {
                 _session.openAdminOnTitle = true;
                 SceneFader.FadeAndLoad(Constants.Scenes.Title, logger: _logger).Forget();
@@ -302,6 +309,7 @@ namespace Scenes
                 if (_logger != null) _logger.ZLogWarning($"[StoryManager] 선택된 레벨이 없어 게임 씬으로 넘어가지 않습니다.");
                 return;
             }
+            if (_logger != null) _logger.ZLogInformation($"[StoryManager] {VisitorInfoProvider.LogSubjectOf(_visitorInfoProvider)} {_currentLevel.levelIndex + 1}레벨 스토리를 보고 시작을 누름.");
             if (_session != null) _session.currentLevel = _currentLevel;
             SceneFader.FadeAndLoad(Constants.Scenes.Game, logger: _logger).Forget();
         }

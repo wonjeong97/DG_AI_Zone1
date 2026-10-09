@@ -182,7 +182,6 @@ namespace Scenes
 
             if (_pendingTasks.Count == 0) return;
 
-            if (logger != null) logger.ZLogInformation($"[SceneFader] {_pendingTasks.Count}개의 대기 작업 완료를 기다립니다...");
             while (_pendingTasks.Count > 0)
             {
                 UniTask task = _pendingTasks.Dequeue();
@@ -195,7 +194,6 @@ namespace Scenes
                     LogWarning(logger, ZString.Concat("[SceneFader] 대기 작업 중 예외 또는 타임아웃 발생 (", ex.Message, "). 다음 작업으로 계속합니다."));
                 }
             }
-            if (logger != null) logger.ZLogInformation($"[SceneFader] 대기 작업 완료.");
         }
 
         /// <summary>

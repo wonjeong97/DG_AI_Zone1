@@ -284,7 +284,6 @@ namespace Scenes
             CancelConfirmTimeout();
             if (startButton) startButton.gameObject.SetActive(false);
             ClearConfirmedVisitor();
-            if (_logger != null) _logger.ZLogInformation($"[TitleSceneManager] QR 인식 완료 (길이 {code.Length})");
 
             CheckVisitorAsync(code, destroyCancellationToken).Forget();
         }
@@ -311,6 +310,7 @@ namespace Scenes
 
                 if (failMessage == null)
                 {
+                    if (_logger != null) _logger.ZLogInformation($"[TitleSceneManager] {VisitorInfoProvider.LogSubjectOf(_visitorInfoProvider)} QR을 찍음 — 체험할 수 있음.");
                     ShowConfirmedVisitor();
                     return;
                 }
@@ -481,7 +481,7 @@ namespace Scenes
 
                 await UniTask.Delay(TimeSpan.FromSeconds(settings.resetTime), DelayType.UnscaledDeltaTime, cancellationToken: ct);
 
-                if (_logger != null) _logger.ZLogInformation($"[TitleSceneManager] {settings.resetTime}초 동안 시작하기를 누르지 않아 QR 대기로 돌아갑니다.");
+                if (_logger != null) _logger.ZLogInformation($"[TitleSceneManager] {VisitorInfoProvider.LogSubjectOf(_visitorInfoProvider)} {settings.resetTime}초 동안 시작하기를 누르지 않아 QR 대기로 돌아감.");
 
                 // 로그 전송은 씬과 상관없이 끝까지 보내도록 이 오브젝트의 토큰을 넘기지 않는다
                 if (_apiManager) _apiManager.SendMoveIdleTimeoutLogAsync().Forget();
@@ -535,6 +535,7 @@ namespace Scenes
         /// </summary>
         private void OnStartButtonClicked()
         {
+            if (_logger != null) _logger.ZLogInformation($"[TitleSceneManager] {VisitorInfoProvider.LogSubjectOf(_visitorInfoProvider)} 시작하기를 누름.");
             StopWaitingForQr();
             CancelConfirmTimeout();
             if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.GameStart);
