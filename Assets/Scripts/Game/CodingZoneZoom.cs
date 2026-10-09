@@ -35,6 +35,9 @@ namespace Game
         private bool _isPinching;
         private float _lastPinchDistance;
 
+        // 코딩 패널에서 핀치 중인지 — 핀치 중에는 블록을 집지 못하게 하는 데 쓴다(두 손가락이 모두 패널 안일 때만 핀치다)
+        public static bool IsPinching { get; private set; }
+
         // 핀치 중에는 한 손가락 이동을 막았다가, 손가락을 모두 떼면 원래 설정으로 되돌린다
         private bool _defaultHorizontal;
         private bool _defaultVertical;
@@ -124,11 +127,6 @@ namespace Game
         }
 
         /// <summary>
-        /// 터치스크린에 두 손가락 이상이 닿아 있는지 — 핀치 중에는 블록을 집지 못하게 하는 데 쓴다.
-        /// </summary>
-        public static bool IsMultiTouch => CountPressedTouches(out _, out _) >= 2;
-
-        /// <summary>
         /// 눌린 터치 수를 세고, 앞의 두 손가락 위치를 돌려준다.
         /// </summary>
         private static int CountPressedTouches(out Vector2 first, out Vector2 second)
@@ -167,6 +165,7 @@ namespace Game
                     if (!IsInsideViewport(first) || !IsInsideViewport(second)) return;
 
                     _isPinching = true;
+                    IsPinching = true;
                     _lastPinchDistance = distance;
                     SetPanEnabled(false);
 
@@ -191,6 +190,7 @@ namespace Game
             {
                 // 한 손가락만 남은 상태에서 이동을 켜면 ScrollRect가 핀치 전 시작점을 기준으로 튀므로 모두 뗄 때까지 기다린다
                 _isPinching = false;
+                IsPinching = false;
                 SetPanEnabled(true);
             }
         }
@@ -200,6 +200,15 @@ namespace Game
         /// </summary>
         private bool IsInsideViewport(Vector2 screenPoint)
             => RectTransformUtility.RectangleContainsScreenPoint(_viewport, screenPoint, _eventCamera);
+
+        /// <summary>
+        /// 꺼질 때 핀치 상태를 비운다 — 핀치 도중 씬을 떠나도 다음 게임 씬에서 블록을 집지 못하는 일이 없게 한다.
+        /// </summary>
+        private void OnDisable()
+        {
+            _isPinching = false;
+            IsPinching = false;
+        }
 
         /// <summary>
         /// 빈 곳 드래그 이동을 켜거나 끈다. 끌 때는 남은 관성도 멈춘다.

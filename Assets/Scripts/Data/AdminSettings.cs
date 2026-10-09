@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using HuliacDev.Utils;
@@ -32,9 +33,37 @@ namespace Data
         public static async UniTask<AdminSettings> LoadAsync(CancellationToken ct, ILogger logger)
         {
             AdminSettings settings = await JsonLoader.LoadAsync<AdminSettings>(Constants.SettingsFiles.Admin, ct, logger);
+
+            // JsonLoader는 취소돼도 기본값을 돌려주므로, 파괴된 창에 기본 비밀번호·시간을 넣지 않도록 여기서 취소를 전달한다
+            ct.ThrowIfCancellationRequested();
             if (settings.ClampToValid() && logger != null)
                 logger.ZLogWarning($"[AdminSettings] Admin.json의 시간·횟수 값이 1보다 작아 그 값은 기본값을 씁니다.");
             return settings;
+        }
+
+        /// <summary>
+        /// 비밀번호를 저장하기 전에 Admin.json을 보정 없이 읽는다 — 파일이 있는데 형식이 깨졌으면 false를 돌려 다른 값이 기본값으로 덮어써지지 않게 한다.
+        /// </summary>
+        public static bool TryReadForSave(out AdminSettings settings)
+        {
+            string path = Path.Combine(UnityEngine.Application.streamingAssetsPath, Constants.SettingsFiles.Admin + ".json");
+            if (!File.Exists(path))
+            {
+                settings = new AdminSettings();
+                return true;
+            }
+
+            try
+            {
+                // 비어 있으면 FromJson이 null을 돌려준다 — 지킬 값이 없으므로 기본값에 비밀번호만 넣어 저장해도 된다
+                settings = UnityEngine.JsonUtility.FromJson<AdminSettings>(File.ReadAllText(path)) ?? new AdminSettings();
+                return true;
+            }
+            catch (Exception)
+            {
+                settings = null;
+                return false;
+            }
         }
 
         /// <summary>

@@ -14,6 +14,9 @@ namespace DG.Zone1.Tests
 
         private HangulComposer _composer;
 
+        /// <summary>
+        /// 빈 조합기를 새로 만든다.
+        /// </summary>
         [SetUp]
         public void SetUp()
         {

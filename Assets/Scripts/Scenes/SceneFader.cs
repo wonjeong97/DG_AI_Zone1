@@ -93,7 +93,7 @@ namespace Scenes
             Microsoft.Extensions.Logging.ILogger logger)
         {
             string url = await GetRobotVideoUrlAsync(logger);
-            if (!player || ct.IsCancellationRequested) return;
+            if (url == null || !player || ct.IsCancellationRequested) return;
 
             player.url = url;
             player.Prepare();
@@ -102,8 +102,7 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 00_Common.json의 robotVideoPath를 StreamingAssets 기준 전체 경로로 바꾼다.
-        /// 비었거나 그 파일이 없으면 경고를 남기고 기본 경로(Constants.VideoPaths.RobotRelative)를 쓴다.
+        /// 00_Common.json의 robotVideoPath를 StreamingAssets 기준 전체 경로로 바꾼다 (파일이 없으면 기본 영상, 그것도 없으면 null).
         /// </summary>
         private static async UniTask<string> GetRobotVideoUrlAsync(Microsoft.Extensions.Logging.ILogger logger)
         {
@@ -112,9 +111,17 @@ namespace Scenes
             string path = string.IsNullOrEmpty(relative) ? null : System.IO.Path.Combine(Application.streamingAssetsPath, relative);
             if (path != null && System.IO.File.Exists(path)) return path;
 
+            string fallback = System.IO.Path.Combine(Application.streamingAssetsPath, Constants.VideoPaths.RobotRelative);
+            if (!System.IO.File.Exists(fallback))
+            {
+                LogError(logger, ZString.Concat("[SceneFader] 00_Common.json의 robotVideoPath '", relative,
+                    "'와 기본 영상 ", Constants.VideoPaths.RobotRelative, " 파일이 모두 없어 로봇 영상을 재생하지 않습니다."));
+                return null;
+            }
+
             LogWarning(logger, ZString.Concat("[SceneFader] 00_Common.json의 robotVideoPath '", relative,
                 "' 파일이 없어 기본 영상 ", Constants.VideoPaths.RobotRelative, "을 재생합니다."));
-            return System.IO.Path.Combine(Application.streamingAssetsPath, Constants.VideoPaths.RobotRelative);
+            return fallback;
         }
 
         /// <summary>
@@ -250,6 +257,15 @@ namespace Scenes
         {
             if (logger != null) logger.ZLogWarning($"{message}");
             else Debug.LogWarning(message);
+        }
+
+        /// <summary>
+        /// 로거가 있으면 ZLogger로, 없으면 Unity 콘솔로 오류를 남긴다 (정적 유틸리티라 로거를 선택 인자로 받음).
+        /// </summary>
+        private static void LogError(Microsoft.Extensions.Logging.ILogger logger, string message)
+        {
+            if (logger != null) logger.ZLogError($"{message}");
+            else Debug.LogError(message);
         }
 
         // ── CanvasGroup 페이드 공용 헬퍼 (씬 매니저 간 중복 구현 통합) ──────────

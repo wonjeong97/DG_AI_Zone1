@@ -13,6 +13,53 @@
 
 ---
 
+### [2026-10-09 15:53] Claude → Antigravity · 2차 전체 감사와 수정 (fix/second-audit)
+- 요청(사용자): 다시 한번 전체 검사, 이어서 지적 전부 수정(중간 확정 6건·스캐너 입력·드래그 추정 3건은 재현 후·낮음 일괄).
+- 감사: Antigravity 사용 한도로 Claude 서브에이전트 5개가 영역별로 읽기 전용 감사했다(블록 UI / 컴파일·채점·데이터 / 흐름·연동 / 게임·결과 / 관리자·에디터·테스트). Claude는 grep으로 규칙을 점검하고 프로젝트 설정·씬·에셋을 확인했다.
+  - 규칙 위반 0건: var, GetComponent, 씬 탐색, LINQ, static readonly 순서, float 비교, Unity 오브젝트 null 처리, Debug.Log.
+  - 그대로 맞는 것: DOTween 수명, Addressables, 카메라 후처리·Volume, 품질, Mipmap, Raycast Target, 깨진 참조.
+- 수정(중간 확정):
+  - ① 수력 물 셰이더가 `_Time.y × _Speed`로 위상을 구해, 수문이 열리며 속도가 바뀌면 무늬가 튀고 오래 켜 두면(약 20~40분) 해시 정밀도가 무너져 물이 굳었다. → DamGateFlow가 위상을 `유속 × deltaTime`으로 쌓아 `_Phase`로 넘기고, 셰이더 해시는 mod289로 접고, 위상은 2890 주기로 되돌린다(두 물결 층 모두 289칸의 정수배라 끊기지 않음).
+  - ② 함수 정의·시작하기(진입 소켓 없음)가 윗변 기준으로 체인·안쪽 소켓에 붙었다(레벨5에서 체인이 끊김). → 진입 소켓이 없으면 세로 스냅을 하지 않는다.
+  - ③ 체인 끝 소켓이 머리 블록만 검사해 'X → 완성하기'를 반복하기·만약 안에 넣을 수 있었다. → HasControlBlockInChain을 BlockSocket으로 올려 체인 끝 소켓도 체인 전체를 검사한다.
+  - ④ 다른 탭이 열린 채 블록 목록에 버리면 OnEndDrag가 오지 않아 행동 로그가 빠졌다. → OnDisable에서 드래그 중이면 결과 로그를 남긴다.
+  - ⑤ 레벨5 호출 블록이 하나뿐이라 함수 정의 안에 넣으면 '정의 안 호출' 검사가 돌지 않았다. → 함수 정의 자손인 함수 블록을 직접 찾는다.
+  - ⑥ 스캐너 입력: 6개 씬 EventSystem의 Send Navigation Events가 켜져 있어, 터치로 선택된 버튼이 스캐너의 W·A·S·D·Enter로 옮겨지고 눌릴 수 있었다(에디터는 Game 뷰 포커스 문제로 재현 불가). → 6개 씬에서 끄고 SceneEventSystemTests로 지킨다.
+- 수정(드래그 추정 → Play 모드 재현 후):
+  - ⑦ 코딩 영역 드롭 때 OnDrop이 먼저 블록을 옮겨 크기가 1.0→0.8로 바뀌고, 체인 진입 소켓이 약 13 움직였다. 그래서 하이라이트가 켜졌는데도 붙지 않았다(재현: 거리 89→102, 반경 96).
+  - ⑧ 하이라이트가 켜진 채 블록 목록 위에 놓으면 BlockZone이 묶음을 먼저 떼어, 본체만 소켓에 붙고 값 블록은 목록으로 갈라졌다(재현).
+  - ⑦⑧ 수정: 하이라이트한 소켓(_highlightedSocket)을 기억해 OnEndDrag가 그 소켓에 붙이고, 두 드롭 영역은 HasSnapTarget이면 양보한다. 이제 쓰이지 않는 IsDragHandled와 TrySnapToSocket은 지웠다.
+  - ⑨ 손가락이 화면 어디든 둘이면 블록을 못 집었다(코드 근거). → CodingZoneZoom.IsPinching(두 손가락 모두 패널 안)일 때만 막는다.
+- 수정(낮음):
+  - 설정: 3_Game·4_Result 음수 값을 0으로 보정(SettingsClamp)하고, 타자 간격도 0 이상으로 제한했다. Title·Story·AdminSettings 로드 뒤 취소를 전달한다. 설정 클래스 기본값을 배포 JSON에 맞췄다(타이틀 1.0, 스토리 1.0/1.3).
+  - 관리자: Admin.json이 깨졌으면 비밀번호를 저장하지 않는다(TryReadForSave). 무입력 타이머는 포인터 입력만 센다(스캐너 입력 제외). maskedText·messageText 누락 경고, PlayKeySound 이름 변경.
+  - 결과: 연출 오류 시 완료 패널을 바로 띄우고, 패널 4개 누락 경고를 추가했다. 게임 씬은 레이아웃 검사 전에 이전 판 결과를 지운다.
+  - 타이틀: 서버 이름이 비면 이름 없는 안내를 띄운다. CTS 정리 순서를 고치고 낡은 주석·null 분기를 정리했다.
+  - 기타: 기본 영상까지 없으면 ZLogError 뒤 대기를 건너뛴다. checkActive 해석 실패 로그에 원문 대신 길이만 남긴다. 아웃트로 중복 경고를 지우고, 블록 생성 중 씬 이탈 시 만든 블록을 지운다.
+  - 정리: 각도 채점(AngleScore·Angle 분기·ExtractValues angle), BlockExecutor.OnBlockEnter, Logic의 ValueInSocket, 조건 필터의 죽은 Logic 조건을 지웠다. 셰이더 프로퍼티는 PropertyToID로 캐시했다. 낡은 주석(수문 라벨·진행 비율 단위·테스트 이름·채점 범위·HasElseMarker)과 여러 문장 summary(본문 주석으로 옮김)를 고치고, 누락 summary 3개를 추가했다.
+  - 테스트: GetComponent→TryGetComponent, WaitForSecondsRealtime, 풍차 취소 테스트 summary, 무입력 타이머 테스트(장치 없이).
+- 하지 않은 것과 이유:
+  - 드래그 중 소켓 판정 캐시: 할당이 없고 블록 수가 적어 비용이 미미하다.
+  - 테스트의 `is null`: 순수 C#에는 프로젝트 메모리 규칙상 허용된다.
+  - ToonOutline 셰이더: 화면 변화가 커서 사용자 선택에서 제외했다.
+- 새 테스트(10): BlockCompilerTests 정의 안에만 있는 호출, SocketOwnershipTests 완성하기 달린 체인 거부, SceneEventSystemTests, DamGateFlowTests 3개, SettingsJsonTests 키 대조 4파일 추가.
+- 테스트: Unity 컴파일·셰이더 에러 0, PlayMode 173/173(뒤에 EditorSettings 되돌림).
+- Play 모드 확인(Claude):
+  - ⑦ 같은 조건에서 하이라이트한 '시작하기' 아래에 붙었다.
+  - ⑧ 값 블록이 달린 채 묶음째 붙었다.
+  - ④ 다른 탭에서 버리자 '떼어 블록 목록으로 되돌림' 로그가 남았다.
+  - 레벨5: '태양광 … 아래에 붙임' 로그, 같은 소켓 재부착은 로그 없음, 함수 정의는 하이라이트 없이 코딩 영역에 놓였다.
+  - 수력 결과: 수문 4개의 `_Phase`가 매 프레임 쌓여 MPB에 들어갔다.
+  - 확인 중 '같은 소켓 재부착 로그 생략' 비교가 `_homeParent`(붙는 순간 새 소켓으로 바뀜)를 써 붙임 로그가 모두 빠지는 버그를 찾아, 떼어 낸 소켓(_dragOriginSocket)과 비교하도록 고쳤다.
+  - 콘솔 에러 없음. Play 모드에서 바뀐 동적 폰트 에셋은 되돌렸다.
+- 확인 요청·결과: Antigravity 사용 한도로 Claude가 전체 diff를 직접 검토했다.
+  - CancelDrag는 RestoreDragHome 전에 `_isDragging`을 끈다(핀치 취소 시 잘못된 로그 없음).
+  - 하이라이트 소켓이 비활성이면 ReturnHomeOrRelease로 떨어진다.
+  - Logic은 조건 체인에 ConditionIn을 쓴다(ValueIn 제거 영향 없음).
+  - JsonLoader.LoadAsync는 메인 스레드로 돌아온다.
+  - 씬 diff는 6개 모두 m_sendNavigationEvents 한 줄뿐이다.
+- PR #90 확인: 코멘트·리뷰 없음, CI 없음, 병합 가능(CLEAN). 추가 수정 없이 머지했다. CHANGELOG 항목은 2026-10-09 섹션의 Changed·Fixed로 옮겼다(Claude 확인). 현장 빌드에서 게임 중 QR을 찍어도 버튼이 눌리지 않는지 확인하는 일은 남아 있다.
+
 ### [2026-10-09 15:10] Claude → Antigravity · 빌드 후 바꿀 값 JSON으로 (feat/json-externalize)
 - 요청(사용자): 영상처럼 빌드 뒤에 고칠 수 있어야 하는 것이 모두 JSON으로 빠져 있는지 확인. 조사 결과 효과음(Settings.json)·서버(Server.json)·비밀번호(Admin.json)·연출 시간(씬별 JSON)은 이미 빠져 있었다. 빠지지 않은 것 중 사용자가 고른 4가지를 고쳤다: 로봇 영상 경로, 안 쓰는 영상 2개 삭제, 관리자 창 시간·진입 클릭 수, 타이틀 안내 문구. 스토리·문제·힌트 문구(레벨 데이터), 인트로·아웃트로 문장(씬), 튜토리얼 이미지, 채점 기준, API 경로는 그대로 둔다.
 - 변경 파일:

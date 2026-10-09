@@ -16,6 +16,9 @@ namespace Scenes
         public readonly string Label;
         public readonly string Value;
 
+        /// <summary>
+        /// 결과 행의 항목 이름과 값을 정한다.
+        /// </summary>
         public ResultRow(string label, string value)
         {
             Label = label;

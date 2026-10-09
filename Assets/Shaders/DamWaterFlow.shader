@@ -4,7 +4,7 @@ Shader "DG/DamWaterFlow"
     {
         _BaseColor  ("Base Color", Color) = (0.12, 0.45, 0.78, 0.85)
         _FoamColor  ("Foam Color", Color) = (0.92, 0.97, 1.0, 1.0)
-        _Speed      ("Flow Speed", Float) = 1.2
+        _Phase      ("Flow Phase (set by DamGateFlow)", Float) = 0
         _Tiling     ("Flow Tiling", Float) = 6.0
         _FoamAmount ("Foam Amount", Range(0,1)) = 0.35
         _Opening    ("Opening (0-1)", Range(0,1)) = 1.0
@@ -41,7 +41,7 @@ Shader "DG/DamWaterFlow"
             CBUFFER_START(UnityPerMaterial)
                 float4 _BaseColor;
                 float4 _FoamColor;
-                float  _Speed;
+                float  _Phase;
                 float  _Tiling;
                 float  _FoamAmount;
                 float  _Opening;
@@ -64,10 +64,17 @@ Shader "DG/DamWaterFlow"
                 float3 normalWS   : TEXCOORD1;
             };
 
+            // 해시 입력을 289칸 주기로 접는다 — 위상이 커져도 곱셈 결과가 float 정밀도를 넘지 않아 물결이 굳지 않는다.
+            // DamGateFlow의 위상 주기(2890)는 두 물결 층의 칸 이동(×2.0·×3.3)이 모두 289의 배수가 되는 값이라 되돌려도 무늬가 이어진다
+            float2 mod289(float2 x)
+            {
+                return x - floor(x / 289.0) * 289.0;
+            }
+
             // 값 노이즈 - 외부 텍스처 없이 물결 패턴 생성
             float hash21(float2 p)
             {
-                p = frac(p * float2(123.34, 456.21));
+                p = frac(mod289(p) * float2(123.34, 456.21));
                 p += dot(p, p + 45.32);
                 return frac(p.x * p.y);
             }
@@ -113,8 +120,9 @@ Shader "DG/DamWaterFlow"
                 clip(flowEdge - IN.uv.y);
                 float leadFade = smoothstep(flowEdge, flowEdge - leadWidth, IN.uv.y);
 
-                // V축이 흐름 방향(블렌더에서 호길이로 UV를 깔아둠)
-                float t = _Time.y * _Speed;
+                // V축이 흐름 방향(블렌더에서 호길이로 UV를 깔아둠).
+                // 위상은 DamGateFlow가 속도 × 프레임 시간으로 쌓아 넘긴다 — '시간 × 속도'로 구하면 수문이 열리며 속도가 바뀌는 동안 무늬가 크게 튄다
+                float t = _Phase;
 
                 float n1 = vnoise(float2(IN.uv.x * _Tiling,        IN.uv.y * _Tiling * 3.0 - t * 2.0));
                 float n2 = vnoise(float2(IN.uv.x * _Tiling * 2.0 + 3.7, IN.uv.y * _Tiling * 6.0 - t * 3.3));

@@ -34,7 +34,7 @@ namespace Scenes
         private AppSettingsProvider _settingsProvider;
         private ApiManagerBase _apiManager;
 
-        // 0_Title.json 로드 전에 QR 확인 결과가 나오면 기본값을 쓴다
+        // 0_Title.json 연출·문구 설정 — 읽기 전이나 파일이 없으면 기본값을 쓴다
         private TitleSceneSettings _sceneSettings = new();
 
         // QR로 확인한 체험자가 시작하기를 누르지 않고 기다린 시간 재기 — 시작하기·새 QR·씬 파괴 때 취소한다
@@ -98,6 +98,9 @@ namespace Scenes
             {
                 // 첫 안내부터 0_Title.json의 문구로 보이도록 설정을 먼저 읽는다 — 안내가 없어도 QR 확인·스캐너 값은 써야 하므로 항상 읽는다
                 _sceneSettings = await JsonLoader.LoadAsync<TitleSceneSettings>(Constants.SettingsFiles.Title, ct, _logger);
+
+                // JsonLoader는 취소돼도 기본값을 돌려주므로, 파괴된 뒤 스캐너 입력을 다시 구독하지 않도록 여기서 취소를 전달한다
+                ct.ThrowIfCancellationRequested();
                 ApplyScanCharGap();
 
                 bool isServerConnected = false;
@@ -300,8 +303,7 @@ namespace Scenes
                 string failMessage = await ConfirmVisitorAsync(uid, ct);
 
                 // 서버가 빨리 답해도 '확인하고 있습니다'가 스치듯 지나가지 않게 최소 시간을 채운다 — 이미 지났으면 바로 넘어간다
-                // 0_Title.json을 다 읽기 전에 찍었으면 최소 시간 없이 바로 결과를 보여 준다
-                float minSeconds = _sceneSettings != null ? _sceneSettings.qrCheckingMinSeconds : 0f;
+                float minSeconds = _sceneSettings.qrCheckingMinSeconds;
                 float remainingSeconds = minSeconds - (Time.realtimeSinceStartup - checkStartTime);
                 if (remainingSeconds > 0f)
                     await UniTask.Delay(TimeSpan.FromSeconds(remainingSeconds), DelayType.UnscaledDeltaTime, cancellationToken: ct);
@@ -336,7 +338,7 @@ namespace Scenes
             if (guideText) guideText.text = message;
 
             // 0_Title.json에 음수를 적으면 Delay가 예외를 내 QR 대기로 돌아오지 못하므로 0 이상으로 제한한다
-            float messageSeconds = _sceneSettings != null ? Mathf.Max(0f, _sceneSettings.scanResultMessageSeconds) : 0f;
+            float messageSeconds = Mathf.Max(0f, _sceneSettings.scanResultMessageSeconds);
             await UniTask.Delay(TimeSpan.FromSeconds(messageSeconds), DelayType.UnscaledDeltaTime, cancellationToken: ct);
             WaitForQr();
         }
@@ -409,10 +411,11 @@ namespace Scenes
         /// </summary>
         private void ShowConfirmedVisitor()
         {
-            string visitorName = _visitorInfoProvider != null ? _visitorInfoProvider.GetName() : null;
-            ShowStartGuide(string.IsNullOrEmpty(visitorName)
+            // 서버가 이름 없이 답하면 GetName은 로컬 이름으로 대신하므로, 안내에는 서버가 준 이름이 있을 때만 이름을 넣는다
+            string serverName = _visitorInfoProvider != null ? _visitorInfoProvider.ServerVisitorName : null;
+            ShowStartGuide(string.IsNullOrEmpty(serverName)
                 ? _sceneSettings.startGuideText
-                : _sceneSettings.startGuideWithNameText.Replace(VisitorInfoProvider.NamePlaceholder, visitorName));
+                : _sceneSettings.startGuideWithNameText.Replace(VisitorInfoProvider.NamePlaceholder, serverName));
 
             StartScanning();
             StartConfirmTimeout();
@@ -444,9 +447,11 @@ namespace Scenes
         {
             if (_confirmTimeoutCts == null) return;
 
-            _confirmTimeoutCts.Cancel();
-            _confirmTimeoutCts.Dispose();
+            // 취소 콜백이 같은 호출 안에서 대기 흐름의 finally를 돌릴 수 있으므로, 지역 변수로 받고 필드부터 비운다
+            CancellationTokenSource cts = _confirmTimeoutCts;
             _confirmTimeoutCts = null;
+            cts.Cancel();
+            cts.Dispose();
         }
 
         /// <summary>

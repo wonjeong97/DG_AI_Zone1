@@ -14,9 +14,6 @@ namespace Game.Runtime
         // If 조건 평가기. true = Then 분기, false = Else 분기.
         public Func<ConditionExpr, bool> OnCondition;
 
-        // 각 명령이 시작될 때 호출 (시각적 하이라이트 등에 활용).
-        public Action<CodingBlock> OnBlockEnter;
-
         public event Action OnComplete;
 
         /// <summary>
@@ -50,8 +47,6 @@ namespace Game.Runtime
         /// </summary>
         private async UniTask<bool> ExecuteOne(BlockInstruction instr, CancellationToken ct)
         {
-            OnBlockEnter?.Invoke(instr.Source);
-
             return instr switch
             {
                 IfInstruction       i => await ExecuteIf(i, ct),
@@ -87,7 +82,7 @@ namespace Game.Runtime
         private async UniTask<bool> ExecuteRepeat(RepeatInstruction instr, CancellationToken ct)
         {
             // 무한 반복은 이론적 의미만 가짐 — 실제 실행은 1회로 제한 (무한 루프 방지).
-            // 실행은 결과 씬으로 넘어가기 전의 로그 재생 연출이라 무한 반복 뒤 블록도 이어서 보여 준다
+            // 실행은 결과 씬으로 넘어가기 전 명령마다 잠깐 기다리는 단계라 무한 반복 뒤 블록도 이어서 진행한다
             // (채점은 BlockScorer.CollectReachable이 무한 반복 뒤 블록을 실행되지 않는 것으로 따로 판단한다)
             int iterations = instr.IsInfinite ? 1 : instr.Count;
             for (int i = 0; i < iterations; i++)

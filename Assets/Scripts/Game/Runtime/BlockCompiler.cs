@@ -157,9 +157,10 @@ namespace Game.Runtime
                         program, reachedEnd, CompileErrorKind.UnusedBlocks);
             }
 
-            if (ctx.FunctionCallInsideDef)
+            CodingBlock callInsideDef = FindFunctionCallInsideDef(ctx);
+            if (callInsideDef)
                 return CompileResult.Fail(Constants.CompilerMessages.FunctionCallInsideDef,
-                    ctx.FunctionCallInsideDef, program, reachedEnd);
+                    callInsideDef, program, reachedEnd);
 
             CodingBlock cmdError = FindCommandWithoutValue(program);
             if (cmdError)
@@ -632,6 +633,21 @@ namespace Game.Runtime
         {
             foreach (BlockInstruction instr in InstructionTree.Traverse(instructions))
                 if (instr is FunctionInstruction fn) return fn.Source;
+            return null;
+        }
+
+        /// <summary>
+        /// 함수 정의 블록 안에 놓인 함수 호출 블록을 찾는다 — 메인 체인이 함수를 부르지 않아 정의를 펼치지 않은 경우도 잡는다(없으면 null).
+        /// </summary>
+        private static CodingBlock FindFunctionCallInsideDef(CompileContext ctx)
+        {
+            if (ctx.FunctionCallInsideDef) return ctx.FunctionCallInsideDef;
+
+            CodingBlock funcDef = FindSceneBlock(ctx, BlockCategory.FunctionDef);
+            if (!funcDef) return null;
+
+            foreach (CodingBlock b in ctx.AllBlocks)
+                if (b && b.Category == BlockCategory.Function && b.transform.IsChildOf(funcDef.transform)) return b;
             return null;
         }
 

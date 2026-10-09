@@ -6,9 +6,8 @@ namespace Data
     [Serializable]
     public class StorySceneSettings
     {
-        public float selectedLevelButtonMoveDuration = 0.35f;
-
-        // OutBack 이징의 반동(overshoot) 크기 — DOTween 기본값(1.70158f)과 동일
-        public float selectedLevelButtonMoveOvershoot = 1.70158f;
+        // 고른 레벨 버튼이 스토리 화면 자리로 튀어 들어가는 시간(초)과 OutBack 이징의 반동(overshoot) 크기 — 배포 2_Story.json과 같은 값
+        public float selectedLevelButtonMoveDuration = 1f;
+        public float selectedLevelButtonMoveOvershoot = 1.3f;
     }
 }

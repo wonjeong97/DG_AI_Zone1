@@ -84,7 +84,8 @@ namespace Scenes
             for (int i = 0; i <= total; i++)
             {
                 _text.maxVisibleCharacters = i;
-                await UniTask.Delay((int)(charInterval * 1000), cancellationToken: ct);
+                // 4_Result.json에 음수를 적으면 Delay가 예외를 내 결과 연출이 멈추므로 0 이상으로 제한한다
+                await UniTask.Delay((int)(Mathf.Max(0f, charInterval) * 1000), cancellationToken: ct);
             }
         }
     }

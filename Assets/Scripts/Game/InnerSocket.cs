@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using DG.Tweening;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
@@ -152,32 +151,6 @@ namespace Game
         }
 
         /// <summary>
-        /// 들어오는 블록의 체인·내부 소켓 어딘가에 Control 블록(시작하기/완성하기)이 섞여 있는지 확인한다.
-        /// 제어 블록은 FlowControl 내부로 들어갈 수 없다.
-        /// 드래그 중 매 프레임 호출되므로 리스트를 만들지 않고 블록의 소켓 목록을 인덱스로 순회한다(재귀라 공용 버퍼도 쓸 수 없음).
-        /// </summary>
-        private static bool HasControlBlockInChain(CodingBlock block)
-        {
-            CodingBlock current = block;
-            while (current)
-            {
-                if (current.Category == BlockCategory.Control) return true;
-
-                IReadOnlyList<BlockSocket> sockets = current.Sockets;
-                for (int i = 0; i < sockets.Count; i++)
-                {
-                    if (sockets[i] is InnerSocket innerSocket && innerSocket
-                        && innerSocket.Occupant && HasControlBlockInChain(innerSocket.Occupant))
-                        return true;
-                }
-
-                ChainOutSocket chainOut = ChainOutSocket.OfBlock(current);
-                current = chainOut ? chainOut.Occupant : null;
-            }
-            return false;
-        }
-
-        /// <summary>
         /// 블록을 내부 첫 자리로 받아 스냅시키고, 원래 있던 블록은 들어온 체인의 꼬리에 이어 붙인다.
         /// </summary>
         public override void Accept(CodingBlock block)
@@ -219,6 +192,7 @@ namespace Game
         }
 
 #if UNITY_EDITOR
+        // 기즈모로 그리는 기준 반경 — 실제 스냅 반경은 3_Game.json(snapRadius·chainSnapRadius) × 코딩 패널 배율이라 다를 수 있다
         private const float SnapRadius = 120f;
 
         /// <summary>

@@ -148,7 +148,8 @@ namespace DG.Zone1.Tests
             innerSocket.Accept(inner);
             chainOut.Accept(below);
 
-            yield return new WaitForSeconds(SnapWaitSeconds);
+            // 앞 테스트가 timeScale을 되돌리지 못해도 멈추지 않도록 실시간으로 기다린다
+            yield return new WaitForSecondsRealtime(SnapWaitSeconds);
 
             RectTransform footer = (RectTransform)repeat.Footer;
             AssertDragTarget(repeat, footer, new Vector2(footer.rect.center.x, footer.rect.yMax - BarHeight * 0.5f), "반복하기 하단 막대");

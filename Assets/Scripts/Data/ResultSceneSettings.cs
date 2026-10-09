@@ -45,5 +45,26 @@ namespace Data
 
         // 상단 안내 문구 뒤 말줄임( · · · ) 점 애니메이션 간격(ms)
         public int topDotIntervalMs = Constants.ResultMessages.ResultTopDotIntervalMs;
+
+        /// <summary>
+        /// 음수 시간·간격을 0으로 바꾸고, 바꾼 값이 있으면 true를 돌려준다.
+        /// </summary>
+        public bool ClampToValid()
+        {
+            bool changed = false;
+            typewriterCharInterval = SettingsClamp.NonNegative(typewriterCharInterval, ref changed);
+            rowFadeDuration = SettingsClamp.NonNegative(rowFadeDuration, ref changed);
+            effCountDuration = SettingsClamp.NonNegative(effCountDuration, ref changed);
+            touchGuideDelay = SettingsClamp.NonNegative(touchGuideDelay, ref changed);
+            panelPoseDuration = SettingsClamp.NonNegative(panelPoseDuration, ref changed);
+            turbineSpinDuration = SettingsClamp.NonNegative(turbineSpinDuration, ref changed);
+            damOpenDuration = SettingsClamp.NonNegative(damOpenDuration, ref changed);
+            plantPumpDuration = SettingsClamp.NonNegative(plantPumpDuration, ref changed);
+            labLightDuration = SettingsClamp.NonNegative(labLightDuration, ref changed);
+            aiStartHold = SettingsClamp.NonNegative(aiStartHold, ref changed);
+            aiCodingDotIntervalMs = SettingsClamp.NonNegative(aiCodingDotIntervalMs, ref changed);
+            topDotIntervalMs = SettingsClamp.NonNegative(topDotIntervalMs, ref changed);
+            return changed;
+        }
     }
 }

@@ -28,6 +28,10 @@ namespace Scenes
         [System.NonSerialized] public Transform cachedWater;
         [System.NonSerialized] public SkinnedMeshRenderer waterSkin;
         [System.NonSerialized] public Renderer waterRenderer;
+
+        // 물줄기·포말 웅덩이 무늬의 흐름 위상 — 유속 × 프레임 시간으로 쌓는다
+        [System.NonSerialized] public float waterPhase;
+        [System.NonSerialized] public float foamPhase;
     }
 
     // 결과 씬(레벨3)에서는 수문 개방량이 발전 결과를 보여주는 연출이다.
@@ -73,13 +77,16 @@ namespace Scenes
         [SerializeField] private Vector2 foamPoolSpeedRange = new(0.5f, 1.4f);
 
         private readonly static int OpeningId = Shader.PropertyToID("_Opening");
-        private readonly static int SpeedId = Shader.PropertyToID("_Speed");
+        private readonly static int PhaseId = Shader.PropertyToID("_Phase");
         private readonly static int WidthId = Shader.PropertyToID("_WidthFrac");
         private readonly static int HeightId = Shader.PropertyToID("_HeightFrac");
         private readonly static int FlowFracId = Shader.PropertyToID("_FlowFrac");
 
         private const float MaxPercent = Constants.ResultMessages.MaxPercent;
         private const float ClosedEpsilon = 0.001f;
+
+        // 흐름 위상을 되돌리는 주기 — 셰이더 해시 주기(289칸)와 두 물결 층의 칸 이동 배수(2.0·3.3)가 모두 정수 칸이 되는 값
+        public const float FlowPhasePeriod = 2890f;
 
         // 물 메시의 블렌드셰이프 "Thick" 순번과 최대 가중치
         private const int ThickBlendShapeIndex = 0;
@@ -103,20 +110,61 @@ namespace Scenes
         /// </summary>
         private void OnEnable() => ApplyAll();
 
-        // 빌드에서는 매 프레임 돌 이유가 없다 — 값이 바뀌는 시점(OnEnable/SetNeutral/ApplyAsync)에만
-        // ApplyAll이 불리고, 스케일·MaterialPropertyBlock·파티클 설정은 한 번 넣으면 그대로 유지된다.
-        // 에디터에서는 인스펙터로 opening을 직접 만지며 확인하는 용도라 플레이 중에도 계속 반영한다.
-#if UNITY_EDITOR
         /// <summary>
-        /// 에디터에서 인스펙터로 바꾼 개방량을 매 프레임 반영한다.
+        /// 물 무늬의 흐름 위상을 매 프레임 쌓아 셰이더에 넘긴다 (에디터에서는 인스펙터로 바꾼 개방량도 함께 반영한다).
         /// </summary>
-        private void Update() => ApplyAll();
+        private void Update()
+        {
+            // 빌드에서는 스케일·파티클·폭 같은 값은 바뀌는 시점(OnEnable/SetNeutral/ApplyAsync)에만 넣고 위상만 매 프레임 넣는다.
+            // 에디터에서는 인스펙터로 opening을 직접 만지며 확인하는 용도라 플레이 중에도 전부 반영한다
+#if UNITY_EDITOR
+            ApplyAll();
+#endif
+            AdvanceFlowPhases(Time.deltaTime);
+        }
 
+#if UNITY_EDITOR
         /// <summary>
         /// 인스펙터 값이 바뀌면 즉시 반영한다.
         /// </summary>
         private void OnValidate() => ApplyAll();
 #endif
+
+        /// <summary>
+        /// 흐름 위상을 유속 × 경과 시간만큼 앞으로 보내고 주기 안으로 되돌린다.
+        /// </summary>
+        public static float AdvancePhase(float phase, float speed, float deltaTime) =>
+            Mathf.Repeat(phase + speed * deltaTime, FlowPhasePeriod);
+
+        /// <summary>
+        /// 모든 수문의 물줄기·포말 웅덩이 위상을 개방량에 맞는 유속으로 앞으로 보내 셰이더에 넣는다.
+        /// </summary>
+        private void AdvanceFlowPhases(float deltaTime)
+        {
+            if (gates == null) return;
+            _mpb ??= new MaterialPropertyBlock();
+            foreach (DamGate g in gates)
+            {
+                if (g == null) continue;
+
+                float opening = Mathf.Clamp01(g.opening);
+                g.waterPhase = AdvancePhase(g.waterPhase, Mathf.Lerp(minFlowSpeed, maxFlowSpeed, opening), deltaTime);
+                g.foamPhase = AdvancePhase(g.foamPhase, Mathf.Lerp(foamPoolSpeedRange.x, foamPoolSpeedRange.y, opening), deltaTime);
+
+                if (g.waterRenderer) SetPhase(g.waterRenderer, g.waterPhase);
+                if (g.foamPool) SetPhase(g.foamPool, g.foamPhase);
+            }
+        }
+
+        /// <summary>
+        /// 렌더러의 다른 MaterialPropertyBlock 값은 그대로 두고 흐름 위상만 바꾼다.
+        /// </summary>
+        private void SetPhase(Renderer renderer, float phase)
+        {
+            renderer.GetPropertyBlock(_mpb);
+            _mpb.SetFloat(PhaseId, phase);
+            renderer.SetPropertyBlock(_mpb);
+        }
 
         /// <summary>
         /// 기본 상태(전부 닫힘, 물 없음)로 되돌린다 — 연출 시작점.
@@ -130,12 +178,12 @@ namespace Scenes
 
         /// <summary>
         /// 에너지 효율(%)에 비례해 수문을 연다 — 0%면 닫힌 채, 100%면 완전 개방(수문 4개를 같은 양만큼).
-        /// 수문은 전 구간에 걸쳐 천천히 열리고, 물은 수문이 조금 열린 뒤에야 마루를 넘어 내려간다 —
-        /// 둘을 같이 움직이면 살짝 열린 순간 물이 이미 토우까지 닿아 뚝 끊기듯 보이기 때문이다.
-        /// 도달 거리는 최종 개방량과 무관하게 항상 1(토우)까지 간다.
         /// </summary>
         public async UniTask ApplyAsync(int percent, CancellationToken ct)
         {
+            // 수문은 전 구간에 걸쳐 천천히 열리고, 물은 수문이 조금 열린 뒤에야 마루를 넘어 내려간다 —
+            // 둘을 같이 움직이면 살짝 열린 순간 물이 이미 토우까지 닿아 뚝 끊기듯 보이기 때문이다.
+            // 도달 거리는 최종 개방량과 무관하게 항상 1(토우)까지 간다.
             float targetOpening = Mathf.Clamp01(percent / MaxPercent);
             float targetReach = targetOpening > ClosedEpsilon ? 1f : 0f;
             float startOpening = _currentOpening;
@@ -223,7 +271,7 @@ namespace Scenes
             {
                 g.foamPool.GetPropertyBlock(_mpb);
                 _mpb.SetFloat(OpeningId, closed ? 0f : Mathf.Lerp(foamPoolOpeningRange.x, foamPoolOpeningRange.y, opening) * _flowReach);
-                _mpb.SetFloat(SpeedId, Mathf.Lerp(foamPoolSpeedRange.x, foamPoolSpeedRange.y, opening));
+                _mpb.SetFloat(PhaseId, g.foamPhase);
                 g.foamPool.SetPropertyBlock(_mpb);
             }
 
@@ -243,12 +291,12 @@ namespace Scenes
             if (r)
             {
                 r.GetPropertyBlock(_mpb);
-                // 폭·투명도는 고정, 개방량에 따라 달라지는 건 두께(블렌드셰이프)와 유속뿐
+                // 폭·투명도는 고정, 개방량에 따라 달라지는 건 두께(블렌드셰이프)와 유속(위상이 쌓이는 속도, AdvanceFlowPhases)뿐
                 _mpb.SetFloat(WidthId, closed ? 0f : Mathf.Lerp(minStreamWidth, 1f, opening));
                 _mpb.SetFloat(HeightId, closed ? 0f : Mathf.Lerp(minStreamHeight, 1f, opening));
                 _mpb.SetFloat(FlowFracId, closed ? 0f : _flowReach);
                 _mpb.SetFloat(OpeningId, closed ? 0f : 1f);
-                _mpb.SetFloat(SpeedId, Mathf.Lerp(minFlowSpeed, maxFlowSpeed, opening));
+                _mpb.SetFloat(PhaseId, g.waterPhase);
                 r.SetPropertyBlock(_mpb);
             }
         }

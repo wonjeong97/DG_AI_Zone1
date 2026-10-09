@@ -52,7 +52,6 @@ namespace Scenes
                 Debug.LogError("[OutroSceneManager] Dependencies were not injected. Check that GameLifetimeScope injects scene root objects on load.");
 
             if (!endButton && _logger != null) _logger.ZLogWarning($"[OutroSceneManager] endButton이 할당되지 않았습니다.");
-            if (!robotVideoPlayer && _logger != null) _logger.ZLogWarning($"[OutroSceneManager] robotVideoPlayer가 할당되지 않았습니다.");
 
             if (endButton)
                 endButton.onClick.AddListener(OnEndButtonClicked);

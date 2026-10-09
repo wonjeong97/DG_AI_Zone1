@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Game
@@ -62,6 +63,31 @@ namespace Game
             return -new Vector2(
                 (anchor.x - blockRt.pivot.x) * blockRt.sizeDelta.x + inRt.anchoredPosition.x,
                 (anchor.y - blockRt.pivot.y) * blockRt.sizeDelta.y + inRt.anchoredPosition.y);
+        }
+
+        /// <summary>
+        /// 들어오는 블록의 체인·내부 소켓 어딘가에 Control 블록(시작하기/완성하기)이 섞여 있는지 확인한다 — 제어 블록은 FlowControl 내부로 들어갈 수 없다.
+        /// </summary>
+        protected static bool HasControlBlockInChain(CodingBlock block)
+        {
+            // 드래그 중 매 프레임 호출되므로 리스트를 만들지 않고 블록의 소켓 목록을 인덱스로 순회한다(재귀라 공용 버퍼도 쓸 수 없음)
+            CodingBlock current = block;
+            while (current)
+            {
+                if (current.Category == BlockCategory.Control) return true;
+
+                IReadOnlyList<BlockSocket> sockets = current.Sockets;
+                for (int i = 0; i < sockets.Count; i++)
+                {
+                    if (sockets[i] is InnerSocket innerSocket && innerSocket
+                        && innerSocket.Occupant && HasControlBlockInChain(innerSocket.Occupant))
+                        return true;
+                }
+
+                ChainOutSocket chainOut = ChainOutSocket.OfBlock(current);
+                current = chainOut ? chainOut.Occupant : null;
+            }
+            return false;
         }
 
         /// <summary>

@@ -383,6 +383,28 @@ namespace DG.Zone1.Tests
         }
 
         /// <summary>
+        /// 함수 호출 블록이 함수 정의 안에만 있고 메인 체인이 함수를 부르지 않아도 그 호출 블록을 지목하며 실패한다.
+        /// 회귀: 레벨5에는 호출 블록이 하나뿐이라 정의 안에 넣으면 정의를 펼치지 않아 검사가 돌지 않고 안내 없이 0점이 됐다.
+        /// </summary>
+        [Test]
+        public void 함수_호출이_정의_안에만_있어도_지목하며_실패한다()
+        {
+            CodingBlock def = BlockTestUtil.MakeBlock(_zone, "미래 에너지 만들기", BlockCategory.FunctionDef, _zone.transform);
+            InnerSocket defInner = BlockTestUtil.AddInnerSocket(def);
+            CodingBlock innerCall = BlockTestUtil.MakeBlock(_zone, "미래 에너지 만들기", BlockCategory.Function, _inventory);
+            defInner.Accept(innerCall);
+            CodingBlock energy = BlockTestUtil.MakeBlock(_zone, "태양광", BlockCategory.Command, _inventory);
+            ChainOutSocket.OfBlock(_start).Accept(energy);
+            ChainOutSocket.OfBlock(energy).Accept(_end);
+
+            CompileResult result = BlockCompiler.Compile(_zone);
+
+            Assert.IsFalse(result.Success, "함수 정의 안에만 있는 함수 호출이 컴파일에 성공함");
+            Assert.AreEqual(Constants.CompilerMessages.FunctionCallInsideDef, result.Error);
+            CollectionAssert.AreEqual(new[] { innerCall }, result.ErrorBlocks);
+        }
+
+        /// <summary>
         /// 만약 하나에 아니면을 두 개 넣으면 두 번째 아니면을 지목하며 실패한다.
         /// </summary>
         [Test]
