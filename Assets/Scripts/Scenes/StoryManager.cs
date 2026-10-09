@@ -1,7 +1,6 @@
 using System;
 using System.Threading;
 using App;
-using Cysharp.Text;
 using Cysharp.Threading.Tasks;
 using Data;
 using DG.Tweening;
@@ -32,15 +31,14 @@ namespace Scenes
         [Tooltip("스토리 화면 좌상단 < 버튼 — 레벨 선택 화면으로(관리자 레벨 이동이면 타이틀의 관리자 화면으로) 돌아간다")]
         [SerializeField] private Button backButton;
         [SerializeField] private VideoPlayer robotVideoPlayer;
+        [Tooltip("선택한 레벨 버튼이 스토리 화면으로 옮겨가 고정되는 위치 — 스토리 패널과 함께 보이도록 둔다")]
+        [SerializeField] private Vector2 selectedLevelButtonPosition = new(-513f, -75f);
 
         private GameSession _session;
         private ILogger<StoryManager> _logger;
         private GameInputActions _input; // 디버그 단축키(Space) — 모든 레벨 해금
         private InactivityTimer _inactivityTimer;
         private SoundManager _soundManager;
-
-        // 00_Common.json의 panelFadeDuration 사용 — 로드 전까지의 폴백 기본값
-        private float _fadeDuration = 0.3f;
 
         /// <summary>
         /// 게임 세션, 로거, 비활동 타이머, 사운드 매니저를 주입받는다.
@@ -56,14 +54,14 @@ namespace Scenes
 
         private LevelData _currentLevel;
 
-        // 선택된 레벨 버튼이 storyPanel로 옮겨가 고정되는 위치 — 스토리 패널과 함께 보이도록 함
-        private readonly static Vector2 SelectedLevelButtonPosition = new(-513f, -75f);
-
         /// <summary>
         /// 레벨 선택 화면을 초기화하고 해금 상태에 맞춰 레벨 버튼을 활성화한다.
         /// </summary>
         private void Start()
         {
+            if (_logger == null)
+                Debug.LogError("[StoryManager] Dependencies were not injected. Check that GameLifetimeScope injects scene root objects on load.");
+
             if (!levelSelectPanel && _logger != null) _logger.ZLogWarning($"[StoryManager] levelSelectPanel이 할당되지 않았습니다.");
             if (!storyPanel && _logger != null) _logger.ZLogWarning($"[StoryManager] storyPanel이 할당되지 않았습니다.");
             if (!startButton && _logger != null) _logger.ZLogWarning($"[StoryManager] startButton이 할당되지 않았습니다.");
@@ -85,7 +83,7 @@ namespace Scenes
                 levelButtons[i].onClick.AddListener(() => OnLevelButtonClicked(btnIndex));
             }
 
-            ApplyUnlockedLevels(Mathf.Clamp(_session ? _session.unlockedLevelIndex : 0, 0, levelDataList.Length - 1));
+            ApplyUnlockedLevels(Mathf.Clamp(_session != null ? _session.unlockedLevelIndex : 0, 0, levelDataList.Length - 1));
 
             if (startButton) startButton.onClick.AddListener(OnStartClicked);
             if (backButton) backButton.onClick.AddListener(OnBackClicked);
@@ -94,7 +92,7 @@ namespace Scenes
             SceneFader.PlayLoopingVideo(robotVideoPlayer, Constants.VideoPaths.RobotUrl, destroyCancellationToken, _logger);
 
             // 관리자 페이지에서 레벨을 골라 들어온 경우 — 레벨 선택 화면에서 그 레벨을 누른 것처럼 바로 스토리 화면으로 넘어간다
-            if (_session && _session.pendingStoryLevelIndex >= 0)
+            if (_session != null && _session.pendingStoryLevelIndex >= 0)
             {
                 int pendingIndex = _session.pendingStoryLevelIndex;
                 _session.pendingStoryLevelIndex = -1;
@@ -119,10 +117,12 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 디버그 단축키(Space) 입력을 받기 시작한다.
+        /// 디버그 단축키(Space) 입력을 받기 시작한다 — 현장 빌드에서 관람객이 누르지 않도록 에디터·개발 빌드에서만.
         /// </summary>
         private void OnEnable()
         {
+            if (!Debug.isDebugBuild) return;
+
             _input ??= new GameInputActions();
             _input.Debug.Shortcut.performed += OnDebugShortcut;
             _input.Debug.Enable();
@@ -144,6 +144,7 @@ namespace Scenes
         private void OnDestroy()
         {
             _input?.Dispose();
+            if (startButton) startButton.onClick.RemoveListener(OnStartClicked);
             if (backButton) backButton.onClick.RemoveListener(OnBackClicked);
         }
 
@@ -156,7 +157,7 @@ namespace Scenes
             if (_currentLevel) return;
 
             int lastIndex = levelDataList.Length - 1;
-            if (_session) _session.unlockedLevelIndex = lastIndex;
+            if (_session != null) _session.unlockedLevelIndex = lastIndex;
             ApplyUnlockedLevels(lastIndex);
             if (_logger != null) _logger.ZLogInformation($"[StoryManager] 디버그 단축키로 모든 레벨을 해금했습니다.");
         }
@@ -189,15 +190,20 @@ namespace Scenes
             // levelSelectPanel·storyPanel은 같은 부모 안에서 정확히 같은 영역을 꽉 채우고 있어 좌표계가 동일하므로
             // 이동해도 시각적으로 튀지 않는다. 실제 이동은 storyPanel이 페이드인되는 시점에 맞춰 트윈으로 처리한다
             RectTransform selectedButtonRect = null;
-            if (levelButtons[index])
+            Button selectedButton = index < levelButtons.Length ? levelButtons[index] : null;
+            if (selectedButton && storyPanel)
             {
-                selectedButtonRect = (RectTransform)levelButtons[index].transform;
+                selectedButtonRect = (RectTransform)selectedButton.transform;
                 selectedButtonRect.SetParent(storyPanel.transform.parent, worldPositionStays: false);
-                levelButtons[index].interactable = false;
+                selectedButton.interactable = false;
 
                 // 버튼에 달려있던 별(Image_StarN) 아이콘은 스토리 패널로 넘어갈 땐 필요 없으므로 제거
                 foreach (Transform child in selectedButtonRect)
                     child.gameObject.SetActive(false);
+            }
+            else if (_logger != null)
+            {
+                _logger.ZLogWarning($"[StoryManager] {index}번 레벨 버튼이나 storyPanel이 없어 고른 레벨 버튼을 스토리 화면으로 옮기지 않습니다.");
             }
 
             for (int i = 0; i < levelPanels.Length; i++)
@@ -213,8 +219,7 @@ namespace Scenes
                 storyText.text = _currentLevel.storyText;
 
                 // 페이드인 도중 전체 텍스트가 잠깐 보이지 않도록 미리 숨겨 둠
-                storyText.ForceMeshUpdate();
-                storyText.maxVisibleCharacters = 0;
+                StoryLineAnimator.HideBeforeAnimate(storyText);
             }
             else if (_logger != null)
             {
@@ -234,10 +239,10 @@ namespace Scenes
             try
             {
                 CancellationToken ct = destroyCancellationToken;
-                _fadeDuration = await SceneFader.GetPanelFadeDurationAsync();
+                float fadeDuration = await SceneFader.GetPanelFadeDurationAsync();
 
                 SceneFader.SetGroupInteractable(levelSelectPanel, false);
-                await SceneFader.FadeCanvasGroupAsync(levelSelectPanel, 1f, 0f, _fadeDuration, ct);
+                await SceneFader.FadeCanvasGroupAsync(levelSelectPanel, 1f, 0f, fadeDuration, ct);
 
                 SceneFader.SetGroupInteractable(storyPanel, true);
 
@@ -246,22 +251,18 @@ namespace Scenes
                 // 페이드와 동시에 진행되어야 하므로 의도적으로 await하지 않는다
                 if (selectedButtonRect)
                 {
-                    string settingsPath = ZString.Concat(Constants.ResourcePaths.SceneSettingsFolder, "/", Constants.Scenes.Story);
-                    StorySceneSettings sceneSettings = await JsonLoader.LoadAsync<StorySceneSettings>(settingsPath, ct, _logger);
+                    StorySceneSettings sceneSettings = await JsonLoader.LoadAsync<StorySceneSettings>(Constants.SettingsFiles.Story, ct, _logger);
 
-                    _ = selectedButtonRect.DOAnchorPos(SelectedLevelButtonPosition, sceneSettings.selectedLevelButtonMoveDuration)
+                    _ = selectedButtonRect.DOAnchorPos(selectedLevelButtonPosition, sceneSettings.selectedLevelButtonMoveDuration)
                         .SetEase(Ease.OutBack, sceneSettings.selectedLevelButtonMoveOvershoot)
                         .SetLink(selectedButtonRect.gameObject);
                 }
 
-                await SceneFader.FadeCanvasGroupAsync(storyPanel, 0f, 1f, _fadeDuration, ct);
+                await SceneFader.FadeCanvasGroupAsync(storyPanel, 0f, 1f, fadeDuration, ct);
 
                 if (storyText)
                 {
-                    (float moveDuration, float interval, float yOffset) = await SceneFader.GetStoryLineSettingsAsync();
-                    await StoryLineAnimator.AnimateAsync(storyText,
-                        moveDuration, interval, yOffset,
-                        StoryLineAnimator.IsPointerPressedThisFrame, ct, _inactivityTimer, _logger);
+                    await StoryLineAnimator.AnimateWithCommonSettingsAsync(storyText, ct, _inactivityTimer, _logger);
                 }
 
                 if (startButton) startButton.interactable = true;
@@ -280,7 +281,7 @@ namespace Scenes
         {
             if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
 
-            if (_session && _session.isAdminLevelJump)
+            if (_session != null && _session.isAdminLevelJump)
             {
                 _session.openAdminOnTitle = true;
                 SceneFader.FadeAndLoad(Constants.Scenes.Title, logger: _logger).Forget();
@@ -301,7 +302,7 @@ namespace Scenes
                 if (_logger != null) _logger.ZLogWarning($"[StoryManager] 선택된 레벨이 없어 게임 씬으로 넘어가지 않습니다.");
                 return;
             }
-            if (_session) _session.currentLevel = _currentLevel;
+            if (_session != null) _session.currentLevel = _currentLevel;
             SceneFader.FadeAndLoad(Constants.Scenes.Game, logger: _logger).Forget();
         }
     }

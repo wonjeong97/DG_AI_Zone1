@@ -38,18 +38,13 @@ namespace Game
         private readonly static Dictionary<string, Sprite> _spriteCache = new();
 
         /// <summary>
-        /// 카테고리와 controlRole(Start/End 구분)에 맞는 블록 스프라이트를 로드한다 (캐시 우선).
+        /// 코드로 조립하는 블록(동작·조건 동작·논리·아니면)의 스프라이트를 로드한다 (캐시 우선).
+        /// 나머지 카테고리는 프리팹이 아트를 갖고 있어 여기를 거치지 않는다.
         /// </summary>
-        private static async UniTask<Sprite> LoadSpriteAsync(BlockCategory cat, ControlRole controlRole = ControlRole.None)
+        private static async UniTask<Sprite> LoadSpriteAsync(BlockCategory cat)
         {
             string name = cat switch
             {
-                BlockCategory.Control         => controlRole == ControlRole.Start
-                                                 ? Constants.BlockAssets.StartSprite
-                                                 : Constants.BlockAssets.EndSprite,
-                BlockCategory.Command         => Constants.BlockAssets.CommandSprite,
-                BlockCategory.Value           => Constants.BlockAssets.ValueSprite,
-                BlockCategory.FlowControl     => Constants.BlockAssets.FlowControlSprite,
                 BlockCategory.ConditionAction => Constants.BlockAssets.ConditionActionSprite,
                 BlockCategory.Action          => Constants.BlockAssets.ActionSprite,
                 BlockCategory.Logic           => Constants.BlockAssets.LogicSprite,
@@ -132,36 +127,36 @@ namespace Game
         /// <summary>
         /// 블록 항목 하나를 카테고리에 맞는 방식(프리팹 또는 코드 조립)으로 생성하고 주입까지 마친다.
         /// </summary>
-        public static async UniTask<GameObject> Create(BlockEntry entry, BuildContext ctx, bool draggable = true)
+        public static async UniTask<GameObject> Create(BlockEntry entry, BuildContext ctx)
         {
             GameObject go = entry.category switch
             {
-                BlockCategory.Value       => await CreateFromPrefab(Constants.BlockAssets.ValuePrefab, entry, ctx, draggable),
+                BlockCategory.Value       => await CreateFromPrefab(Constants.BlockAssets.ValuePrefab, entry, ctx),
                 // 조건 블록 — None: 이벤트형 조건(전용 아트) / kind 지정: 값형 조건(Value 아트 재사용)
                 BlockCategory.Condition   => await CreateFromPrefab(entry.valueKind == ValueKind.None
                     ? Constants.BlockAssets.ConditionPrefab
-                    : Constants.BlockAssets.ValuePrefab, entry, ctx, draggable),
+                    : Constants.BlockAssets.ValuePrefab, entry, ctx),
                 // Command + ValueKind.None = 값 슬롯 없는 동작 블록 (전용 아트, ValueOutSocket 미부착)
                 BlockCategory.Command     => await CreateFromPrefab(entry.valueKind == ValueKind.None
                     ? Constants.BlockAssets.CommandNoValuePrefab
-                    : Constants.BlockAssets.CommandPrefab, entry, ctx, draggable),
+                    : Constants.BlockAssets.CommandPrefab, entry, ctx),
                 BlockCategory.Control     => await CreateFromPrefab(entry.controlRole == ControlRole.Start
                     ? Constants.BlockAssets.StartPrefab
-                    : Constants.BlockAssets.EndPrefab, entry, ctx, draggable),
+                    : Constants.BlockAssets.EndPrefab, entry, ctx),
                 // 함수 블록 — CommandNoValue와 동일한 구조(값 슬롯 없음, 체인 소켓만)
-                BlockCategory.Function    => await CreateFromPrefab(Constants.BlockAssets.FunctionPrefab, entry, ctx, draggable),
+                BlockCategory.Function    => await CreateFromPrefab(Constants.BlockAssets.FunctionPrefab, entry, ctx),
                 // 함수 구현 블록 — FlowControl과 동일한 C자 컨테이너(헤더 값 슬롯 없음)
-                BlockCategory.FunctionDef => await CreateFromPrefab(Constants.BlockAssets.FuncDefPrefab, entry, ctx, draggable),
-                BlockCategory.FlowControl => await CreateFlowBlock(entry, ctx, draggable),
-                BlockCategory.Logic       => await CreateLogicBlock(entry, ctx, draggable),
-                _                         => await CreateSimpleBlock(entry, ctx, draggable)
+                BlockCategory.FunctionDef => await CreateFromPrefab(Constants.BlockAssets.FuncDefPrefab, entry, ctx),
+                BlockCategory.FlowControl => await CreateFlowBlock(entry, ctx),
+                BlockCategory.Logic       => await CreateLogicBlock(entry, ctx),
+                _                         => await CreateSimpleBlock(entry, ctx)
             };
 
             // 인벤토리에서 최초 드래그 시에도 정확한 소켓 위치(스냅 기준점)를 기준으로 탐색되도록 소켓을 미리 부착
-            if (go && draggable && go.TryGetComponent<CodingBlock>(out CodingBlock block))
-            {
+            if (go && go.TryGetComponent<CodingBlock>(out CodingBlock block))
                 AttachSockets(block);
-            }
+            else if (ctx.Logger != null)
+                ctx.Logger.ZLogWarning($"[BlockFactory] '{entry.label}' 블록에 CodingBlock이 없어 소켓을 붙이지 못했습니다.");
 
             return go;
         }
@@ -186,7 +181,7 @@ namespace Game
         /// <summary>
         /// 프리팹을 리졸버로 인스턴스화(주입 포함)하고 라벨 텍스트와 CodingBlock 메타를 설정해 블록을 생성한다.
         /// </summary>
-        private static async UniTask<GameObject> CreateFromPrefab(string prefabName, BlockEntry entry, BuildContext ctx, bool draggable)
+        private static async UniTask<GameObject> CreateFromPrefab(string prefabName, BlockEntry entry, BuildContext ctx)
         {
             GameObject prefab = await LoadPrefabAsync(prefabName);
             GameObject go = ctx.Resolver.Instantiate(prefab);
@@ -203,11 +198,7 @@ namespace Game
             else if (ctx.Logger != null)
                 ctx.Logger.ZLogWarning($"[BlockFactory] {prefabName} 프리팹의 CodingBlock에 라벨 TMP가 연결되지 않았습니다.");
 
-            if (draggable)
-                block.Init(entry.category, ctx.RootCanvas, entry.valueKind, entry.controlRole);
-            else
-                block.enabled = false;
-
+            block.Init(entry.category, ctx.RootCanvas, entry.valueKind, entry.controlRole);
             return go;
         }
 
@@ -216,9 +207,9 @@ namespace Game
         /// <summary>
         /// 스프라이트 본체와 라벨만 있는 블록을 코드로 조립한다.
         /// </summary>
-        private static async UniTask<GameObject> CreateSimpleBlock(BlockEntry entry, BuildContext ctx, bool draggable)
+        private static async UniTask<GameObject> CreateSimpleBlock(BlockEntry entry, BuildContext ctx)
         {
-            Sprite sprite = await LoadSpriteAsync(entry.category, entry.controlRole);
+            Sprite sprite = await LoadSpriteAsync(entry.category);
 
             // 아니면 — CommandNoValue와 동일한 크기(값 슬롯 없는 체인 블록)
             bool isElse = entry.category == BlockCategory.Else;
@@ -231,17 +222,8 @@ namespace Game
                 goRt.sizeDelta = new Vector2(w, h);
 
             go.AddComponent<CanvasGroup>();
-            if (draggable)
-            {
-                AddDraggable(go, entry, ctx, parts);
-            }
-
-            await AddLabel(go, entry.label, (int)Constants.Blocks.LabelFontSize);
-
-            // Logic 블록은 수평 체인 슬롯 포함
-            if (entry.category == BlockCategory.Logic && entry.chainBlocks is not null)
-                await AppendChain(go, entry.chainBlocks, ctx, draggable);
-
+            AddDraggable(go, entry, ctx, parts);
+            await AddLabel(go, entry.label);
             return go;
         }
 
@@ -272,10 +254,10 @@ namespace Game
         /// <summary>
         /// C자형 FlowControl 블록을 프리팹으로 만들고, else 분기가 있으면 헤더와 Inner 컨테이너를 덧붙인다.
         /// </summary>
-        private static async UniTask<GameObject> CreateFlowBlock(BlockEntry entry, BuildContext ctx, bool draggable)
+        private static async UniTask<GameObject> CreateFlowBlock(BlockEntry entry, BuildContext ctx)
         {
             // 기본 구조(라벨·헤더·Inner·푸터)는 프리팹이 담당
-            GameObject go = await CreateFromPrefab(FlowPrefabName(entry.label), entry, ctx, draggable);
+            GameObject go = await CreateFromPrefab(FlowPrefabName(entry.label), entry, ctx);
 
             // 사전 배치 블록은 현재 미지원 (런타임 드래그로만 배치)
             if (entry.innerBlocks is not null && entry.innerBlocks.Length > 0 && ctx.Logger != null)
@@ -306,7 +288,7 @@ namespace Game
         {
             GameObject h = NewRect(Constants.BlockParts.HeaderPrefix + label, 0f, height);
             h.transform.SetParent(parent, false);
-            await AddLabel(h, label, (int)Constants.Blocks.LabelFontSize);
+            await AddLabel(h, label, true); // ㄷ자 블록 배경은 레이캐스트를 받지 않아 헤더 라벨이 드래그 영역이다
             LayoutElement le = h.AddComponent<LayoutElement>();
             le.preferredHeight = height;
             le.flexibleWidth = 1f;
@@ -352,6 +334,7 @@ namespace Game
             emptyRt.anchoredPosition = Vector2.zero;
             Image emptyImg = empty.AddComponent<Image>();
             emptyImg.color = Constants.HighlightColors.EmptySlot;
+            emptyImg.raycastTarget = false; // 표시 전용 — 드래그·드롭은 블록 본체가 받는다
             innerSocket.SetEmptyIndicator(empty);
 
             // 체인 하단 기준점: Inner 바닥 중앙 — FlowInnerResize가 마지막 ChainOutSocket과 이 위치를 맞춰 높이를 계산
@@ -380,10 +363,10 @@ namespace Game
         /// <summary>
         /// ConditionIn/Out 소켓으로 조건 체인에 연결되는 단순 레이블 Logic 블록을 코드로 조립한다.
         /// </summary>
-        private static async UniTask<GameObject> CreateLogicBlock(BlockEntry entry, BuildContext ctx, bool draggable)
+        private static async UniTask<GameObject> CreateLogicBlock(BlockEntry entry, BuildContext ctx)
         {
             Sprite sprite = await LoadSpriteAsync(BlockCategory.Logic);
-            GameObject go = NewRect(entry.label, 120f, 56f);
+            GameObject go = NewRect(entry.label, LogicFallbackWidth, Constants.Blocks.DefaultHeight);
             BodyParts parts = AddBlockBody(go, GetColor(BlockCategory.Logic), sprite);
 
             // 스프라이트 원본 크기 기준 확대 — transform 스케일 대신 크기·라벨을 함께 키움
@@ -391,44 +374,22 @@ namespace Game
                 rt.sizeDelta = new Vector2(sprite.rect.width, sprite.rect.height) * Constants.Blocks.LogicScale;
 
             go.AddComponent<CanvasGroup>();
-            if (draggable)
-                AddDraggable(go, entry, ctx, parts);
-            await AddLabel(go, entry.label, (int)Constants.Blocks.LabelFontSize);
+            AddDraggable(go, entry, ctx, parts);
+            await AddLabel(go, entry.label);
             return go;
         }
 
-        // ── Logic 체인 (수평) ───────────────────────────────────
+        // Logic 스프라이트를 못 불러왔을 때의 블록 폭 (스프라이트가 있으면 원본 크기를 쓴다)
+        private const float LogicFallbackWidth = 120f;
 
         /// <summary>
-        /// 기준 블록을 수평 레이아웃 컨테이너로 감싸고 체인 블록들을 옆으로 이어 붙인다.
-        /// </summary>
-        private static async UniTask AppendChain(GameObject baseBlock, BlockEntry[] chain, BuildContext ctx, bool draggable)
-        {
-            // baseBlock을 HorizontalLayoutGroup 컨테이너로 감싸기
-            GameObject container = NewRect(baseBlock.name + "_Chain", 0f, 56f);
-            HorizontalLayoutGroup hlg = container.AddComponent<HorizontalLayoutGroup>();
-            hlg.spacing = 4f;
-            hlg.childAlignment = TextAnchor.MiddleLeft;
-            hlg.childControlHeight = true;
-            hlg.childForceExpandHeight = true;
-            hlg.childControlWidth = false;
-            hlg.childForceExpandWidth = false;
-            container.AddComponent<ContentSizeFitter>().horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
-
-            baseBlock.transform.SetParent(container.transform, false);
-
-            foreach (BlockEntry c in chain)
-            {
-                GameObject child = await Create(c, ctx, draggable);
-                child.transform.SetParent(container.transform, false);
-            }
-        }
-
-        /// <summary>
-        /// 블록 카테고리에 따른 연결부 소켓을 생성·배치하고 블록 소유로 등록한다 (이미 있으면 건너뜀).
+        /// 블록 카테고리에 따른 연결부 소켓을 생성·배치하고 블록 소유로 등록한다 (이미 붙였으면 건너뜀).
+        /// 생성 직후 한 번 붙인 뒤에도 드래그 시작·스냅·드롭마다 다시 불리므로, 소켓을 일일이 찾지 않도록 블록에 표시해 둔다.
         /// </summary>
         public static void AttachSockets(CodingBlock block)
         {
+            if (block.SocketsAttached) return;
+
             BlockCategory cat = block.Category;
 
             // Command만 단일 ValueOutSocket — FlowControl은 헤더에 내장, Logic은 두 조건 슬롯 내장
@@ -491,6 +452,8 @@ namespace Game
                 if (!isEnd)   AttachOutSocket(block, outOffset);
                 if (!isStart) AttachInSocket(block,  inOffset);
             }
+
+            block.MarkSocketsAttached();
         }
 
         /// <summary>
@@ -645,27 +608,6 @@ namespace Game
             return go;
         }
 
-        /// <summary>
-        /// 내부 구조용 이미지(InnerContainer, EmptySlot 등)를 go에 직접 붙인다.
-        /// </summary>
-        private static void AddImage(GameObject go, Color color, Sprite sprite = null)
-        {
-            Image img = go.AddComponent<Image>();
-            if (sprite)
-            {
-                img.sprite = sprite;
-                img.type = Image.Type.Simple;
-                img.preserveAspect = false;
-                img.color = Color.white;
-                if (go.TryGetComponent<RectTransform>(out RectTransform rt))
-                    rt.sizeDelta = new Vector2(sprite.rect.width, sprite.rect.height);
-            }
-            else
-            {
-                img.color = color;
-            }
-        }
-
         // 코드로 조립한 블록 본체의 파츠 — CodingBlock.SetParts로 넘긴다
         private readonly struct BodyParts
         {
@@ -781,9 +723,10 @@ namespace Game
         }
 
         /// <summary>
-        /// 블록 전체를 덮는 중앙 정렬 라벨 TMP를 만든다.
+        /// 블록 전체를 덮는 중앙 정렬 라벨 TMP를 만든다. 보통은 표시 전용이라 레이캐스트를 받지 않고(드래그는 블록 본체가 받는다),
+        /// 배경이 레이캐스트를 받지 않는 ㄷ자 블록 헤더에서는 isHitArea로 라벨이 드래그 영역을 맡는다.
         /// </summary>
-        private static async UniTask AddLabel(GameObject go, string text, int size = 28, float bottom = 0f)
+        private static async UniTask AddLabel(GameObject go, string text, bool isHitArea = false)
         {
             TMPro.TMP_FontAsset font = await LoadLabelFontAsync();
             GameObject t = new GameObject(Constants.BlockParts.Label, typeof(RectTransform));
@@ -792,14 +735,15 @@ namespace Game
             t.TryGetComponent(out RectTransform rt);
             rt.anchorMin = Vector2.zero;
             rt.anchorMax = Vector2.one;
-            rt.offsetMin = new Vector2(0f, bottom);
+            rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
             TMPro.TextMeshProUGUI txt = t.AddComponent<TMPro.TextMeshProUGUI>();
             txt.font = font;
             txt.text = text;
-            txt.fontSize = size;
+            txt.fontSize = Constants.Blocks.LabelFontSize;
             txt.color = Color.white;
             txt.alignment = TMPro.TextAlignmentOptions.Center;
+            txt.raycastTarget = isHitArea;
             t.SetActive(true);
         }
 

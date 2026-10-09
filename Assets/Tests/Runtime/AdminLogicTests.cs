@@ -1,5 +1,9 @@
+using System;
+using System.Collections;
 using Admin;
+using Cysharp.Threading.Tasks;
 using NUnit.Framework;
+using UnityEngine.TestTools;
 
 namespace DG.Zone1.Tests
 {
@@ -110,6 +114,22 @@ namespace DG.Zone1.Tests
             Assert.AreEqual("0579", newPassword, "앞자리 0도 그대로 남아야 함");
             Assert.IsTrue(PasswordInput.IsValidPassword(newPassword), "저장한 값을 다음에 다시 읽어도 유효해야 함");
         }
+
+        /// <summary>
+        /// 관리자 창 무입력 타이머는 다시 잰 직후에는 끝나지 않고, 입력 없이 제한 시간이 지나면 끝난다.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator 무입력_타이머는_제한_시간이_지나면_끝난다() => UniTask.ToCoroutine(async () =>
+        {
+            const float timeoutSeconds = 0.1f;
+            IdleCloseTimer timer = new IdleCloseTimer();
+            timer.Restart();
+
+            Assert.IsFalse(timer.HasExpired(timeoutSeconds), "다시 잰 직후에 끝남");
+
+            await UniTask.Delay(TimeSpan.FromSeconds(timeoutSeconds * 2f), DelayType.UnscaledDeltaTime);
+            Assert.IsTrue(timer.HasExpired(timeoutSeconds), "입력 없이 제한 시간이 지났는데 끝나지 않음");
+        });
 
         /// <summary>
         /// 체험자 이름은 비었거나 앞뒤가 띄어쓰기면 저장할 수 없다 — 인트로·아웃트로 문장에 어긋난 여백이 생긴다.

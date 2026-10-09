@@ -16,8 +16,11 @@ namespace DG.Zone1.Tests
     {
         private const string SettingsFileName = "Settings.json";
 
+        /// <summary>
+        /// Constants.Sounds의 모든 키가 Settings.json의 sounds에 있고, 그 파일이 StreamingAssets에 있는지 확인한다.
+        /// </summary>
         [Test]
-        public void EverySoundKey_IsRegisteredInSettings_AndFileExists()
+        public void 모든_효과음_키가_설정에_등록되어_있고_파일도_있다()
         {
             string json = File.ReadAllText(Path.Combine(Application.streamingAssetsPath, SettingsFileName));
             Settings settings = JsonUtility.FromJson<Settings>(json);

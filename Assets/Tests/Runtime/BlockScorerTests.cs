@@ -54,6 +54,18 @@ namespace DG.Zone1.Tests
         }
 
         /// <summary>
+        /// 수력은 결과 화면처럼 첫 만약만 채점한다 — 만약을 두 개 놓아도 최고점을 넘지 않는다.
+        /// </summary>
+        [Test]
+        public void 수력은_첫_만약만_채점해_최고점을_넘지_않는다()
+        {
+            List<BlockInstruction> twoIfs = GateProgram(new[] { Constants.BlockLabels.HydroOpen }, true, new[] { Constants.BlockLabels.HydroClose });
+            twoIfs.AddRange(GateProgram(new[] { Constants.BlockLabels.HydroOpen }, true, new[] { Constants.BlockLabels.HydroClose }));
+
+            Assert.AreEqual(BlockScorer.GetMaxScore(LevelKind.Hydro), BlockScorer.ScoreProgram(twoIfs, "5m", null, LevelKind.Hydro));
+        }
+
+        /// <summary>
         /// 결과 화면의 수문 개방 높이는 조건 문구에서 숫자만 읽어 "5m" 형태로 표시된다.
         /// </summary>
         [Test]
@@ -142,7 +154,7 @@ namespace DG.Zone1.Tests
                 { Function(Cmd("태양광"), Cmd("풍력"), Cmd("수력 발전"), Cmd("스마트 도시 발전소")) };
             Assert.AreEqual(max, BlockScorer.ScoreProgram(allFour, null, null, LevelKind.FutureEnergy), "4개 모두");
             Assert.IsTrue(BlockScorer.UsesFunction(allFour));
-            CollectionAssert.AreEqual(BlockScorer.FutureEnergyNames, BlockScorer.GetEnergiesInFunction(allFour));
+            CollectionAssert.AreEqual(Constants.BlockLabels.FutureEnergies, BlockScorer.GetEnergiesInFunction(allFour));
 
             List<BlockInstruction> three = new List<BlockInstruction>
                 { Function(Cmd("태양광"), Cmd("수력 발전"), Cmd("스마트 도시 발전소")) };

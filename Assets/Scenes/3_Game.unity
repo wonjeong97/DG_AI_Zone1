@@ -5330,17 +5330,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   levelPanels:
   - {fileID: 783775081}
-  - {fileID: 2018731758}
   - {fileID: 587623658}
   - {fileID: 1692133079}
   - {fileID: 1338248138}
+  - {fileID: 2018731758}
   closeButton: {fileID: 1803700446}
   level1TimeContainer: {fileID: 783775082}
   level2WindContainer: {fileID: 587623659}
   level3MeterText: {fileID: 1643602225}
   level3RuleText: {fileID: 1424595947}
-  level4PowerPlantContainer: {fileID: 1338248139}
-  level5FutureEnergyContainer: {fileID: 2018731759}
 --- !u!1 &1663303876
 GameObject:
   m_ObjectHideFlags: 0

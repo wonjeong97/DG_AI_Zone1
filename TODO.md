@@ -8,8 +8,15 @@
 
 ## 할 일
 
+- [ ] (출시 후) ResultSequence의 3D 연출 4종(풍력·수력·발전소·연구소)을 공통 베이스(SetNeutral·ApplyAsync)로 묶기 — 직렬화 필드 타입이 바뀌어 4_Result 씬 재연결 필요
+- [ ] (출시 후) CodingBlock(1300줄)의 컴파일 결과 하이라이트 부분을 별도 컴포넌트로 분리 — 블록 프리팹 재연결 필요
+- [ ] (출시 후) TitleSceneManager의 QR 스캐너 입력을 별도 클래스로 분리하고 대기·확인·시작하기 상태를 HuliacDev.Core StateMachine으로
+- [ ] (출시 후) 3_Game 드래그 레이어·코딩 패널 Content를 하위 Canvas로 분리(드래그·펄스 중 전체 재배칭 방지) — 프로파일러로 비용 확인 후, 하위 Canvas마다 GraphicRaycaster·셰이더 채널 필요
+
 ## 완료
 
+- [x] 출시 전 감사 결과 수정 — 버그 6건(조건 3개 이상, 체인 끼우기 순서, 성공 연출 중 넘어가기, 스토리 줄 사이 스킵, 관리자·이름 창 60초 자동 닫기, 연결 안 된 만약 안 아니면 안내)·방어 코드·스킬 규칙·성능·미사용 코드 정리, Space 디버그 키는 개발 빌드만, 리뷰에서 나온 ㄷ자 블록 헤더 드래그 회귀 수정 — PlayMode 155/155 — 담당: Claude / 검증: Antigravity (2026-10-09)
+- [x] 출시 전 전체 코드 감사(스킬 위반·성능·정리) — 확정 버그 6건·방어 부족 5건·규칙·정리 목록은 docs/agents/HANDOFF.md, 수정 범위는 사용자 결정 — 담당: Claude / 검증: Antigravity(타이틀은 Claude가 대신) (2026-10-09)
 - [x] HuliacDev Template 패키지 26.9.25-3 → 26.10.9-1 업데이트(packages-lock.json 고정 커밋 b4547f3 → 640d05e, VideoManager 영상 RenderTexture 깊이 버퍼 제거 — 이 프로젝트는 해당 API를 쓰지 않음), Player Settings Version 26.10.9 — 담당: Claude / 검증: Claude(Antigravity 한도 초과로 대신 검증) (2026-10-09)
 - [x] 타이틀 대기 중에는 move_idle_timeout을 보내지 않고(APIManager가 0_Title 타임아웃 무시), QR 확인 뒤 시작하기 대기 시간이 지나 QR 대기로 돌아갈 때만 TitleSceneManager가 한 번 보냄 — PlayMode 120/120 — 담당: Claude / 검증: Antigravity (2026-10-08)
 - [x] 체험자 서버 JSON 응답 앞뒤 군더더기 무시(현장 getUser가 JSON 끝 } 뒤에 ``` 줄을 붙여 보내 모든 체험자가 타이틀에서 막힘) — getUser·updateValue는 첫 { ~ 마지막 }만 읽고, getUser 실패 사유에 JsonUtility 오류 문구 포함, Player Settings Version 26.10.8 — PlayMode 120/120 — 담당: Claude / 검증: Antigravity (2026-10-08)

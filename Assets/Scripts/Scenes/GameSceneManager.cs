@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using App;
@@ -59,7 +60,6 @@ namespace Scenes
         private GameInputActions _input; // 디버그 단축키(Space) — 컴파일 검증
         private string _questionTime;
         private string _correctAnswer; // 방향 문제의 정답 블록 라벨 — 정답 방향이 없는 레벨은 null
-        private string _currentLevelName;
         private LevelData _currentLevel;
 
         // 레벨 없이 진입하면(testLevel 미지정) 태양광 규칙으로 동작한다
@@ -70,28 +70,33 @@ namespace Scenes
         /// </summary>
         private void Start()
         {
+            if (_logger == null)
+                Debug.LogError("[GameSceneManager] Dependencies were not injected. Check that GameLifetimeScope injects scene root objects on load.");
+
             // UI 작업 중 에디터에서 켜둔 채로 남아있어도, 씬 시작 시 팝업 패널(스토리/힌트)은 항상 닫힌 상태로 시작
             if (storyPanel) storyPanel.gameObject.SetActive(false);
             if (hintPanel) hintPanel.gameObject.SetActive(false);
+
+            // 레이아웃이 없어도 넘어가기로 빠져나갈 수 있도록 버튼부터 연결한다
+            BindButtons();
 
             CodingBlock.Mode = highlightMode;
 
             // 연출·감도 튜닝 값은 블록이 뜨기 전에 준비되어야 하므로 씬 페이드인 대기 작업으로 등록
             SceneFader.RegisterPendingTask(LoadSceneSettingsAsync());
 
-            LevelData level = _session ? _session.currentLevel : null;
+            LevelData level = _session != null ? _session.currentLevel : null;
 
             // 2_Story를 거치지 않고 3_Game에서 바로 Play한 경우 — testLevel로 대체하고 세션에도 반영한다.
             // 결과 씬은 _session.currentLevel만 보기 때문에, 반영하지 않으면 4_Result가 레벨을 모른 채
-            // 레벨1 기준으로 동작한다. 부팅 시 ResetProgress가 currentLevel을 비우므로 값이 남지도 않는다.
+            // 레벨1 기준으로 동작한다. 타이틀로 돌아가면 ResetProgress가 currentLevel을 비우므로 값이 남지도 않는다.
             if (!level)
             {
                 level = testLevel;
-                if (_session) _session.currentLevel = level;
+                if (_session != null) _session.currentLevel = level;
             }
 
             _currentLevel = level;
-            _currentLevelName = level ? level.name : null;
 
             BlockLayoutData layout = level ? level.blockLayout : null;
             if (!layout)
@@ -102,7 +107,7 @@ namespace Scenes
 
             // 씬 진입 페이드인이 블록 스폰과 카테고리 구성 완료 후에 시작되도록 등록
             if (blockSpawner)
-                SceneFader.RegisterPendingTask(blockSpawner.Spawn(layout));
+                SceneFader.RegisterPendingTask(blockSpawner.Spawn(layout, destroyCancellationToken));
             else if (_logger != null)
                 _logger.ZLogWarning($"[GameSceneManager] blockSpawner가 할당되지 않아 블록을 생성할 수 없습니다.");
 
@@ -124,22 +129,32 @@ namespace Scenes
                 _logger.ZLogWarning($"[GameSceneManager] questionText가 할당되지 않아 문제 텍스트를 표시할 수 없습니다.");
 
             // 코딩 완료 없이 넘어가면 결과 씬에서 '-'로 표시되도록 이전 결과 초기화
-            if (_session)
+            if (_session != null)
             {
                 _session.ResetLastResult();
                 _session.lastQuestionTime = _questionTime;
             }
+        }
 
+        /// <summary>
+        /// 코딩 완료·미션 다시보기·힌트·넘어가기 버튼에 동작을 연결한다.
+        /// </summary>
+        private void BindButtons()
+        {
             // 코딩 완료 버튼은 클릭음 대신 컴파일 결과에 따라 완료음·경고음을 낸다(CompileAndRun)
             if (compileButton)
                 compileButton.onClick.AddListener(() => StartCompileAndRun(advanceScene: true));
+            else if (_logger != null)
+                _logger.ZLogError($"[GameSceneManager] compileButton이 할당되지 않아 코딩을 완료할 수 없습니다.");
 
             if (storyButton && storyPanel)
                 storyButton.onClick.AddListener(() =>
                 {
                     if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.HintEpisode);
-                    storyPanel.Show(_currentLevelName, _currentLevel ? _currentLevel.storyText : null);
+                    storyPanel.Show(_currentLevel);
                 });
+            else if (_logger != null)
+                _logger.ZLogWarning($"[GameSceneManager] storyButton 또는 storyPanel이 할당되지 않아 미션 다시보기를 쓸 수 없습니다.");
 
             if (hintButton && hintPanel)
                 hintButton.onClick.AddListener(() =>
@@ -147,16 +162,33 @@ namespace Scenes
                     if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.HintEpisode);
                     hintPanel.Show(_currentLevel, _questionTime);
                 });
+            else if (_logger != null)
+                _logger.ZLogWarning($"[GameSceneManager] hintButton 또는 hintPanel이 할당되지 않아 힌트를 쓸 수 없습니다.");
 
             if (skipButton)
                 skipButton.onClick.AddListener(SkipToResult);
+            else if (_logger != null)
+                _logger.ZLogWarning($"[GameSceneManager] skipButton이 할당되지 않아 미션을 건너뛸 수 없습니다.");
         }
 
         /// <summary>
-        /// 디버그 단축키(Space) 입력을 받기 시작한다.
+        /// 코딩 완료·미션 다시보기·힌트·넘어가기 버튼을 함께 켜거나 끈다 — 성공 연출부터 결과 씬 전환까지는 모두 막는다.
+        /// </summary>
+        private void SetPlayButtonsInteractable(bool interactable)
+        {
+            if (compileButton) compileButton.interactable = interactable;
+            if (storyButton) storyButton.interactable = interactable;
+            if (hintButton) hintButton.interactable = interactable;
+            if (skipButton) skipButton.interactable = interactable;
+        }
+
+        /// <summary>
+        /// 디버그 단축키(Space) 입력을 받기 시작한다 — 현장 빌드에서 관람객이 누르지 않도록 에디터·개발 빌드에서만.
         /// </summary>
         private void OnEnable()
         {
+            if (!Debug.isDebugBuild) return;
+
             _input ??= new GameInputActions();
             _input.Debug.Shortcut.performed += OnDebugShortcut;
             _input.Debug.Enable();
@@ -234,7 +266,7 @@ namespace Scenes
 
                 // 컴파일 성공 시에만 점수를 계산 — 포매터/로그에 함께 표시
                 int? score = result.Success
-                    ? BlockScorer.ScoreProgram(result.Instructions, _questionTime, _correctAnswer, CurrentLevelKind)
+                    ? BlockScorer.ScoreProgram(result.Instructions, _questionTime, _correctAnswer, CurrentLevelKind, _logger)
                     : null;
 
                 // 컴파일 결과를 코드 형태로 로그 (실패 시에도 순회된 프로그램을 표시)
@@ -247,8 +279,9 @@ namespace Scenes
                     return;
                 }
 
-                // 실행~씬 전환 중 연타 방지 — 파도타기 연출 시작 전에 비활성화 (성공 시 씬을 떠나므로 재활성화 불필요)
-                if (advanceScene && compileButton) compileButton.interactable = false;
+                // 실행~씬 전환 중 연타·넘어가기 방지 — 파도타기 연출 시작 전에 모두 비활성화 (성공 시 씬을 떠나므로 재활성화 불필요).
+                // 넘어가기가 살아 있으면 이미 저장한 성공 결과를 ResetLastResult가 지워 실패로 올라간다
+                if (advanceScene) SetPlayButtonsInteractable(false);
 
                 if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.CodingComplete);
 
@@ -268,9 +301,15 @@ namespace Scenes
                 BlockExecutor executor = CreateExecutor(score.Value);
                 await executor.RunAsync(result.Instructions, ct);
             }
-            catch (System.OperationCanceledException)
+            catch (OperationCanceledException)
             {
                 // 새 컴파일 요청이나 씬 종료로 취소된 정상 흐름 — 별도 처리 불필요
+            }
+            catch (Exception ex)
+            {
+                // 예상하지 못한 오류로 결과 씬에 가지 못했으므로 다시 시도하거나 넘어갈 수 있게 버튼을 되살린다
+                if (_logger != null) _logger.ZLogError($"[GameSceneManager] 코딩 완료 처리 중 오류가 나 버튼을 다시 켭니다: {ex}");
+                if (advanceScene) SetPlayButtonsInteractable(true);
             }
             finally
             {
@@ -288,7 +327,7 @@ namespace Scenes
         /// </summary>
         private void SaveResultToSession(List<BlockInstruction> instructions, int score)
         {
-            if (!_session)
+            if (_session == null)
             {
                 if (_logger != null) _logger.ZLogWarning($"[GameSceneManager] GameSession이 주입되지 않아 결과를 저장하지 못했습니다.");
                 return;
@@ -296,7 +335,7 @@ namespace Scenes
 
             _session.lastScore = score;
             _session.lastQuestionTime = _questionTime;
-            (_session.lastDirection, _session.lastAngle, _session.lastCount) = BlockScorer.ExtractValues(instructions);
+            (_session.lastDirection, _, _session.lastCount) = BlockScorer.ExtractValues(instructions);
             _session.lastRepeatUsed = BlockScorer.ContainsRepeat(instructions);
             _session.lastGateHeight = BlockScorer.GetHydroGateHeight(instructions);
             _session.lastElseUsed = BlockScorer.HasHydroElse(instructions);
@@ -392,8 +431,11 @@ namespace Scenes
         /// </summary>
         private void SkipToResult()
         {
+            // 디버그 컴파일 검증이 돌고 있어도 결과를 덮어쓰지 않도록 멈춘다
+            CancelRun();
+
             if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
-            if (_session)
+            if (_session != null)
             {
                 _session.ResetLastResult();
             }
@@ -494,8 +536,7 @@ namespace Scenes
         /// </summary>
         private async UniTask LoadSceneSettingsAsync()
         {
-            string path = ZString.Concat(Constants.ResourcePaths.SceneSettingsFolder, "/", Constants.Scenes.Game);
-            _sceneSettings = await JsonLoader.LoadAsync<GameSceneSettings>(path, destroyCancellationToken, _logger);
+            _sceneSettings = await JsonLoader.LoadAsync<GameSceneSettings>(Constants.SettingsFiles.Game, destroyCancellationToken, _logger);
             CodingBlock.Settings = _sceneSettings;
         }
     }

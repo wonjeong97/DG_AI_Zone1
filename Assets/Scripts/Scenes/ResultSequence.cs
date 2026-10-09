@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using App;
 using Cysharp.Text;
@@ -88,13 +87,13 @@ namespace Scenes
             _visitorApiClient = visitorApiClient;
         }
 
-        private const int MaxPercent = 100;
+        private const int MaxPercent = Constants.ResultMessages.MaxPercent;
 
-        private LevelKind CurrentLevelKind => _session && _session.currentLevel ? _session.currentLevel.kind : LevelKind.Solar;
+        private LevelKind CurrentLevelKind => _session != null && _session.currentLevel ? _session.currentLevel.kind : LevelKind.Solar;
 
         // 이번 판 문제의 정답 방향 — AI 결과 행과 AI 패널 연출에 쓴다 (정답 방향이 없는 레벨은 null)
         private string CurrentCorrectAnswer =>
-            _session && _session.currentLevel ? _session.currentLevel.GetCorrectAnswer(_session.lastQuestionTime) : null;
+            _session != null && _session.currentLevel ? _session.currentLevel.GetCorrectAnswer(_session.lastQuestionTime) : null;
 
         // 셰이더 프로퍼티 조회 비용을 줄이기 위한 ID 캐시
         private readonly static int GrayscaleAmountId = Shader.PropertyToID("_GrayscaleAmount");
@@ -129,7 +128,7 @@ namespace Scenes
                 nextButton.onClick.AddListener(OnNextClicked);
 
             ApplyTopText();
-            AnimateTopDotsAsync(destroyCancellationToken).Forget();
+            AnimateTopDots(destroyCancellationToken);
 
             ApplySessionResults();
             PlaySequence().Forget();
@@ -224,9 +223,9 @@ namespace Scenes
         private void OnNextClicked()
         {
             if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
-            string nextScene = _session && _session.currentLevel ? _session.currentLevel.AfterResultScene : Constants.Scenes.Story;
+            string nextScene = _session != null && _session.currentLevel ? _session.currentLevel.AfterResultScene : Constants.Scenes.Story;
 
-            if (_session && _session.isAdminLevelJump)
+            if (_session != null && _session.isAdminLevelJump)
             {
                 _session.openAdminOnTitle = true;
                 nextScene = Constants.Scenes.Title;
@@ -235,7 +234,7 @@ namespace Scenes
             // 미션 성공·실패와 상관없이 다음 레벨을 연다(기획 확인, 2026-10-02).
             // 이미 해금된 이전 레벨을 다시 플레이한 경우엔 진행도를 건드리지 않는다.
             // 무조건 +1 하면 재플레이만으로 아직 깨지 않은 레벨까지 해금돼버린다.
-            if (_session && _session.currentLevel)
+            if (_session != null && _session.currentLevel)
                 _session.unlockedLevelIndex = Mathf.Max(_session.unlockedLevelIndex, _session.currentLevel.levelIndex + 1);
             else if (_logger != null)
                 _logger.ZLogWarning($"[ResultSequence] 현재 레벨 정보가 없어 진행도를 갱신하지 않고 {nextScene}(으)로 이동합니다.");
@@ -266,7 +265,7 @@ namespace Scenes
         /// </summary>
         private void ApplySessionResults()
         {
-            if (!_session || _session.lastQuestionTime is null)
+            if (_session == null || _session.lastQuestionTime is null)
             {
                 if (_logger != null) _logger.ZLogInformation($"[ResultSequence] 게임 씬 결과가 없어 씬 기본 텍스트를 그대로 표시합니다.");
                 return;
@@ -276,43 +275,19 @@ namespace Scenes
 
             // 코딩 완료(컴파일 성공) 없이 넘어온 경우 값 대신 '-' 표시.
             // 레벨마다 채워지는 값이 달라 개별 필드로 판정하지 않고 게임 씬이 세운 플래그를 그대로 쓴다.
+            // 넘어가기·코딩 미완료는 발전이 일어나지 않았으니 효율 0%, 전력 수급 상태는 '부족'이다
             bool hasCoding = _session.hasCodingResult;
-            List<ResultRow> playerResult;
-            bool isSuccess = false;
+            int maxScore = BlockScorer.GetMaxScore(kind);
+            float percent = hasCoding && maxScore > 0 ? _session.lastScore * (float)MaxPercent / maxScore : 0f;
+            _playerPercent = Mathf.Clamp(Mathf.FloorToInt(percent), 0, MaxPercent);
 
-            if (hasCoding)
-            {
-                // 최고 점수 대비 비율로 전력 수급 상태 판정
-                int maxScore = BlockScorer.GetMaxScore(kind);
-                float percent = maxScore > 0 ? _session.lastScore * 100f / maxScore : 0f;
-                string status = ToStatusText(percent);
-                _playerPercent = Mathf.Clamp(Mathf.FloorToInt(percent), 0, MaxPercent);
+            // 전력 수급 상태가 '부족'(보통 기준 미만)이면 미션 실패 — 실패한 결과는 흑백으로 전환해 시각적으로 구분
+            bool isSuccess = percent >= Constants.ResultMessages.NormalThresholdPercent;
+            if (!isSuccess) ApplyGrayscale();
 
-                playerResult = BuildPlayerRows(kind, status);
-                isSuccess = status != Constants.ResultMessages.StatusPoor;
-
-                // 전력이 부족한 결과는 흑백으로 전환해 시각적으로 구분
-                if (status == Constants.ResultMessages.StatusPoor)
-                    ApplyGrayscale();
-            }
-            else
-            {
-                // 스킵/코딩 미완료 — 효율 0% 고정
-                _playerPercent = 0;
-                // 체험자가 정한 값은 '-', 감지 항목은 OFF, 발전이 일어나지 않았으니 전력 수급 상태는 '부족'.
-                // 문제로 주어진 값(바람 방향·발전소 상황)은 그대로 보여준다.
-                string poor = Constants.ResultMessages.StatusPoor;
-                playerResult =
-                    kind == LevelKind.Wind       ? BuildWindRows(_session.lastQuestionTime, null, false, poor) :
-                    kind == LevelKind.Hydro      ? BuildHydroRows(null, false, Constants.ResultMessages.NoValue, poor) :
-                    kind == LevelKind.PowerPlant ? BuildPowerPlantRows(null, Constants.ResultMessages.NoValue, Constants.ResultMessages.NoValue, poor) :
-                    kind == LevelKind.FutureEnergy ? BuildFutureEnergyRows(false, null, poor) :
-                                                   BuildSolarRows(null, null, poor);
-                ApplyGrayscale();
-            }
-
-            if (playerRows) playerRows.SetRows(playerResult);
-            if (aiRows) aiRows.SetRows(BuildAiRows(kind));
+            string status = ResultRowFactory.ToStatusText(percent);
+            if (playerRows) playerRows.SetRows(ResultRowFactory.BuildPlayerRows(kind, _session, hasCoding, status));
+            if (aiRows) aiRows.SetRows(ResultRowFactory.BuildAiRows(kind, _session.lastQuestionTime, CurrentCorrectAnswer));
 
             UploadLevelResult(isSuccess);
 
@@ -331,9 +306,9 @@ namespace Scenes
         /// </summary>
         private void UploadLevelResult(bool isSuccess)
         {
-            if (_visitorInfoProvider == null || _visitorApiClient == null)
+            if (_session == null || _visitorInfoProvider == null || _visitorApiClient == null)
             {
-                if (_logger != null) _logger.ZLogWarning($"[ResultSequence] 체험자 정보 제공자 또는 서버 API가 주입되지 않아 레벨 결과를 올리지 않습니다.");
+                if (_logger != null) _logger.ZLogWarning($"[ResultSequence] 게임 세션·체험자 정보 제공자·서버 API 중 주입되지 않은 것이 있어 레벨 결과를 올리지 않습니다.");
                 return;
             }
 
@@ -395,140 +370,6 @@ namespace Scenes
                 .SetEase(Ease.Linear)
                 .ToUniTask(TweenCancelBehaviour.KillAndCancelAwait, ct);
             _grayscaleInstance.SetFloat(GrayscaleAmountId, 1f);
-        }
-
-        /// <summary>
-        /// 최고 점수 대비 비율(%)을 전력 수급 상태 문구로 변환한다.
-        /// </summary>
-        private static string ToStatusText(float percent) =>
-            percent < Constants.ResultMessages.NormalThresholdPercent ? Constants.ResultMessages.StatusPoor :
-            percent < Constants.ResultMessages.GoodThresholdPercent   ? Constants.ResultMessages.StatusNormal :
-                                                                       Constants.ResultMessages.StatusGood;
-
-        /// <summary>
-        /// 값이 비었으면 '-'로 바꾼다 (코딩을 건너뛰었거나 값을 읽지 못한 경우).
-        /// </summary>
-        private static string OrNoValue(string value)
-            => string.IsNullOrEmpty(value) ? Constants.ResultMessages.NoValue : value;
-
-        /// <summary>
-        /// 감지 여부를 ON/OFF 표기로 바꾼다.
-        /// </summary>
-        private static string OnOff(bool isOn)
-            => isOn ? Constants.ResultMessages.DetectedOn : Constants.ResultMessages.DetectedOff;
-
-        /// <summary>
-        /// 레벨1(태양광) 결과 행 — 설치 개수 / 패널 방향 / 전력 수급 상태.
-        /// </summary>
-        private static List<ResultRow> BuildSolarRows(string count, string direction, string status) => new()
-        {
-            new ResultRow(Constants.ResultMessages.LabelCount, OrNoValue(count)),
-            new ResultRow(Constants.ResultMessages.LabelDirection, OrNoValue(direction)),
-            new ResultRow(Constants.ResultMessages.LabelStatus, status),
-        };
-
-        /// <summary>
-        /// 레벨2(풍력) 결과 행 — 문제로 나온 바람 방향 / 플레이어가 맞춘 풍차 방향 / 반복하기 사용 여부.
-        /// 반복하기 없이는 컴파일이 막히므로 정상 플레이에서 반복 감지는 항상 ON이다.
-        /// </summary>
-        private static List<ResultRow> BuildWindRows(string windDirection, string bladeDirection, bool repeatUsed, string status) => new()
-        {
-            new ResultRow(Constants.ResultMessages.LabelWindDirection, OrNoValue(windDirection)),
-            new ResultRow(Constants.ResultMessages.LabelBladeDirection, OrNoValue(bladeDirection)),
-            new ResultRow(Constants.ResultMessages.LabelRepeat, OnOff(repeatUsed)),
-            new ResultRow(Constants.ResultMessages.LabelStatus, status),
-        };
-
-        /// <summary>
-        /// 레벨3(수력) 결과 행 — 플레이어가 만약 블록에 연결한 수문 개방 높이 / 조건·아니면 사용 여부 / 수문 열기·닫기 순서.
-        /// 조건 감지는 조건 블록 연결 여부 — 조건 없이는 컴파일이 막히므로 정상 플레이에선 항상 ON이다.
-        /// 아니면과 수문 열기·닫기 순서는 채점 항목이라 틀렸을 때 AI 결과와 달라 보이도록 따로 표시한다.
-        /// 코딩을 건너뛰면 수문 순서는 판단할 배치가 없으므로 정상/오류 대신 '-'로 둔다.
-        /// </summary>
-        private static List<ResultRow> BuildHydroRows(string gateHeight, bool elseUsed, string gateOrder, string status) => new()
-        {
-            new ResultRow(Constants.ResultMessages.LabelGateHeight, OrNoValue(gateHeight)),
-            new ResultRow(Constants.ResultMessages.LabelConditionOn, OnOff(!string.IsNullOrEmpty(gateHeight))),
-            new ResultRow(Constants.ResultMessages.LabelElse, OnOff(elseUsed)),
-            new ResultRow(Constants.ResultMessages.LabelGateOrder, gateOrder),
-            new ResultRow(Constants.ResultMessages.LabelStatus, status),
-        };
-
-        /// <summary>
-        /// 수문 열기·닫기 순서가 맞았는지를 정상/오류 표기로 바꾼다.
-        /// </summary>
-        private static string GateOrderText(bool isCorrect)
-            => isCorrect ? Constants.ResultMessages.GateOrderCorrect : Constants.ResultMessages.GateOrderWrong;
-
-        /// <summary>
-        /// 레벨4(발전소) 결과 행 — 고정 상황 / 플레이어가 만약에 연결한 조건식 / 놀이시설 끄기 조건(만약)·병원 전력 유지.
-        /// 뒤 두 항목은 놀이시설·병원 채점과 같은 기준이라 효율 %가 왜 그렇게 나왔는지 화면에서 읽힌다.
-        /// 코딩을 건너뛰면 두 항목은 판단할 배치가 없으므로 ON/OFF 대신 '-'로 둔다.
-        /// </summary>
-        private static List<ResultRow> BuildPowerPlantRows(string condition, string amusementPowerCut, string hospitalPowerKept, string status) => new()
-        {
-            new ResultRow(Constants.ResultMessages.LabelSituation, Constants.ResultMessages.PowerPlantSituation),
-            new ResultRow(Constants.ResultMessages.LabelCondition, OrNoValue(condition)),
-            new ResultRow(Constants.ResultMessages.LabelAmusement, amusementPowerCut),
-            new ResultRow(Constants.ResultMessages.LabelHospital, hospitalPowerKept),
-            new ResultRow(Constants.ResultMessages.LabelStatus, status),
-        };
-
-        /// <summary>
-        /// 레벨5(미래에너지) 결과 행 — 함수 사용 여부 / 에너지 블록별로 함수 안에 넣었는지 / 전력 수급 상태.
-        /// 에너지 행은 채점(함수 안 에너지 수)과 같은 기준이라 효율 %가 왜 그렇게 나왔는지 화면에서 읽힌다.
-        /// </summary>
-        private static List<ResultRow> BuildFutureEnergyRows(bool functionUsed, ICollection<string> energiesInFunction, string status)
-        {
-            List<ResultRow> rows = new() { new ResultRow(Constants.ResultMessages.LabelFunctionUsed, OnOff(functionUsed)) };
-            foreach (string energy in BlockScorer.FutureEnergyNames)
-                rows.Add(new ResultRow(energy, OnOff(energiesInFunction is not null && energiesInFunction.Contains(energy))));
-            rows.Add(new ResultRow(Constants.ResultMessages.LabelStatus, status));
-            return rows;
-        }
-
-        /// <summary>
-        /// 레벨에 맞는 플레이어 결과 행을 세션 값으로 만든다.
-        /// </summary>
-        private List<ResultRow> BuildPlayerRows(LevelKind kind, string status)
-        {
-            if (kind == LevelKind.Wind)
-                return BuildWindRows(_session.lastQuestionTime, _session.lastDirection, _session.lastRepeatUsed, status);
-
-            if (kind == LevelKind.Hydro)
-                return BuildHydroRows(_session.lastGateHeight, _session.lastElseUsed,
-                                      GateOrderText(_session.lastGateOrderCorrect), status);
-
-            if (kind == LevelKind.PowerPlant)
-                return BuildPowerPlantRows(_session.lastConditionText, OnOff(_session.lastAmusementPowerCut),
-                                           OnOff(_session.lastHospitalPowerKept), status);
-
-            if (kind == LevelKind.FutureEnergy)
-                return BuildFutureEnergyRows(_session.lastFunctionUsed, _session.lastEnergiesInFunction, status);
-
-            return BuildSolarRows(_session.lastCount, _session.lastDirection, status);
-        }
-
-        /// <summary>
-        /// AI 결과 행을 만든다 — AI는 항상 정답(풍력은 정답 방향, 수력은 문제와 같은 높이)이다.
-        /// </summary>
-        private List<ResultRow> BuildAiRows(LevelKind kind)
-        {
-            string good = Constants.ResultMessages.StatusGood;
-
-            if (kind == LevelKind.Wind)
-                return BuildWindRows(_session.lastQuestionTime, CurrentCorrectAnswer, true, good);
-
-            if (kind == LevelKind.Hydro)
-                return BuildHydroRows(_session.lastQuestionTime, true, GateOrderText(true), good);
-
-            if (kind == LevelKind.PowerPlant)
-                return BuildPowerPlantRows(Constants.ResultMessages.PowerPlantBestCondition, OnOff(true), OnOff(true), good);
-
-            if (kind == LevelKind.FutureEnergy)
-                return BuildFutureEnergyRows(true, new List<string>(BlockScorer.FutureEnergyNames), good);
-
-            return BuildSolarRows(BlockScorer.GetBestCount(), CurrentCorrectAnswer, good);
         }
 
         /// <summary>
@@ -650,7 +491,7 @@ namespace Scenes
             }
 
             if (playerPanelPose)
-                await playerPanelPose.ApplyAsync(null, _session ? _session.lastDirection : null, ct);
+                await playerPanelPose.ApplyAsync(null, _session != null ? _session.lastDirection : null, ct);
             else
                 WarnMissingStage(nameof(playerPanelPose));
         }
@@ -713,21 +554,26 @@ namespace Scenes
                 return;
             }
 
+            // 페이드 도중 취소 외의 예외로 빠져나가도 점 애니메이션이 계속 돌지 않도록 finally에서 멈춘다
             using CancellationTokenSource dotCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            AnimateDotsAsync(dotCts.Token).Forget();
+            try
+            {
+                AnimateAiDots(dotCts.Token);
 
-            await SceneFader.FadeCanvasGroupAsync(aiStartPanel, 0f, 1f, _fadeDuration, ct);
-            await UniTask.Delay(TimeSpan.FromSeconds(_sceneSettings?.aiStartHold ?? aiStartHold), cancellationToken: ct);
-            await SceneFader.FadeCanvasGroupAsync(aiStartPanel, 1f, 0f, _fadeDuration, ct);
-
-            dotCts.Cancel();
+                await SceneFader.FadeCanvasGroupAsync(aiStartPanel, 0f, 1f, _fadeDuration, ct);
+                await UniTask.Delay(TimeSpan.FromSeconds(_sceneSettings?.aiStartHold ?? aiStartHold), cancellationToken: ct);
+                await SceneFader.FadeCanvasGroupAsync(aiStartPanel, 1f, 0f, _fadeDuration, ct);
+            }
+            finally
+            {
+                dotCts.Cancel();
+            }
         }
 
         /// <summary>
         /// 'AI가 코딩을 시작합니다' 뒤 점 개수를 0→3 반복한다 (취소될 때까지).
-        /// 상단 문구와 같은 방식 — 문자열은 점 3개를 포함한 채로 두고 노출 개수만 바꿔 문구가 좌우로 흔들리지 않게 한다.
         /// </summary>
-        private async UniTaskVoid AnimateDotsAsync(CancellationToken ct)
+        private void AnimateAiDots(CancellationToken ct)
         {
             if (!aiStartText)
             {
@@ -739,14 +585,26 @@ namespace Scenes
             aiStartText.ForceMeshUpdate();
             int baseLength = Mathf.Max(0, aiStartText.textInfo.characterCount - Constants.ResultMessages.AiCodingDots.Length);
 
+            CycleDotsAsync(aiStartText, baseLength, 1, Constants.ResultMessages.AiCodingDotCycle - 1,
+                () => _sceneSettings?.aiCodingDotIntervalMs ?? Constants.ResultMessages.AiCodingDotIntervalMs, ct).Forget();
+        }
+
+        /// <summary>
+        /// 문구 뒤 점 슬롯을 0개→slotCount개 순서로 반복해 드러낸다 (취소될 때까지).
+        /// 문자열은 점을 모두 포함한 채로 두고 노출 개수만 바꾸므로 문구 폭이 고정되어 좌우로 흔들리지 않는다.
+        /// 간격은 4_Result.json을 늦게 읽어도 반영되도록 매번 다시 읽는다.
+        /// </summary>
+        private static async UniTaskVoid CycleDotsAsync(TMP_Text text, int baseLength, int slotLength, int slotCount,
+            Func<int> getIntervalMs, CancellationToken ct)
+        {
             int dotCount = 0;
             try
             {
                 while (true)
                 {
-                    aiStartText.maxVisibleCharacters = baseLength + dotCount;
-                    dotCount = (dotCount + 1) % Constants.ResultMessages.AiCodingDotCycle;
-                    await UniTask.Delay(_sceneSettings?.aiCodingDotIntervalMs ?? Constants.ResultMessages.AiCodingDotIntervalMs, cancellationToken: ct);
+                    text.maxVisibleCharacters = baseLength + dotCount * slotLength;
+                    dotCount = (dotCount + 1) % (slotCount + 1);
+                    await UniTask.Delay(getIntervalMs(), cancellationToken: ct);
                 }
             }
             catch (OperationCanceledException) { }
@@ -757,8 +615,7 @@ namespace Scenes
         /// </summary>
         private async UniTask LoadSceneSettingsAsync(CancellationToken ct)
         {
-            string path = ZString.Concat(Constants.ResourcePaths.SceneSettingsFolder, "/", Constants.Scenes.Result);
-            _sceneSettings = await JsonLoader.LoadAsync<ResultSceneSettings>(path, ct, _logger);
+            _sceneSettings = await JsonLoader.LoadAsync<ResultSceneSettings>(Constants.SettingsFiles.Result, ct, _logger);
             if (_sceneSettings is null) return;
 
             if (playerRows)
@@ -795,7 +652,7 @@ namespace Scenes
                 return;
             }
 
-            string baseText = _session && _session.currentLevel ? _session.currentLevel.resultTopText : null;
+            string baseText = _session != null && _session.currentLevel ? _session.currentLevel.resultTopText : null;
             if (string.IsNullOrEmpty(baseText))
                 baseText = topText.text;
 
@@ -809,26 +666,15 @@ namespace Scenes
 
         /// <summary>
         /// 상단 문구 뒤 점 개수를 0→3 반복한다 (씬이 끝날 때까지).
-        /// 문자열은 말줄임을 포함한 채로 두고 노출 개수만 바꾸므로 문구 폭이 고정되어 좌우로 흔들리지 않는다.
         /// </summary>
-        private async UniTaskVoid AnimateTopDotsAsync(CancellationToken ct)
+        private void AnimateTopDots(CancellationToken ct)
         {
             // topText 누락은 ApplyTopText에서 이미 경고했다
             if (!topText) return;
 
             int baseLength = Mathf.Max(0, topText.textInfo.characterCount - Constants.ResultMessages.ResultTopDots.Length);
-            int dotCount = 0;
-            try
-            {
-                while (true)
-                {
-                    topText.maxVisibleCharacters =
-                        baseLength + dotCount * Constants.ResultMessages.ResultTopDotSlotLength;
-                    dotCount = (dotCount + 1) % (Constants.ResultMessages.ResultTopDotMax + 1);
-                    await UniTask.Delay(_sceneSettings?.topDotIntervalMs ?? Constants.ResultMessages.ResultTopDotIntervalMs, cancellationToken: ct);
-                }
-            }
-            catch (OperationCanceledException) { }
+            CycleDotsAsync(topText, baseLength, Constants.ResultMessages.ResultTopDotSlotLength, Constants.ResultMessages.ResultTopDotMax,
+                () => _sceneSettings?.topDotIntervalMs ?? Constants.ResultMessages.ResultTopDotIntervalMs, ct).Forget();
         }
 
         /// <summary>
@@ -845,10 +691,15 @@ namespace Scenes
             text.text = FormatEfficiency(0);
             await SceneFader.FadeCanvasGroupAsync(group, 0f, 1f, _fadeDuration, ct);
 
-            // 빠르게 오르다 끝에서 감속하는 카운터 연출 (순수 수치 보간이므로 DOVirtual)
+            // 빠르게 오르다 끝에서 감속하는 카운터 연출 (순수 수치 보간이므로 DOVirtual).
+            // 정수 값이 바뀐 프레임에만 문자열을 만들고 텍스트 메시를 다시 그린다
+            int shown = 0;
             await DOVirtual.Float(0f, target, _sceneSettings?.effCountDuration ?? effCountDuration, v =>
                 {
-                    text.text = FormatEfficiency(Mathf.Clamp(Mathf.RoundToInt(v), 0, target));
+                    int value = Mathf.Clamp(Mathf.RoundToInt(v), 0, target);
+                    if (value == shown) return;
+                    shown = value;
+                    text.text = FormatEfficiency(value);
                 })
                 .SetEase(Ease.OutQuad)
                 .ToUniTask(TweenCancelBehaviour.KillAndCancelAwait, ct);

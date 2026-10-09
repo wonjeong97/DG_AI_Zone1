@@ -9,6 +9,27 @@ namespace Editor
     [CustomEditor(typeof(GameSceneManager))]
     public class GameSceneManagerEditor : UnityEditor.Editor
     {
+        // 인스펙터를 다시 그릴 때마다 프로젝트를 검색하지 않도록 선택할 때 한 번만 모은다
+        private LevelData[] _levels;
+        private string[] _names;
+
+        /// <summary>
+        /// 프로젝트의 LevelData 에셋 목록과 드롭다운 이름을 모은다.
+        /// </summary>
+        private void OnEnable()
+        {
+            string[] guids = AssetDatabase.FindAssets("t:LevelData");
+            _levels = new LevelData[guids.Length];
+            _names = new string[guids.Length + 1];
+            _names[0] = "(없음)";
+
+            for (int i = 0; i < guids.Length; i++)
+            {
+                _levels[i] = AssetDatabase.LoadAssetAtPath<LevelData>(AssetDatabase.GUIDToAssetPath(guids[i]));
+                _names[i + 1] = _levels[i] ? _levels[i].name : "(missing)";
+            }
+        }
+
         /// <summary>
         /// testLevel만 드롭다운으로 그리고 나머지 필드는 기본 인스펙터로 그린다.
         /// </summary>
@@ -36,26 +57,17 @@ namespace Editor
         }
 
         /// <summary>
-        /// 프로젝트의 LevelData 에셋 목록을 드롭다운으로 보여주고 선택값을 testLevel에 반영한다.
+        /// 모아 둔 LevelData 목록을 드롭다운으로 보여주고 선택값을 testLevel에 반영한다.
         /// </summary>
-        private static void DrawTestLevelDropdown(SerializedProperty prop)
+        private void DrawTestLevelDropdown(SerializedProperty prop)
         {
-            string[] guids = AssetDatabase.FindAssets("t:LevelData");
-            LevelData[] levels = new LevelData[guids.Length];
-            string[] names = new string[guids.Length + 1];
-            names[0] = "(없음)";
-
             int current = 0;
-            for (int i = 0; i < guids.Length; i++)
-            {
-                levels[i] = AssetDatabase.LoadAssetAtPath<LevelData>(AssetDatabase.GUIDToAssetPath(guids[i]));
-                names[i + 1] = levels[i] ? levels[i].name : "(missing)";
-                if (prop.objectReferenceValue == levels[i]) current = i + 1;
-            }
+            for (int i = 0; i < _levels.Length; i++)
+                if (prop.objectReferenceValue == _levels[i]) current = i + 1;
 
-            int selected = EditorGUILayout.Popup("Test Level", current, names);
+            int selected = EditorGUILayout.Popup("Test Level", current, _names);
             if (selected != current)
-                prop.objectReferenceValue = selected == 0 ? null : levels[selected - 1];
+                prop.objectReferenceValue = selected == 0 ? null : _levels[selected - 1];
         }
     }
 }

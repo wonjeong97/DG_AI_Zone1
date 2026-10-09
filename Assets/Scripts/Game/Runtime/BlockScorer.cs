@@ -1,6 +1,9 @@
 using System.Collections.Generic;
 using Cysharp.Text;
 using Data;
+using UnityEngine;
+using ZLogger;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace Game.Runtime
 {
@@ -10,8 +13,10 @@ namespace Game.Runtime
     {
         /// <summary>
         /// 프로그램 전체를 레벨 규칙에 맞게 채점해 총점을 반환한다 — 정답 방향은 출제 때 고른 문제 값의 정답(LevelData)을 받는다.
+        /// 레벨 데이터와 블록 라벨이 어긋나 값을 읽지 못하면 logger(없으면 Unity 콘솔)에 경고를 남긴다.
         /// </summary>
-        public static int ScoreProgram(List<BlockInstruction> instructions, string questionValueKey, string correctAnswer, LevelKind kind = LevelKind.Solar)
+        public static int ScoreProgram(List<BlockInstruction> instructions, string questionValueKey, string correctAnswer,
+            LevelKind kind, ILogger logger = null)
         {
             // 레벨4(발전소)는 명령에 값이 없어 아래 순회 채점과 무관 — 놀이시설/조건/병원 3항목을 더한 별도 채점
             if (kind == LevelKind.PowerPlant)
@@ -21,24 +26,32 @@ namespace Game.Runtime
             if (kind == LevelKind.FutureEnergy)
                 return GetEnergiesInFunction(instructions).Count * Constants.Scores.FutureEnergyBlockScore;
 
-            bool isHydro = kind == LevelKind.Hydro;
-
             int total = 0;
             foreach (BlockInstruction instr in InstructionTree.Traverse(instructions))
             {
                 if (instr is CommandInstruction cmd)
-                    total += ScoreCommand(cmd, correctAnswer, kind);
-                else if (isHydro && instr is IfInstruction ifInstr)
-                {
-                    int conditionScore = ScoreHydroCondition(ifInstr.Condition, questionValueKey);
-                    int elseScore = ifInstr.HasElseMarker
-                        ? Constants.Scores.HydroElsePlacedScore
-                        : Constants.Scores.HydroElseMissingScore;
-                    int gateOrderScore = ScoreHydroGateOrder(ifInstr);
-                    total += conditionScore * elseScore * gateOrderScore;
-                }
+                    total += ScoreCommand(cmd, correctAnswer, kind, logger);
             }
+
+            // 레벨3(수력)은 결과 화면의 항목들처럼 첫 '만약' 블록 하나만 채점한다
+            if (kind == LevelKind.Hydro)
+                total += ScoreHydroIf(FindFirst<IfInstruction>(instructions), questionValueKey, logger);
+
             return total;
+        }
+
+        /// <summary>
+        /// 수력 레벨의 '만약' 블록을 조건×아니면×수문 순서 3항목을 곱해 채점한다 (만약이 없으면 0점).
+        /// </summary>
+        private static int ScoreHydroIf(IfInstruction ifInstr, string questionValueKey, ILogger logger)
+        {
+            if (ifInstr is null) return 0;
+
+            int conditionScore = ScoreHydroCondition(ifInstr.Condition, questionValueKey, logger);
+            int elseScore = ifInstr.HasElseMarker
+                ? Constants.Scores.HydroElsePlacedScore
+                : Constants.Scores.HydroElseMissingScore;
+            return conditionScore * elseScore * ScoreHydroGateOrder(ifInstr);
         }
 
         // ── 최고 점수 값 조회 (AI 코딩 결과 표시용) ─────────────────
@@ -46,7 +59,7 @@ namespace Game.Runtime
         /// <summary>
         /// 레벨별 최고 점수를 반환한다. 레벨3(수력)은 조건×아니면×순서 3항목을 곱한 점수 체계라 별도 계산식을 쓴다.
         /// </summary>
-        public static int GetMaxScore(LevelKind kind = LevelKind.Solar)
+        public static int GetMaxScore(LevelKind kind)
         {
             if (kind == LevelKind.Hydro)
                 return Constants.Scores.HydroExactScore
@@ -58,7 +71,7 @@ namespace Game.Runtime
                 return Constants.Scores.WindDirectionSameScore;
 
             if (kind == LevelKind.FutureEnergy)
-                return FutureEnergyCommands.Length * Constants.Scores.FutureEnergyBlockScore;
+                return Constants.BlockLabels.FutureEnergies.Count * Constants.Scores.FutureEnergyBlockScore;
 
             if (kind == LevelKind.PowerPlant)
                 return Constants.Scores.PowerPlantAmusementOffScore
@@ -117,9 +130,9 @@ namespace Game.Runtime
             return ifInstr?.Condition switch
             {
                 SimpleConditionExpr s => s.Name,
-                LogicConditionExpr l when l.Operator == PowerPlantAndOperator
-                    => $"{l.Left?.Name} {Constants.ResultMessages.ConditionAndSeparator} {l.Right?.Name}",
-                LogicConditionExpr l => $"{l.Left?.Name} {l.Operator} {l.Right?.Name}",
+                LogicConditionExpr l when l.Operator == Constants.BlockLabels.And
+                    => ZString.Concat(l.Left?.Name, " ", Constants.ResultMessages.ConditionAndSeparator, " ", l.Right?.Name),
+                LogicConditionExpr l => ZString.Concat(l.Left?.Name, " ", l.Operator, " ", l.Right?.Name),
                 _ => null
             };
         }
@@ -132,12 +145,12 @@ namespace Game.Runtime
         public static bool IsAmusementPowerCut(List<BlockInstruction> instructions)
         {
             IfInstruction ifInstr = FindFirst<IfInstruction>(instructions);
-            if (ifInstr is null || ContainsCommandDeep(instructions, PowerPlantAmusementOnCommand)) return false;
+            if (ifInstr is null || ContainsCommandDeep(instructions, Constants.BlockLabels.AmusementOn)) return false;
 
             HashSet<BlockInstruction> reachable = new HashSet<BlockInstruction>();
             CollectReachable(instructions, reachable);
             foreach (BlockInstruction instr in InstructionTree.Traverse(ifInstr.Then))
-                if (instr is CommandInstruction cmd && cmd.Command == PowerPlantAmusementOffCommand && reachable.Contains(cmd))
+                if (instr is CommandInstruction cmd && cmd.Command == Constants.BlockLabels.AmusementOff && reachable.Contains(cmd))
                     return true;
             return false;
         }
@@ -181,17 +194,9 @@ namespace Game.Runtime
         {
             RepeatInstruction repInstr = FindFirst<RepeatInstruction>(instructions);
             return repInstr is not null
-                && ContainsCommandDeep(repInstr.Body, PowerPlantHospitalOnCommand)
-                && !ContainsCommandDeep(instructions, PowerPlantHospitalOffCommand);
+                && ContainsCommandDeep(repInstr.Body, Constants.BlockLabels.HospitalOn)
+                && !ContainsCommandDeep(instructions, Constants.BlockLabels.HospitalOff);
         }
-
-        // 05_FutureEnergyBlockLayout의 에너지 블록 라벨과 일치해야 한다 — 결과 화면 행 이름으로도 쓴다
-        private readonly static string[] FutureEnergyCommands = { "태양광", "풍력", "수력 발전", "스마트 도시 발전소" };
-
-        /// <summary>
-        /// 레벨5 에너지 블록 이름 목록 — 결과 화면이 이 순서대로 행을 만든다.
-        /// </summary>
-        public static IReadOnlyList<string> FutureEnergyNames => FutureEnergyCommands;
 
         /// <summary>
         /// 프로그램에서 함수를 호출했는지 확인한다 — 레벨5 결과의 '함수 사용' 표시용.
@@ -204,22 +209,26 @@ namespace Game.Runtime
         /// </summary>
         public static List<string> GetEnergiesInFunction(List<BlockInstruction> instructions)
         {
-            List<string> found = new List<string>();
+            // 함수 본문들을 한 번만 훑어 명령 이름을 모은 뒤, 결과 화면 순서(에너지 목록 순서)대로 골라낸다
+            HashSet<string> commandsInFunction = new HashSet<string>();
             foreach (BlockInstruction instr in InstructionTree.Traverse(instructions))
             {
                 if (instr is not FunctionInstruction fn) continue;
 
-                foreach (string energy in FutureEnergyCommands)
-                    if (!found.Contains(energy) && ContainsCommandDeep(fn.Body, energy))
-                        found.Add(energy);
+                foreach (BlockInstruction inner in InstructionTree.Traverse(fn.Body))
+                    if (inner is CommandInstruction cmd) commandsInFunction.Add(cmd.Command);
             }
+
+            List<string> found = new List<string>();
+            foreach (string energy in Constants.BlockLabels.FutureEnergies)
+                if (commandsInFunction.Contains(energy)) found.Add(energy);
             return found;
         }
 
         /// <summary>
         /// 점수표에서 가장 높은 점수의 키를 반환한다.
         /// </summary>
-        private static string MaxScoreKey(Dictionary<string, int> table)
+        private static string MaxScoreKey(IReadOnlyDictionary<string, int> table)
         {
             string bestKey = null;
             int bestScore = int.MinValue;
@@ -259,7 +268,7 @@ namespace Game.Runtime
         /// <summary>
         /// Command 하나를 연결된 값의 종류에 맞게 채점한다.
         /// </summary>
-        public static int ScoreCommand(CommandInstruction cmd, string correctAnswer, LevelKind kind = LevelKind.Solar)
+        public static int ScoreCommand(CommandInstruction cmd, string correctAnswer, LevelKind kind, ILogger logger = null)
         {
             if (cmd.Value is null) return 0;
 
@@ -268,14 +277,27 @@ namespace Game.Runtime
                 case ValueKind.Direction:
                     if (kind == LevelKind.Wind)
                         return ScoreWindDirection(cmd.Value, correctAnswer);
-                    return correctAnswer is not null && cmd.Value == correctAnswer ? Constants.Scores.DirectionCorrectScore : 1;
+                    return correctAnswer is not null && cmd.Value == correctAnswer
+                        ? Constants.Scores.DirectionCorrectScore
+                        : Constants.Scores.DirectionWrongScore;
                 case ValueKind.Angle:
-                    return Constants.Scores.AngleScore.TryGetValue(cmd.Value, out int angle) ? angle : 0;
+                    return ScoreFromTable(Constants.Scores.AngleScore, cmd.Value, logger);
                 case ValueKind.Count:
-                    return Constants.Scores.CountScore.TryGetValue(cmd.Value, out int count) ? count : 0;
+                    return ScoreFromTable(Constants.Scores.CountScore, cmd.Value, logger);
                 default:
                     return 0;
             }
+        }
+
+        /// <summary>
+        /// 점수표에서 값 블록 라벨의 점수를 찾는다 — 표에 없는 라벨은 블록 데이터가 어긋난 것이라 경고하고 0점을 준다.
+        /// </summary>
+        private static int ScoreFromTable(IReadOnlyDictionary<string, int> table, string label, ILogger logger)
+        {
+            if (table.TryGetValue(label, out int score)) return score;
+
+            LogWarning(logger, ZString.Concat("[BlockScorer] 점수표에 없는 값 블록 '", label, "'이라 0점으로 채점합니다. 블록 라벨과 Constants.Scores를 확인하세요."));
+            return 0;
         }
 
         /// <summary>
@@ -296,13 +318,17 @@ namespace Game.Runtime
         /// 수력 레벨 조건을 채점한다 — 만약 블록에 연결한 높이 조건("5m 이상")과 문제 높이("5m")를 비교해
         /// 정확히 같으면 5점, 더 낮게 연결했으면 3점, 더 높게 연결했으면 1점.
         /// </summary>
-        private static int ScoreHydroCondition(ConditionExpr condition, string questionValueKey)
+        private static int ScoreHydroCondition(ConditionExpr condition, string questionValueKey, ILogger logger)
         {
             if (condition is not SimpleConditionExpr simple) return 0;
 
             int chosen = ParseMeters(simple.Name);
             int target = ParseMeters(questionValueKey);
-            if (chosen < 0 || target < 0) return 0;
+            if (chosen < 0 || target < 0)
+            {
+                LogWarning(logger, ZString.Concat("[BlockScorer] 높이를 읽지 못해 수력 조건을 0점으로 채점합니다 (조건 '", simple.Name, "', 문제 '", questionValueKey, "')."));
+                return 0;
+            }
 
             if (chosen == target) return Constants.Scores.HydroExactScore;
             return chosen < target ? Constants.Scores.HydroLowerScore : Constants.Scores.HydroHigherScore;
@@ -319,22 +345,6 @@ namespace Game.Runtime
             while (i < text.Length && char.IsDigit(text[i])) i++;
             return i > 0 && int.TryParse(text.Substring(0, i), out int meters) ? meters : -1;
         }
-
-        // 03_HydroBlockLayout의 블록 라벨과 일치해야 한다 (채점은 블록 이름으로 명령을 구분)
-        private const string HydroOpenCommand  = "수문 열기";
-        private const string HydroCloseCommand = "수문 닫기";
-
-        private const string PowerPlantAndOperator = "그리고";
-
-        // 04_PowerPlantBlockLayout의 블록 라벨과 일치해야 한다 (채점은 블록 이름으로 명령을 구분). 켜기·끄기 중 하나씩은 함정 블록
-        private const string PowerPlantAmusementOffCommand = "놀이시설 불 끄기";
-        private const string PowerPlantAmusementOnCommand  = "놀이시설 불 켜기";
-        private const string PowerPlantHospitalOnCommand   = "병원 불 켜기";
-        private const string PowerPlantHospitalOffCommand  = "병원 불 끄기";
-
-        // 조건 함정 블록 — 문제 상황(밤·전기 과부하)의 반대
-        private const string PowerPlantDayCondition   = "낮";
-        private const string PowerPlantSpareCondition = "전기 여유";
 
         /// <summary>
         /// 레벨4를 채점한다 — 놀이시설(만약 안에서 끄기) + 조건(단일/그리고/또는) + 병원(반복하기 안에서 켜기) 3항목을 더한다.
@@ -364,7 +374,7 @@ namespace Game.Runtime
         private static int ScorePowerPlantCondition(ConditionExpr condition) => condition switch
         {
             _ when HasTrapCondition(condition) => Constants.Scores.PowerPlantConditionTrapScore,
-            LogicConditionExpr logic when logic.Operator == PowerPlantAndOperator => Constants.Scores.PowerPlantConditionAndScore,
+            LogicConditionExpr logic when logic.Operator == Constants.BlockLabels.And => Constants.Scores.PowerPlantConditionAndScore,
             LogicConditionExpr => Constants.Scores.PowerPlantConditionOrScore,
             SimpleConditionExpr => Constants.Scores.PowerPlantConditionSingleScore,
             _ => 0
@@ -383,7 +393,8 @@ namespace Game.Runtime
         /// <summary>
         /// 조건 블록 이름이 함정 조건인지 확인한다.
         /// </summary>
-        private static bool IsTrapCondition(string name) => name is PowerPlantDayCondition or PowerPlantSpareCondition;
+        private static bool IsTrapCondition(string name)
+            => name is Constants.BlockLabels.DayCondition or Constants.BlockLabels.SpareCondition;
 
         /// <summary>
         /// 전위 순회에서 처음 만나는 지정 타입 명령을 반환한다.
@@ -429,8 +440,8 @@ namespace Game.Runtime
         /// 수문 열기가 Then 최상위에, 수문 닫기가 Else 최상위에 있는지 확인한다.
         /// </summary>
         private static bool IsHydroGateOrderCorrect(IfInstruction ifInstr)
-            => ContainsCommand(ifInstr.Then, HydroOpenCommand)
-            && ContainsCommand(ifInstr.Else, HydroCloseCommand);
+            => ContainsCommand(ifInstr.Then, Constants.BlockLabels.HydroOpen)
+            && ContainsCommand(ifInstr.Else, Constants.BlockLabels.HydroClose);
 
         /// <summary>
         /// 본문 최상위(중첩 제외)에 지정 이름의 Command가 있는지 확인한다.
@@ -442,6 +453,15 @@ namespace Game.Runtime
                 if (instr is CommandInstruction cmd && cmd.Command == commandName)
                     return true;
             return false;
+        }
+
+        /// <summary>
+        /// 로거가 있으면 ZLogger로, 없으면 Unity 콘솔로 경고를 남긴다 (정적 유틸리티라 로거를 선택 인자로 받음).
+        /// </summary>
+        private static void LogWarning(ILogger logger, string message)
+        {
+            if (logger != null) logger.ZLogWarning($"{message}");
+            else Debug.LogWarning(message);
         }
     }
 }

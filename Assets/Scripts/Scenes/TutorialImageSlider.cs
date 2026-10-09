@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Cysharp.Text;
 using Cysharp.Threading.Tasks;
@@ -6,6 +7,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.EventSystems;
+using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.UI;
 using VContainer;
 using HuliacDev.UI;
@@ -16,15 +18,18 @@ namespace Scenes
     [RequireComponent(typeof(Image))]
     public class TutorialImageSlider : MonoBehaviour, IPointerClickHandler
     {
-        private const int TotalPages = 7;
+        // 화면 오른쪽 절반을 누르면 다음, 왼쪽 절반을 누르면 이전 페이지
+        private const float NextPageThreshold = 0.5f;
 
+        [Tooltip("튜토리얼 이미지 장수 — Addressables 주소 Tutorial1 ~ TutorialN")]
+        [SerializeField] private int totalPages = 7;
         [SerializeField] private TMP_Text pageText;
 
         // 마지막 페이지에서 다음으로 넘기려 할 때 발생 — 인트로 씬이 스토리 씬으로 넘어가는 신호로 쓴다
-        public event System.Action Finished;
+        public event Action Finished;
 
-        // 페이지별로 1회만 Addressables에서 로드하고 이후에는 캐시에서 반환
-        private readonly Dictionary<int, Sprite> _spriteCache = new();
+        // 페이지별로 1회만 Addressables에서 로드하고 이후에는 같은 핸들의 결과를 쓴다 — 씬을 떠날 때 모두 해제한다
+        private readonly Dictionary<int, AsyncOperationHandle<Sprite>> _spriteHandles = new();
 
         private Image _image;
         private RectTransform _rectTransform;
@@ -64,6 +69,16 @@ namespace Scenes
         }
 
         /// <summary>
+        /// 불러온 튜토리얼 이미지를 해제한다 — 인트로 씬을 다시 열 때마다 새로 불러오므로 남겨 두면 참조만 쌓인다.
+        /// </summary>
+        private void OnDestroy()
+        {
+            foreach (AsyncOperationHandle<Sprite> handle in _spriteHandles.Values)
+                if (handle.IsValid()) Addressables.Release(handle);
+            _spriteHandles.Clear();
+        }
+
+        /// <summary>
         /// 이미지의 오른쪽 절반을 누르면 다음, 왼쪽 절반을 누르면 이전 페이지로 넘긴다.
         /// </summary>
         public void OnPointerClick(PointerEventData eventData)
@@ -73,7 +88,7 @@ namespace Scenes
             Rect rect = _rectTransform.rect;
             float normalizedX = (localPoint.x - rect.xMin) / rect.width;
 
-            if (normalizedX >= 0.5f) ShowNext();
+            if (normalizedX >= NextPageThreshold) ShowNext();
             else ShowPrevious();
         }
 
@@ -84,7 +99,7 @@ namespace Scenes
         {
             if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
 
-            if (_currentIndex == TotalPages - 1)
+            if (_currentIndex >= totalPages - 1)
             {
                 Finished?.Invoke();
                 return;
@@ -112,12 +127,29 @@ namespace Scenes
         private async UniTaskVoid UpdatePageAsync()
         {
             int page = _currentIndex + 1;
-            if (pageText) pageText.text = ZString.Concat("체험 방법(", page, "/", TotalPages, ")");
+            if (pageText) pageText.text = ZString.Format(Constants.TutorialMessages.PageFormat, page, totalPages);
+            else if (_logger != null) _logger.ZLogWarning($"[TutorialImageSlider] pageText가 할당되지 않아 페이지 번호를 표시하지 못했습니다.");
 
-            if (!_spriteCache.TryGetValue(page, out Sprite sprite))
+            if (!_spriteHandles.TryGetValue(page, out AsyncOperationHandle<Sprite> handle))
             {
-                sprite = await Addressables.LoadAssetAsync<Sprite>(ZString.Concat(Constants.ResourcePaths.TutorialImageAddress, page));
-                _spriteCache[page] = sprite;
+                handle = Addressables.LoadAssetAsync<Sprite>(ZString.Concat(Constants.ResourcePaths.TutorialImageAddress, page));
+                _spriteHandles[page] = handle;
+            }
+
+            Sprite sprite;
+            try
+            {
+                sprite = await handle.ToUniTask(cancellationToken: destroyCancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                // 불러오는 도중 씬을 떠난 경우 — 핸들은 OnDestroy가 해제한다
+                return;
+            }
+            catch (Exception ex)
+            {
+                if (_logger != null) _logger.ZLogError($"[TutorialImageSlider] 튜토리얼 이미지 {page}장을 불러오지 못했습니다: {ex.Message}");
+                return;
             }
 
             // 로딩 중 다른 페이지로 이동했다면(연속 클릭) 결과가 최신 페이지를 덮어쓰지 않도록 방지

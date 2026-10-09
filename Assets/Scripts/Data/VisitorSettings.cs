@@ -15,7 +15,7 @@ namespace Data
         [SerializeField] private bool defaultServerConnected;
 
         [Tooltip("로컬 모드에서 표시할 체험자 이름 기본값 — 관리자 페이지에서 바꾼 값이 있으면 그 값을 쓴다")]
-        [SerializeField] private string defaultVisitorName = "체험자";
+        [SerializeField] private string defaultVisitorName = Constants.Admin.DefaultVisitorName;
 
         public bool IsServerConnected
         {

@@ -14,9 +14,7 @@ namespace DG.Zone1.Tests
     /// </summary>
     public class RaycastAreaTests
     {
-        private GameObject _eventSystemGo;
-        private EventSystem _eventSystem;
-        private GameObject _canvasGo;
+        private UiRaycastStage _stage;
 
         /// <summary>
         /// 레이캐스트에 필요한 EventSystem과 화면 오버레이 캔버스를 준비한다.
@@ -24,11 +22,7 @@ namespace DG.Zone1.Tests
         [SetUp]
         public void SetUp()
         {
-            _eventSystemGo = new GameObject("RaycastAreaTests_EventSystem", typeof(EventSystem));
-            _eventSystemGo.TryGetComponent(out _eventSystem);
-            _canvasGo = new GameObject("RaycastAreaTests_Canvas", typeof(Canvas), typeof(GraphicRaycaster));
-            _canvasGo.TryGetComponent(out Canvas canvas);
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            _stage = new UiRaycastStage(nameof(RaycastAreaTests));
         }
 
         /// <summary>
@@ -37,8 +31,7 @@ namespace DG.Zone1.Tests
         [TearDown]
         public void TearDown()
         {
-            if (_canvasGo) Object.Destroy(_canvasGo);
-            if (_eventSystemGo) Object.Destroy(_eventSystemGo);
+            _stage.Destroy();
         }
 
         /// <summary>
@@ -49,7 +42,7 @@ namespace DG.Zone1.Tests
         public IEnumerator 새_오브젝트에_붙여도_레이캐스트에_잡힌다()
         {
             GameObject go = new GameObject("Area", typeof(RectTransform));
-            go.transform.SetParent(_canvasGo.transform, false);
+            go.transform.SetParent(_stage.Canvas.transform, false);
             go.AddComponent<RaycastArea>();
             Assert.IsTrue(go.TryGetComponent(out CanvasRenderer _), "CanvasRenderer가 함께 붙어야 함");
 
@@ -59,9 +52,9 @@ namespace DG.Zone1.Tests
             yield return null;
 
             Vector2 screen = RectTransformUtility.WorldToScreenPoint(null, rt.position);
-            PointerEventData pointer = new PointerEventData(_eventSystem) { position = screen };
+            PointerEventData pointer = new PointerEventData(_stage.EventSystem) { position = screen };
             List<RaycastResult> results = new List<RaycastResult>();
-            _eventSystem.RaycastAll(pointer, results);
+            _stage.EventSystem.RaycastAll(pointer, results);
 
             Assert.IsNotEmpty(results, "RaycastArea 위치에 맞은 UI가 없음");
             Assert.AreSame(go, results[0].gameObject);

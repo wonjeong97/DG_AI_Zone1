@@ -12,6 +12,7 @@ namespace Scenes
 {
     public class HintPanel : MonoBehaviour
     {
+        [Tooltip("레벨 순서대로(레벨1=0번) 각 레벨의 힌트 패널 — LevelData.levelIndex로 고른다")]
         [SerializeField] private GameObject[] levelPanels;
         [SerializeField] private Button closeButton;
 
@@ -26,12 +27,6 @@ namespace Scenes
 
         [Tooltip("레벨3(수력) 힌트의 수문 규칙 문구 텍스트 — 문제 높이 값을 넣어 '높으면 열기 / 낮으면 닫기'를 표시")]
         [SerializeField] private TMP_Text level3RuleText;
-
-        [Tooltip("레벨4(발전소) 힌트 오브젝트를 담은 부모(Level4Panel) — 문제 변형별 토글 로직 추가 시 사용")]
-        [SerializeField] private Transform level4PowerPlantContainer;
-
-        [Tooltip("레벨5(미래 에너지) 힌트 오브젝트를 담은 부모(Level5Panel) — 문제 변형별 토글 로직 추가 시 사용")]
-        [SerializeField] private Transform level5FutureEnergyContainer;
 
         private ILogger<HintPanel> _logger;
         private SoundManager _soundManager;
@@ -53,6 +48,8 @@ namespace Scenes
         {
             if (closeButton)
                 closeButton.onClick.AddListener(Hide);
+            else if (_logger != null)
+                _logger.ZLogWarning($"[HintPanel] closeButton이 할당되지 않아 힌트 창을 닫을 수 없습니다.");
         }
 
         /// <summary>
@@ -61,25 +58,29 @@ namespace Scenes
         /// </summary>
         public void Show(LevelData level, string questionValueKey = null)
         {
-            int levelNumber = Constants.Levels.ParseLevelNumber(level ? level.name : null);
-            string targetPanelName = levelNumber > 0 ? ZString.Concat("Level", levelNumber, "Panel") : null;
+            int levelIndex = level ? level.levelIndex : -1;
+            bool hasPanel = levelIndex >= 0 && levelIndex < levelPanels.Length && levelPanels[levelIndex];
+            if (!hasPanel && _logger != null)
+                _logger.ZLogWarning($"[HintPanel] 레벨 순번 {levelIndex}의 힌트 패널이 levelPanels에 없어 힌트를 표시하지 못했습니다.");
 
-            foreach (GameObject panel in levelPanels)
+            for (int i = 0; i < levelPanels.Length; i++)
+                if (levelPanels[i]) levelPanels[i].SetActive(i == levelIndex);
+
+            if (level)
             {
-                if (panel) panel.SetActive(panel.name == targetPanelName);
+                switch (level.kind)
+                {
+                    case LevelKind.Solar:
+                        ApplyHintVariant(level1TimeContainer, nameof(level1TimeContainer), level, questionValueKey);
+                        break;
+                    case LevelKind.Wind:
+                        ApplyHintVariant(level2WindContainer, nameof(level2WindContainer), level, questionValueKey);
+                        break;
+                    case LevelKind.Hydro:
+                        ApplyMeterText(level, questionValueKey);
+                        break;
+                }
             }
-
-            if (level1TimeContainer)
-                level1TimeContainer.gameObject.SetActive(level1TimeContainer.gameObject.name == targetPanelName);
-
-            if (levelNumber == 1)
-                ApplyHintVariant(level1TimeContainer, nameof(level1TimeContainer), level, questionValueKey);
-
-            if (levelNumber == 2)
-                ApplyHintVariant(level2WindContainer, nameof(level2WindContainer), level, questionValueKey);
-
-            if (levelNumber == 3)
-                ApplyMeterText(level, questionValueKey);
 
             gameObject.SetActive(true);
         }

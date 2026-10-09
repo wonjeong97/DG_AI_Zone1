@@ -119,6 +119,39 @@ namespace DG.Zone1.Tests
         }
 
         /// <summary>
+        /// 채점이 블록 이름으로 찾는 라벨(Constants.BlockLabels)이 그 레벨의 블록 레이아웃에 그대로 있다 —
+        /// 에셋 라벨만 바꾸면 컴파일 오류 없이 해당 채점 항목이 0점이 되기 때문이다.
+        /// </summary>
+        [Test]
+        public void 채점에_쓰는_블록_라벨이_레벨_블록에_있다()
+        {
+            Dictionary<LevelKind, IEnumerable<string>> required = new Dictionary<LevelKind, IEnumerable<string>>
+            {
+                [LevelKind.Hydro] = new[] { Constants.BlockLabels.HydroOpen, Constants.BlockLabels.HydroClose },
+                [LevelKind.PowerPlant] = new[]
+                {
+                    Constants.BlockLabels.AmusementOff, Constants.BlockLabels.AmusementOn,
+                    Constants.BlockLabels.HospitalOn, Constants.BlockLabels.HospitalOff,
+                    Constants.BlockLabels.DayCondition, Constants.BlockLabels.SpareCondition, Constants.BlockLabels.And
+                },
+                [LevelKind.FutureEnergy] = Constants.BlockLabels.FutureEnergies,
+            };
+
+            HashSet<LevelKind> checkedKinds = new HashSet<LevelKind>();
+            foreach (LevelData level in LoadLevels())
+            {
+                if (!required.TryGetValue(level.kind, out IEnumerable<string> labels)) continue;
+
+                HashSet<string> present = CollectLabels(level.blockLayout);
+                foreach (string label in labels)
+                    Assert.IsTrue(present.Contains(label), $"{level.name}의 블록에 채점 라벨 '{label}'이 없음");
+                checkedKinds.Add(level.kind);
+            }
+
+            CollectionAssert.AreEquivalent(required.Keys, checkedKinds, "채점 라벨을 쓰는 레벨 데이터를 모두 찾지 못함");
+        }
+
+        /// <summary>
         /// 수력 문제 높이마다 같은 높이의 조건 블록이 있다 — 없으면 정확한 높이를 고를 수 없어 만점이 나오지 않는다.
         /// </summary>
         [Test]

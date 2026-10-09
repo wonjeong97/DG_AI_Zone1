@@ -19,9 +19,6 @@ namespace Network
     /// </summary>
     public class VisitorApiClient
     {
-        private readonly static string SettingsPath =
-            ZString.Concat(Constants.ResourcePaths.SceneSettingsFolder, "/", Constants.VisitorApi.SettingsFileName);
-
         private readonly ILogger<VisitorApiClient> _logger;
 
         /// <summary>
@@ -126,7 +123,7 @@ namespace Network
         /// </summary>
         private async UniTask<ServerSettings> LoadSettingsAsync(CancellationToken cancellationToken)
         {
-            ServerSettings settings = await JsonLoader.LoadAsync<ServerSettings>(SettingsPath, cancellationToken, _logger);
+            ServerSettings settings = await JsonLoader.LoadAsync<ServerSettings>(Constants.SettingsFiles.Server, cancellationToken, _logger);
 
             // JsonLoader는 취소돼도 기본값(빈 baseUrl)을 돌려주므로 여기서 취소를 전달한다 — 취소 뒤 'baseUrl이 비어 있어' 에러가 남지 않게
             cancellationToken.ThrowIfCancellationRequested();

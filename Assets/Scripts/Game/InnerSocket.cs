@@ -178,9 +178,9 @@ namespace Game
         }
 
         /// <summary>
-        /// 블록을 내부 첫 자리로 받아 스냅시키고, 원래 있던 블록은 새 블록 아래로 밀어 붙인다.
+        /// 블록을 내부 첫 자리로 받아 스냅시키고, 원래 있던 블록은 들어온 체인의 꼬리에 이어 붙인다.
         /// </summary>
-        public void Accept(CodingBlock block)
+        public override void Accept(CodingBlock block)
         {
             ClearSnapHighlight();
 
@@ -189,14 +189,7 @@ namespace Game
             block.SnapInto(transform, ChainOutSocket.ComputeChainSnapOffset(block)).Forget();
             if (_emptyIndicator) _emptyIndicator.SetActive(false);
 
-            if (!displaced) return;
-
-            // 직속 소켓만 사용 — 컨테이너 내부 하위 소켓을 잡아 치환 블록이 잘못 들어가는 문제 방지
-            ChainOutSocket nextOut = ChainOutSocket.OfBlock(block);
-            if (nextOut)
-                nextOut.Accept(displaced);
-            else
-                displaced.MoveToCodingZone();
+            AttachDisplacedToTail(block, displaced);
         }
 
         /// <summary>

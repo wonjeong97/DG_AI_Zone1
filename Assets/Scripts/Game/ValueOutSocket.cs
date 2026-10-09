@@ -8,7 +8,7 @@ namespace Game
         /// <summary>
         /// 값 블록을 점유로 기록하고 ValueInSocket이 이 소켓에 맞도록 스냅시킨다.
         /// </summary>
-        public void Accept(CodingBlock block)
+        public override void Accept(CodingBlock block)
         {
             SetOccupant(block);
             ValueInSocket inSocket = FindChildComponent<ValueInSocket>(block.transform, Constants.Sockets.ValueInName);

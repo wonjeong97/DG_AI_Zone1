@@ -282,5 +282,152 @@ namespace DG.Zone1.Tests
             ChainOutSocket.OfBlock(ifBlock).Accept(_end);
             return elseBlock;
         }
+
+        /// <summary>
+        /// 만약 조건을 '조건 그리고 조건'으로 이으면 성공하고 왼쪽·오른쪽 조건으로 읽힌다.
+        /// </summary>
+        [Test]
+        public void 조건_두_개를_이으면_성공하고_좌우_조건으로_읽힌다()
+        {
+            ValueOutSocket conditionSlot = BuildIfWithBody();
+            CodingBlock overload = MakeCondition("전기 과부하");
+            CodingBlock and = MakeLogic(Constants.BlockLabels.And);
+            CodingBlock night = MakeCondition("밤");
+
+            conditionSlot.Accept(overload);
+            overload.GetSocket<ConditionOutSocket>().Accept(and);
+            and.GetSocket<ConditionOutSocket>().Accept(night);
+
+            CompileResult result = BlockCompiler.Compile(_zone);
+
+            Assert.IsTrue(result.Success, result.Error);
+            LogicConditionExpr logic = (result.Instructions[0] as IfInstruction)?.Condition as LogicConditionExpr;
+            Assert.IsNotNull(logic, "만약 조건이 그리고/또는 조건식으로 읽히지 않음");
+            Assert.AreSame(overload, logic.Left.Source);
+            Assert.AreSame(night, logic.Right.Source);
+            Assert.IsNull(logic.Overflow);
+        }
+
+        /// <summary>
+        /// 조건을 세 개 이상 이으면 두 번째 조건 뒤에 이은 블록들을 지목하며 실패한다 —
+        /// 그대로 두면 세 번째 조건(함정 '낮' 등)이 채점에서 빠져 조건 점수가 만점이 된다.
+        /// </summary>
+        [Test]
+        public void 조건을_세_개_이상_이으면_뒤에_이은_블록을_지목하며_실패한다()
+        {
+            ValueOutSocket conditionSlot = BuildIfWithBody();
+            CodingBlock overload = MakeCondition("전기 과부하");
+            CodingBlock and = MakeLogic(Constants.BlockLabels.And);
+            CodingBlock night = MakeCondition("밤");
+            CodingBlock or = MakeLogic("또는");
+            CodingBlock day = MakeCondition(Constants.BlockLabels.DayCondition);
+
+            conditionSlot.Accept(overload);
+            overload.GetSocket<ConditionOutSocket>().Accept(and);
+            and.GetSocket<ConditionOutSocket>().Accept(night);
+            night.GetSocket<ConditionOutSocket>().Accept(or);
+            or.GetSocket<ConditionOutSocket>().Accept(day);
+
+            CompileResult result = BlockCompiler.Compile(_zone);
+
+            Assert.IsFalse(result.Success, "조건 세 개가 컴파일에 성공함");
+            Assert.AreEqual(Constants.CompilerMessages.ConditionChainTooLong, result.Error);
+            CollectionAssert.AreEqual(new[] { or, day }, result.ErrorBlocks);
+        }
+
+        /// <summary>
+        /// 연결하지 않은 만약 안에 아니면이 있으면, 아니면 위치가 아니라 연결하지 않은 만약을 미사용 블록으로 지목한다.
+        /// </summary>
+        [Test]
+        public void 연결하지_않은_만약_안의_아니면은_만약을_미사용으로_지목한다()
+        {
+            CodingBlock ifBlock = BlockTestUtil.MakeBlock(_zone, Constants.BlockLabels.If, BlockCategory.FlowControl, _zone.transform);
+            BlockTestUtil.AddConditionSocket(ifBlock).Accept(MakeCondition("5m 이상"));
+            InnerSocket inner = BlockTestUtil.AddInnerSocket(ifBlock);
+            CodingBlock open = BlockTestUtil.MakeBlock(_zone, Constants.BlockLabels.HydroOpen, BlockCategory.Command, _inventory);
+            CodingBlock elseBlock = BlockTestUtil.MakeBlock(_zone, Constants.BlockLabels.Else, BlockCategory.Else, _inventory);
+            CodingBlock close = BlockTestUtil.MakeBlock(_zone, Constants.BlockLabels.HydroClose, BlockCategory.Command, _inventory);
+            inner.Accept(open);
+            ChainOutSocket.OfBlock(open).Accept(elseBlock);
+            ChainOutSocket.OfBlock(elseBlock).Accept(close);
+
+            CodingBlock cmd = BlockTestUtil.MakeBlock(_zone, "개방하기", BlockCategory.Command, _inventory);
+            ChainOutSocket.OfBlock(_start).Accept(cmd);
+            ChainOutSocket.OfBlock(cmd).Accept(_end);
+
+            CompileResult result = BlockCompiler.Compile(_zone);
+
+            Assert.IsFalse(result.Success);
+            Assert.AreEqual(CompileErrorKind.UnusedBlocks, result.ErrorKind, result.Error);
+            CollectionAssert.Contains(result.ErrorBlocks, ifBlock);
+            CollectionAssert.DoesNotContain(result.ErrorBlocks, elseBlock);
+        }
+
+        /// <summary>
+        /// 함수 정의 안에 함수 호출을 넣으면 끝없이 펼치지 않고 그 호출 블록을 지목하며 실패한다.
+        /// </summary>
+        [Test]
+        public void 함수_정의_안의_함수_호출은_지목하며_실패한다()
+        {
+            CodingBlock def = BlockTestUtil.MakeBlock(_zone, "미래 에너지 만들기", BlockCategory.FunctionDef, _zone.transform);
+            InnerSocket defInner = BlockTestUtil.AddInnerSocket(def);
+            CodingBlock innerCall = BlockTestUtil.MakeBlock(_zone, "미래 에너지 만들기", BlockCategory.Function, _inventory);
+            defInner.Accept(innerCall);
+            BuildFunctionCallChain();
+
+            CompileResult result = BlockCompiler.Compile(_zone);
+
+            Assert.IsFalse(result.Success, "함수 정의 안의 함수 호출이 컴파일에 성공함");
+            Assert.AreEqual(Constants.CompilerMessages.FunctionCallInsideDef, result.Error);
+            CollectionAssert.AreEqual(new[] { innerCall }, result.ErrorBlocks);
+        }
+
+        /// <summary>
+        /// 만약 하나에 아니면을 두 개 넣으면 두 번째 아니면을 지목하며 실패한다.
+        /// </summary>
+        [Test]
+        public void 만약_하나에_아니면을_두_개_넣으면_두_번째를_지목하며_실패한다()
+        {
+            CodingBlock firstElse = BuildIfElse(out _, out CodingBlock close);
+            CodingBlock secondElse = BlockTestUtil.MakeBlock(_zone, Constants.BlockLabels.Else, BlockCategory.Else, _inventory);
+            CodingBlock after = BlockTestUtil.MakeBlock(_zone, "개방하기", BlockCategory.Command, _inventory);
+            ChainOutSocket.OfBlock(firstElse).Accept(close);
+            ChainOutSocket.OfBlock(close).Accept(secondElse);
+            ChainOutSocket.OfBlock(secondElse).Accept(after);
+
+            CompileResult result = BlockCompiler.Compile(_zone);
+
+            Assert.IsFalse(result.Success, "아니면 두 개가 컴파일에 성공함");
+            Assert.AreEqual(Constants.CompilerMessages.DuplicateElse, result.Error);
+            CollectionAssert.AreEqual(new[] { secondElse }, result.ErrorBlocks);
+        }
+
+        /// <summary>
+        /// 시작하기 → 만약{ 개방하기 } → 완성하기 를 잇고 만약의 조건 슬롯을 반환한다 (조건은 아직 잇지 않는다).
+        /// </summary>
+        private ValueOutSocket BuildIfWithBody()
+        {
+            CodingBlock ifBlock = BlockTestUtil.MakeBlock(_zone, Constants.BlockLabels.If, BlockCategory.FlowControl, _inventory);
+            ValueOutSocket conditionSlot = BlockTestUtil.AddConditionSocket(ifBlock);
+            InnerSocket inner = BlockTestUtil.AddInnerSocket(ifBlock);
+            CodingBlock body = BlockTestUtil.MakeBlock(_zone, "개방하기", BlockCategory.Command, _inventory);
+
+            ChainOutSocket.OfBlock(_start).Accept(ifBlock);
+            inner.Accept(body);
+            ChainOutSocket.OfBlock(ifBlock).Accept(_end);
+            return conditionSlot;
+        }
+
+        /// <summary>
+        /// 조건 블록을 인벤토리에 만든다.
+        /// </summary>
+        private CodingBlock MakeCondition(string label)
+            => BlockTestUtil.MakeBlock(_zone, label, BlockCategory.Condition, _inventory);
+
+        /// <summary>
+        /// 그리고/또는 블록을 인벤토리에 만든다.
+        /// </summary>
+        private CodingBlock MakeLogic(string label)
+            => BlockTestUtil.MakeBlock(_zone, label, BlockCategory.Logic, _inventory);
     }
 }

@@ -13,8 +13,6 @@ namespace Game
     {
         [SerializeField] private Transform content;
 
-        public Transform Content => content;
-
         private ILogger<BlockZone> _logger;
 
         /// <summary>

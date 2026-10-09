@@ -13,6 +13,7 @@ namespace DG.Zone1.Tests
     /// <summary>
     /// ㄷ자 블록(반복하기·만약·함수 정의)은 위쪽 라벨뿐 아니라 아래쪽 막대를 잡아도 블록 자신이 드래그되는지,
     /// 그 터치 영역이 안쪽·아래쪽에 붙은 블록의 터치를 가로채지 않는지 검증한다.
+    /// 라벨이 터치를 받지 않는 일반 블록은 본체 스프라이트로 드래그되는지도 함께 확인한다.
     /// </summary>
     public class CBlockDragAreaTests
     {
@@ -24,6 +25,9 @@ namespace DG.Zone1.Tests
         // 블록 스냅 트윈이 끝나고 Inner 높이가 맞춰질 때까지 기다리는 시간
         private const float SnapWaitSeconds = 1f;
 
+        // 상단 헤더 위쪽 가장자리에서 이만큼 아래를 누른다 — 라벨 줄 안쪽
+        private const float HeaderTouchDepth = 30f;
+
         private readonly static string[] CBlockPrefabs =
         {
             Constants.BlockAssets.WhilePrefab,
@@ -31,10 +35,28 @@ namespace DG.Zone1.Tests
             Constants.BlockAssets.FuncDefPrefab
         };
 
-        private GameObject _eventSystemGo;
-        private EventSystem _eventSystem;
-        private GameObject _canvasGo;
-        private Canvas _canvas;
+        // 라벨 레이캐스트를 끄고 본체 스프라이트가 터치를 받는 일반 블록
+        private readonly static string[] PlainBlockPrefabs =
+        {
+            Constants.BlockAssets.CommandPrefab,
+            Constants.BlockAssets.CommandNoValuePrefab,
+            Constants.BlockAssets.ConditionPrefab,
+            Constants.BlockAssets.ValuePrefab,
+            Constants.BlockAssets.StartPrefab,
+            Constants.BlockAssets.EndPrefab,
+            Constants.BlockAssets.FunctionPrefab
+        };
+
+        // 하단 막대가 없는 기타 흐름 블록까지 포함한 ㄷ자 블록 전체
+        private readonly static string[] CBlockHeaderPrefabs =
+        {
+            Constants.BlockAssets.WhilePrefab,
+            Constants.BlockAssets.IfPrefab,
+            Constants.BlockAssets.FuncDefPrefab,
+            Constants.BlockAssets.FlowControlPrefab
+        };
+
+        private UiRaycastStage _stage;
         private readonly List<RaycastResult> _results = new List<RaycastResult>();
 
         /// <summary>
@@ -43,11 +65,7 @@ namespace DG.Zone1.Tests
         [SetUp]
         public void SetUp()
         {
-            _eventSystemGo = new GameObject("CBlockDragAreaTests_EventSystem", typeof(EventSystem));
-            _eventSystemGo.TryGetComponent(out _eventSystem);
-            _canvasGo = new GameObject("CBlockDragAreaTests_Canvas", typeof(Canvas), typeof(UnityEngine.UI.GraphicRaycaster));
-            _canvasGo.TryGetComponent(out _canvas);
-            _canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            _stage = new UiRaycastStage(nameof(CBlockDragAreaTests));
         }
 
         /// <summary>
@@ -56,8 +74,7 @@ namespace DG.Zone1.Tests
         [TearDown]
         public void TearDown()
         {
-            if (_canvasGo) Object.Destroy(_canvasGo);
-            if (_eventSystemGo) Object.Destroy(_eventSystemGo);
+            _stage.Destroy();
         }
 
         /// <summary>
@@ -79,6 +96,39 @@ namespace DG.Zone1.Tests
 
             foreach (float x in xs)
                 AssertDragTarget(block, footer, new Vector2(x, barCenterY), $"{prefabName} 하단 막대 (x={x:0})");
+        }
+
+        /// <summary>
+        /// 상단 헤더(라벨 줄)를 누르면 드래그 처리기가 그 ㄷ자 블록으로 잡힌다 — 배경 이미지는 레이캐스트를 받지 않아 라벨이 헤더의 터치 영역이다.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator 상단_헤더를_누르면_ㄷ자_블록이_드래그된다([ValueSource(nameof(CBlockHeaderPrefabs))] string prefabName)
+        {
+            CodingBlock block = InstantiateBlock(prefabName);
+
+            // 레이아웃 계산과 캔버스 그리기 순서(depth) 갱신을 기다린다
+            yield return null;
+            yield return null;
+
+            RectTransform root = (RectTransform)block.transform;
+            Rect rect = root.rect;
+            AssertDragTarget(block, root, new Vector2(rect.xMin + rect.width * 0.1f, rect.yMax - HeaderTouchDepth), $"{prefabName} 상단 헤더");
+        }
+
+        /// <summary>
+        /// 일반 블록은 라벨이 터치를 받지 않아도 본체 가운데를 누르면 드래그 처리기가 그 블록으로 잡힌다.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator 일반_블록은_본체를_누르면_드래그된다([ValueSource(nameof(PlainBlockPrefabs))] string prefabName)
+        {
+            CodingBlock block = InstantiateBlock(prefabName, null, BlockCategory.Command);
+
+            // 레이아웃 계산과 캔버스 그리기 순서(depth) 갱신을 기다린다
+            yield return null;
+            yield return null;
+
+            RectTransform root = (RectTransform)block.transform;
+            AssertDragTarget(block, root, root.rect.center, $"{prefabName} 본체 가운데");
         }
 
         /// <summary>
@@ -121,14 +171,14 @@ namespace DG.Zone1.Tests
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabFolder + prefabName + ".prefab");
             Assert.IsTrue(prefab, $"{prefabName} 프리팹을 찾지 못함");
 
-            GameObject go = Object.Instantiate(prefab, _canvasGo.transform, false);
+            GameObject go = Object.Instantiate(prefab, _stage.Canvas.transform, false);
             Assert.IsTrue(go.TryGetComponent(out CodingBlock block), $"{prefabName}에 CodingBlock 없음");
             Assert.IsTrue(block.Footer || category != BlockCategory.FlowControl, $"{prefabName}의 CodingBlock에 Footer가 연결되지 않음");
 
             if (label != null)
             {
                 go.name = label; // 소켓 오프셋이 블록 이름(라벨)으로 정해진다
-                block.Init(category, _canvas);
+                block.Init(category, _stage.Canvas);
                 BlockFactory.AttachSockets(block);
             }
 
@@ -141,9 +191,9 @@ namespace DG.Zone1.Tests
         private void AssertDragTarget(CodingBlock expected, RectTransform space, Vector2 localPoint, string where)
         {
             Vector2 screen = RectTransformUtility.WorldToScreenPoint(null, space.TransformPoint(localPoint));
-            PointerEventData pointer = new PointerEventData(_eventSystem) { position = screen };
+            PointerEventData pointer = new PointerEventData(_stage.EventSystem) { position = screen };
             _results.Clear();
-            _eventSystem.RaycastAll(pointer, _results);
+            _stage.EventSystem.RaycastAll(pointer, _results);
 
             Assert.IsNotEmpty(_results, $"{where} 위치에 맞은 UI가 없음");
             GameObject handler = ExecuteEvents.GetEventHandler<IBeginDragHandler>(_results[0].gameObject);

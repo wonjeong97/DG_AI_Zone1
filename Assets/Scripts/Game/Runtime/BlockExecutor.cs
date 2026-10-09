@@ -86,7 +86,9 @@ namespace Game.Runtime
         /// </summary>
         private async UniTask<bool> ExecuteRepeat(RepeatInstruction instr, CancellationToken ct)
         {
-            // 무한 반복은 이론적 의미만 가짐 — 실제 실행은 1회로 제한 (무한 루프 방지)
+            // 무한 반복은 이론적 의미만 가짐 — 실제 실행은 1회로 제한 (무한 루프 방지).
+            // 실행은 결과 씬으로 넘어가기 전의 로그 재생 연출이라 무한 반복 뒤 블록도 이어서 보여 준다
+            // (채점은 BlockScorer.CollectReachable이 무한 반복 뒤 블록을 실행되지 않는 것으로 따로 판단한다)
             int iterations = instr.IsInfinite ? 1 : instr.Count;
             for (int i = 0; i < iterations; i++)
             {

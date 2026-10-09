@@ -1,3 +1,4 @@
+using App;
 using Data;
 using NUnit.Framework;
 using UnityEngine;
@@ -18,6 +19,9 @@ namespace DG.Zone1.Tests
 
         private VisitorSettings _settings;
 
+        /// <summary>
+        /// 에디터 PlayerPrefs 값을 기억해 두고 덮어쓴 값이 없는 설정을 만든다.
+        /// </summary>
         [SetUp]
         public void SetUp()
         {
@@ -30,6 +34,9 @@ namespace DG.Zone1.Tests
             _settings.ClearOverrides();
         }
 
+        /// <summary>
+        /// 설정을 파괴하고 에디터 PlayerPrefs 값을 테스트 전으로 되돌린다.
+        /// </summary>
         [TearDown]
         public void TearDown()
         {
@@ -42,6 +49,23 @@ namespace DG.Zone1.Tests
             else PlayerPrefs.DeleteKey(VisitorSettings.VisitorNameKey);
 
             PlayerPrefs.Save();
+        }
+
+        /// <summary>
+        /// 인트로·아웃트로 문구의 {name}은 로컬 모드면 설정한 이름, 서버 모드면 QR로 확인한 서버 이름으로 바뀐다.
+        /// </summary>
+        [Test]
+        public void 문구의_이름_자리는_운영_모드에_맞는_이름으로_바뀐다()
+        {
+            VisitorInfoProvider provider = new VisitorInfoProvider(_settings, null);
+            string template = VisitorInfoProvider.NamePlaceholder + "님, 반가워요";
+
+            _settings.VisitorName = "홍길동";
+            Assert.AreEqual("홍길동님, 반가워요", provider.FillName(template));
+
+            _settings.IsServerConnected = true;
+            provider.SetServerVisitor(10, "LLL");
+            Assert.AreEqual("LLL님, 반가워요", provider.FillName(template));
         }
 
         /// <summary>

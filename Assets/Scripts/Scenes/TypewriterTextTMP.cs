@@ -8,8 +8,7 @@ using ZLogger;
 
 namespace Scenes
 {
-    // TMP 버전 타이프라이터 — maxVisibleCharacters로 노출량만 늘려 리치텍스트 태그(<font>/<material> 등)가 잘리지 않음.
-    // 레거시 Text용 TypewriterText와 API(SetText/PlayAsync)를 맞춰 사용처를 최소 변경으로 대체.
+    // TMP 타이프라이터 — maxVisibleCharacters로 노출량만 늘려 리치텍스트 태그(<font>/<material> 등)가 잘리지 않음.
     [RequireComponent(typeof(TMP_Text))]
     public class TypewriterTextTMP : MonoBehaviour
     {
@@ -74,6 +73,12 @@ namespace Scenes
         /// </summary>
         public async UniTask PlayAsync(CancellationToken ct = default)
         {
+            if (!_text && !TryGetComponent(out _text))
+            {
+                if (_logger != null) _logger.ZLogError($"[TypewriterTextTMP] {name}에 TMP_Text가 없어 타이핑 연출을 건너뜁니다.");
+                return;
+            }
+
             _text.ForceMeshUpdate();
             int total = _text.textInfo.characterCount;
             for (int i = 0; i <= total; i++)

@@ -1,7 +1,11 @@
+using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
+using Microsoft.Extensions.Logging;
 using UnityEngine;
+using VContainer;
+using ZLogger;
 
 namespace Scenes
 {
@@ -12,7 +16,7 @@ namespace Scenes
     // 발전소 PowerPlantPump(피스톤)와 같은 자리에 대응한다.
     public class LabLightGlow : MonoBehaviour
     {
-        [Tooltip("건물 안에 둔 조명들 — 모두 같은 세기로 켜진다. 비워 두면 자식 오브젝트의 조명을 모두 쓴다")]
+        [Tooltip("건물 안에 둔 조명들 — 모두 같은 세기로 켜진다. 비워 두면 이 오브젝트와 바로 아래 자식의 조명을 쓴다")]
         [SerializeField] private Light[] lights;
 
         // 창문 너머 실내 벽이 조명과 가까워 낮은 세기에서도 금방 밝아진다 — 보통은 창문 몇 개만 흐리게 보이는
@@ -40,6 +44,42 @@ namespace Scenes
         private float _noiseSeed;
         private float _nextDropoutAt;
         private float _dropoutEndAt;
+        private ILogger<LabLightGlow> _logger;
+
+        /// <summary>
+        /// 로거를 주입받는다 (결과 씬을 불러올 때 GameLifetimeScope가 주입).
+        /// </summary>
+        [Inject]
+        public void Construct(ILogger<LabLightGlow> logger) => _logger = logger;
+
+        /// <summary>
+        /// 조명 배열이 비어 있으면 이 오브젝트와 바로 아래 자식의 조명을 한 번만 모아 둔다 — 매 프레임 찾지 않는다.
+        /// </summary>
+        private void Awake()
+        {
+            if (lights == null || lights.Length == 0) lights = CollectOwnLights();
+        }
+
+        /// <summary>
+        /// 쓸 조명이 하나도 없으면 경고한다 (주입은 Awake 뒤라 Start에서 남긴다).
+        /// </summary>
+        private void Start()
+        {
+            if (lights.Length == 0 && _logger != null)
+                _logger.ZLogWarning($"[LabLightGlow] {name}에 조명이 없어 연구소 조명 연출이 보이지 않습니다.");
+        }
+
+        /// <summary>
+        /// 이 오브젝트와 바로 아래 자식에 붙은 조명을 모은다.
+        /// </summary>
+        private Light[] CollectOwnLights()
+        {
+            List<Light> found = new List<Light>();
+            if (TryGetComponent(out Light own)) found.Add(own);
+            foreach (Transform child in transform)
+                if (child.TryGetComponent(out Light childLight)) found.Add(childLight);
+            return found.ToArray();
+        }
 
         /// <summary>
         /// 보통 단계에서 밝기를 흔들고, 불규칙한 간격으로 잠깐씩 끈다.
@@ -124,13 +164,10 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 조명 세기를 모든 조명에 반영한다 — 조명 배열이 비어 있으면 자식 조명을 모아 쓰고, 0이면 조명을 꺼 그림자 계산도 하지 않는다.
+        /// 조명 세기를 모든 조명에 반영한다 — 0이면 조명을 꺼 그림자 계산도 하지 않는다.
         /// </summary>
         private void ApplyIntensity(float intensity)
         {
-            if (lights == null || lights.Length == 0)
-                lights = GetComponentsInChildren<Light>(true);
-
             foreach (Light l in lights)
             {
                 if (!l) continue;

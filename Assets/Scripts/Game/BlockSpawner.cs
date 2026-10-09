@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using Data;
 using Microsoft.Extensions.Logging;
@@ -37,35 +38,69 @@ namespace Game
 
         /// <summary>
         /// 레이아웃의 인벤토리 블록을 생성해 인벤토리(제어 블록은 코딩 패널)에 배치하고 카테고리 탭을 구성한다.
+        /// 만드는 동안 인벤토리를 숨기고, 중간에 예외·취소로 빠져나가도 다시 보이게 한다.
         /// </summary>
-        public async UniTask Spawn(BlockLayoutData layout)
+        public async UniTask Spawn(BlockLayoutData layout, CancellationToken ct)
         {
             if (!HasDependencies()) return;
 
             // 스폰 및 카테고리 구성 중 인벤토리 깜빡임 방지를 위해 숨김 처리
-            CanvasGroup invGroup = null;
-            if (inventoryContainer)
+            CanvasGroup invGroup = HideInventory();
+            try
             {
-                if (!inventoryContainer.TryGetComponent(out invGroup))
-                    invGroup = inventoryContainer.gameObject.AddComponent<CanvasGroup>();
-                invGroup.alpha = 0f;
+                Clear(inventoryContainer);
+
+                if (!layout || layout.inventoryBlocks is null)
+                {
+                    _logger.ZLogWarning($"[BlockSpawner] 레이아웃이 없어 블록을 생성하지 않습니다.");
+                    return;
+                }
+
+                await CreateBlocksAsync(layout.inventoryBlocks, ct);
+
+                // 모든 블록 생성 및 부모 지정 완료 후, UI 레이아웃과 텍스트 크기가 완전히 계산되도록 프레임 끝까지 대기 및 강제 리빌드
+                // (VerticalLayoutGroup + ContentSizeFitter 체인이 한 프레임 만에 안정화되지 않아 여러 번 반복)
+                for (int i = 0; i < LayoutSettlePasses; i++)
+                    await SettleInventoryLayoutAsync(ct);
+
+                if (categoryZone)
+                    await categoryZone.Build(CollectInventoryCategories(), ct);
+
+                // 카테고리 버튼 생성 및 첫 탭 선택/필터링이 완료된 후 최종 레이아웃을 정착시키고 표시
+                await SettleInventoryLayoutAsync(ct);
             }
-
-            Clear(inventoryContainer);
-
-            if (!layout || layout.inventoryBlocks is null)
+            finally
             {
-                if (_logger != null) _logger.ZLogWarning($"[BlockSpawner] 레이아웃이 없어 블록을 생성하지 않습니다.");
                 if (invGroup) invGroup.alpha = 1f;
-                return;
             }
+        }
 
+        /// <summary>
+        /// 인벤토리 컨테이너를 투명하게 숨기고 그 CanvasGroup을 반환한다 (컨테이너가 없으면 null).
+        /// </summary>
+        private CanvasGroup HideInventory()
+        {
+            if (!inventoryContainer) return null;
+
+            if (!inventoryContainer.TryGetComponent(out CanvasGroup invGroup))
+                invGroup = inventoryContainer.gameObject.AddComponent<CanvasGroup>();
+            invGroup.alpha = 0f;
+            return invGroup;
+        }
+
+        /// <summary>
+        /// 블록 항목을 차례로 만들어 인벤토리(제어 블록은 코딩 패널 고정 자리)에 놓는다.
+        /// </summary>
+        private async UniTask CreateBlocksAsync(BlockEntry[] entries, CancellationToken ct)
+        {
             // 블록 프리팹은 리졸버로 인스턴스화되고, 코드로 덧붙이는 컴포넌트도 BlockFactory가 주입한다
             BlockFactory.BuildContext ctx = new BlockFactory.BuildContext(rootCanvas, _resolver, _logger);
 
-            foreach (BlockEntry entry in layout.inventoryBlocks)
+            foreach (BlockEntry entry in entries)
             {
-                GameObject go = await BlockFactory.Create(entry, ctx, draggable: true);
+                GameObject go = await BlockFactory.Create(entry, ctx);
+                // 어드레서블 로드를 기다리는 동안 씬을 떠났으면 더 만들지 않는다
+                ct.ThrowIfCancellationRequested();
                 RegisterSpawnedBlock(go);
 
                 if (entry.category == BlockCategory.Control)
@@ -77,27 +112,17 @@ namespace Game
                         b.SetInventoryHome(inventoryContainer);
                 }
             }
+        }
 
-            // 모든 블록 생성 및 부모 지정 완료 후, UI 레이아웃과 텍스트 크기가 완전히 계산되도록 프레임 끝까지 대기 및 강제 리빌드
-            // (VerticalLayoutGroup + ContentSizeFitter 체인이 한 프레임 만에 안정화되지 않아 2회 반복)
-            for (int i = 0; i < LayoutSettlePasses; i++)
-            {
-                await UniTask.Yield(PlayerLoopTiming.LastPostLateUpdate);
-                Canvas.ForceUpdateCanvases();
-                if (inventoryContainer is RectTransform rt)
-                    LayoutRebuilder.ForceRebuildLayoutImmediate(rt);
-            }
-
-            if (categoryZone)
-                await categoryZone.Build(CollectInventoryCategories());
-
-            // 카테고리 버튼 생성 및 첫 탭 선택/필터링이 완료된 후 최종 레이아웃을 정착시키고 표시
-            await UniTask.Yield(PlayerLoopTiming.LastPostLateUpdate);
+        /// <summary>
+        /// 프레임 끝까지 기다린 뒤 캔버스와 인벤토리 레이아웃을 강제로 다시 계산한다.
+        /// </summary>
+        private async UniTask SettleInventoryLayoutAsync(CancellationToken ct)
+        {
+            await UniTask.Yield(PlayerLoopTiming.LastPostLateUpdate, ct);
             Canvas.ForceUpdateCanvases();
-            if (inventoryContainer is RectTransform finalRt)
-                LayoutRebuilder.ForceRebuildLayoutImmediate(finalRt);
-
-            if (invGroup) invGroup.alpha = 1f;
+            if (inventoryContainer is RectTransform rt)
+                LayoutRebuilder.ForceRebuildLayoutImmediate(rt);
         }
 
         /// <summary>
@@ -111,6 +136,7 @@ namespace Game
                 return false;
             }
 
+            if (!inventoryContainer) _logger.ZLogWarning($"[BlockSpawner] inventoryContainer가 연결되지 않아 인벤토리 블록을 놓을 곳이 없습니다.");
             if (!rootCanvas) _logger.ZLogWarning($"[BlockSpawner] rootCanvas가 연결되지 않아 블록 드래그가 동작하지 않습니다.");
             if (!codingZone) _logger.ZLogWarning($"[BlockSpawner] codingZone이 연결되지 않아 블록 스냅·복귀가 동작하지 않습니다.");
             if (!categoryZone) _logger.ZLogWarning($"[BlockSpawner] categoryZone이 연결되지 않아 카테고리 탭을 만들지 않습니다.");
@@ -138,6 +164,8 @@ namespace Game
         private List<BlockCategory> CollectInventoryCategories()
         {
             List<BlockCategory> categories = new List<BlockCategory>();
+            if (!inventoryContainer) return categories;
+
             foreach (Transform child in inventoryContainer)
             {
                 if (!child.TryGetComponent<CodingBlock>(out CodingBlock block)) continue;

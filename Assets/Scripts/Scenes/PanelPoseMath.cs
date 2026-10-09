@@ -1,9 +1,7 @@
-using System;
-
 namespace Scenes
 {
     /// <summary>
-    /// 태양광 패널 자세 계산 공용 유틸 — SolarPanelPose(구 모델)와 SolarPanelModelPose(신 FBX)가 공유한다.
+    /// 태양광 패널 자세 계산 유틸 — 방향·각도 라벨을 SolarPanelModelPose가 쓰는 회전값으로 바꾼다.
     /// </summary>
     internal static class PanelPoseMath
     {
@@ -35,8 +33,10 @@ namespace Scenes
             degrees = 0;
             if (string.IsNullOrEmpty(angle)) return false;
 
-            string digits = new string(Array.FindAll(angle.ToCharArray(), char.IsDigit));
-            return int.TryParse(digits, out degrees) && degrees > 0;
+            // 숫자만 이어 읽는다 — 문자열을 새로 만들지 않는다
+            foreach (char c in angle)
+                if (char.IsDigit(c)) degrees = degrees * 10 + (c - '0');
+            return degrees > 0;
         }
     }
 }

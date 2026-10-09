@@ -1,7 +1,10 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
+using Microsoft.Extensions.Logging;
 using UnityEngine;
+using VContainer;
+using ZLogger;
 
 namespace Scenes
 {
@@ -26,10 +29,19 @@ namespace Scenes
         }
 
         private const float FixedYZ = 90f;
-        private const float MaxPercent = 100f;
+        private const float MaxPercent = Constants.ResultMessages.MaxPercent;
+
+        private const float FullTurn = 360f;
 
         private float _angle;
         private float _currentSpeed;
+        private ILogger<WindTurbineSpin> _logger;
+
+        /// <summary>
+        /// 로거를 주입받는다 (결과 씬을 불러올 때 GameLifetimeScope가 주입).
+        /// </summary>
+        [Inject]
+        public void Construct(ILogger<WindTurbineSpin> logger) => _logger = logger;
 
         /// <summary>
         /// 결과 연출을 쓰지 않는 씬(전시용 배치 등)에서는 인스펙터 속도로 그냥 돌아가도록 초기 속도를 지정한다.
@@ -37,11 +49,22 @@ namespace Scenes
         private void Awake() => _currentSpeed = speed;
 
         /// <summary>
+        /// 회전시킬 나셀이 빠져 있으면 경고한다 (주입은 Awake 뒤라 Start에서 남긴다).
+        /// </summary>
+        private void Start()
+        {
+            if (_logger == null) return;
+            if (!cylinder002 || !cylinder006)
+                _logger.ZLogWarning($"[WindTurbineSpin] {name}에 회전시킬 나셀(cylinder002·cylinder006)이 모두 할당되지 않아 일부가 돌지 않습니다.");
+        }
+
+        /// <summary>
         /// 현재 속도만큼 블레이드 각도를 누적해 두 나셀의 회전을 재구성한다.
+        /// 각도는 한 바퀴 안으로 접어 오래 돌려도 float 정밀도가 떨어지지 않게 한다.
         /// </summary>
         private void Update()
         {
-            _angle -= _currentSpeed * Time.deltaTime;
+            _angle = Mathf.Repeat(_angle - _currentSpeed * Time.deltaTime, FullTurn);
             Quaternion rot = Quaternion.Euler(_angle, FixedYZ, FixedYZ);
             if (cylinder002) cylinder002.localRotation = rot;
             if (cylinder006) cylinder006.localRotation = rot;
