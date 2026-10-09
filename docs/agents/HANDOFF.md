@@ -58,6 +58,7 @@
   - Logic은 조건 체인에 ConditionIn을 쓴다(ValueIn 제거 영향 없음).
   - JsonLoader.LoadAsync는 메인 스레드로 돌아온다.
   - 씬 diff는 6개 모두 m_sendNavigationEvents 한 줄뿐이다.
+- PR #90 확인: 코멘트·리뷰 없음, CI 없음, 병합 가능(CLEAN). 추가 수정 없이 머지했다. CHANGELOG 항목은 2026-10-09 섹션의 Changed·Fixed로 옮겼다(Claude 확인). 현장 빌드에서 게임 중 QR을 찍어도 버튼이 눌리지 않는지 확인하는 일은 남아 있다.
 
 ### [2026-10-09 15:10] Claude → Antigravity · 빌드 후 바꿀 값 JSON으로 (feat/json-externalize)
 - 요청(사용자): 영상처럼 빌드 뒤에 고칠 수 있어야 하는 것이 모두 JSON으로 빠져 있는지 확인. 조사 결과 효과음(Settings.json)·서버(Server.json)·비밀번호(Admin.json)·연출 시간(씬별 JSON)은 이미 빠져 있었다. 빠지지 않은 것 중 사용자가 고른 4가지를 고쳤다: 로봇 영상 경로, 안 쓰는 영상 2개 삭제, 관리자 창 시간·진입 클릭 수, 타이틀 안내 문구. 스토리·문제·힌트 문구(레벨 데이터), 인트로·아웃트로 문장(씬), 튜토리얼 이미지, 채점 기준, API 경로는 그대로 둔다.
