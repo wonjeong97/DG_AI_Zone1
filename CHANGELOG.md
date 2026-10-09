@@ -6,6 +6,8 @@
 
 ## [Unreleased]
 
+## [2026-10-10]
+
 ### Added
 - 앱이 알림·다른 프로그램에 포커스를 빼앗기면 3초 뒤 앱 창을 다시 앞으로 가져와, 누가 화면을 터치할 때까지 QR 스캐너 입력이 무시되던 일이 없도록 추가(템플릿 26.10.10-1, 타이밍은 Settings.json의 focusRestoreDelay·focusRestoreRetryInterval, 유지보수 중에는 Ctrl+F로 끄고 켬).
 

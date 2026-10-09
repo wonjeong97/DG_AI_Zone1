@@ -19,6 +19,7 @@
 - 이 프로젝트 변경: F가 단일 키면 QR 스캐너의 대문자 F로 포커스 복구가 꺼지므로 DebugShortcutBindings에 ToggleFocusRestore를 추가해 Ctrl+F로. 적용 위치를 GameLifetimeScope 빌드 콜백에서 ConfigureInputBindings override로 옮김(템플릿이 입력 액션 생성 직후 소비자보다 먼저 호출). Settings.json focusRestoreDelay·focusRestoreRetryInterval 3. DebugShortcutBindingsTests에 F 케이스. CHANGELOG Added 1줄, TODO, 프로젝트 메모리(template-debug-keys-override) 갱신.
 - 테스트: Rider 에러 0, Unity 컴파일 에러 0, PlayMode 186/186(뒤에 EditorSettings 되돌림). 포커스 복구는 빌드에서만 동작해 현장 빌드에서 확인 필요.
 - 확인 요청·결과(agy 1묶음): 단축키 오버라이드·훅 호출 시점·빌드 콜백 제거, 설정 키 이름·CHANGELOG·TODO 2/2 통과.
+- PR #91 확인: 코멘트·리뷰 없음, CI 없음, 병합 가능(CLEAN). 추가 수정 없이 머지. CHANGELOG [Unreleased] 항목은 2026-10-10 섹션으로 옮김. 현장 빌드 확인(멀티터치·한 손가락 드래그·포커스 복구·Ctrl+F)은 남아 있음.
 
 ### [2026-10-10] Claude → Antigravity · 6차 검사 지적 수정 (fix/third-audit)
 - 요청(사용자): 전부 수정. 관리자 창이 열렸을 때 QR을 서버로 보내지 않기. 설정·운영 1·2·3은 그대로, 4(포커스를 잃으면 스캐너 입력 무시)는 막되 포커스 복구 기능은 Template 패키지에 넣기로 하고 Reporter 수정과 함께 Template 수정 프롬프트를 받음. 실제 플레이는 터치 모니터만이라 마우스·펜 전환 문제는 고치지 않음(프로젝트 메모리 touch-only-input).
