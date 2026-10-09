@@ -36,6 +36,7 @@
   - L1: 핀치 취소는 OnEndDrag가 바로 반환하고, AttachDisplacedToTail·SpliceOutChild·RestoreDragHome은 OnBeginDrag/OnEndDrag를 거치지 않는다. 매 드래그 시작에 이전 값을 비운다. 소켓 Owner는 내장 소켓(builtInSockets)과 코드로 만든 소켓(RegisterSocket) 모두 채워진다 → 통과.
   - L2: GetName 동작이 같고, QR 성공 로그는 SetServerVisitor 뒤, 대기 초과 로그는 ClearConfirmedVisitor 앞이다. 관리자 레벨 이동의 자동 선택(SelectLevel 직접 호출)은 행동 로그를 남기지 않는다. QR 글자 간격·늦은 Enter 진단, 서버 응답, 관리자 로그는 그대로다 → 통과.
   - 참고: 결과 화면 '다음'은 원래부터 연타 가드가 없어 두 번 누르면 두 줄이 남는다(이번 변경 전과 같은 동작, 진행도 갱신은 Max라 영향 없음).
+  - PR #88 확인: 코멘트·리뷰 없음, CI 없음, 병합 가능(CLEAN). 추가 수정 없이 머지. CHANGELOG 항목은 2026-10-09 섹션의 Changed로 옮김(agy 한도로 Claude가 확인).
 
 ### [2026-10-09 14:20] Claude → Antigravity · 출시 전 감사 결과 수정 (fix/pre-release-audit)
 - 변경 파일: 96개. 컴파일러·채점·출력(BlockCompiler·BlockInstruction·InstructionTree·BlockScorer·ProgramFormatter), 블록 UI(소켓 4종·CodingBlock·CodingZone·BlockFactory·BlockSpawner·CategoryZone·BlockZone·BlockOutlineMesh), 씬(Game·Title·Intro·Outro·Story·Hint·StoryPanel·ResultSequence·SceneFader·TutorialImageSlider·StoryLineAnimator·3D 연출 5종), 관리자(AdminPanel·AdminPasswordPanel·VisitorNamePanel·HangulComposer), App·Data·Constants, 새 파일 ResultRowFactory·IdleCloseTimer·IndexedButtons, 삭제 SolarPanelPose.cs·UIOutline.shader·GameSession.asset(Addressables 항목 포함). 씬 0_Title(QR 그룹 하위 Canvas)·2_Story(내장 Grayscale 머티리얼 제거)·3_Game(HintPanel levelPanels 순서), 블록 프리팹 7개(라벨 Raycast Target 끔), 아이콘 Mipmap 끔, 테스트(새 파일 3개·기존 12개 보강), CHANGELOG·TODO.
