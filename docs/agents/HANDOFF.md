@@ -24,7 +24,7 @@
   - Claude 확인: Unity 컴파일 에러 0, PlayMode 155/155(테스트 뒤 EditorSettings.asset 되돌림). Play 모드 스모크에서 인트로 이름 치환, 스토리 레벨1만 열림, 게임 씬 블록 11개 생성(소켓 중복 부착 없음, 인벤토리 alpha 1), 힌트·스토리 패널 L1~L5 대응, 성공 연출 중 버튼 4개 꺼짐, 결과 100%·미션 성공, 아웃트로 종료 연타에 move_idle 한 번, 관리자 화면 무입력 자동 닫기(idleTimeout을 1초로 줄여 확인), 콘솔 에러 없음.
   - 작업 전부터 있던 URP-*.asset·ScriptableBuildPipeline.json 줄바꿈 변경은 커밋에서 뺌.
   - Template 저장소 TODO 2건(연속 클릭 카운터 분리, ApiRetryUtil 본문 반환 오버로드)은 이 프로젝트 감사에서 발견해 Template TODO에 일반 표현으로 적음(f630088).
-  - PR #87 확인: 코멘트·리뷰 없음, CI 없음, 병합 가능(CLEAN). 사용자가 현장 확인 항목(ㄷ자 블록 헤더·하단 막대 드래그, 관리자 60초 자동 닫기)을 확인함. 출시 후로 미룬 구조 분할 4건 말고는 남은 수정이 없어, 추가 수정 없이 머지.
+  - PR #87 확인: 코멘트·리뷰 없음, CI 없음, 병합 가능(CLEAN). 사용자가 현장 확인 항목(ㄷ자 블록 헤더·하단 막대 드래그, 관리자 60초 자동 닫기)을 확인함. 출시 후로 미룬 구조 분할 4건 말고는 남은 수정이 없어, 추가 수정 없이 머지. CHANGELOG 날짜 섹션 이동은 agy 확인 통과.
 
 ### [2026-10-09 13:10] Claude → Antigravity · 출시 전 전체 코드 감사(스킬 위반·성능·정리) — 읽기 전용
 - 변경 파일: 없음(감사). agy 9묶음 병렬(블록 UI 2 / 컴파일러·채점 / 게임·결과 씬 / 3D 연출·셰이더 / 타이틀·스토리 / 관리자 / App·Network·Data·Constants / 테스트) + Claude 서브에이전트 5묶음 + Claude grep 규칙 점검(var·GetComponent·Find·LINQ·코루틴·DOTween 수명·static readonly 순서·Shader.Find 빌드 포함·UI Mipmap).
