@@ -327,6 +327,55 @@ namespace DG.Zone1.Tests
         }
 
         /// <summary>
+        /// 같은 자리에서 차례로 떼어 낸 두 블록(X→A→C에서 A를 든 뒤 올라온 C를 듦)이 핀치로 취소되면 나중에 집은 블록부터 돌아가 원래 순서가 된다.
+        /// </summary>
+        [Test]
+        public void 같은_자리에서_떼어_낸_두_블록은_핀치_취소_뒤_원래_순서로_돌아간다()
+        {
+            CodingBlock x = MakeDraggableCommand("X");
+            CodingBlock a = MakeDraggableCommand("A");
+            CodingBlock c = MakeDraggableCommand("C");
+            CodingBlock d = MakeDraggableCommand("D");
+            ChainOutSocket.OfBlock(x).Accept(a);
+            ChainOutSocket.OfBlock(a).Accept(c);
+            ChainOutSocket.OfBlock(c).Accept(d);
+
+            a.OnBeginDrag(new PointerEventData(null) { pointerId = 1 });
+            Assert.AreSame(c, ChainOutSocket.OfBlock(x).Occupant, "A를 떼었는데 C가 X 아래로 올라오지 않음");
+            c.OnBeginDrag(new PointerEventData(null) { pointerId = 2 });
+            CodingBlock.CancelActiveDrags();
+
+            Assert.AreSame(a, ChainOutSocket.OfBlock(x).Occupant, "X 아래가 A가 아님");
+            Assert.AreSame(c, ChainOutSocket.OfBlock(a).Occupant, "A 아래가 C가 아님 — 순서가 뒤집힘");
+            Assert.AreSame(d, ChainOutSocket.OfBlock(c).Occupant, "C 아래가 D가 아님");
+        }
+
+        /// <summary>
+        /// 같은 체인의 위·아래 블록을 든 두 손가락이 같은 프레임에 끝 신호 없이 사라지면 한꺼번에 원래 순서로 돌아간다.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator 같은_체인의_두_블록을_든_손가락이_함께_사라지면_원래_순서로_돌아간다()
+        {
+            CodingBlock q = MakeDraggableCommand("Q");
+            CodingBlock p = MakeDraggableCommand("P");
+            CodingBlock x = MakeDraggableCommand("X");
+            ChainOutSocket.OfBlock(q).Accept(p);
+            ChainOutSocket.OfBlock(p).Accept(x);
+
+            PointerEventData lower = new PointerEventData(null) { pointerId = 1, pointerDrag = x.gameObject };
+            PointerEventData upper = new PointerEventData(null) { pointerId = 2, pointerDrag = p.gameObject };
+            x.OnBeginDrag(lower);
+            p.OnBeginDrag(upper);
+
+            lower.pointerDrag = null;
+            upper.pointerDrag = null;
+            yield return null;
+
+            Assert.AreSame(p, ChainOutSocket.OfBlock(q).Occupant, "위 블록이 원래 자리로 돌아가지 않음");
+            Assert.AreSame(x, ChainOutSocket.OfBlock(p).Occupant, "아래 블록이 위 블록 아래로 돌아가지 않음");
+        }
+
+        /// <summary>
         /// 블록이 이미 붙어 있는 체인 소켓에 자기 자신을 다시 받으면 자기 꼬리에 붙어 순환하지 않는다.
         /// </summary>
         [Test]

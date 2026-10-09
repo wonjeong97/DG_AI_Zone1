@@ -62,19 +62,37 @@ namespace Admin
         private VisitorSettings _visitorSettings;
         private GameSession _session;
         private VisitorInfoProvider _visitorInfoProvider;
+        private AdminScreenState _screenState;
 
         /// <summary>
-        /// 로거, 사운드 매니저, 체험자 설정, 게임 세션, 체험자 정보 제공자를 주입받는다.
+        /// 로거, 사운드 매니저, 체험자 설정, 게임 세션, 체험자 정보 제공자, 관리자 창 상태를 주입받는다.
         /// </summary>
         [Inject]
         public void Construct(ILogger<AdminPanel> logger, SoundManager soundManager, VisitorSettings visitorSettings, GameSession session,
-            VisitorInfoProvider visitorInfoProvider)
+            VisitorInfoProvider visitorInfoProvider, AdminScreenState screenState)
         {
             _logger = logger;
             _soundManager = soundManager;
             _visitorSettings = visitorSettings;
             _session = session;
             _visitorInfoProvider = visitorInfoProvider;
+            _screenState = screenState;
+        }
+
+        /// <summary>
+        /// 관리자 화면이 켜졌음을 알린다 — 열려 있는 동안 타이틀은 찍힌 QR을 서버로 보내지 않는다.
+        /// </summary>
+        private void OnEnable()
+        {
+            if (_screenState != null) _screenState.SetOpen(this, true);
+        }
+
+        /// <summary>
+        /// 관리자 화면이 꺼졌음을 알린다.
+        /// </summary>
+        private void OnDisable()
+        {
+            if (_screenState != null) _screenState.SetOpen(this, false);
         }
 
         /// <summary>

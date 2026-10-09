@@ -1,3 +1,4 @@
+using Admin;
 using App;
 using Cysharp.Threading.Tasks;
 using Data;
@@ -33,6 +34,7 @@ namespace Scenes
         private SoundManager _soundManager;
         private AppSettingsProvider _settingsProvider;
         private ApiManagerBase _apiManager;
+        private AdminScreenState _adminScreenState;
 
         // 0_Title.json 연출·문구 설정 — 읽기 전이나 파일이 없으면 기본값을 쓴다
         private TitleSceneSettings _sceneSettings = new();
@@ -51,12 +53,12 @@ namespace Scenes
         private bool _isWaitingForQr;
 
         /// <summary>
-        /// 로거, 체험자 정보 제공자, 체험자 서버 API, 게임 세션, 사운드 매니저, 앱 설정(Settings.json) 제공자, 콘텐츠 로그 API 매니저를 주입받는다.
+        /// 로거, 체험자 정보 제공자, 체험자 서버 API, 게임 세션, 사운드 매니저, 앱 설정(Settings.json) 제공자, 콘텐츠 로그 API 매니저, 관리자 창 상태를 주입받는다.
         /// </summary>
         [Inject]
         public void Construct(ILogger<TitleSceneManager> log, VisitorInfoProvider visitorInfoProvider,
             VisitorApiClient visitorApiClient, GameSession session, SoundManager soundManager, AppSettingsProvider settingsProvider,
-            ApiManagerBase apiManager)
+            ApiManagerBase apiManager, AdminScreenState adminScreenState)
         {
             _logger = log;
             _visitorInfoProvider = visitorInfoProvider;
@@ -65,7 +67,12 @@ namespace Scenes
             _soundManager = soundManager;
             _settingsProvider = settingsProvider;
             _apiManager = apiManager;
+            _adminScreenState = adminScreenState;
         }
+
+        // 관리자 창이 열려 있거나 관리자 레벨 이동으로 타이틀을 떠나는 중 — 이때 찍힌 QR은 서버로 보내지 않고, 이미 보낸 확인 결과도 기록하지 않는다
+        private bool IsAdminBusy =>
+            (_adminScreenState != null && _adminScreenState.IsOpen) || (_session != null && _session.isAdminLevelJump);
 
         /// <summary>
         /// 시작 버튼을 연결하고 서버 연동 여부에 따라 하단 안내(QR 인식 또는 시작하기)를 표시한다.
@@ -275,6 +282,12 @@ namespace Scenes
                 return;
             }
 
+            if (IsAdminBusy)
+            {
+                if (_logger != null) _logger.ZLogInformation($"[TitleSceneManager] 관리자 화면이 열려 있어 찍힌 QR을 서버로 보내지 않고 버립니다.");
+                return;
+            }
+
             OnQrScanned(code);
         }
 
@@ -304,7 +317,15 @@ namespace Scenes
 
             try
             {
-                string failMessage = await ConfirmVisitorAsync(uid, ct);
+                (bool discarded, string failMessage) = await ConfirmVisitorAsync(uid, ct);
+
+                // 확인하는 사이 관리자 화면이 열렸으면 결과를 기록하지 않았으므로 다시 QR을 기다린다
+                if (discarded)
+                {
+                    if (_logger != null) _logger.ZLogInformation($"[TitleSceneManager] QR 확인 중에 관리자 화면이 열려 확인 결과를 버리고 QR 대기로 돌아갑니다.");
+                    WaitForQr();
+                    return;
+                }
 
                 // 서버가 빨리 답해도 '확인하고 있습니다'가 스치듯 지나가지 않게 최소 시간을 채운다 — 이미 지났으면 바로 넘어간다
                 float minSeconds = _sceneSettings.qrCheckingMinSeconds;
@@ -357,21 +378,23 @@ namespace Scenes
 
         /// <summary>
         /// 서버에 체험 가능 여부(checkActive)와 진행도(getUser)를 물어 체험자와 해금 레벨을 기록하고,
-        /// 체험할 수 없으면 하단에 보여 줄 안내 문구를, 확인되면 null을 돌려준다.
+        /// 체험할 수 없으면 하단에 보여 줄 안내 문구를, 확인되면 null을, 그사이 관리자 화면이 열려 버렸으면 discarded를 돌려준다.
         /// </summary>
-        private async UniTask<string> ConfirmVisitorAsync(string uid, CancellationToken ct)
+        private async UniTask<(bool discarded, string failMessage)> ConfirmVisitorAsync(string uid, CancellationToken ct)
         {
             if (_visitorApiClient == null)
             {
                 if (_logger != null) _logger.ZLogError($"[TitleSceneManager] VisitorApiClient가 주입되지 않아 체험자를 확인할 수 없습니다.");
-                return _sceneSettings.qrCheckFailedText;
+                return (false, _sceneSettings.qrCheckFailedText);
             }
 
             CheckActiveResult active = await _visitorApiClient.CheckActiveAsync(uid, ct);
-            if (active.Status != CheckActiveStatus.Active) return GetScanFailMessage(active.Status);
+            if (IsAdminBusy) return (true, null);
+            if (active.Status != CheckActiveStatus.Active) return (false, GetScanFailMessage(active.Status));
 
             GetUserResult progress = await _visitorApiClient.GetUserAsync(uid, ct);
-            if (!progress.IsFound) return _sceneSettings.qrCheckFailedText;
+            if (IsAdminBusy) return (true, null);
+            if (!progress.IsFound) return (false, _sceneSettings.qrCheckFailedText);
 
             if (_visitorInfoProvider != null)
                 _visitorInfoProvider.SetServerVisitor(active.IdxUser, active.Name);
@@ -384,7 +407,7 @@ namespace Scenes
             else if (_logger != null)
                 _logger.ZLogWarning($"[TitleSceneManager] GameSession이 주입되지 않아 서버 진행도를 반영하지 못했습니다.");
 
-            return null;
+            return (false, null);
         }
 
         /// <summary>

@@ -43,6 +43,9 @@ namespace App
         {
             builder.RegisterComponentInHierarchy<GameManager>();
             builder.Register<VisitorInfoProvider>(Lifetime.Singleton);
+
+            // 관리자 창이 열려 있는지 — 타이틀이 그동안 찍힌 QR을 서버로 보내지 않게 한다
+            builder.Register<Admin.AdminScreenState>(Lifetime.Singleton);
             builder.Register<Network.VisitorApiClient>(Lifetime.Singleton);
 
             // 한 판의 진행 상태 — 앱을 켤 때마다 새 인스턴스로 시작하므로 처음부터 시작한다

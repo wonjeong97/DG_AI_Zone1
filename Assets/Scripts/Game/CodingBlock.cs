@@ -75,6 +75,10 @@ namespace Game
         // 지금 집어 든 블록들 — 핀치가 시작되면 모두 드래그 전 자리로 되돌린다 (여러 손가락이 각각 블록을 들 수 있음)
         private readonly static HashSet<CodingBlock> _activeDrags = new();
         private readonly static List<CodingBlock> _cancelBuffer = new();
+
+        // 끌기를 시작한 순서 — 함께 취소할 때 나중에 집은 블록부터 되돌려야 같은 자리에서 떼어 낸 블록들이 원래 순서로 돌아간다
+        private static int _dragStartCounter;
+        private int _dragStartOrder;
         private bool _isDragging;
 
         // 이 블록을 끌고 있는 손가락(포인터) — 두 손가락이 같은 블록을 동시에 잡으면 손가락마다 OnBeginDrag가 오므로 처음 잡은 손가락만 따른다.
@@ -634,20 +638,23 @@ namespace Game
             _isDragging = true;
             _dragEvent = e;
             _dragTarget = e.pointerDrag;
+            _dragStartOrder = ++_dragStartCounter;
             _activeDrags.Add(this);
         }
+
+        // 끄는 중인 손가락이 끝 신호 없이 사라졌는지 — 입력 모듈은 포인터를 지울 때 OnEndDrag 없이 이벤트의 pointerDrag만 비운다
+        private bool IsDragOrphaned => _isDragging && _dragTarget && _dragEvent != null && _dragEvent.pointerDrag != _dragTarget;
 
         /// <summary>
         /// 끄는 중인 손가락이 끝 신호 없이 사라졌으면 드래그를 취소해 원래 자리로 돌린다.
         /// </summary>
         private void LateUpdate()
         {
-            // 입력 모듈은 포인터를 지울 때(마우스로 끄는 중 화면 터치, 터치 장치 재연결 등) OnEndDrag를 보내지 않고 이벤트의 pointerDrag만 비운다 —
-            // 그대로 두면 블록이 레이캐스트를 받지 않은 채 캔버스 위에 떠 있어 어떤 손가락으로도 다시 집을 수 없다
-            if (!_isDragging || !_dragTarget || _dragEvent == null || _dragEvent.pointerDrag == _dragTarget) return;
+            // 그대로 두면 블록이 레이캐스트를 받지 않은 채 캔버스 위에 떠 있어 어떤 손가락으로도 다시 집을 수 없다(터치 장치 재연결 등).
+            // 같은 프레임에 사라진 블록을 한꺼번에 되돌려야 같은 체인의 위·아래 블록이 원래 순서로 돌아가므로, 처음 알아챈 블록이 모두 처리한다
+            if (!IsDragOrphaned) return;
 
-            if (_logger != null) _logger.ZLogInformation($"[CodingBlock] {name}을 끌던 손가락이 끝 신호 없이 사라져 원래 자리로 되돌립니다.");
-            CancelDrag();
+            CancelDrags(onlyOrphaned: true);
         }
 
         /// <summary>
@@ -846,16 +853,33 @@ namespace Game
         /// <summary>
         /// 핀치가 시작되면 집어 든 블록을 모두 드래그 전 자리로 되돌린다 — 두 손가락 조작이 블록을 옮기지 않게 한다.
         /// </summary>
-        public static void CancelActiveDrags()
+        public static void CancelActiveDrags() => CancelDrags(onlyOrphaned: false);
+
+        /// <summary>
+        /// 들고 있는 블록(onlyOrphaned면 손가락이 사라진 블록만)의 드래그를 멈추고 드래그 전 자리로 함께 되돌린다.
+        /// </summary>
+        private static void CancelDrags(bool onlyOrphaned)
         {
             if (_activeDrags.Count == 0) return;
 
             _cancelBuffer.Clear();
-            _cancelBuffer.AddRange(_activeDrags);
+            foreach (CodingBlock block in _activeDrags)
+                if (block && (!onlyOrphaned || block.IsDragOrphaned)) _cancelBuffer.Add(block);
+
+            // 나중에 집은 블록부터 되돌린다 — X→A→C에서 A를 든 뒤 올라온 C를 또 들면, C가 먼저 X 아래로 가야 A가 그 위로 다시 끼어 X→A→C가 된다
+            SortByDragStartDescending(_cancelBuffer);
+
             for (int i = _cancelBuffer.Count - 1; i >= 0; i--)
             {
                 CodingBlock block = _cancelBuffer[i];
-                if (!block || !block.StopDrag()) _cancelBuffer.RemoveAt(i);
+                if (!block.StopDrag())
+                {
+                    _cancelBuffer.RemoveAt(i);
+                    continue;
+                }
+
+                if (onlyOrphaned && block._logger != null)
+                    block._logger.ZLogInformation($"[CodingBlock] {block.name}을 끌던 손가락이 끝 신호 없이 사라져 원래 자리로 되돌립니다.");
             }
 
             // 같은 체인의 위·아래 블록을 함께 들고 있으면 위 블록이 먼저 제자리에 가야 아래 블록이 붙을 자리가 생긴다 —
@@ -864,10 +888,14 @@ namespace Game
             while (_cancelBuffer.Count > 0 && restoredAny)
             {
                 restoredAny = false;
-                for (int i = _cancelBuffer.Count - 1; i >= 0; i--)
+                for (int i = 0; i < _cancelBuffer.Count;)
                 {
                     CodingBlock block = _cancelBuffer[i];
-                    if (block && !block.TryRestoreDragHome(fallbackToInventory: false)) continue;
+                    if (block && !block.TryRestoreDragHome(fallbackToInventory: false))
+                    {
+                        i++;
+                        continue;
+                    }
 
                     _cancelBuffer.RemoveAt(i);
                     restoredAny = true;
@@ -880,11 +908,21 @@ namespace Game
         }
 
         /// <summary>
-        /// 드래그를 취소하고 드래그 전 자리로 되돌린다(원래 자리를 쓸 수 없으면 블록 목록으로).
+        /// 블록을 끌기 시작한 순서의 역순(나중에 집은 블록 먼저)으로 정렬한다 — 함께 든 블록은 몇 개뿐이라 할당 없는 삽입 정렬로 충분하다.
         /// </summary>
-        private void CancelDrag()
+        private static void SortByDragStartDescending(List<CodingBlock> blocks)
         {
-            if (StopDrag()) TryRestoreDragHome(fallbackToInventory: true);
+            for (int i = 1; i < blocks.Count; i++)
+            {
+                CodingBlock key = blocks[i];
+                int j = i - 1;
+                while (j >= 0 && blocks[j]._dragStartOrder < key._dragStartOrder)
+                {
+                    blocks[j + 1] = blocks[j];
+                    j--;
+                }
+                blocks[j + 1] = key;
+            }
         }
 
         /// <summary>

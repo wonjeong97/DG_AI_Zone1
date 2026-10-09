@@ -13,6 +13,23 @@
 
 ---
 
+### [2026-10-10] Claude → Antigravity · 6차 검사 지적 수정 (fix/third-audit)
+- 요청(사용자): 전부 수정. 관리자 창이 열렸을 때 QR을 서버로 보내지 않기. 설정·운영 1·2·3은 그대로, 4(포커스를 잃으면 스캐너 입력 무시)는 막되 포커스 복구 기능은 Template 패키지에 넣기로 하고 Reporter 수정과 함께 Template 수정 프롬프트를 받음. 실제 플레이는 터치 모니터만이라 마우스·펜 전환 문제는 고치지 않음(프로젝트 메모리 touch-only-input).
+- 변경:
+  - Admin/AdminScreenState(새 파일, DI 싱글턴): 비밀번호 창·관리자 화면이 OnEnable/OnDisable로 열림을 기록. TitleSceneManager.IsAdminBusy(관리자 창 열림 또는 isAdminLevelJump)면 SubmitScan이 QR을 버리고, ConfirmVisitorAsync는 checkActive·getUser 뒤마다 확인해 기록하지 않고 (discarded) 반환 → CheckVisitorAsync가 QR 대기로.
+  - CodingBlock: CancelDrags(onlyOrphaned) — 손가락이 사라진 블록은 처음 알아챈 블록의 LateUpdate가 같은 프레임에 모아 핀치 취소와 같은 재시도로 되돌림. 함께 되돌릴 때 끌기 시작 순서(_dragStartOrder)의 역순(나중에 집은 블록 먼저)으로 정렬. 쓰이지 않게 된 CancelDrag 삭제.
+  - CHANGELOG Unreleased Changed 1·Fixed 1.
+- 새 테스트(2): SocketOwnershipTests 같은 자리에서 떼어 낸 두 블록 핀치 취소 순서, 같은 체인 두 블록 손가락이 함께 사라짐(UnityTest).
+- 테스트: Rider 에러 0, Unity 컴파일 에러 0, PlayMode 185/185(뒤에 EditorSettings 되돌림).
+- 확인 요청·결과(agy, 2묶음): 드래그 일괄 복귀·순서·종료·호출처·테스트 2/2, 관리자 창 상태·QR 무시·늦은 결과 버림·DI 주입·닫은 뒤 재동작 2/2 통과.
+
+### [2026-10-10] Claude → Antigravity · 6차 전체 검사(5차 수정 회귀·빌드 환경 차이·비동기 경합) — 읽기 전용
+- 방식: Claude 서브에이전트 3개 + agy 3묶음(바뀐 드래그 코드·테스트, 3/3 문제 없음). 마감 기준 제안: 중간 이상 코드 버그 0건인 검사가 나오면 마감.
+- 결과: 중간 이상 코드 버그 0건. 5차 수정(LateUpdate 사라진 손가락 감지, 핀치 복귀 재시도)이 정상 드래그를 잘못 취소하는 경로 없음 — 입력 모듈이 pointerDrag를 바꾸는 곳은 누름·뗌(OnDrop→OnEndDrag→null, 같은 Process 안)·RemovePointerAtIndex뿐이고 EventSystem.Update가 LateUpdate보다 먼저.
+- 낮음(코드): 관리자 창이 떠 있는 동안 찍은 QR의 서버 응답이 레벨 이동 뒤 페이드 중에 오면 체험자·해금 레벨을 다시 채움(TitleSceneManager.ConfirmVisitorAsync, 업로드는 isAdminLevelJump로 막힘) / LateUpdate 감지 경로는 같은 체인 위·아래 블록이 한 프레임에 함께 취소될 때 재시도가 없음(마우스·터치 섞임, 장치 재연결) / 같은 소켓으로 돌아갈 블록이 둘이면 HashSet 순서에 따라 순서가 뒤집힐 수 있음(추정) / 마우스와 펜을 번갈아 쓰면 이벤트 객체를 공유해 pointerId만 바뀌어 블록이 뜰 수 있음(펜 장치가 있을 때만, 추정).
+- 설정·운영(결정 필요): VisitorSettings 에셋 defaultServerConnected 0이라 새 PC 첫 실행은 로컬 모드(에디터와 플레이어 PlayerPrefs가 다름) / Addressables 'Build Addressables on Player Build'가 PC별 EditorPrefs를 따름 — 꺼진 PC에서 빌드하면 예전 콘텐츠 / Admin.json이 StreamingAssets에 있어 재배포로 덮으면 바꾼 비밀번호가 기본값으로 / Input System 기본 배경 동작이라 앱이 포커스를 잃으면 키보드(스캐너) 입력이 화면을 한 번 터치할 때까지 무시될 수 있음(추정) / 4_Result CanvasScaler Match만 0(16:9에서는 차이 없음).
+- 결과: 수정 범위는 사용자 결정.
+
 ### [2026-10-10] Claude → Antigravity · 5차 검사 지적 수정 (fix/third-audit)
 - 요청(사용자): 전부 수정, 스토리 문구는 '계산', 템플릿은 수정용 프롬프트를 따로 받음.
 - 변경:
