@@ -75,7 +75,7 @@ namespace DG.Zone1.Tests
             bool canceled = false;
             try
             {
-                await client.CheckActiveAsync("TEST", cts.Token);
+                await client.CheckActiveAsync("TEST", cts.Token).AsUniTask().AwaitWithRealtimeTimeout();
             }
             catch (OperationCanceledException)
             {

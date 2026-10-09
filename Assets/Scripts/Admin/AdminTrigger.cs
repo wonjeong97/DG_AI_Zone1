@@ -57,7 +57,7 @@ namespace Admin
             if (!_button && _logger != null) _logger.ZLogWarning($"[AdminTrigger] {name}에 Button이 없어 관리자 진입을 받을 수 없습니다.");
             if (!passwordPanel && _logger != null) _logger.ZLogWarning($"[AdminTrigger] passwordPanel이 할당되지 않았습니다.");
 
-            if (!_session || !_session.openAdminOnTitle) return;
+            if (_session == null || !_session.openAdminOnTitle) return;
 
             _session.openAdminOnTitle = false;
             if (adminPanel) adminPanel.Open();

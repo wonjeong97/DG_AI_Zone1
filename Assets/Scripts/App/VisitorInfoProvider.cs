@@ -1,5 +1,4 @@
-using System.Threading;
-using Cysharp.Threading.Tasks;
+using Cysharp.Text;
 using Data;
 using Microsoft.Extensions.Logging;
 using ZLogger;
@@ -11,7 +10,9 @@ namespace App
     // 서버 모드에서는 타이틀이 QR로 확인한 체험자(서버의 idx_user·이름)를 들고 있다가 타이틀로 돌아오면 비운다.
     public class VisitorInfoProvider
     {
-        private const string FallbackName = "체험자";
+        // 인트로·아웃트로 문구에서 체험자 이름으로 바꿀 자리
+        public const string NamePlaceholder = "{name}";
+
         private const int NoVisitorIdx = -1;
 
         private readonly VisitorSettings _settings;
@@ -56,18 +57,31 @@ namespace App
         /// <summary>
         /// 화면에 표시할 체험자 이름을 반환한다. 서버 모드면 QR로 확인한 서버 이름, 아니면 VisitorSettings의 이름이다.
         /// </summary>
-        public UniTask<string> GetNameAsync(CancellationToken cancellationToken = default)
+        public string GetName()
         {
             if (_settings.IsServerConnected)
             {
-                if (!string.IsNullOrEmpty(ServerVisitorName)) return UniTask.FromResult(ServerVisitorName);
+                if (!string.IsNullOrEmpty(ServerVisitorName)) return ServerVisitorName;
 
                 // 관리자 화면의 레벨 이동처럼 QR 확인 없이 시작한 판이거나 서버 이름이 비어 있는 경우
                 if (_logger != null) _logger.ZLogWarning($"[VisitorInfoProvider] 서버 모드이지만 QR로 확인한 체험자 이름이 없어 기본 이름으로 대체합니다.");
             }
 
             string visitorName = _settings.VisitorName;
-            return UniTask.FromResult(string.IsNullOrEmpty(visitorName) ? FallbackName : visitorName);
+            return string.IsNullOrEmpty(visitorName) ? Constants.Admin.DefaultVisitorName : visitorName;
+        }
+
+        /// <summary>
+        /// 문구의 "{name}" 자리를 지금 체험자 이름으로 바꾼 문자열을 반환한다.
+        /// </summary>
+        public string FillName(string template)
+        {
+            if (string.IsNullOrEmpty(template)) return template;
+
+            using Utf16ValueStringBuilder sb = ZString.CreateStringBuilder();
+            sb.Append(template);
+            sb.Replace(NamePlaceholder, GetName());
+            return sb.ToString();
         }
     }
 }

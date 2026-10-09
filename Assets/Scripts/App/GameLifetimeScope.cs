@@ -5,7 +5,6 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.SceneManagement;
-using UnityEngine.TextCore.Text;
 using VContainer;
 using VContainer.Unity;
 using HuliacDev.App;
@@ -18,20 +17,46 @@ namespace App
 {
     public class GameLifetimeScope : RootLifetimeScope
     {
-        private GameSession _session;
-        private ILogger<GameLifetimeScope> _logger;
+        // SystemCanvas(30000)보다 위
+        private const int FadeSortingOrder = 32000;
 
         /// <summary>
-        /// 템플릿 기본 등록에 더해 게임 매니저, 체험자 정보·서버 API, 전역 페이드, 게임 세션, 체험자 설정, TMP 폰트를 등록하고
-        /// 템플릿 디버그 단축키를 Ctrl 조합으로 바꾼다.
+        /// 템플릿 기본 등록에 더해 게임 서비스·전역 페이드·TMP 폰트를 등록하고 템플릿 컴포넌트 설정을 맞춘다.
         /// </summary>
         protected override void Configure(IContainerBuilder builder)
         {
             base.Configure(builder);
+            ConfigureGameServices(builder);
+            ConfigureTemplateComponents(builder);
+            ConfigureFade(builder);
+
+            // 폰트 등록 실패를 ZLogger로 남기기 위해 로거를 받을 수 있는 빌드 콜백에서 수행한다.
+            // 빌드 콜백도 루트 스코프 Awake 안에서 실행되므로 첫 씬이 그려지기 전에 끝난다.
+            builder.RegisterBuildCallback(container =>
+                RegisterTmpFonts(container.Resolve<ILogger<GameLifetimeScope>>()));
+        }
+
+        /// <summary>
+        /// 게임 매니저, 체험자 정보·서버 API, 게임 세션, 체험자 설정을 등록한다.
+        /// </summary>
+        private static void ConfigureGameServices(IContainerBuilder builder)
+        {
             builder.RegisterComponentInHierarchy<GameManager>();
             builder.Register<VisitorInfoProvider>(Lifetime.Singleton);
             builder.Register<Network.VisitorApiClient>(Lifetime.Singleton);
 
+            // 한 판의 진행 상태 — 앱을 켤 때마다 새 인스턴스로 시작하므로 처음부터 시작한다
+            builder.Register<GameSession>(Lifetime.Singleton);
+
+            // 운영 모드·체험자 이름 — 관리자 페이지에서 바꾼 값은 PlayerPrefs에 남아 있어 재부팅 후에도 유지된다
+            builder.RegisterInstance(LoadVisitorSettings());
+        }
+
+        /// <summary>
+        /// 템플릿 컴포넌트를 즉시 만들고, 템플릿 디버그 단축키를 이 프로젝트의 입력과 겹치지 않게 바꾼다.
+        /// </summary>
+        private static void ConfigureTemplateComponents(IContainerBuilder builder)
+        {
             // GameCloser·SystemCanvas 등록은 base의 ConfigureCoreComponents()에서 수행됨(중복 등록 시 VContainer 충돌).
             // 다만 아무도 Resolve하지 않으면 지연 등록만으로는 주입되지 않으므로 빌드 시점에 즉시 Resolve
             builder.RegisterBuildCallback(container =>
@@ -44,7 +69,13 @@ namespace App
             // GameManagerBase가 주입받는 것과 같은 싱글톤 인스턴스라 그대로 반영된다
             builder.RegisterBuildCallback(container =>
                 DebugShortcutBindings.Apply(container.Resolve<TemplateInputActions>()));
+        }
 
+        /// <summary>
+        /// 씬 전환에 쓰는 전역 페이드 매니저를 App 하위에 만들고 SceneFader에 넘긴다.
+        /// </summary>
+        private void ConfigureFade(IContainerBuilder builder)
+        {
             // 전역 페이드 매니저 — App 하위에 생성되어 씬 전환 간 유지
             builder.RegisterComponentOnNewGameObject<FadeManager>(Lifetime.Singleton, "FadeManager")
                 .UnderTransform(transform);
@@ -57,31 +88,7 @@ namespace App
                 // (템플릿 기본값 999는 SystemCanvas보다 아래)
                 fadeManager.SetSortingOrder(FadeSortingOrder);
             });
-
-            // 게임 세션 데이터 — [Inject]로 주입 가능하도록 컨테이너에 등록
-            // 앱을 껐다 켜면 항상 처음부터 시작하도록 부팅 시점에 진행도 초기화
-            // VContainer Configure는 동기 실행이라 Addressables.WaitForCompletion으로 동기 로드
-            _session = Addressables.LoadAssetAsync<GameSession>(Constants.ResourcePaths.GameSessionKey).WaitForCompletion();
-            _session.ResetProgress();
-            // 타이틀 복귀 때는 지우면 안 되는 값이라 ResetProgress와 따로 부팅 때만 비운다
-            // (도메인 리로드 없이 Play하면 SO의 런타임 값이 이전 실행에서 남는다)
-            _session.openAdminOnTitle = false;
-            builder.RegisterInstance(_session);
-
-            // 운영 모드·체험자 이름 — 관리자 페이지에서 바꾼 값은 PlayerPrefs에 남아 있어 재부팅 후에도 유지된다
-            builder.RegisterInstance(LoadVisitorSettings());
-
-            // 폰트 등록 실패를 ZLogger로 남기기 위해 로거를 받을 수 있는 빌드 콜백에서 수행한다.
-            // 빌드 콜백도 루트 스코프 Awake 안에서 실행되므로 첫 씬이 그려지기 전에 끝난다.
-            builder.RegisterBuildCallback(container =>
-            {
-                _logger = container.Resolve<ILogger<GameLifetimeScope>>();
-                RegisterTmpFonts(_logger);
-            });
         }
-
-        // SystemCanvas(30000)보다 위
-        private const int FadeSortingOrder = 32000;
 
         /// <summary>
         /// 체험자 설정(VisitorSettings SO)을 Addressables로 불러온다. Configure는 동기 실행이라 WaitForCompletion으로 동기 로드한다.
@@ -119,7 +126,11 @@ namespace App
                     .LoadAssetsAsync<TMP_FontAsset>(Constants.ResourcePaths.TmpFontLabel, null)
                     .WaitForCompletion();
 
-                if (fonts is null) return;
+                if (fonts is null)
+                {
+                    if (logger != null) logger.ZLogWarning($"[GameLifetimeScope] '{Constants.ResourcePaths.TmpFontLabel}' 라벨의 TMP 폰트를 찾지 못해 <font> 태그가 해석되지 않습니다.");
+                    return;
+                }
 
                 foreach (TMP_FontAsset font in fonts)
                     if (font) MaterialReferenceManager.AddFontAsset(font);
@@ -184,7 +195,7 @@ namespace App
         {
             // 관리자 레벨 이동 표시(isAdminLevelJump)도 함께 비워진다 — 다음 체험자의 스토리 < 버튼·결과 다음 버튼이
             // 관리자 화면으로 가지 않는다
-            _session.ResetProgress();
+            Container.Resolve<GameSession>().ResetProgress();
 
             // QR로 확인한 체험자도 타이틀로 돌아오면 체험이 끝난다 — 다음 체험자는 QR로 다시 확인한다
             Container.Resolve<VisitorInfoProvider>().ClearServerVisitor();

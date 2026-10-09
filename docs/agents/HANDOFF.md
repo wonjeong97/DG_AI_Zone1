@@ -13,6 +13,30 @@
 
 ---
 
+### [2026-10-09 14:20] Claude → Antigravity · 출시 전 감사 결과 수정 (fix/pre-release-audit)
+- 변경 파일: 96개. 컴파일러·채점·출력(BlockCompiler·BlockInstruction·InstructionTree·BlockScorer·ProgramFormatter), 블록 UI(소켓 4종·CodingBlock·CodingZone·BlockFactory·BlockSpawner·CategoryZone·BlockZone·BlockOutlineMesh), 씬(Game·Title·Intro·Outro·Story·Hint·StoryPanel·ResultSequence·SceneFader·TutorialImageSlider·StoryLineAnimator·3D 연출 5종), 관리자(AdminPanel·AdminPasswordPanel·VisitorNamePanel·HangulComposer), App·Data·Constants, 새 파일 ResultRowFactory·IdleCloseTimer·IndexedButtons, 삭제 SolarPanelPose.cs·UIOutline.shader·GameSession.asset(Addressables 항목 포함). 씬 0_Title(QR 그룹 하위 Canvas)·2_Story(내장 Grayscale 머티리얼 제거)·3_Game(HintPanel levelPanels 순서), 블록 프리팹 7개(라벨 Raycast Target 끔), 아이콘 Mipmap 끔, 테스트(새 파일 3개·기존 12개 보강), CHANGELOG·TODO.
+- 확인 요청: agy 13묶음(컴파일러 / 채점·출력 / 결과 / 게임 씬·힌트 / 소켓·블록 / 스폰·프리팹 / 타이틀·인트로·아웃트로·스토리 / 페이드·튜토리얼·씬 에셋 / 3D 연출 / 관리자 / App·Data·Constants / 테스트 2)과 문서 1묶음. 묶음마다 변경 의도와 동작 변화·회귀·규칙 위반 확인 항목 2~4개. 5분 제한에 걸린 8묶음은 둘씩, 다시 걸린 컴파일러·채점 묶음은 항목 하나씩 나눠 다시 맡김.
+- 결과:
+  - 문제 1건(R6b, 확정): ㄷ자 블록 4종(만약·반복하기·함수 정의·흐름 제어)은 배경 Image의 Raycast Target이 꺼져 있어 헤더 라벨 TMP가 드래그 영역이었는데, 라벨 Raycast Target을 끄자 헤더를 잡아도 드래그되지 않음. 4개 프리팹은 되돌리고, 코드로 만드는 else 헤더 라벨도 드래그 영역으로 둠(BlockFactory.AddLabel isHitArea, 레벨 데이터에서는 쓰지 않음). CBlockDragAreaTests에 상단 헤더 4종(수정 전 4건 모두 실패로 재현)과 일반 블록 본체 7종 테스트 추가. 나머지 7개 프리팹은 블록 전체를 덮는 Sprite가 레이캐스트를 받아 그대로 둠. 수정분은 agy에 다시 맡겨(R6c: 다른 AddLabel 호출처의 본체 레이캐스트, 테스트 지점이 의도한 영역인지) 2항목 통과.
+  - 나머지 묶음과 문서 묶음(CHANGELOG·TODO)은 모두 통과. 항목 하나로 나눠도 5분 제한에 걸린 두 건은 Claude가 대신 확인함.
+    - R1a2(컴파일러, 의도 밖 동작 변화): 의도한 변경 말고 남는 차이는 WalkInner에서 Inner 컨테이너 직속 자식을 읽던 대체 경로를 없앤 것뿐임. 스냅한 블록은 소켓 오브젝트의 자식이 되고, 사전 배치(innerBlocks·elseBlocks)는 레벨 데이터에 없어 닿지 않는 경로이므로 통과. 함수 정의 안 함수 호출은 이전 코드라면 끝없이 펼쳤겠지만, 레벨5의 함수 호출 블록이 하나뿐이라 실제로는 닿지 않았음(CHANGELOG에 넣지 않음).
+    - R2a2(채점 경고 오탐): 레벨1 개수 값(20·40·60개)은 점수표에 있고 각도 값 블록은 레벨 데이터에 없음. 수력 조건(1~10m 이상)과 문제 값(1~10m)은 모두 숫자로 시작하므로 통과.
+  - Claude 확인: Unity 컴파일 에러 0, PlayMode 155/155(테스트 뒤 EditorSettings.asset 되돌림). Play 모드 스모크에서 인트로 이름 치환, 스토리 레벨1만 열림, 게임 씬 블록 11개 생성(소켓 중복 부착 없음, 인벤토리 alpha 1), 힌트·스토리 패널 L1~L5 대응, 성공 연출 중 버튼 4개 꺼짐, 결과 100%·미션 성공, 아웃트로 종료 연타에 move_idle 한 번, 관리자 화면 무입력 자동 닫기(idleTimeout을 1초로 줄여 확인), 콘솔 에러 없음.
+  - 작업 전부터 있던 URP-*.asset·ScriptableBuildPipeline.json 줄바꿈 변경은 커밋에서 뺌.
+  - Template 저장소 TODO 2건(연속 클릭 카운터 분리, ApiRetryUtil 본문 반환 오버로드)은 이 프로젝트 감사에서 발견해 Template TODO에 일반 표현으로 적음(f630088).
+  - PR #87 확인: 코멘트·리뷰 없음, CI 없음, 병합 가능(CLEAN). 사용자가 현장 확인 항목(ㄷ자 블록 헤더·하단 막대 드래그, 관리자 60초 자동 닫기)을 확인함. 출시 후로 미룬 구조 분할 4건 말고는 남은 수정이 없어, 추가 수정 없이 머지. CHANGELOG 날짜 섹션 이동은 agy 확인 통과.
+
+### [2026-10-09 13:10] Claude → Antigravity · 출시 전 전체 코드 감사(스킬 위반·성능·정리) — 읽기 전용
+- 변경 파일: 없음(감사). agy 9묶음 병렬(블록 UI 2 / 컴파일러·채점 / 게임·결과 씬 / 3D 연출·셰이더 / 타이틀·스토리 / 관리자 / App·Network·Data·Constants / 테스트) + Claude 서브에이전트 5묶음 + Claude grep 규칙 점검(var·GetComponent·Find·LINQ·코루틴·DOTween 수명·static readonly 순서·Shader.Find 빌드 포함·UI Mipmap).
+- 결과: 지적은 모두 코드로 확인해 확정·오탐을 나눔. 타이틀·스토리 묶음은 agy가 5분 제한에 세 번 걸려(파일·항목을 나눠도 TitleSceneManager는 빈 결과) Claude 서브에이전트 리뷰와 Claude 직접 확인으로 대신함.
+  - 확정(버그): ① 조건을 3개 이상 이으면 3번째부터 버려짐(BlockCompiler.BuildConditionExpr) — 레벨4에서 '전기 과부하 그리고 밤 또는 낮'이 함정 '낮'을 무시하고 조건 만점 ② 코딩 패널에 따로 둔 체인 머리(A→B)를 X→Y 사이에 끼우면 X→A→Y→B(ChainOutSocket·InnerSocket.Accept가 밀려난 블록을 꼬리가 아니라 머리 아래에 붙임), 2개 이상 체인은 완성하기 위에 못 끼움(BlockSocket.CanFit) ③ 코딩 성공 연출 중(2~3초) 넘어가기 버튼이 살아 있어 ResetLastResult로 성공 결과가 지워짐(GameSceneManager:251·SkipToResult) ④ 스토리 연출 줄 사이 대기 중 터치 스킵이 버려짐(StoryLineAnimator:139) ⑤ 관리자 화면·이름 입력 창은 무입력 자동 닫기 없음(타이틀은 비활동 타이머도 멈춤) ⑥ 연결 안 된 만약 안의 아니면에 '아니면은 만약 안에' 안내(아니면 위치 검사가 미사용 검사보다 먼저).
+  - 확정(방어 부족): TitleSceneManager.CheckVisitorAsync·GameSceneManager.CompileAndRun이 취소 예외만 잡음(그 밖의 예외면 '확인하고 있습니다'에서 멈춤·완료 버튼 꺼진 채), BlockSpawner.Spawn 예외 시 인벤토리 alpha 0 유지, GameLifetimeScope의 GameSession 로드 null 미처리, CodingBlock.OnBeginDrag가 IsDragHandled를 초기화하지 않아 CodingZone.OnDrop이 직전 값을 읽음(OnEndDrag가 보정).
+  - 확정(규칙): GetComponentsInChildren/InParent(VisitorNamePanel:171·180·188, BlockOutlineMesh:56, LabLightGlow:132), 이름 문자열로 패널 고르기·에셋 이름에서 레벨 번호 파싱(HintPanel·StoryPanel), 채점 블록 이름 리터럴(BlockScorer:189·324-337), 실패 else 로그 누락 다수, GameSession SO 런타임 상태(1차 감사 지적 그대로), 블록 프리팹 11개 라벨 TMP Raycast Target 켜짐, Icon_DifficultyStar Mipmap 켜짐.
+  - 확정(정리): 미사용 SolarPanelPose.cs·UIOutline.shader·Constants 블록 크기 상수 23개·FlowHeaderValueOut·BlockFactory.AddImage·AppendChain·CodingBlock.PlaceIn·BlockZone.Content·FindControlInInner·ElseInstruction.Body·HintPanel level4/5 필드와 level1 중복 2줄·GameSession.lastAngle·unlockedLevelIndex PlayerPrefs 저장, 소켓 종류별 분기 4곳·인트로/아웃트로 이름 치환·설정 경로 조합 7곳 중복.
+  - 오탐: HintPanel 레벨1 힌트 비활성화(level1TimeContainer가 Level1Panel 자신), WindTurbineSpin 각도 정밀도(결과 씬에만 있어 매번 초기화), AdminPanel 배열 null(직렬화 배열), 관리자 비밀번호 갱신(Open마다 다시 읽음), UiEffects 셰이더 누락(Always Included), 스토리 레벨 버튼 연타(첫 클릭에 패널 입력 끔), 튜토리얼 Finished 연타(_isLoadingStory), FlowInnerResize '높음'(이전 감사에서 유지 결정, 체인 몇 개), BlockCompiler static 누수 '높음'(다음 컴파일 때 교체), ScanInputBuffer.Length 미사용(테스트 사용).
+  - 사용자 결정: Settings.json useInactivityTimer false는 타겟 PC에서 사용자가 직접 켬 — 지적에서 뺌.
+  - 출시 전 판단 필요: 공개 저장소의 Settings.json apiUrl(회사 로그 API·기기 uid), 테스트 QR uid(GetUserResultTests), 기본 비밀번호 0000, 릴리스 빌드의 디버그 단축키(Space·Ctrl+D/I/M), ShutdownSettings 전부 꺼짐.
+
 ### [2026-10-09 02:35] Claude → Antigravity · HuliacDev Template 26.10.9-1 업데이트 (chore/template-26.10.9-1)
 - 변경 파일: Packages/packages-lock.json(com.huliacdev.template hash b4547f3 → 640d05e, 26.9.25-3 → 26.10.9-1), ProjectSettings.asset(bundleVersion 26.10.8 → 26.10.9), TODO.md
 - 패키지 변경: VideoManager.WireRawImageAndRenderTexture가 영상 RenderTexture를 깊이 버퍼 없이(24 → 0) 만듦(Breaking: 반환 텍스처를 Camera.targetTexture 등 깊이가 필요한 용도로 쓰면 결과가 달라짐), TemplateInputActions.cs는 생성 헤더 주석(Input System 1.19.0)만, 나머지는 Template 테스트·문서. public API 변경 없음.

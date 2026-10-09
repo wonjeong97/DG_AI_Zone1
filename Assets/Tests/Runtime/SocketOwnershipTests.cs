@@ -32,6 +32,73 @@ namespace DG.Zone1.Tests
         }
 
         /// <summary>
+        /// 코딩 패널에 따로 둔 체인(A→B)의 머리를 다른 체인(X→Y) 사이에 끼우면 체인째 들어가 X→A→B→Y가 된다.
+        /// 회귀: 밀려난 Y를 들어온 체인의 꼬리가 아니라 머리 바로 아래에 붙여 X→A→Y→B로 순서가 섞였다.
+        /// </summary>
+        [Test]
+        public void 체인을_다른_체인_사이에_끼우면_순서가_유지된다()
+        {
+            CodingBlock x = MakeCommand("X");
+            CodingBlock y = MakeCommand("Y");
+            CodingBlock a = MakeCommand("A");
+            CodingBlock b = MakeCommand("B");
+            ChainOutSocket.OfBlock(x).Accept(y);
+            ChainOutSocket.OfBlock(a).Accept(b);
+
+            ChainOutSocket.OfBlock(x).Accept(a);
+
+            Assert.AreSame(a, ChainOutSocket.OfBlock(x).Occupant);
+            Assert.AreSame(b, ChainOutSocket.OfBlock(a).Occupant, "들어온 체인의 둘째 블록이 떨어짐");
+            Assert.AreSame(y, ChainOutSocket.OfBlock(b).Occupant, "밀려난 블록이 들어온 체인의 꼬리에 붙지 않음");
+        }
+
+        /// <summary>
+        /// 두 블록 이상인 체인도 완성하기 바로 위에 끼울 수 있고, 완성하기는 체인 꼬리 아래로 밀려난다.
+        /// </summary>
+        [Test]
+        public void 두_블록_체인도_완성하기_바로_위에_끼울_수_있다()
+        {
+            CodingBlock start = BlockTestUtil.MakeBlock(_zone, "시작하기", BlockCategory.Control, _zone.transform, role: ControlRole.Start);
+            CodingBlock end = BlockTestUtil.MakeBlock(_zone, "완성하기", BlockCategory.Control, _zone.transform, role: ControlRole.End);
+            CodingBlock a = MakeCommand("A");
+            CodingBlock b = MakeCommand("B");
+            ChainOutSocket.OfBlock(start).Accept(end);
+            ChainOutSocket.OfBlock(a).Accept(b);
+
+            Assert.IsTrue(ChainOutSocket.OfBlock(start).CanAccept(a), "두 블록 체인을 완성하기 위에 끼울 수 없음");
+            ChainOutSocket.OfBlock(start).Accept(a);
+
+            Assert.AreSame(end, ChainOutSocket.OfBlock(b).Occupant);
+        }
+
+        /// <summary>
+        /// 반복하기 안 첫 자리에 체인을 끼워도 원래 있던 블록은 들어온 체인의 꼬리 아래로 간다.
+        /// </summary>
+        [Test]
+        public void 내부_첫_자리에_체인을_끼우면_원래_블록은_꼬리_아래로_간다()
+        {
+            CodingBlock repeat = BlockTestUtil.MakeBlock(_zone, Constants.BlockLabels.While, BlockCategory.FlowControl, _zone.transform);
+            InnerSocket inner = BlockTestUtil.AddInnerSocket(repeat);
+            CodingBlock y = MakeCommand("Y");
+            CodingBlock a = MakeCommand("A");
+            CodingBlock b = MakeCommand("B");
+            inner.Accept(y);
+            ChainOutSocket.OfBlock(a).Accept(b);
+
+            inner.Accept(a);
+
+            Assert.AreSame(a, inner.Occupant);
+            Assert.AreSame(b, ChainOutSocket.OfBlock(a).Occupant);
+            Assert.AreSame(y, ChainOutSocket.OfBlock(b).Occupant);
+        }
+
+        /// <summary>
+        /// 코딩 패널에 값 슬롯 없는 움직이기 블록을 만든다.
+        /// </summary>
+        private CodingBlock MakeCommand(string label)
+            => BlockTestUtil.MakeBlock(_zone, label, BlockCategory.Command, _zone.transform);
+
+        /// <summary>
         /// 반복하기 내부에 들어간 블록은 여러 단계를 거쳐도 내부 컨테이너 안으로 판정된다.
         /// </summary>
         [Test]

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 using Cysharp.Text;
 using Cysharp.Threading.Tasks;
 using Data;
@@ -21,8 +22,15 @@ namespace Scenes
         private static bool _isLoading;
         private readonly static Queue<UniTask> _pendingTasks = new();
 
-        // StreamingAssets/Json/00_Common.json — 최초 1회만 로드해 공유(정적 유틸리티라 인스턴스 수명이 앱과 같음)
-        private static CommonSettings _commonSettings;
+        // StreamingAssets/Json/00_Common.json — 최초 1회만 로드해 공유(정적 유틸리티라 인스턴스 수명이 앱과 같음).
+        // 첫 로드가 끝나기 전에 여러 곳이 동시에 기다릴 수 있어 UniTask 대신 여러 번 await할 수 있는 Task로 둔다
+        private static Task<CommonSettings> _commonSettingsTask;
+
+        // 새 씬의 Start()가 대기 작업을 등록할 때까지 큐가 비어 있으면 더 기다려 볼 프레임 수
+        private const int PendingTaskRegisterWaitFrames = 5;
+
+        // 대기 작업 하나가 끝나지 않을 때 포기하고 다음으로 넘어가는 시간(초)
+        private const float PendingTaskTimeoutSeconds = 5f;
 
         /// <summary>
         /// 다음 페이드인이 기다려야 할 작업을 등록한다 (새 씬의 Awake/Start에서 호출).
@@ -37,7 +45,7 @@ namespace Scenes
         /// isPrepared·frame>=0만으로는 화면에 노출되는 시점이 너무 일러 부자연스러울 수 있기 때문이다.
         /// 재생(Play)이 이미 시작된 VideoPlayer에만 사용할 것 — Play가 나중에 호출되면 frame이 계속 -1이라 대기가 끝나지 않는다.
         /// </summary>
-        public static async UniTask WaitUntilVideoProgressAsync(VideoPlayer player, float minProgress, CancellationToken ct,
+        private static async UniTask WaitUntilVideoProgressAsync(VideoPlayer player, float minProgress, CancellationToken ct,
             Microsoft.Extensions.Logging.ILogger logger = null)
         {
             if (!player)
@@ -85,7 +93,7 @@ namespace Scenes
         /// 여러 씬이 같은 RenderTexture 에셋(예: RobotRenderTexture)을 공유하면 이전 씬에서 그려진 마지막 프레임이
         /// GPU에 남아있어, 새 영상이 실제로 그리기 전까지 이전 씬 잔상이 잠깐 비칠 수 있기 때문이다.
         /// </summary>
-        public static void ClearVideoRenderTexture(VideoPlayer player)
+        private static void ClearVideoRenderTexture(VideoPlayer player)
         {
             if (!player || !player.targetTexture) return;
 
@@ -109,7 +117,7 @@ namespace Scenes
             {
                 float resolvedDuration = duration ?? (await GetCommonSettingsAsync()).sceneTransitionFadeDuration;
 
-                FadeManager fade = Find(logger);
+                FadeManager fade = GetFadeManager(logger);
                 if (fade) await fade.FadeOutAsync(resolvedDuration);
 
                 // 이전 씬에서 등록됐지만 이 시점까지 대기되지 않은 작업은 폐기됨 — 가시성을 위해 경고 로그
@@ -158,10 +166,8 @@ namespace Scenes
         /// </summary>
         private static async UniTask<CommonSettings> GetCommonSettingsAsync()
         {
-            _commonSettings ??= await JsonLoader.LoadAsync<CommonSettings>(
-                ZString.Concat(Constants.ResourcePaths.SceneSettingsFolder, "/", Constants.ResourcePaths.CommonSettingsFileName));
-
-            return _commonSettings;
+            _commonSettingsTask ??= JsonLoader.LoadAsync<CommonSettings>(Constants.SettingsFiles.Common).AsTask();
+            return await _commonSettingsTask;
         }
 
         /// <summary>
@@ -171,7 +177,7 @@ namespace Scenes
         {
             // 신규 씬의 Start()가 대기 작업을 등록하기까지 부하 상황에서는 1프레임보다 더 걸릴 수 있어,
             // 큐가 비어있으면 몇 프레임 더 확인한 뒤에야 "등록할 작업이 없다"고 판단함
-            for (int i = 0; i < 5 && _pendingTasks.Count == 0; i++)
+            for (int i = 0; i < PendingTaskRegisterWaitFrames && _pendingTasks.Count == 0; i++)
                 await UniTask.Yield(PlayerLoopTiming.LastPostLateUpdate);
 
             if (_pendingTasks.Count == 0) return;
@@ -182,7 +188,7 @@ namespace Scenes
                 UniTask task = _pendingTasks.Dequeue();
                 try
                 {
-                    await task.Timeout(TimeSpan.FromSeconds(5f));
+                    await task.Timeout(TimeSpan.FromSeconds(PendingTaskTimeoutSeconds));
                 }
                 catch (Exception ex)
                 {
@@ -203,7 +209,7 @@ namespace Scenes
         /// <summary>
         /// 등록된 전역 FadeManager를 반환한다 (없으면 페이드 없이 로드하도록 경고).
         /// </summary>
-        private static FadeManager Find(Microsoft.Extensions.Logging.ILogger logger)
+        private static FadeManager GetFadeManager(Microsoft.Extensions.Logging.ILogger logger)
         {
             if (!_fadeManager)
                 LogWarning(logger, "[SceneFader] FadeManager가 등록되지 않았습니다. 페이드 없이 씬을 전환합니다.");

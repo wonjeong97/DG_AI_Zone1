@@ -40,6 +40,9 @@ namespace Game.Runtime
         public string Operator; // "그리고" or "또는"
         public SimpleConditionExpr Left;
         public SimpleConditionExpr Right;
+
+        // 두 번째 조건 뒤에 더 이어 붙인 블록(없으면 null) — 조건은 두 개까지라 컴파일 에러로 표시한다
+        public CodingBlock[] Overflow;
     }
 
     public sealed class IfInstruction : BlockInstruction
@@ -60,7 +63,6 @@ namespace Game.Runtime
     // 컴파일 실패(FindElseOutsideIf) 시 디버그 코드 표시에만 쓰이고, 정상 실행 경로에는 등장하지 않는다.
     public sealed class ElseInstruction : BlockInstruction
     {
-        public List<BlockInstruction> Body = new();
     }
 
     public sealed class RepeatInstruction : BlockInstruction

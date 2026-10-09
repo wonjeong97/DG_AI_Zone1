@@ -41,6 +41,10 @@ namespace Admin
         [Tooltip("변경 결과 안내 문구")]
         [SerializeField] private TMP_Text statusText;
 
+        [Tooltip("이 시간(초) 동안 입력이 없으면 관리자 화면을 닫는다 — 열어 둔 채 자리를 뜨면 관람객이 설정을 바꿀 수 있다")]
+        [SerializeField, Min(1f)] private float idleTimeout = 60f;
+
+        private readonly IdleCloseTimer _idleTimer = new();
         private UnityAction[] _levelActions;
 
         // 관리자 화면을 열 때의 모드 — 닫을 때 달라졌으면 타이틀을 다시 불러 안내(QR·시작하기)에 반영한다
@@ -87,19 +91,10 @@ namespace Admin
             if (changePasswordButton) changePasswordButton.onClick.AddListener(OnChangePasswordClicked);
             else if (_logger != null) _logger.ZLogWarning($"[AdminPanel] changePasswordButton이 할당되지 않았습니다.");
 
-            _levelActions = new UnityAction[levelButtons.Length];
-            for (int i = 0; i < levelButtons.Length; i++)
+            _levelActions = IndexedButtons.Bind(levelButtons, OnLevelClicked, index =>
             {
-                if (!levelButtons[i])
-                {
-                    if (_logger != null) _logger.ZLogWarning($"[AdminPanel] 레벨{i + 1} 버튼이 할당되지 않았습니다.");
-                    continue;
-                }
-
-                int index = i;
-                _levelActions[i] = () => OnLevelClicked(index);
-                levelButtons[i].onClick.AddListener(_levelActions[i]);
-            }
+                if (_logger != null) _logger.ZLogWarning($"[AdminPanel] 레벨{index + 1} 버튼이 할당되지 않았습니다.");
+            });
         }
 
         /// <summary>
@@ -113,9 +108,7 @@ namespace Admin
             if (changeNameButton) changeNameButton.onClick.RemoveListener(OnChangeNameClicked);
             if (changePasswordButton) changePasswordButton.onClick.RemoveListener(OnChangePasswordClicked);
 
-            if (_levelActions != null)
-                for (int i = 0; i < levelButtons.Length; i++)
-                    if (levelButtons[i] && _levelActions[i] != null) levelButtons[i].onClick.RemoveListener(_levelActions[i]);
+            IndexedButtons.Unbind(levelButtons, _levelActions);
         }
 
         /// <summary>
@@ -124,7 +117,9 @@ namespace Admin
         public void Open()
         {
             gameObject.SetActive(true);
+            _idleTimer.Restart();
             if (_logger != null) _logger.ZLogInformation($"[AdminPanel] 관리자 화면을 열었습니다.");
+            if (!statusText && _logger != null) _logger.ZLogWarning($"[AdminPanel] statusText가 할당되지 않아 변경 결과를 표시하지 못합니다.");
 
             if (_visitorSettings) _modeAtOpen = _visitorSettings.IsServerConnected;
             else if (_logger != null) _logger.ZLogWarning($"[AdminPanel] VisitorSettings가 주입되지 않아 모드·이름을 바꿀 수 없습니다.");
@@ -143,13 +138,34 @@ namespace Admin
         }
 
         /// <summary>
-        /// 닫기 효과음을 내고 관리자 화면을 닫는다. 모드가 바뀌었으면 타이틀을 다시 불러 반영한다.
+        /// 입력 없이 정해진 시간이 지나면 위에 떠 있는 이름 입력·비밀번호 변경 창까지 함께 닫는다 (화면이 열려 있을 때만 실행됨).
+        /// </summary>
+        private void Update()
+        {
+            if (_isLeaving || !_idleTimer.HasExpired(idleTimeout)) return;
+
+            if (_logger != null) _logger.ZLogInformation($"[AdminPanel] {idleTimeout}초 동안 입력이 없어 관리자 화면을 닫습니다.");
+            if (namePanel) namePanel.Close();
+            if (passwordPanel) passwordPanel.Close();
+            Close();
+        }
+
+        /// <summary>
+        /// 닫기 효과음을 내고 관리자 화면을 닫는다.
         /// </summary>
         private void OnCloseClicked()
         {
             if (_isLeaving) return;
 
             if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
+            Close();
+        }
+
+        /// <summary>
+        /// 관리자 화면을 닫는다. 모드가 바뀌었으면 타이틀을 다시 불러 반영한다.
+        /// </summary>
+        private void Close()
+        {
             gameObject.SetActive(false);
 
             if (!_visitorSettings || _visitorSettings.IsServerConnected == _modeAtOpen) return;
@@ -207,7 +223,13 @@ namespace Admin
         /// </summary>
         private void RefreshVisitorName()
         {
-            if (_visitorSettings && visitorNameText) visitorNameText.text = _visitorSettings.VisitorName;
+            if (!visitorNameText)
+            {
+                if (_logger != null) _logger.ZLogWarning($"[AdminPanel] visitorNameText가 할당되지 않아 지금 체험자 이름을 표시하지 못했습니다.");
+                return;
+            }
+
+            if (_visitorSettings) visitorNameText.text = _visitorSettings.VisitorName;
         }
 
         /// <summary>
@@ -227,7 +249,11 @@ namespace Admin
         /// </summary>
         private void OnVisitorNameSaved(string visitorName)
         {
-            if (!_visitorSettings) return;
+            if (!_visitorSettings)
+            {
+                if (_logger != null) _logger.ZLogWarning($"[AdminPanel] VisitorSettings가 주입되지 않아 체험자 이름을 저장하지 못했습니다.");
+                return;
+            }
 
             _visitorSettings.VisitorName = visitorName;
             if (_logger != null) _logger.ZLogInformation($"[AdminPanel] 체험자 이름을 '{visitorName}'(으)로 바꿨습니다.");
@@ -257,7 +283,7 @@ namespace Admin
             if (_isLeaving) return;
 
             if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
-            if (!_session)
+            if (_session == null)
             {
                 if (_logger != null) _logger.ZLogWarning($"[AdminPanel] GameSession이 주입되지 않아 레벨로 이동할 수 없습니다.");
                 return;

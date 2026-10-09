@@ -23,7 +23,6 @@ namespace Game
         private const float EdgeEpsilon = 0.01f;
 
         private readonly static List<UIVertex> _vertices = new();
-        private readonly static List<Canvas> _canvasBuffer = new();
 
         // 축별 경계 (x: 위치, y: 그 위치의 UV)
         private readonly static List<Vector2> _breaksX = new();
@@ -53,13 +52,14 @@ namespace Game
         /// </summary>
         private void EnsureCanvasChannels()
         {
-            GetComponentsInParent(true, _canvasBuffer);
-            foreach (Canvas canvas in _canvasBuffer)
+            // 블록은 드래그 중 루트 캔버스로, 놓이면 코딩 패널 쪽 캔버스로 옮겨 다니므로 참조를 들고 있지 않고
+            // 옮길 때마다 부모를 거슬러 올라가며 만나는 캔버스 전부에 채널을 켠다
+            for (Transform t = transform; t; t = t.parent)
             {
-                if ((canvas.additionalShaderChannels & RequiredChannels) != RequiredChannels)
+                if (t.TryGetComponent(out Canvas canvas)
+                    && (canvas.additionalShaderChannels & RequiredChannels) != RequiredChannels)
                     canvas.additionalShaderChannels |= RequiredChannels;
             }
-            _canvasBuffer.Clear();
         }
 
         /// <summary>

@@ -23,6 +23,11 @@ namespace Game
         public void SetOwner(CodingBlock owner) => Owner = owner;
 
         /// <summary>
+        /// 블록을 이 소켓에 받아 붙인다 — 소켓 종류마다 스냅 위치와 원래 블록 처리 방식이 다르다.
+        /// </summary>
+        public abstract void Accept(CodingBlock block);
+
+        /// <summary>
         /// 점유 블록 기록을 비운다.
         /// </summary>
         public virtual void Release() => _occupant = null;
@@ -60,17 +65,40 @@ namespace Game
         }
 
         /// <summary>
-        /// 체인 소켓 전용 — 이미 점유 중인 소켓에 블록이 들어올 때, 밀려나는 블록(displaced)이
-        /// cascade 끝까지 자리를 찾을 수 있는지 재귀 검증한다.
+        /// 체인 소켓 전용 — 이미 점유 중인 소켓에 블록이 들어올 때, 밀려나는 블록(displaced)을
+        /// 들어오는 체인의 꼬리에 이어 붙일 수 있는지 확인한다.
         /// </summary>
         protected static bool CanFit(CodingBlock incoming, CodingBlock displaced)
         {
-            if (!displaced) return true;
+            return !displaced || FindChainTailOut(incoming);
+        }
 
-            ChainOutSocket nextOut = ChainOutSocket.OfBlock(incoming);
-            if (!nextOut) return false;
+        /// <summary>
+        /// 밀려난 블록(아래 체인째)을 들어온 체인의 꼬리에 이어 붙인다 — 붙일 곳이 없으면 코딩 존으로 옮긴다.
+        /// 코딩 패널에 따로 놓아 둔 체인의 머리를 끌면 아래 블록을 단 채 들어오므로, 머리 바로 아래가 아니라 꼬리에 붙여야
+        /// 순서가 섞이지 않는다(A→B를 X→Y 사이에 넣으면 X→A→B→Y).
+        /// </summary>
+        protected static void AttachDisplacedToTail(CodingBlock incoming, CodingBlock displaced)
+        {
+            if (!displaced) return;
 
-            return CanFit(displaced, nextOut.Occupant);
+            ChainOutSocket tailOut = FindChainTailOut(incoming);
+            if (tailOut)
+                tailOut.Accept(displaced);
+            else
+                displaced.MoveToCodingZone();
+        }
+
+        /// <summary>
+        /// 체인 맨 끝 블록의 비어 있는 ChainOutSocket을 반환한다 — 끝 블록에 ChainOut이 없으면(완성하기 등) null.
+        /// 직속 소켓만 따라가 컨테이너 내부의 하위 체인 소켓과 혼동하지 않는다.
+        /// </summary>
+        private static ChainOutSocket FindChainTailOut(CodingBlock head)
+        {
+            ChainOutSocket tailOut = ChainOutSocket.OfBlock(head);
+            while (tailOut && tailOut.Occupant)
+                tailOut = ChainOutSocket.OfBlock(tailOut.Occupant);
+            return tailOut;
         }
     }
 }

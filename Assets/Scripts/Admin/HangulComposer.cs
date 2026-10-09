@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using Cysharp.Text;
 
 namespace Admin
 {
@@ -62,10 +61,13 @@ namespace Admin
             get
             {
                 char active = RenderActiveChar();
+                if (active == NoActiveSyllable) return _committed.ToString();
 
-                return active == NoActiveSyllable
-                    ? _committed.ToString()
-                    : ZString.Concat(_committed.ToString(), active);
+                // 조합 중인 음절을 잠깐 붙여 한 번에 문자열로 만든 뒤 떼어 낸다 — 키를 누를 때마다 문자열을 두 번 만들지 않는다
+                _committed.Append(active);
+                string text = _committed.ToString();
+                _committed.Length--;
+                return text;
             }
         }
 

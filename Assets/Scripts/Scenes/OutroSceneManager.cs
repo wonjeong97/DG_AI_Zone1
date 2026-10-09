@@ -1,5 +1,4 @@
 using App;
-using Cysharp.Text;
 using Cysharp.Threading.Tasks;
 using MessagePipe;
 using TMPro;
@@ -17,8 +16,6 @@ namespace Scenes
 {
     public class OutroSceneManager : MonoBehaviour
     {
-        private const string VisitorNamePlaceholder = "{name}";
-
         [SerializeField] private Button endButton;
         [SerializeField] private VideoPlayer robotVideoPlayer;
         [SerializeField] private TMP_Text endingText;
@@ -28,6 +25,9 @@ namespace Scenes
         private InactivityTimer _inactivityTimer;
         private IPublisher<MoveIdleEvent> _moveIdlePublisher;
         private SoundManager _soundManager;
+
+        // 종료 버튼을 이미 눌렀는지 — 연타해도 관람 완료 집계(move_idle)가 한 번만 나가도록
+        private bool _isLeaving;
 
         /// <summary>
         /// 로거, 체험자 정보 제공자, 비활동 타이머, 관람 완료 이벤트 발행자, 사운드 매니저를 주입받는다.
@@ -48,6 +48,9 @@ namespace Scenes
         /// </summary>
         private void Start()
         {
+            if (_logger == null)
+                Debug.LogError("[OutroSceneManager] Dependencies were not injected. Check that GameLifetimeScope injects scene root objects on load.");
+
             if (!endButton && _logger != null) _logger.ZLogWarning($"[OutroSceneManager] endButton이 할당되지 않았습니다.");
             if (!robotVideoPlayer && _logger != null) _logger.ZLogWarning($"[OutroSceneManager] robotVideoPlayer가 할당되지 않았습니다.");
 
@@ -71,32 +74,16 @@ namespace Scenes
                 return;
             }
 
-            // 페이드인 도중 전체 텍스트가 잠깐 보이지 않도록 미리 숨겨 둠
-            endingText.ForceMeshUpdate();
-            endingText.maxVisibleCharacters = 0;
+            StoryLineAnimator.HideBeforeAnimate(endingText);
+
+            if (_visitorInfoProvider != null)
+                endingText.text = _visitorInfoProvider.FillName(endingText.text);
+            else if (_logger != null)
+                _logger.ZLogWarning($"[OutroSceneManager] VisitorInfoProvider가 주입되지 않아 이름을 치환하지 않습니다.");
 
             try
             {
-                if (_visitorInfoProvider != null)
-                {
-                    string visitorName = await _visitorInfoProvider.GetNameAsync(ct);
-
-                    using (Utf16ValueStringBuilder sb = ZString.CreateStringBuilder())
-                    {
-                        sb.Append(endingText.text);
-                        sb.Replace(VisitorNamePlaceholder, visitorName);
-                        endingText.text = sb.ToString();
-                    }
-                }
-                else if (_logger != null)
-                {
-                    _logger.ZLogWarning($"[OutroSceneManager] VisitorInfoProvider가 주입되지 않아 이름을 치환하지 않습니다.");
-                }
-
-                (float moveDuration, float interval, float yOffset) = await SceneFader.GetStoryLineSettingsAsync();
-                await StoryLineAnimator.AnimateAsync(endingText,
-                    moveDuration, interval, yOffset,
-                    StoryLineAnimator.IsPointerPressedThisFrame, ct, _inactivityTimer, _logger);
+                await StoryLineAnimator.AnimateWithCommonSettingsAsync(endingText, ct, _inactivityTimer, _logger);
             }
             catch (System.OperationCanceledException)
             {
@@ -118,6 +105,9 @@ namespace Scenes
         /// </summary>
         private void OnEndButtonClicked()
         {
+            if (_isLeaving) return;
+            _isLeaving = true;
+
             if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
             if (_moveIdlePublisher != null)
                 _moveIdlePublisher.Publish(new MoveIdleEvent());

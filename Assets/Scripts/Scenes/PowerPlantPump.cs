@@ -1,7 +1,10 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
+using Microsoft.Extensions.Logging;
 using UnityEngine;
+using VContainer;
+using ZLogger;
 
 namespace Scenes
 {
@@ -32,17 +35,34 @@ namespace Scenes
 
         // '보통' 구간 초입에서도 정지 상태와 구분되도록 주는 강도 하한
         private const float MinActiveIntensity = 0.35f;
-        private const float MaxPercent = 100f;
+        private const float MaxPercent = Constants.ResultMessages.MaxPercent;
 
         private Vector3 _pistonRest;
         private bool _restCaptured;
         private float _intensity;
         private float _phase;
+        private ILogger<PowerPlantPump> _logger;
+
+        /// <summary>
+        /// 로거를 주입받는다 (결과 씬을 불러올 때 GameLifetimeScope가 주입).
+        /// </summary>
+        [Inject]
+        public void Construct(ILogger<PowerPlantPump> logger) => _logger = logger;
 
         /// <summary>
         /// 피스톤의 정지 위치를 기록한다.
         /// </summary>
         private void Awake() => CaptureRest();
+
+        /// <summary>
+        /// 연출에 필요한 참조가 빠져 있으면 경고한다 (주입은 Awake 뒤라 Start에서 남긴다).
+        /// </summary>
+        private void Start()
+        {
+            if (_logger == null) return;
+            if (!piston) _logger.ZLogWarning($"[PowerPlantPump] {name}에 piston이 할당되지 않아 피스톤이 움직이지 않습니다.");
+            if (!steam) _logger.ZLogWarning($"[PowerPlantPump] {name}에 steam이 할당되지 않아 수증기가 나오지 않습니다.");
+        }
 
         /// <summary>
         /// 피스톤의 정지 위치를 한 번만 기록한다 (스테이지를 켜는 순서에 따라 Awake 전에 SetNeutral이 불릴 수 있음).

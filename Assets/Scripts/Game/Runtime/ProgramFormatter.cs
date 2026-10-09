@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using System.Text;
+using Cysharp.Text;
 
 namespace Game.Runtime
 {
@@ -16,6 +16,10 @@ namespace Game.Runtime
         private const string StartMarker = "START";
         private const string EndMarker = "END";
         private const string UnreachedEndMarker = "(완성하기 미연결)";
+        private const string InfiniteCount = "무한";
+        private const string NullValue = "null";
+        private const string ScorePrefix = "점수: ";
+        private const string ScoreSuffix = "점";
 
         /// <summary>
         /// 명령 목록을 START…END 코드 문자열로 만든다.
@@ -24,7 +28,24 @@ namespace Game.Runtime
         /// </summary>
         public static string ToCode(IReadOnlyList<BlockInstruction> program, bool includeEnd, int? score = null)
         {
-            StringBuilder sb = new StringBuilder();
+            // 하위 메서드에 ref로 넘기므로 using 대신 finally에서 직접 반환한다
+            Utf16ValueStringBuilder sb = ZString.CreateStringBuilder();
+            try
+            {
+                AppendProgram(ref sb, program, includeEnd, score);
+                return sb.ToString();
+            }
+            finally
+            {
+                sb.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// 시작 표시 → 명령 → 끝 표시 → 함수 정의 → 점수 순서로 코드를 쓴다.
+        /// </summary>
+        private static void AppendProgram(ref Utf16ValueStringBuilder sb, IReadOnlyList<BlockInstruction> program, bool includeEnd, int? score)
+        {
             sb.AppendLine(StartMarker);
 
             List<FunctionInstruction> functions = new List<FunctionInstruction>();
@@ -33,33 +54,36 @@ namespace Game.Runtime
             {
                 foreach (BlockInstruction instr in program)
                 {
-                    Append(sb, instr, 1);
+                    Append(ref sb, instr, 1);
                     CollectFunctions(instr, functions);
                 }
             }
 
             sb.Append(includeEnd ? EndMarker : UnreachedEndMarker);
 
-            if (functions.Count > 0)
+            // 같은 함수를 여러 번 호출해도 정의는 한 번만 출력한다
+            HashSet<string> printedDefs = new HashSet<string>();
+            foreach (FunctionInstruction fn in functions)
             {
-                foreach (FunctionInstruction fn in functions)
-                {
-                    sb.AppendLine();
-                    sb.AppendLine();
-                    sb.AppendLine($"{fn.DefName ?? Constants.CategoryNames.FunctionDef} {{");
-                    AppendBody(sb, fn.Body, 1);
-                    sb.Append("}");
-                }
+                string defName = fn.DefName ?? Constants.CategoryNames.FunctionDef;
+                if (!printedDefs.Add(defName)) continue;
+
+                sb.AppendLine();
+                sb.AppendLine();
+                sb.Append(defName);
+                sb.AppendLine(" {");
+                AppendBody(ref sb, fn.Body, 1);
+                sb.Append('}');
             }
 
             if (score.HasValue)
             {
                 sb.AppendLine();
                 sb.AppendLine();
-                sb.Append($"점수: {score.Value}점");
+                sb.Append(ScorePrefix);
+                sb.Append(score.Value);
+                sb.Append(ScoreSuffix);
             }
-
-            return sb.ToString();
         }
 
         /// <summary>
@@ -82,85 +106,124 @@ namespace Game.Runtime
         /// <summary>
         /// 명령 하나를 들여쓰기에 맞춰 코드 줄로 추가한다 (본문이 있으면 재귀).
         /// </summary>
-        private static void Append(StringBuilder sb, BlockInstruction instr, int depth)
+        private static void Append(ref Utf16ValueStringBuilder sb, BlockInstruction instr, int depth)
         {
-            string indent = new string(' ', depth * IndentSize);
+            int indent = depth * IndentSize;
             switch (instr)
             {
                 case CommandInstruction cmd:
                     // 값 슬롯이 있는 명령은 이름(값) — 값 미연결이면 (null), 값 슬롯 없는 명령은 이름만
-                    bool hasValueSlot = cmd.Source && cmd.Source.ValueKind != ValueKind.None;
-                    sb.AppendLine(hasValueSlot
-                        ? $"{indent}{cmd.Command}({cmd.Value ?? "null"})"
-                        : $"{indent}{cmd.Command}");
+                    sb.Append(' ', indent);
+                    sb.Append(cmd.Command);
+                    if (cmd.Source && cmd.Source.ValueKind != ValueKind.None)
+                    {
+                        sb.Append('(');
+                        sb.Append(cmd.Value ?? NullValue);
+                        sb.Append(')');
+                    }
+                    sb.AppendLine();
                     break;
 
                 case ActionInstruction act:
-                    sb.AppendLine($"{indent}{act.Action}");
+                    AppendLine(ref sb, indent, act.Action);
                     break;
 
                 case ConditionActionInstruction cond:
-                    sb.AppendLine($"{indent}{cond.Action}");
+                    AppendLine(ref sb, indent, cond.Action);
                     break;
 
                 case FunctionInstruction fn:
-                    sb.AppendLine($"{indent}{fn.Name ?? Constants.CategoryNames.Function}");
+                    AppendLine(ref sb, indent, fn.Name ?? Constants.CategoryNames.Function);
                     break;
 
                 case RepeatInstruction rep:
-                    string count = rep.IsInfinite ? "무한" : rep.Count.ToString();
                     // 블록 라벨에 '(무한)'이 이미 붙어 있어 블록 이름 대신 기본 이름에 횟수를 붙인다
-                    sb.AppendLine($"{indent}{Constants.BlockLabels.While}({count}) {{");
-                    AppendBody(sb, rep.Body, depth + 1);
-                    sb.AppendLine($"{indent}}}");
+                    sb.Append(' ', indent);
+                    sb.Append(Constants.BlockLabels.While);
+                    sb.Append('(');
+                    if (rep.IsInfinite) sb.Append(InfiniteCount);
+                    else sb.Append(rep.Count);
+                    sb.AppendLine(") {");
+                    AppendBody(ref sb, rep.Body, depth + 1);
+                    AppendLine(ref sb, indent, "}");
                     break;
 
                 case IfInstruction ifInstr:
-                    sb.AppendLine($"{indent}{Name(ifInstr.Source, Constants.BlockLabels.If)}({FormatCondition(ifInstr.Condition)}) {{");
-                    AppendBody(sb, ifInstr.Then, depth + 1);
+                    sb.Append(' ', indent);
+                    sb.Append(ifInstr.Source ? ifInstr.Source.name : Constants.BlockLabels.If);
+                    sb.Append('(');
+                    AppendCondition(ref sb, ifInstr.Condition);
+                    sb.AppendLine(") {");
+                    AppendBody(ref sb, ifInstr.Then, depth + 1);
                     // '아니면' 블록이 실제로 놓였을 때만 출력 — else가 비어 있어도(뒤에 블록이 없어도) 마커 자체는 표시
                     if (ifInstr.HasElseMarker)
                     {
-                        string innerIndent = new string(' ', (depth + 1) * IndentSize);
-                        sb.AppendLine($"{innerIndent}{Constants.BlockLabels.Else} {{");
-                        AppendBody(sb, ifInstr.Else, depth + 2);
-                        sb.AppendLine($"{innerIndent}}}");
+                        int innerIndent = (depth + 1) * IndentSize;
+                        AppendElseOpen(ref sb, innerIndent);
+                        AppendBody(ref sb, ifInstr.Else, depth + 2);
+                        AppendLine(ref sb, innerIndent, "}");
                     }
-                    sb.AppendLine($"{indent}}}");
+                    AppendLine(ref sb, indent, "}");
                     break;
 
-                case ElseInstruction elseInstr:
+                case ElseInstruction:
                     // '만약' 밖에 잘못 놓인 '아니면' — 컴파일은 실패하지만 실패 시 표시되는 코드에는 제자리에 나타난다
-                    sb.AppendLine($"{indent}{Constants.BlockLabels.Else} {{");
-                    AppendBody(sb, elseInstr.Body, depth + 1);
-                    sb.AppendLine($"{indent}}}");
+                    AppendElseOpen(ref sb, indent);
+                    AppendLine(ref sb, indent, "}");
                     break;
             }
         }
 
         /// <summary>
-        /// 본문의 명령들을 지정 깊이로 추가한다.
+        /// 들여쓰기 뒤에 텍스트를 쓰고 줄을 바꾼다.
         /// </summary>
-        private static void AppendBody(StringBuilder sb, IReadOnlyList<BlockInstruction> body, int depth)
+        private static void AppendLine(ref Utf16ValueStringBuilder sb, int indent, string text)
         {
-            if (body is null) return;
-            foreach (BlockInstruction instr in body)
-                Append(sb, instr, depth);
+            sb.Append(' ', indent);
+            sb.AppendLine(text);
         }
 
         /// <summary>
-        /// 조건식을 코드 표기 문자열로 만든다.
+        /// '아니면 {' 줄을 쓴다.
         /// </summary>
-        private static string FormatCondition(ConditionExpr cond) => cond switch
+        private static void AppendElseOpen(ref Utf16ValueStringBuilder sb, int indent)
         {
-            SimpleConditionExpr s => s.Name,
-            LogicConditionExpr l  => $"{l.Left?.Name} {l.Operator} {l.Right?.Name ?? "null"}",
-            _                     => "null"
-        };
+            sb.Append(' ', indent);
+            sb.Append(Constants.BlockLabels.Else);
+            sb.AppendLine(" {");
+        }
 
         /// <summary>
-        /// 블록 이름을, 블록이 없으면 대체 이름을 반환한다.
+        /// 본문의 명령들을 지정 깊이로 추가한다.
         /// </summary>
-        private static string Name(CodingBlock block, string fallback) => block ? block.name : fallback;
+        private static void AppendBody(ref Utf16ValueStringBuilder sb, IReadOnlyList<BlockInstruction> body, int depth)
+        {
+            if (body is null) return;
+            foreach (BlockInstruction instr in body)
+                Append(ref sb, instr, depth);
+        }
+
+        /// <summary>
+        /// 조건식을 코드 표기로 쓴다.
+        /// </summary>
+        private static void AppendCondition(ref Utf16ValueStringBuilder sb, ConditionExpr cond)
+        {
+            switch (cond)
+            {
+                case SimpleConditionExpr s:
+                    sb.Append(s.Name);
+                    break;
+                case LogicConditionExpr l:
+                    sb.Append(l.Left?.Name);
+                    sb.Append(' ');
+                    sb.Append(l.Operator);
+                    sb.Append(' ');
+                    sb.Append(l.Right?.Name ?? NullValue);
+                    break;
+                default:
+                    sb.Append(NullValue);
+                    break;
+            }
+        }
     }
 }

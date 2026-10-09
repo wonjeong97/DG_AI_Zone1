@@ -73,6 +73,9 @@ namespace Scenes
         /// </summary>
         private void Start()
         {
+            if (_logger == null)
+                Debug.LogError("[TitleSceneManager] Dependencies were not injected. Check that GameLifetimeScope injects scene root objects on load.");
+
             if (!startButton && _logger != null) _logger.ZLogWarning($"[TitleSceneManager] startButton이 할당되지 않았습니다.");
             if (!qrCanvasGroup && _logger != null) _logger.ZLogWarning($"[TitleSceneManager] qrCanvasGroup이 할당되지 않았습니다.");
             if (!guideText && _logger != null) _logger.ZLogWarning($"[TitleSceneManager] guideText가 할당되지 않았습니다.");
@@ -107,8 +110,7 @@ namespace Scenes
                 if (qrCanvasGroup) qrCanvasGroup.gameObject.SetActive(true);
 
                 // 안내가 없어도 QR 확인·스캐너 값은 써야 하므로 설정은 항상 읽는다
-                string settingsPath = ZString.Concat(Constants.ResourcePaths.SceneSettingsFolder, "/", Constants.Scenes.Title);
-                _sceneSettings = await JsonLoader.LoadAsync<TitleSceneSettings>(settingsPath, ct, _logger);
+                _sceneSettings = await JsonLoader.LoadAsync<TitleSceneSettings>(Constants.SettingsFiles.Title, ct, _logger);
                 ApplyScanCharGap();
 
                 if (!qrCanvasGroup) return;
@@ -151,11 +153,13 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 키보드(바코드 스캐너) 문자 입력을 받기 시작한다. 이미 받고 있으면 모은 문자만 비운다.
+        /// 키보드(바코드 스캐너) 문자 입력을 받기 시작한다.
+        /// 이미 받고 있으면(시작하기 안내 중) 모으던 글자를 지우지 않는다 — 시작하기 대기 시간이 끝나는 순간 들어오던 스캔의
+        /// 앞 글자가 잘려 '등록되지 않은 QR'이 되지 않게 한다. 오래 머문 글자는 ScanInputBuffer가 글자 간격으로 버린다.
         /// </summary>
         private void StartScanning()
         {
-            _scanBuffer.Clear();
+            if (!_isWaitingForQr) _scanBuffer.Clear();
             _isWaitingForQr = true;
 
             foreach (InputDevice device in InputSystem.devices)
@@ -299,27 +303,52 @@ namespace Scenes
                 string failMessage = await ConfirmVisitorAsync(uid, ct);
 
                 // 서버가 빨리 답해도 '확인하고 있습니다'가 스치듯 지나가지 않게 최소 시간을 채운다 — 이미 지났으면 바로 넘어간다
-                float remainingSeconds = _sceneSettings.qrCheckingMinSeconds - (Time.realtimeSinceStartup - checkStartTime);
+                // 0_Title.json을 다 읽기 전에 찍었으면 최소 시간 없이 바로 결과를 보여 준다
+                float minSeconds = _sceneSettings != null ? _sceneSettings.qrCheckingMinSeconds : 0f;
+                float remainingSeconds = minSeconds - (Time.realtimeSinceStartup - checkStartTime);
                 if (remainingSeconds > 0f)
                     await UniTask.Delay(TimeSpan.FromSeconds(remainingSeconds), DelayType.UnscaledDeltaTime, cancellationToken: ct);
 
                 if (failMessage == null)
                 {
-                    await ShowConfirmedVisitorAsync(ct);
+                    ShowConfirmedVisitor();
                     return;
                 }
 
-                if (guideText) guideText.text = failMessage;
-
-                // 0_Title.json에 음수를 적으면 Delay가 예외를 내 QR 대기로 돌아오지 못하므로 0 이상으로 제한한다
-                float messageSeconds = Mathf.Max(0f, _sceneSettings.scanResultMessageSeconds);
-                await UniTask.Delay(TimeSpan.FromSeconds(messageSeconds), DelayType.UnscaledDeltaTime, cancellationToken: ct);
-                WaitForQr();
+                await ShowScanFailureAsync(failMessage, ct);
             }
             catch (OperationCanceledException)
             {
                 // 확인 도중 씬 전환 등으로 오브젝트가 파괴된 경우 — 정상 종료
             }
+            catch (Exception ex)
+            {
+                // 예상하지 못한 오류로 '확인하고 있습니다'에 멈추지 않게 한다 — 타이틀은 비활동 타이머도 멈춰 있어 앱을 다시 켜야 하게 된다
+                if (_logger != null) _logger.ZLogError($"[TitleSceneManager] 체험자 확인 중 오류가 나 QR 대기로 돌아갑니다: {ex}");
+                ClearConfirmedVisitor();
+                ShowScanFailureThenForget(Constants.TitleMessages.QrCheckFailed, ct);
+            }
+        }
+
+        /// <summary>
+        /// QR 확인 실패 이유를 잠시 보여 준 뒤 다시 QR을 기다린다.
+        /// </summary>
+        private async UniTask ShowScanFailureAsync(string message, CancellationToken ct)
+        {
+            if (guideText) guideText.text = message;
+
+            // 0_Title.json에 음수를 적으면 Delay가 예외를 내 QR 대기로 돌아오지 못하므로 0 이상으로 제한한다
+            float messageSeconds = _sceneSettings != null ? Mathf.Max(0f, _sceneSettings.scanResultMessageSeconds) : 0f;
+            await UniTask.Delay(TimeSpan.FromSeconds(messageSeconds), DelayType.UnscaledDeltaTime, cancellationToken: ct);
+            WaitForQr();
+        }
+
+        /// <summary>
+        /// catch 블록에서 실패 안내를 이어서 보여 준다 — 씬을 떠나 취소되면 조용히 끝낸다.
+        /// </summary>
+        private void ShowScanFailureThenForget(string message, CancellationToken ct)
+        {
+            ShowScanFailureAsync(message, ct).SuppressCancellationThrow().Forget();
         }
 
         /// <summary>
@@ -346,7 +375,7 @@ namespace Scenes
                 _logger.ZLogWarning($"[TitleSceneManager] VisitorInfoProvider가 주입되지 않아 확인한 체험자를 기록하지 못했습니다.");
 
             // 성공·실패와 상관없이 기록이 있는 마지막 레벨의 다음 레벨까지 연다 — 로컬 진행 규칙(ResultSequence.OnNextClicked)과 같다
-            if (_session)
+            if (_session != null)
                 _session.unlockedLevelIndex = progress.LastRecordedLevelIndex + 1;
             else if (_logger != null)
                 _logger.ZLogWarning($"[TitleSceneManager] GameSession이 주입되지 않아 서버 진행도를 반영하지 못했습니다.");
@@ -380,9 +409,9 @@ namespace Scenes
         /// QR로 확인한 체험자에게 이름이 들어간 시작 안내와 시작 버튼을 보여 준다.
         /// 다음 사람이 QR을 찍을 수 있게 스캐너 입력을 계속 받고, 시작하기를 기다린 시간을 재기 시작한다.
         /// </summary>
-        private async UniTask ShowConfirmedVisitorAsync(CancellationToken ct)
+        private void ShowConfirmedVisitor()
         {
-            string visitorName = _visitorInfoProvider != null ? await _visitorInfoProvider.GetNameAsync(ct) : null;
+            string visitorName = _visitorInfoProvider != null ? _visitorInfoProvider.GetName() : null;
             ShowStartGuide(string.IsNullOrEmpty(visitorName)
                 ? Constants.TitleMessages.StartGuide
                 : ZString.Format(Constants.TitleMessages.StartGuideWithNameFormat, visitorName));
@@ -397,7 +426,7 @@ namespace Scenes
         private void ClearConfirmedVisitor()
         {
             if (_visitorInfoProvider != null) _visitorInfoProvider.ClearServerVisitor();
-            if (_session) _session.unlockedLevelIndex = 0;
+            if (_session != null) _session.unlockedLevelIndex = 0;
         }
 
         /// <summary>
@@ -441,7 +470,14 @@ namespace Scenes
                 }
 
                 Settings settings = await _settingsProvider.GetAsync(ct);
-                if (settings == null || !settings.useInactivityTimer || settings.resetTime <= 0f) return;
+                if (settings == null)
+                {
+                    if (_logger != null) _logger.ZLogWarning($"[TitleSceneManager] Settings.json을 읽지 못해 시작하기 대기 시간 제한 없이 기다립니다.");
+                    return;
+                }
+
+                // 비활동 타이머를 끈 설정이면 시작하기도 시간 제한 없이 기다린다
+                if (!settings.useInactivityTimer || settings.resetTime <= 0f) return;
 
                 await UniTask.Delay(TimeSpan.FromSeconds(settings.resetTime), DelayType.UnscaledDeltaTime, cancellationToken: ct);
 

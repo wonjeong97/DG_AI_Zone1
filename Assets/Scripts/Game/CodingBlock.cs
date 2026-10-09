@@ -54,6 +54,14 @@ namespace Game
         public Data.ControlRole ControlRole { get; private set; }
         public bool IsDragHandled { get; private set; }
 
+        // BlockFactory.AttachSockets가 연결부 소켓을 이미 붙였는지 — 드래그마다 소켓을 다시 찾지 않도록 한 번만 붙인다
+        public bool SocketsAttached { get; private set; }
+
+        /// <summary>
+        /// 연결부 소켓을 모두 붙였다고 표시한다 (BlockFactory.AttachSockets에서만 호출).
+        /// </summary>
+        public void MarkSocketsAttached() => SocketsAttached = true;
+
         // 반복하기 블록인지 — 블록 이름(라벨)으로 판별하되, name 조회는 매번 문자열을 새로 할당하므로
         // 드래그 중 매 이벤트 도는 스냅 탐색을 위해 처음 판별한 값을 재사용한다(이름은 생성 시 한 번만 정해짐)
         private bool? _isRepeat;
@@ -525,6 +533,8 @@ namespace Game
         private void OnDisable()
         {
             StopSnapPulse();
+            // 드롭하자마자 다른 탭으로 숨겨지면 OnEndDrag가 오지 않으므로, 대상 소켓의 스냅 하이라이트(무한 펄스)를 여기서 끈다
+            ClearSnapTargets();
             if (!_cg) TryGetComponent(out _cg);
             if (_cg) _cg.blocksRaycasts = true;
             IsDragHandled = false;
@@ -547,6 +557,8 @@ namespace Game
         /// </summary>
         public void OnBeginDrag(PointerEventData e)
         {
+            // OnDrop이 OnEndDrag보다 먼저 오므로, 직전 드래그의 처리 표시가 남아 있으면 드롭 존이 이번 드롭을 무시한다
+            IsDragHandled = false;
             IsDragCancelled = false;
 
             // 두 손가락 이상이 닿아 있으면(핀치 중) 블록을 집지 않는다
@@ -569,11 +581,7 @@ namespace Game
 
             // 코딩을 다시 건드리기 시작하면 이전 빌드 결과(성공/에러 외곽선)는 더 이상 유효하지 않으므로 정리
             ClearAllErrorHighlights(_codingZone);
-
-            if (_snapTarget) _snapTarget.ClearSnapHighlight();
-            _snapTarget = null;
-            if (_snapInnerSocket) _snapInnerSocket.ClearSnapHighlight();
-            _snapInnerSocket = null;
+            ClearSnapTargets();
 
             // 진행 중인 스냅 트윈을 즉시 완료 — 리페런트 후 잔여 틱이 캔버스 좌표계에 적용되어
             // 블록이 좌상단으로 날아가는 문제 방지 (홈 위치도 정착 좌표로 기록되도록 드래그 상태 저장 전에 수행)
@@ -694,10 +702,7 @@ namespace Game
             _isDragging = false;
             _activeDrags.Remove(this);
 
-            if (_snapTarget) _snapTarget.ClearSnapHighlight();
-            _snapTarget = null;
-            if (_snapInnerSocket) _snapInnerSocket.ClearSnapHighlight();
-            _snapInnerSocket = null;
+            ClearSnapTargets();
             _cg.blocksRaycasts = true;
             IsDragHandled = false;
 
@@ -739,10 +744,7 @@ namespace Game
             _isDragging = false;
             IsDragCancelled = true;
 
-            if (_snapTarget) _snapTarget.ClearSnapHighlight();
-            _snapTarget = null;
-            if (_snapInnerSocket) _snapInnerSocket.ClearSnapHighlight();
-            _snapInnerSocket = null;
+            ClearSnapTargets();
             _cg.blocksRaycasts = true;
 
             RestoreDragHome();
@@ -763,14 +765,8 @@ namespace Game
 
             BlockFactory.AttachSockets(this);
 
-            if (home.TryGetComponent<ChainOutSocket>(out ChainOutSocket chainOut))
-                chainOut.Accept(this);
-            else if (home.TryGetComponent<InnerSocket>(out InnerSocket inner))
-                inner.Accept(this);
-            else if (home.TryGetComponent<ValueOutSocket>(out ValueOutSocket valueOut))
-                valueOut.Accept(this);
-            else if (home.TryGetComponent<ConditionOutSocket>(out ConditionOutSocket conditionOut))
-                conditionOut.Accept(this);
+            if (home.TryGetComponent(out BlockSocket homeSocket))
+                homeSocket.Accept(this);
             else if (_codingZone && home == _codingZone.transform)
             {
                 transform.SetParent(home, false);
@@ -790,13 +786,18 @@ namespace Game
         private bool TrySnapToSocket()
         {
             BlockSocket socket = FindBestSnapSocket();
-            if (!socket) return false;
+            return socket && AttachTo(socket);
+        }
 
-            if (socket is ChainOutSocket chainSocket) return AttachTo(chainSocket.Accept);
-            if (socket is InnerSocket innerSocket) return AttachTo(innerSocket.Accept);
-            if (socket is ValueOutSocket valueSocket) return AttachTo(valueSocket.Accept);
-            if (socket is ConditionOutSocket conditionSocket) return AttachTo(conditionSocket.Accept);
-            return false;
+        /// <summary>
+        /// 드래그 중 켜 둔 스냅 대상 소켓의 하이라이트를 끄고 대상을 비운다.
+        /// </summary>
+        private void ClearSnapTargets()
+        {
+            if (_snapTarget) _snapTarget.ClearSnapHighlight();
+            _snapTarget = null;
+            if (_snapInnerSocket) _snapInnerSocket.ClearSnapHighlight();
+            _snapInnerSocket = null;
         }
 
         /// <summary>
@@ -826,11 +827,11 @@ namespace Game
         /// <summary>
         /// 소켓 부착 공통 절차 — 드롭 처리 완료 표시 → 소켓 부착 → 대상 소켓에 인계.
         /// </summary>
-        private bool AttachTo(Action<CodingBlock> accept)
+        private bool AttachTo(BlockSocket socket)
         {
             IsDragHandled = true;
             BlockFactory.AttachSockets(this);
-            accept(this);
+            socket.Accept(this);
             return true;
         }
 
@@ -970,6 +971,9 @@ namespace Game
         /// </summary>
         private ValueOutSocket FindSnapValueOutSocket()
         {
+            // Logic(그리고)은 조건 블록의 ConditionOut에만 연결 — 만약 헤더 슬롯 직접 스냅 금지
+            if (Category == BlockCategory.Logic) return null;
+
             EnsureDragCache();
             if (!TryGetHorizontalSnapOrigin(_valueInSocket, out Vector2 myPos)) return null;
 
@@ -990,8 +994,6 @@ namespace Game
                         // Command가 허용하는 값 타입만 스냅 (None인 Command는 소켓이 없어 대상에서 제외됨)
                         if (targetBlock.ValueKind != ValueKind.None && targetBlock.ValueKind != ValueKind) continue;
                     }
-                    // Logic(그리고)은 조건 블록의 ConditionOut에만 연결 — 만약 헤더 슬롯 직접 스냅 금지
-                    if (Category == BlockCategory.Logic) continue;
                     if (Category == BlockCategory.Condition && targetBlock.Category != BlockCategory.FlowControl && targetBlock.Category != BlockCategory.Logic) continue;
 
                     // 반복하기의 헤더 슬롯은 조건용이 아니므로 조건 블록은 스냅 제외 (만약 전용)
@@ -1088,16 +1090,6 @@ namespace Game
             _rt.anchoredPosition = targetOffset;
         }
 
-        /// <summary>
-        /// 지정한 부모의 원점에 즉시 배치하고 그곳을 복귀 위치로 기록한다.
-        /// </summary>
-        public void PlaceIn(Transform parent)
-        {
-            transform.SetParent(parent, false);
-            _rt.anchoredPosition = Vector2.zero;
-            _homeParent = parent;
-        }
-
         private Transform _inventoryParent;
 
         /// <summary>
@@ -1169,8 +1161,8 @@ namespace Game
                 CodingBlock child = socket.Occupant;
                 if (!child) continue;
 
+                // ReturnToInventory가 자식 블록의 하위 소켓까지 함께 해제한다
                 socket.Release();
-                child.ReleaseAllAttachedChildren();
                 child.ReturnToInventory();
             }
         }

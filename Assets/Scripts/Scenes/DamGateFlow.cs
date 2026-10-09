@@ -23,6 +23,11 @@ namespace Scenes
 
         [Tooltip("닫혔을 때 게이트의 Z스케일. 0이면 최초 실행 시 자동 기록.")]
         public float closedScaleZ = 0f;
+
+        // 물줄기 렌더러 캐시 — 트윈 중 매 프레임 water에서 다시 찾지 않도록 water가 바뀔 때만 새로 찾는다
+        [System.NonSerialized] public Transform cachedWater;
+        [System.NonSerialized] public SkinnedMeshRenderer waterSkin;
+        [System.NonSerialized] public Renderer waterRenderer;
     }
 
     // 결과 씬(레벨3)에서는 수문 개방량이 발전 결과를 보여주는 연출이다.
@@ -56,6 +61,16 @@ namespace Scenes
         [Header("착수 거품")]
         [SerializeField] private float minFoamRate = 20f;
         [SerializeField] private float maxFoamRate = 130f;
+        [Tooltip("거품 파티클 시작 속도 범위(최소~최대) — 살짝 열렸을 때")]
+        [SerializeField] private Vector2 minFoamStartSpeed = new(0.03f, 0.10f);
+        [Tooltip("거품 파티클 시작 속도 범위(최소~최대) — 완전히 열렸을 때")]
+        [SerializeField] private Vector2 maxFoamStartSpeed = new(0.08f, 0.24f);
+
+        [Header("착수 포말 웅덩이")]
+        [Tooltip("포말 진하기 — 살짝 열렸을 때 / 완전히 열렸을 때")]
+        [SerializeField] private Vector2 foamPoolOpeningRange = new(0.45f, 1f);
+        [Tooltip("포말 흐름 속도 — 살짝 열렸을 때 / 완전히 열렸을 때")]
+        [SerializeField] private Vector2 foamPoolSpeedRange = new(0.5f, 1.4f);
 
         private readonly static int OpeningId = Shader.PropertyToID("_Opening");
         private readonly static int SpeedId = Shader.PropertyToID("_Speed");
@@ -63,8 +78,12 @@ namespace Scenes
         private readonly static int HeightId = Shader.PropertyToID("_HeightFrac");
         private readonly static int FlowFracId = Shader.PropertyToID("_FlowFrac");
 
-        private const float MaxPercent = 100f;
+        private const float MaxPercent = Constants.ResultMessages.MaxPercent;
         private const float ClosedEpsilon = 0.001f;
+
+        // 물 메시의 블렌드셰이프 "Thick" 순번과 최대 가중치
+        private const int ThickBlendShapeIndex = 0;
+        private const float MaxBlendShapeWeight = 100f;
 
         // 물줄기가 마루를 넘기 시작/토우에 도달하는 시점 (전체 연출 시간 대비).
         // 수문이 살짝 열린 직후 흐르기 시작해, 수문이 다 열리기 한참 전에 바닥까지 닿는다 —
@@ -158,7 +177,7 @@ namespace Scenes
         /// <summary>
         /// 모든 수문에 현재 개방량과 물줄기 도달 정도를 반영한다.
         /// </summary>
-        public void ApplyAll()
+        private void ApplyAll()
         {
             if (gates == null) return;
             _mpb ??= new MaterialPropertyBlock();
@@ -195,30 +214,33 @@ namespace Scenes
                 // 물이 아직 내려오는 중이면 착수 지점에 거품이 생길 리 없다 — 도달한 만큼만 낸다
                 em.rateOverTime = closed ? 0f : Mathf.Lerp(minFoamRate, maxFoamRate, opening) * _flowReach;
                 ParticleSystem.MainModule fm = g.foam.main;
-                fm.startSpeed = new ParticleSystem.MinMaxCurve(
-                    Mathf.Lerp(0.03f, 0.08f, opening), Mathf.Lerp(0.10f, 0.24f, opening));
+                Vector2 startSpeed = Vector2.Lerp(minFoamStartSpeed, maxFoamStartSpeed, opening);
+                fm.startSpeed = new ParticleSystem.MinMaxCurve(startSpeed.x, startSpeed.y);
             }
 
             // 착수 포말 웅덩이 - 개방량만큼 진해지고 빨라진다
             if (g.foamPool)
             {
                 g.foamPool.GetPropertyBlock(_mpb);
-                _mpb.SetFloat(OpeningId, closed ? 0f : Mathf.Lerp(0.45f, 1f, opening) * _flowReach);
-                _mpb.SetFloat(SpeedId, Mathf.Lerp(0.5f, 1.4f, opening));
+                _mpb.SetFloat(OpeningId, closed ? 0f : Mathf.Lerp(foamPoolOpeningRange.x, foamPoolOpeningRange.y, opening) * _flowReach);
+                _mpb.SetFloat(SpeedId, Mathf.Lerp(foamPoolSpeedRange.x, foamPoolSpeedRange.y, opening));
                 g.foamPool.SetPropertyBlock(_mpb);
             }
 
+            CacheWaterRenderers(g);
+
             // 두께 - 블렌드셰이프 "Thick" (많이 열릴수록 물이 두꺼워진다)
-            if (g.water.TryGetComponent(out SkinnedMeshRenderer smr) &&
-                smr.sharedMesh && smr.sharedMesh.blendShapeCount > 0)
+            SkinnedMeshRenderer smr = g.waterSkin;
+            if (smr && smr.sharedMesh && smr.sharedMesh.blendShapeCount > ThickBlendShapeIndex)
             {
                 float thick = closed ? 0f : Mathf.Lerp(minStreamThickness, 1f, opening);
-                smr.SetBlendShapeWeight(0, thick * 100f);
+                smr.SetBlendShapeWeight(ThickBlendShapeIndex, thick * MaxBlendShapeWeight);
             }
 
             // 물 - 폭/투명도/유속은 셰이더로 처리한다.
             // SetActive는 OnValidate 중 호출이 금지되어 있어, 닫히면 완전 투명으로 없앤다.
-            if (g.water.TryGetComponent(out Renderer r))
+            Renderer r = g.waterRenderer;
+            if (r)
             {
                 r.GetPropertyBlock(_mpb);
                 // 폭·투명도는 고정, 개방량에 따라 달라지는 건 두께(블렌드셰이프)와 유속뿐
@@ -229,6 +251,18 @@ namespace Scenes
                 _mpb.SetFloat(SpeedId, Mathf.Lerp(minFlowSpeed, maxFlowSpeed, opening));
                 r.SetPropertyBlock(_mpb);
             }
+        }
+
+        /// <summary>
+        /// 물줄기 오브젝트의 렌더러를 찾아 둔다 — 인스펙터에서 water를 바꾼 경우에만 다시 찾는다.
+        /// </summary>
+        private static void CacheWaterRenderers(DamGate g)
+        {
+            if (g.cachedWater == g.water) return;
+
+            g.cachedWater = g.water;
+            g.water.TryGetComponent(out g.waterSkin);
+            g.water.TryGetComponent(out g.waterRenderer);
         }
     }
 }

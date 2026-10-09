@@ -28,10 +28,6 @@ namespace Game.Runtime
                 case FunctionInstruction fn:
                     if (fn.Body is not null) yield return fn.Body;
                     break;
-
-                case ElseInstruction elseInstr:
-                    if (elseInstr.Body is not null) yield return elseInstr.Body;
-                    break;
             }
         }
 

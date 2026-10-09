@@ -41,9 +41,9 @@ namespace Data
         public float aiStartHold = 3f;
 
         // 그 안내 뒤 말줄임(...) 점 애니메이션 간격(ms)
-        public int aiCodingDotIntervalMs = 400;
+        public int aiCodingDotIntervalMs = Constants.ResultMessages.AiCodingDotIntervalMs;
 
         // 상단 안내 문구 뒤 말줄임( · · · ) 점 애니메이션 간격(ms)
-        public int topDotIntervalMs = 400;
+        public int topDotIntervalMs = Constants.ResultMessages.ResultTopDotIntervalMs;
     }
 }

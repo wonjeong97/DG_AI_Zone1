@@ -27,7 +27,6 @@ public static class Constants
     public static class ResourcePaths
     {
         public const string TutorialImageAddress = "Tutorial";
-        public const string GameSessionKey       = "GameSession";
         public const string VisitorSettingsKey   = "VisitorSettings";
         public const string LabelFontKey         = "GamtanRoadTantan SDF";
 
@@ -39,12 +38,21 @@ public static class Constants
         public const string TmpFontLabel = "TMPFont";
         public const string BlockOutlineShader   = "Custom/UI/BlockOutline";
         public const string GrayscaleShader      = "Custom/UI/Grayscale";
+    }
 
-        // 씬별 연출 타이밍 JSON(StreamingAssets/Json/{씬 이름}.json)이 모여 있는 폴더
-        public const string SceneSettingsFolder = "Json";
+    // ── 3-1. StreamingAssets 설정 JSON 경로 (확장자 .json은 JsonLoader가 붙인다) ──
+    // 씬별 파일은 지금 씬 이름과 같지만, 씬 이름을 바꿔도 현장의 파일 이름이 따라 바뀌지 않도록 따로 둔다
+    public static class SettingsFiles
+    {
+        private const string Folder = "Json";
 
-        // 특정 씬이 아닌 공통 연출 타이밍(씬 전환 페이드 등)을 담는 JSON 파일명
-        public const string CommonSettingsFileName = "00_Common";
+        public const string Common = Folder + "/00_Common"; // 씬 전환 페이드 등 공통 연출 타이밍
+        public const string Title  = Folder + "/0_Title";
+        public const string Story  = Folder + "/2_Story";
+        public const string Game   = Folder + "/3_Game";
+        public const string Result = Folder + "/4_Result";
+        public const string Admin  = Folder + "/Admin";     // 관리자 비밀번호
+        public const string Server = Folder + "/Server";    // 체험자 서버 주소·재시도
     }
 
     // ── 4. 방향 명칭 ───────────────────────────────────────────
@@ -56,7 +64,7 @@ public static class Constants
         public const string West  = "서쪽";
 
         // 방향별 정반대 방향 — 풍력 레벨 채점(정반대 오답 판정)에 사용
-        public readonly static System.Collections.Generic.Dictionary<string, string> Opposite = new()
+        public readonly static System.Collections.Generic.IReadOnlyDictionary<string, string> Opposite = new System.Collections.Generic.Dictionary<string, string>
         {
             [East]  = West,
             [West]  = East,
@@ -68,7 +76,9 @@ public static class Constants
     // ── 5. 점수 관리 ───────────────────────────────────────────
     public static class Scores
     {
+        // 레벨1(태양광) 방향 채점 — 문제 시간의 정답 방향이면 5점, 그 외 1점
         public const int DirectionCorrectScore = 5;
+        public const int DirectionWrongScore   = 1;
 
         // 레벨2(풍력) 방향 채점 — 문제의 바람 방향과 같은 방향/정반대 방향/그 외로 3단계 채점
         public const int WindDirectionSameScore     = 3;
@@ -107,14 +117,14 @@ public static class Constants
         // 레벨5(미래에너지) 채점 — '미래 에너지 만들기' 함수 안에 넣은 에너지 블록 1개당 점수 (4개 모두 넣으면 100%)
         public const int FutureEnergyBlockScore = 1;
 
-        public readonly static System.Collections.Generic.Dictionary<string, int> AngleScore = new()
+        public readonly static System.Collections.Generic.IReadOnlyDictionary<string, int> AngleScore = new System.Collections.Generic.Dictionary<string, int>
         {
             ["30도"] = 3,
             ["45도"] = 5,
             ["60도"] = 1,
         };
 
-        public readonly static System.Collections.Generic.Dictionary<string, int> CountScore = new()
+        public readonly static System.Collections.Generic.IReadOnlyDictionary<string, int> CountScore = new System.Collections.Generic.Dictionary<string, int>
         {
             ["20개"] = 1,
             ["40개"] = 3,
@@ -153,10 +163,12 @@ public static class Constants
         public const string CommandWithoutValueFormat  = "'{0}' 블록에 값 블록이 없습니다";
         public const string IfWithoutConditionFormat   = "'{0}' 블록에 조건이 없습니다";
         public const string LogicMissingRightFormat    = "'{0}' 블록의 오른쪽 조건이 비어 있습니다";
+        public const string ConditionChainTooLong      = "조건은 두 개까지만 이을 수 있습니다";
         public const string EmptyFlowInnerFormat       = "'{0}' 블록 내부에 최소 1개의 블록이 있어야 합니다";
-        public const string ControlInsideFlowFormat    = "'{0}' 블록은 조건 블록 내부에 넣을 수 없습니다";
         public const string UnusedBlocksFormat         = "사용되지 않은 블록이 있습니다 ({0}개)";
         public const string ElseOutsideIfFormat        = "'아니면' 블록은 '만약' 블록 안에 있어야 합니다 ({0}개)";
+        public const string DuplicateElse              = "'만약' 블록 하나에는 '아니면' 블록을 하나만 넣을 수 있습니다";
+        public const string FunctionCallInsideDef      = "'함수' 블록은 '함수 정의' 블록 안에 넣을 수 없습니다";
     }
 
     // ── 8. 결과 씬 연출 메시지 및 평가 ─────────────────────────
@@ -170,6 +182,9 @@ public static class Constants
         // 완료 패널 제목 — 전력 수급 상태가 '부족'이면(코딩을 건너뛴 경우 포함) 실패, '보통' 이상이면 성공
         public const string MissionSuccess = "미션 성공!";
         public const string MissionFail    = "미션 실패!";
+
+        // 에너지 효율(%) 최댓값 — 결과 행·3D 연출 세기 계산의 기준
+        public const int MaxPercent = 100;
 
         // 최고 점수 대비 비율(%)로 전력 수급 상태를 나눈다 — 미만/이상 경계값
         public const float NormalThresholdPercent = 50f;
@@ -235,6 +250,28 @@ public static class Constants
 
         // 라벨 부분 일치 판정용 — "반복하기"의 사용자 표기 흔들림을 흡수한다
         public const string RepeatKeyword = "반복";
+
+        // 채점 기준 블록 라벨 — 레벨별 BlockLayoutData 에셋의 라벨과 일치해야 한다(BlockLabelTests가 대조).
+        // 채점은 블록 이름으로 명령을 구분하므로 에셋 라벨만 바꾸면 컴파일 오류 없이 해당 항목이 0점이 된다
+        public const string And = "그리고";
+
+        // 레벨3(수력) — 03_HydroBlockLayout
+        public const string HydroOpen  = "수문 열기";
+        public const string HydroClose = "수문 닫기";
+
+        // 레벨4(발전소) — 04_PowerPlantBlockLayout. 켜기·끄기 중 하나씩은 함정 블록
+        public const string AmusementOff = "놀이시설 불 끄기";
+        public const string AmusementOn  = "놀이시설 불 켜기";
+        public const string HospitalOn   = "병원 불 켜기";
+        public const string HospitalOff  = "병원 불 끄기";
+
+        // 레벨4 조건 함정 블록 — 문제 상황(밤·전기 과부하)의 반대
+        public const string DayCondition   = "낮";
+        public const string SpareCondition = "전기 여유";
+
+        // 레벨5(미래에너지) 에너지 블록 — 05_FutureEnergyBlockLayout. 결과 화면이 이 순서대로 행을 만든다
+        public readonly static System.Collections.Generic.IReadOnlyList<string> FutureEnergies =
+            new[] { "태양광", "풍력", "수력 발전", "스마트 도시 발전소" };
     }
 
     // ── 10. 블록 크기 ───────────────────────────────────────────
@@ -244,62 +281,21 @@ public static class Constants
         public const float DefaultWidth  = 220f;
         public const float DefaultHeight = 56f;
 
-        // 시작하기 / 완성하기 (Control) — Start/End 스프라이트 네이티브 사이즈
-        public const float StartWidth  = 361f;
-        public const float StartHeight = 121f;
-        public const float EndWidth    = 361f;
-        public const float EndHeight   = 101f;
-
-        // Value 블록 (30도, 동쪽 …) — Value 스프라이트 네이티브 사이즈
-        public const float ValueWidth  = 361f;
-        public const float ValueHeight = 101f;
-
-        // Command 블록 (태양광 패널의 각도 …) — Command 스프라이트 네이티브 사이즈
-        public const float CommandWidth  = 381f;
-        public const float CommandHeight = 121f;
-
         // 값 슬롯 없는 Command 블록 (개방하기 …) — CommandNoValue 스프라이트 네이티브 사이즈
         public const float CommandNoValueWidth  = 361f;
         public const float CommandNoValueHeight = 121f;
 
-        // FlowControl(반복/만약) — 원본 아트 254px 폭 기준 확대 배율.
+        // FlowControl(반복/만약) — 원본 아트 254px 폭 기준 확대 배율(폭 367 기준).
         // transform 스케일 대신 프레임 크기·9-slice 보더 두께·라벨 크기를 함께 키워
         // 내부 소켓에 연결되는 자식 블록 크기에는 영향을 주지 않는다
-        public const float FlowScale        = 367f / 254f; // 폭 367 기준
-        public const float FlowWidth        = 254f * FlowScale;
-        public const float FlowHeaderHeight = 78f * FlowScale;
-        public const float FlowElseHeight   = 44f * FlowScale;
-        public const float FlowFooterHeight = 83f * FlowScale;
+        private const float FlowScale     = 367f / 254f;
+        public const float FlowElseHeight = 44f * FlowScale;
 
         // FlowControl 내부 컨테이너 최소 높이 (내부 블록 0개일 때)
         public const float FlowInnerMinHeight = 44f;
 
-        // 반복하기(while) — while.png 네이티브 사이즈. 헤더/푸터 높이는 9-slice 보더와 일치해야 한다
-        // (아트 361x321: 헤더 0~120, 늘어나는 중단 121~199, 푸터 200~320)
-        public const float WhileWidth        = 361f;
-        public const float WhileHeaderHeight = 121f;
-        public const float WhileFooterHeight = 121f;
-
-        // 만약(if) — if.png 네이티브 사이즈 (아트 381x321: 헤더 0~120, 중단 121~199, 푸터 200~320).
-        // 헤더 우측에 조건 슬롯 탭이 있음. 하단 체인 탭 추가로 while과 동일한 헤더/푸터 높이
-        public const float IfWidth        = 381f;
-        public const float IfHeaderHeight = 121f;
-        public const float IfFooterHeight = 121f;
-
         // Logic(그리고/또는) 블록 확대 배율 — Logic는 네이티브 사이즈로 쓰므로 1
         public const float LogicScale = 1f;
-
-        // Condition(전기 과부하 등 ValueKind.None 조건) — Condition 네이티브 사이즈.
-        // Logic와 좌우 노치/탭 위치가 동일해 서로 어긋남 없이 체인된다
-        public const float ConditionWidth  = 381f;
-        public const float ConditionHeight = 101f;
-
-        // 함수 정의(FuncDef) — FuncBody 네이티브 사이즈 (아트 361x301: 헤더 0~120, 중단 121~199,
-        // 푸터 200~300). 체인에 연결되지 않는 독립 컨테이너라 상단 체인 노치·하단 체인 탭이 아트에 없어
-        // while보다 푸터가 20 짧다. 내부 소켓은 while과 동일 위치(중심 x=60, 폭 361)
-        public const float FuncBodyWidth        = 361f;
-        public const float FuncBodyHeaderHeight = 121f;
-        public const float FuncBodyFooterHeight = 101f;
 
         // 블록 라벨 텍스트 크기 (전 블록 공통 — 프리팹에도 같은 값이 베이크됨)
         public const float LabelFontSize = 34f;
@@ -356,8 +352,6 @@ public static class Constants
         // FlowControl 내부 (Inner 컨테이너 기준)
         public readonly static UnityEngine.Vector2 FlowInner       = new(-44f, 28f);
         public readonly static UnityEngine.Vector2 FlowInnerBottom = new(-44f, -46f);
-        // 실제 소스는 FlowControlBlock 프리팹의 Header_Flow/ValueOutSocket (여기는 기록용)
-        public readonly static UnityEngine.Vector2 FlowHeaderValueOut = new(-22f, 10f);
     }
 
     // ── 12. 카테고리(블록) 색상 — 카테고리 버튼 & 스프라이트 미지정 블록 대체색 ──
@@ -395,11 +389,6 @@ public static class Constants
         public const string CategoryButtonPrefab = "CategoryButton";
 
         // 스프라이트 — 프리팹 없이 코드로 조립하는 블록의 9-slice 아트
-        public const string StartSprite           = "Start";
-        public const string EndSprite             = "End";
-        public const string CommandSprite         = "Command";
-        public const string ValueSprite           = "Value";
-        public const string FlowControlSprite     = "FlowControl";
         public const string ConditionActionSprite = "ConditionAction";
         public const string ActionSprite          = "Action";
         public const string LogicSprite           = "Logic";
@@ -411,11 +400,9 @@ public static class Constants
     {
         public const string InnerPrefix  = "Inner";   // Inner / Inner_Else … FlowControl 내부 컨테이너
         public const string HeaderPrefix = "Header_"; // Header_반복하기 / Header_아니면 …
-        public const string Footer       = "Footer";
         public const string Label        = "Label";
         public const string Sprite       = "Sprite";
         public const string Fill         = "Fill";
-        public const string Background   = "Background"; // ㄷ자(FlowControl/FuncDef) 프리팹의 본체 이미지 — Sprite/Fill 대신 이 이름을 씀
         public const string EmptyIndicator = "EmptyIndicator";
 
         // 하이라이트 오버레이 — 렌더 순서상 블록 본체보다 앞(sibling 0~2)에 놓인다
@@ -484,22 +471,11 @@ public static class Constants
         public const float ControlBlockYInset = 120f;
     }
 
-    // ── 19. 레벨 이름 규칙 ─────────────────────────────────────────
-    // 레벨 종류는 LevelData.kind(Data.LevelKind)로 판별한다 — 여기에는 레벨 번호 파싱만 남는다
-    public static class Levels
+    // ── 19. 인트로 튜토리얼 ─────────────────────────────────────────
+    public static class TutorialMessages
     {
-        /// <summary>
-        /// LevelData 에셋 이름("02_WindData")의 앞자리 숫자를 레벨 번호(2)로 파싱한다.
-        /// Story/Hint 패널이 진행도가 아닌 실제 로드된 레벨을 기준으로 화면을 고를 때 사용한다.
-        /// </summary>
-        public static int ParseLevelNumber(string levelName)
-        {
-            if (string.IsNullOrEmpty(levelName)) return 0;
-
-            int underscoreIndex = levelName.IndexOf('_');
-            string prefix = underscoreIndex > 0 ? levelName.Substring(0, underscoreIndex) : levelName;
-            return int.TryParse(prefix, out int levelNumber) ? levelNumber : 0;
-        }
+        // 튜토리얼 페이지 표시 — {0} 지금 페이지, {1} 전체 장수
+        public const string PageFormat = "체험 방법({0}/{1})";
     }
 
     // ── 20. 타이틀 하단 안내 문구 ───────────────────────────────────
@@ -535,15 +511,15 @@ public static class Constants
     // ── 22. 관리자 페이지 (타이틀 좌상단 연속 터치 → 비밀번호 키패드) ──────
     public static class Admin
     {
-        // 비밀번호 JSON(StreamingAssets/Json/Admin.json) — 파일이 없거나 값이 잘못되면 기본 비밀번호를 쓴다
-        public const string SettingsFileName = "Admin";
+        // 비밀번호 JSON(SettingsFiles.Admin) — 파일이 없거나 값이 잘못되면 기본 비밀번호를 쓴다
         public const string DefaultPassword  = "0000";
 
         public const int PasswordMinLength = 4;
         public const int PasswordMaxLength = 6;
 
         public const string WrongPassword  = "비밀번호가 올바르지 않습니다.";
-        public const string PasswordLength = "비밀번호는 4~6자리입니다.";
+        public readonly static string PasswordLength =
+            "비밀번호는 " + PasswordMinLength + "~" + PasswordMaxLength + "자리입니다.";
 
         // 비밀번호 창 안내 — 확인 단계마다 바뀐다
         public const string PromptVerify     = "비밀번호를 입력하세요";
@@ -558,6 +534,9 @@ public static class Constants
         public const string ServerModeSet      = "서버 모드로 바꿨습니다. 관리자 화면을 닫으면 타이틀에 반영됩니다.";
         public const string VisitorNameChanged = "체험자 이름을 변경했습니다.";
 
+        // 로컬 모드 체험자 이름 기본값 — 관리자 페이지에서 바꾸기 전이나 이름이 비었을 때
+        public const string DefaultVisitorName = "체험자";
+
         // 체험자 이름 최대 글자 수 — 인트로·아웃트로 문장 안에 들어가므로 한 줄을 넘지 않게 제한한다
         public const int VisitorNameMaxLength = 8;
     }
@@ -566,8 +545,7 @@ public static class Constants
     // 서버는 현장 내부망에 있다. 응답은 JSON이 아닌 평문이다.
     public static class VisitorApi
     {
-        // 서버 주소 JSON(StreamingAssets/Json/Server.json)
-        public const string SettingsFileName = "Server";
+        // 서버 주소 JSON은 SettingsFiles.Server
 
         // 요청 실패(연결 실패·시간 초과·HTTP 오류) 시 응답 대기 시간(초)과 최대 시도 횟수(첫 시도 포함).
         // 결과 업로드(updateValue)는 화면을 막지 않아 넉넉히, 타이틀 QR 확인(checkActive·getUser)은 체험자가 화면 앞에서

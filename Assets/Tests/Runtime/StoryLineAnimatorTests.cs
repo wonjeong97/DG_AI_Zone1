@@ -73,11 +73,32 @@ namespace DG.Zone1.Tests
             await UniTask.Delay(TimeSpan.FromSeconds(0.6f), DelayType.UnscaledDeltaTime);
             (byte alpha, float y) = ReadFirstChar();
             cts.Cancel();
-            try { await anim; } catch (OperationCanceledException) { }
+            try { await anim.AwaitWithRealtimeTimeout(); } catch (OperationCanceledException) { }
 
             Assert.Greater(alpha, 0, "연출 도중인데 줄이 여전히 완전히 투명함 — 보간이 적용되지 않음");
             Assert.Less(alpha, 255, "연출 도중인데 줄이 이미 완전히 불투명함 — 한 번에 나타남");
             Assert.Less(y, finalY - 0.5f, "연출 도중인데 줄이 이미 최종 위치에 있음 — 아래에서 올라오지 않음");
+        });
+
+        /// <summary>
+        /// 줄과 줄 사이를 기다리는 동안 들어온 스킵도 받아 남은 줄이 즉시 표시된다.
+        /// 회귀: 줄 사이 대기를 고정 Delay로 기다려, 그 사이(연출 시간의 1/3쯤)에 누른 터치가 버려졌다.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator 줄_사이_대기_중에_스킵해도_남은_줄이_즉시_표시된다() => UniTask.ToCoroutine(async () =>
+        {
+            // 첫 줄은 곧바로 다 올라오고, 그 뒤 10초 대기 구간에서 스킵을 누른다
+            bool skipNow = false;
+            UniTask anim = StoryLineAnimator.AnimateAsync(_text, 0.05f, 10f, 20f, () => skipNow, CancellationToken.None);
+
+            await UniTask.Delay(TimeSpan.FromSeconds(0.3f), DelayType.UnscaledDeltaTime);
+            skipNow = true;
+            await anim.AwaitWithRealtimeTimeout();
+
+            TMP_TextInfo info = _text.textInfo;
+            TMP_CharacterInfo last = info.characterInfo[info.lineInfo[info.lineCount - 1].firstCharacterIndex];
+            Assert.AreEqual(255, info.meshInfo[last.materialReferenceIndex].colors32[last.vertexIndex].a,
+                "줄 사이 대기 중 스킵했는데 마지막 줄이 보이지 않음");
         });
 
         /// <summary>

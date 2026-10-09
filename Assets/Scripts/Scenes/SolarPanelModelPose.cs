@@ -1,7 +1,10 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
+using Microsoft.Extensions.Logging;
 using UnityEngine;
+using VContainer;
+using ZLogger;
 
 namespace Scenes
 {
@@ -37,6 +40,13 @@ namespace Scenes
         private bool _yawRestCaptured;
         private float _currentYaw;
         private float _currentTilt;
+        private ILogger<SolarPanelModelPose> _logger;
+
+        /// <summary>
+        /// 로거를 주입받는다 (결과 씬을 불러올 때 GameLifetimeScope가 주입).
+        /// </summary>
+        [Inject]
+        public void Construct(ILogger<SolarPanelModelPose> logger) => _logger = logger;
 
         /// <summary>
         /// 방향 피벗의 원래 회전값을 기록한다.
@@ -44,6 +54,16 @@ namespace Scenes
         private void Awake()
         {
             CaptureYawRest();
+        }
+
+        /// <summary>
+        /// 연출에 필요한 피벗이 빠져 있으면 경고한다 (주입은 Awake 뒤라 Start에서 남긴다).
+        /// </summary>
+        private void Start()
+        {
+            if (_logger == null) return;
+            if (!yawPivot) _logger.ZLogWarning($"[SolarPanelModelPose] {name}에 yawPivot이 할당되지 않아 패널 방향이 바뀌지 않습니다.");
+            if (!tiltPivot) _logger.ZLogWarning($"[SolarPanelModelPose] {name}에 tiltPivot이 할당되지 않아 패널 기울기가 바뀌지 않습니다.");
         }
 
         /// <summary>

@@ -12,12 +12,12 @@ namespace Data
         public int executeStepDelayMs = 200;
 
         // 컴파일 성공 파도타기 — 시작하기~완성하기 순서로 블록마다 이 간격(ms)만큼 지연 후 초록 페이드인
-        public int successWaveStepMs = 120;
-        public float successWaveFadeInDuration = 0.18f;
+        public int successWaveStepMs = Constants.HighlightSettings.SuccessWaveStepMs;
+        public float successWaveFadeInDuration = Constants.HighlightSettings.SuccessWaveFadeInDuration;
 
         // 컴파일 실패 깜빡임 — 완전 채도 빨간색으로 N회 깜빡인 뒤 기본 에러 하이라이트로 정착
-        public int errorBlinkCount = 2;
-        public float errorBlinkHalfDuration = 0.22f;
+        public int errorBlinkCount = Constants.HighlightSettings.ErrorBlinkCount;
+        public float errorBlinkHalfDuration = Constants.HighlightSettings.ErrorBlinkHalfDuration;
 
         // 블록 스냅 판정 반경(px) — 터치 스크린 감도에 맞춰 조정
         public float snapRadius = 120f;

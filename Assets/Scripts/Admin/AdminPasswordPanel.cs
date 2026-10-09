@@ -1,6 +1,5 @@
 using System;
 using System.Threading;
-using Cysharp.Text;
 using Cysharp.Threading.Tasks;
 using Data;
 using Microsoft.Extensions.Logging;
@@ -49,13 +48,13 @@ namespace Admin
         // 자릿수별 표시 문자열 — 키를 누를 때마다 문자열을 새로 만들지 않도록 미리 만들어 둔다
         private readonly static string[] MaskTexts = CreateMaskTexts();
 
-        private readonly static string SettingsPath =
-            ZString.Concat(Constants.ResourcePaths.SceneSettingsFolder, "/", Constants.Admin.SettingsFileName);
-
         private readonly PasswordInput _input = new();
+        private readonly IdleCloseTimer _idleTimer = new();
         private UnityAction[] _digitActions;
         private string _password = Constants.Admin.DefaultPassword;
-        private float _lastInputTime;
+
+        // 창을 열 때 Admin.json을 다시 읽는 중에는 확인을 받지 않는다 — 읽기 전 기본 비밀번호가 통과하지 않도록
+        private bool _isPasswordLoaded;
         private Step _step;
         private string _newPassword;
 
@@ -77,19 +76,10 @@ namespace Admin
         /// </summary>
         private void Awake()
         {
-            _digitActions = new UnityAction[digitButtons.Length];
-            for (int i = 0; i < digitButtons.Length; i++)
+            _digitActions = IndexedButtons.Bind(digitButtons, OnDigitClicked, digit =>
             {
-                if (!digitButtons[i])
-                {
-                    if (_logger != null) _logger.ZLogWarning($"[AdminPasswordPanel] 숫자 {i} 버튼이 할당되지 않았습니다.");
-                    continue;
-                }
-
-                int digit = i;
-                _digitActions[i] = () => OnDigitClicked(digit);
-                digitButtons[i].onClick.AddListener(_digitActions[i]);
-            }
+                if (_logger != null) _logger.ZLogWarning($"[AdminPasswordPanel] 숫자 {digit} 버튼이 할당되지 않았습니다.");
+            });
 
             if (confirmButton) confirmButton.onClick.AddListener(OnConfirmClicked);
             else if (_logger != null) _logger.ZLogWarning($"[AdminPasswordPanel] confirmButton이 할당되지 않았습니다.");
@@ -106,9 +96,7 @@ namespace Admin
         /// </summary>
         private void OnDestroy()
         {
-            if (_digitActions != null)
-                for (int i = 0; i < digitButtons.Length; i++)
-                    if (digitButtons[i] && _digitActions[i] != null) digitButtons[i].onClick.RemoveListener(_digitActions[i]);
+            IndexedButtons.Unbind(digitButtons, _digitActions);
 
             if (confirmButton) confirmButton.onClick.RemoveListener(OnConfirmClicked);
             if (backspaceButton) backspaceButton.onClick.RemoveListener(OnBackspaceClicked);
@@ -120,6 +108,7 @@ namespace Admin
         /// </summary>
         public void Open()
         {
+            _isPasswordLoaded = false;
             OpenAt(Step.Verify);
             LoadPasswordAsync(destroyCancellationToken).Forget();
         }
@@ -149,7 +138,7 @@ namespace Admin
         {
             _newPassword = null;
             ShowStep(step);
-            _lastInputTime = Time.unscaledTime;
+            _idleTimer.Restart();
             gameObject.SetActive(true);
         }
 
@@ -158,7 +147,7 @@ namespace Admin
         /// </summary>
         private void Update()
         {
-            if (Time.unscaledTime - _lastInputTime >= idleTimeout)
+            if (_idleTimer.HasExpired(idleTimeout))
             {
                 if (_logger != null) _logger.ZLogInformation($"[AdminPasswordPanel] {idleTimeout}초 동안 입력이 없어 비밀번호 창을 닫습니다.");
                 Close();
@@ -172,16 +161,19 @@ namespace Admin
         {
             try
             {
-                AdminSettings settings = await JsonLoader.LoadAsync<AdminSettings>(SettingsPath, ct, _logger);
+                AdminSettings settings = await JsonLoader.LoadAsync<AdminSettings>(Constants.SettingsFiles.Admin, ct, _logger);
 
                 if (PasswordInput.IsValidPassword(settings.password))
                 {
                     _password = settings.password;
-                    return;
+                }
+                else
+                {
+                    if (_logger != null) _logger.ZLogWarning($"[AdminPasswordPanel] Admin.json의 비밀번호가 숫자 {Constants.Admin.PasswordMinLength}~{Constants.Admin.PasswordMaxLength}자리가 아니어서 기본 비밀번호를 사용합니다.");
+                    _password = Constants.Admin.DefaultPassword;
                 }
 
-                if (_logger != null) _logger.ZLogWarning($"[AdminPasswordPanel] Admin.json의 비밀번호가 숫자 {Constants.Admin.PasswordMinLength}~{Constants.Admin.PasswordMaxLength}자리가 아니어서 기본 비밀번호를 사용합니다.");
-                _password = Constants.Admin.DefaultPassword;
+                _isPasswordLoaded = true;
             }
             catch (OperationCanceledException)
             {
@@ -246,6 +238,12 @@ namespace Admin
         /// </summary>
         private void ConfirmVerify()
         {
+            if (!_isPasswordLoaded)
+            {
+                if (_logger != null) _logger.ZLogInformation($"[AdminPasswordPanel] 비밀번호를 아직 읽는 중이라 확인을 받지 않았습니다.");
+                return;
+            }
+
             if (!_input.Matches(_password))
             {
                 if (_logger != null) _logger.ZLogInformation($"[AdminPasswordPanel] 관리자 비밀번호가 틀렸습니다.");
@@ -285,8 +283,8 @@ namespace Admin
         {
             try
             {
-                await JsonLoader.SaveAsync(SettingsPath, new AdminSettings { password = newPassword }, ct, _logger);
-                AdminSettings saved = await JsonLoader.LoadAsync<AdminSettings>(SettingsPath, ct, _logger);
+                await JsonLoader.SaveAsync(Constants.SettingsFiles.Admin, new AdminSettings { password = newPassword }, ct, _logger);
+                AdminSettings saved = await JsonLoader.LoadAsync<AdminSettings>(Constants.SettingsFiles.Admin, ct, _logger);
 
                 // 파일 입출력 뒤 관리자 화면 UI를 고치므로 메인 스레드로 돌아온다
                 await UniTask.SwitchToMainThread(ct);
@@ -299,6 +297,7 @@ namespace Admin
                 }
 
                 if (adminPanel) adminPanel.ShowStatus(isSaved ? Constants.Admin.PasswordChanged : Constants.Admin.PasswordSaveFailed);
+                else if (_logger != null) _logger.ZLogWarning($"[AdminPasswordPanel] adminPanel이 할당되지 않아 비밀번호 저장 결과를 관리자 화면에 알리지 못했습니다.");
             }
             catch (OperationCanceledException)
             {
@@ -316,11 +315,10 @@ namespace Admin
         }
 
         /// <summary>
-        /// 키 입력 효과음을 내고 무입력 시간을 처음부터 다시 잰다.
+        /// 키 입력 효과음을 낸다 (무입력 시간은 IdleCloseTimer가 누르기 입력으로 다시 잰다).
         /// </summary>
         private void RegisterKeyPress()
         {
-            _lastInputTime = Time.unscaledTime;
             if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
         }
 
@@ -345,7 +343,12 @@ namespace Admin
             RefreshMasked();
             SetMessage(string.Empty);
 
-            if (!promptText) return;
+            if (!promptText)
+            {
+                if (_logger != null) _logger.ZLogWarning($"[AdminPasswordPanel] promptText가 할당되지 않아 입력 단계 안내를 표시하지 못했습니다.");
+                return;
+            }
+
             promptText.text = step switch
             {
                 Step.EnterNew => Constants.Admin.PromptNew,

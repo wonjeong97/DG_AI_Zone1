@@ -24,10 +24,32 @@ namespace Scenes
         }
 
         /// <summary>
+        /// 연출을 시작하기 전까지 전체 텍스트가 잠깐 보이지 않도록 글자를 모두 숨겨 둔다.
+        /// </summary>
+        public static void HideBeforeAnimate(TMP_Text text)
+        {
+            if (!text) return;
+            text.ForceMeshUpdate();
+            text.maxVisibleCharacters = 0;
+        }
+
+        /// <summary>
+        /// 00_Common.json의 줄 연출 설정(이동 시간·간격·오프셋)으로, 화면을 누르면 스킵되는 AnimateAsync를 실행한다.
+        /// </summary>
+        public static async UniTask AnimateWithCommonSettingsAsync(TMP_Text text, CancellationToken token,
+            InactivityTimer inactivityTimer = null, Microsoft.Extensions.Logging.ILogger logger = null)
+        {
+            (float moveDuration, float interval, float yOffset) = await SceneFader.GetStoryLineSettingsAsync();
+            await AnimateAsync(text, moveDuration, interval, yOffset, IsPointerPressedThisFrame, token, inactivityTimer, logger);
+        }
+
+        /// <summary>
         /// text의 각 줄을 아래에서 위로 올리며 순차적으로 페이드인한다. 보이는 문자가 없는 줄(간격용 빈 줄)은
         /// 연출과 대기 없이 즉시 통과하고, skipRequested가 true를 반환하면 남은 줄까지 즉시 표시하고 종료한다.
         /// inactivityTimer를 넘기면 연출이 진행되는 동안 비활동 타이머를 멈춘다 — 입력이 없어도 사용자는
-        /// 글을 읽고 있는 구간이라 타임아웃으로 타이틀에 튕기면 안 되며, 스킵이나 취소로 빠져나가도 반드시 재개한다.
+        /// 글을 읽고 있는 구간이라 타임아웃으로 타이틀에 튕기면 안 되며, 끝나거나 스킵하면 다시 켠다.
+        /// 씬을 떠나 취소된 경우에는 다음 씬을 불러올 때 GameManager가 타이머 상태를 정하므로 건드리지 않는다
+        /// (늦게 켜면 타이머를 멈춰 두는 타이틀에서 타이머가 돈다).
         /// 정적 유틸리티라 호출부의 logger로 로그를 남기고, logger가 없을 때만 Unity 콘솔로 대체 출력한다.
         /// </summary>
         public static async UniTask AnimateAsync(TMP_Text text, float lineMoveDuration, float lineInterval, float lineYOffset,
@@ -48,7 +70,7 @@ namespace Scenes
             }
             finally
             {
-                if (inactivityTimer) inactivityTimer.Resume();
+                if (inactivityTimer && !token.IsCancellationRequested) inactivityTimer.Resume();
             }
         }
 
@@ -57,7 +79,6 @@ namespace Scenes
         /// </summary>
         private static async UniTask AnimateLinesAsync(TMP_Text text, float lineMoveDuration, float lineInterval, float lineYOffset, Func<bool> skipRequested, CancellationToken token)
         {
-
             // 호출부에서 미리 숨겨 둔 경우(maxVisibleCharacters=0)를 대비해 전체 노출로 되돌린 뒤 메쉬를 갱신함
             text.maxVisibleCharacters = int.MaxValue;
 
@@ -135,9 +156,7 @@ namespace Scenes
                 text.UpdateVertexData(TMP_VertexDataUpdateFlags.Vertices | TMP_VertexDataUpdateFlags.Colors32);
 
                 if (!skipped && l < totalLines - 1)
-                {
-                    await UniTask.Delay(TimeSpan.FromSeconds(lineInterval), cancellationToken: token);
-                }
+                    skipped = await WaitIntervalOrSkipAsync(lineInterval, skipRequested, token);
             }
 
             // 완료 또는 스킵 시 전체를 자연 상태(전체 표시/불투명)로 확정함
@@ -146,6 +165,22 @@ namespace Scenes
                 text.color = new Color(baseColor.r, baseColor.g, baseColor.b, 1f);
                 text.ForceMeshUpdate();
             }
+        }
+
+        /// <summary>
+        /// 줄 사이 간격만큼 기다리되, 그 사이에 스킵 입력이 들어오면 바로 true를 반환한다.
+        /// 고정 Delay로 기다리면 연출 시간의 1/3쯤 되는 이 구간의 터치가 버려진다.
+        /// </summary>
+        private static async UniTask<bool> WaitIntervalOrSkipAsync(float seconds, Func<bool> skipRequested, CancellationToken token)
+        {
+            // 00_Common.json에 음수를 적어도 예외 없이 바로 다음 줄로 넘어간다
+            float endTime = Time.time + Mathf.Max(0f, seconds);
+            while (Time.time < endTime)
+            {
+                await UniTask.Yield(PlayerLoopTiming.Update, token);
+                if (skipRequested != null && skipRequested()) return true;
+            }
+            return false;
         }
 
         /// <summary>

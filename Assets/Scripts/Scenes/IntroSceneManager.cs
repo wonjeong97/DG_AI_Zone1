@@ -1,5 +1,4 @@
 using App;
-using Cysharp.Text;
 using Cysharp.Threading.Tasks;
 using TMPro;
 using UnityEngine;
@@ -14,8 +13,6 @@ namespace Scenes
 {
     public class IntroSceneManager : MonoBehaviour
     {
-        private const string VisitorNamePlaceholder = "{name}";
-
         [SerializeField] private CanvasGroup introPanel;
         [SerializeField] private CanvasGroup tutorialPanel;
         [SerializeField] private TutorialImageSlider tutorialSlider;
@@ -31,7 +28,6 @@ namespace Scenes
         // 연출을 스킵한 그 터치가 곧바로 패널 전환까지 일으키지 않도록 허용된 프레임은 건너뛴다.
         private bool _introTapEnabled;
         private int _introTapEnabledFrame;
-        private bool _isLoadingStory;
 
         /// <summary>
         /// 로거, 체험자 정보 제공자, 비활동 타이머, 사운드 매니저를 주입받는다.
@@ -51,6 +47,9 @@ namespace Scenes
         /// </summary>
         private void Start()
         {
+            if (_logger == null)
+                Debug.LogError("[IntroSceneManager] Dependencies were not injected. Check that GameLifetimeScope injects scene root objects on load.");
+
             if (!introPanel && _logger != null) _logger.ZLogWarning($"[IntroSceneManager] introPanel이 할당되지 않았습니다.");
             if (!tutorialPanel && _logger != null) _logger.ZLogWarning($"[IntroSceneManager] tutorialPanel이 할당되지 않았습니다.");
             if (!visitorNameText && _logger != null) _logger.ZLogWarning($"[IntroSceneManager] visitorNameText가 할당되지 않았습니다.");
@@ -79,30 +78,14 @@ namespace Scenes
                 // visitorNameText 누락은 Start에서 이미 경고했다 — 연출 없이 화면 터치만 열어 준다
                 if (!visitorNameText) return;
 
-                // 연출 시작 전까지 전체 텍스트가 잠깐 보이지 않도록 미리 숨겨 둠
-                visitorNameText.ForceMeshUpdate();
-                visitorNameText.maxVisibleCharacters = 0;
+                StoryLineAnimator.HideBeforeAnimate(visitorNameText);
 
                 if (_visitorInfoProvider != null)
-                {
-                    string visitorName = await _visitorInfoProvider.GetNameAsync(ct);
-
-                    using (Utf16ValueStringBuilder sb = ZString.CreateStringBuilder())
-                    {
-                        sb.Append(visitorNameText.text);
-                        sb.Replace(VisitorNamePlaceholder, visitorName);
-                        visitorNameText.text = sb.ToString();
-                    }
-                }
+                    visitorNameText.text = _visitorInfoProvider.FillName(visitorNameText.text);
                 else if (_logger != null)
-                {
                     _logger.ZLogWarning($"[IntroSceneManager] VisitorInfoProvider가 주입되지 않아 이름을 치환하지 않습니다.");
-                }
 
-                (float moveDuration, float interval, float yOffset) = await SceneFader.GetStoryLineSettingsAsync();
-                await StoryLineAnimator.AnimateAsync(visitorNameText,
-                    moveDuration, interval, yOffset,
-                    StoryLineAnimator.IsPointerPressedThisFrame, ct, _inactivityTimer, _logger);
+                await StoryLineAnimator.AnimateWithCommonSettingsAsync(visitorNameText, ct, _inactivityTimer, _logger);
             }
             catch (System.OperationCanceledException)
             {
@@ -156,12 +139,10 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 튜토리얼 마지막 페이지에서 다음으로 넘기면 스토리 씬으로 넘어간다 (연타로 중복 로드되지 않게 한 번만).
+        /// 튜토리얼 마지막 페이지에서 다음으로 넘기면 스토리 씬으로 넘어간다 (연타는 SceneFader가 씬 전환 중이면 무시한다).
         /// </summary>
         private void OnTutorialFinished()
         {
-            if (_isLoadingStory) return;
-            _isLoadingStory = true;
             SceneFader.FadeAndLoad(Constants.Scenes.Story, logger: _logger).Forget();
         }
     }

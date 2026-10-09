@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Text;
 using Cysharp.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
@@ -40,10 +42,18 @@ namespace Game
         private static GameObject _buttonPrefab;
         private readonly List<(BlockCategory cat, Image fillImg, TMPro.TextMeshProUGUI labelText)> _buttons = new();
 
+        // 탭 버튼 그리드 — 2열, 셀 180×52(라벨 폭 128 + 아이콘), 2열 총폭이 블록 고르기 패널 안에 들어가는 간격
+        private readonly static Vector2 GridCellSize = new(180f, 52f);
+        private readonly static Vector2 GridSpacing = new(32f, 12f);
+        private const int GridColumnCount = 2;
+
+        // 고르지 않은 탭은 버튼 색을 이만큼 어둡게, 라벨은 이만큼 흐리게 보인다
+        private const float UnselectedDim = 0.55f;
+
         /// <summary>
         /// 인벤토리에 존재하는 카테고리 순서대로 버튼을 생성한 뒤 첫 카테고리를 활성화한다.
         /// </summary>
-        public async UniTask Build(IReadOnlyList<BlockCategory> categories)
+        public async UniTask Build(IReadOnlyList<BlockCategory> categories, CancellationToken ct)
         {
             if (_resolver == null)
             {
@@ -51,16 +61,16 @@ namespace Game
                 return;
             }
 
-            // 3x2 그리드 레이아웃 — GridLayoutGroup은 buttonContainer에 미리 붙여둔 상태, 값만 코드로 강제한다
-            if (!buttonContainer.TryGetComponent<GridLayoutGroup>(out GridLayoutGroup grid))
+            // 2열 그리드 레이아웃 — GridLayoutGroup은 buttonContainer에 미리 붙여둔 상태, 값만 코드로 강제한다
+            if (!buttonContainer || !buttonContainer.TryGetComponent<GridLayoutGroup>(out GridLayoutGroup grid))
             {
-                if (_logger != null) _logger.ZLogWarning($"[CategoryZone] buttonContainer에 GridLayoutGroup이 없습니다.");
+                if (_logger != null) _logger.ZLogWarning($"[CategoryZone] buttonContainer가 없거나 GridLayoutGroup이 없어 카테고리 탭을 만들지 않습니다.");
                 return;
             }
-            grid.cellSize = new Vector2(180f, 52f);
-            grid.spacing = new Vector2(32f, 12f);
+            grid.cellSize = GridCellSize;
+            grid.spacing = GridSpacing;
             grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-            grid.constraintCount = 2;
+            grid.constraintCount = GridColumnCount;
             grid.padding = new RectOffset(8, 8, 4, 4);
 
             for (int i = buttonContainer.childCount - 1; i >= 0; i--)
@@ -70,6 +80,8 @@ namespace Game
             if (!_buttonPrefab)
             {
                 _buttonPrefab = await Addressables.LoadAssetAsync<GameObject>(Constants.BlockAssets.CategoryButtonPrefab);
+                // 로드를 기다리는 동안 씬을 떠났으면 버튼을 만들지 않는다
+                ct.ThrowIfCancellationRequested();
             }
 
             foreach (BlockCategory cat in categories)
@@ -90,9 +102,16 @@ namespace Game
         {
             cat = BlockFactory.GetTabCategory(cat);
             CurrentCategory = cat;
-            foreach (Transform child in inventoryContent)
-                if (child.TryGetComponent<CodingBlock>(out CodingBlock block))
-                    child.gameObject.SetActive(BlockFactory.GetTabCategory(block.Category) == cat);
+            if (inventoryContent)
+            {
+                foreach (Transform child in inventoryContent)
+                    if (child.TryGetComponent<CodingBlock>(out CodingBlock block))
+                        child.gameObject.SetActive(BlockFactory.GetTabCategory(block.Category) == cat);
+            }
+            else if (_logger != null)
+            {
+                _logger.ZLogWarning($"[CategoryZone] inventoryContent가 연결되지 않아 탭에 맞는 블록만 보여 줄 수 없습니다.");
+            }
 
             // 스크롤이 내려간 상태에서 콘텐츠가 짧은 카테고리로 바뀌면 Content가 범위 밖에 남아
             // 스크롤바 핸들 크기가 0으로 계산되므로, 전환 시 레이아웃 갱신 후 맨 위로 리셋
@@ -112,7 +131,7 @@ namespace Game
                 if (fillImg)
                     fillImg.color = Tint(BlockFactory.GetColor(c), selected);
                 if (labelText)
-                    labelText.color = selected ? Color.white : new Color(1f, 1f, 1f, 0.55f);
+                    labelText.color = selected ? Color.white : new Color(1f, 1f, 1f, UnselectedDim);
             }
         }
 
@@ -120,7 +139,7 @@ namespace Game
         /// 선택된 버튼은 원색, 비선택 버튼은 어둡게 만든 색을 반환한다.
         /// </summary>
         private static Color Tint(Color baseColor, bool selected)
-            => selected ? baseColor : baseColor * 0.55f;
+            => selected ? baseColor : baseColor * UnselectedDim;
 
         /// <summary>
         /// 카테고리 버튼 프리팹을 생성해 라벨·색·클릭 동작을 설정하고 채움 이미지와 라벨을 반환한다.
@@ -128,7 +147,7 @@ namespace Game
         private (Image fillImg, TMPro.TextMeshProUGUI labelText) CreateButton(BlockCategory cat)
         {
             GameObject go = _resolver.Instantiate(_buttonPrefab, buttonContainer, false);
-            go.name = cat + "Button";
+            go.name = ZString.Concat(cat, "Button");
 
             Image fillImg = null;
             TMPro.TextMeshProUGUI labelText = null;
@@ -148,6 +167,10 @@ namespace Game
                         if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
                         Select(captured);
                     });
+                }
+                else if (_logger != null)
+                {
+                    _logger.ZLogWarning($"[CategoryZone] {cat} 탭 버튼의 CategoryButtonUI에 Button이 연결되지 않아 누를 수 없습니다.");
                 }
             }
             else if (_logger != null)

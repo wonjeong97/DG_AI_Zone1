@@ -24,6 +24,8 @@ namespace Admin
         [SerializeField] private Button closeButton;
         [Tooltip("Shift가 켜져 있는 동안 Shift 키 배경색")]
         [SerializeField] private Color shiftPressedColor = new(0.55f, 0.7f, 0.95f, 1f);
+        [Tooltip("이 시간(초) 동안 입력이 없으면 저장하지 않고 창을 닫는다")]
+        [SerializeField, Min(1f)] private float idleTimeout = 60f;
 
         private const string ShiftKey    = "Button_shift";
         private const string DeleteKey   = "Button_delete";
@@ -65,7 +67,12 @@ namespace Admin
             Lock
         }
 
+        // 키에 보이는 글자 문자열 캐시 — 자판·Shift를 바꿀 때마다 키 26개의 문자열을 새로 만들지 않는다.
+        // 같은 문자열 인스턴스를 넣으면 TMP도 텍스트가 같다고 보고 메시를 다시 만들지 않는다
+        private readonly static Dictionary<char, string> LabelStrings = new();
+
         private readonly HangulComposer _composer = new();
+        private readonly IdleCloseTimer _idleTimer = new();
         private readonly Dictionary<string, TMP_Text> _keyLabels = new();
         private Image _shiftButtonImage;
         private Color _shiftNormalColor;
@@ -130,6 +137,7 @@ namespace Admin
             _onSaved = onSaved;
             _isEnglish = false;
             gameObject.SetActive(true);
+            _idleTimer.Restart();
             ClearInput();
         }
 
@@ -143,10 +151,18 @@ namespace Admin
         }
 
         /// <summary>
-        /// 지우기 키를 정해진 시간 이상 누르고 있으면 입력 전체를 지운다 (창이 열려 있을 때만 실행됨).
+        /// 입력 없이 정해진 시간이 지나면 저장하지 않고 창을 닫고, 지우기 키를 정해진 시간 이상 누르고 있으면 입력 전체를 지운다
+        /// (창이 열려 있을 때만 실행됨).
         /// </summary>
         private void Update()
         {
+            if (_idleTimer.HasExpired(idleTimeout))
+            {
+                if (_logger != null) _logger.ZLogInformation($"[VisitorNamePanel] {idleTimeout}초 동안 입력이 없어 이름 입력 창을 닫습니다.");
+                Close();
+                return;
+            }
+
             if (_deletePressTime < 0f || Time.unscaledTime - _deletePressTime < DeleteHoldSeconds) return;
 
             _deletePressTime = -1f;
@@ -160,6 +176,7 @@ namespace Admin
         private void OnDisable()
         {
             _deletePressTime = -1f;
+            _deleteHoldTriggered = false;
         }
 
         /// <summary>
@@ -168,58 +185,112 @@ namespace Admin
         /// </summary>
         private void BlockInputFieldPointerInput()
         {
-            foreach (Graphic graphic in inputField.GetComponentsInChildren<Graphic>(true))
+            List<Graphic> graphics = new List<Graphic>();
+            CollectInHierarchy(inputField.transform, graphics);
+            foreach (Graphic graphic in graphics)
                 graphic.raycastTarget = false;
         }
 
         /// <summary>
-        /// keyboardRoot 아래 버튼을 이름으로 찾아 각 역할에 맞는 동작을 연결한다.
+        /// 부모 아래 계층을 직계 자식부터 차례로 내려가며 지정 컴포넌트를 모은다 (꺼진 오브젝트 포함).
+        /// 화면 키보드는 줄·키 묶음으로 깊이가 섞여 있고 키마다 이름으로 역할이 정해져 있어,
+        /// 인스펙터에 수십 개 키를 하나씩 연결하는 대신 계층을 직접 순회해 이름으로 고른다 — 빠진 키는 BindKeys가 경고한다.
+        /// </summary>
+        private static void CollectInHierarchy<T>(Transform parent, List<T> into) where T : Component
+        {
+            if (parent.TryGetComponent(out T own)) into.Add(own);
+            foreach (Transform child in parent)
+                CollectInHierarchy(child, into);
+        }
+
+        /// <summary>
+        /// keyboardRoot 아래 버튼을 이름으로 찾아 각 역할에 맞는 동작을 연결하고, 찾지 못한 키를 경고한다.
         /// </summary>
         private void BindKeys()
         {
-            foreach (Button button in keyboardRoot.GetComponentsInChildren<Button>(true))
+            List<Button> buttons = new List<Button>();
+            CollectInHierarchy(keyboardRoot, buttons);
+
+            HashSet<string> boundKeys = new HashSet<string>();
+            foreach (Button button in buttons)
             {
                 string keyName = button.name;
-
-                if (BaseMap.ContainsKey(keyName))
-                {
-                    button.onClick.AddListener(() => OnLetterPressed(keyName));
-
-                    TMP_Text label = button.GetComponentInChildren<TMP_Text>(true);
-                    if (label) _keyLabels[keyName] = label;
-                }
-                else if (NumberMap.TryGetValue(keyName, out char number))
-                {
-                    button.onClick.AddListener(() => OnRawPressed(number));
-                }
-                else if (keyName == ShiftKey)
-                {
-                    button.onClick.AddListener(OnShiftPressed);
-
-                    _shiftButtonImage = button.image;
-                    if (_shiftButtonImage) _shiftNormalColor = _shiftButtonImage.color;
-                    else if (_logger != null) _logger.ZLogWarning($"[VisitorNamePanel] Shift 키에 Image가 없어 눌림 표시를 바꿀 수 없습니다.");
-                }
-                else if (keyName == DeleteKey)
-                {
-                    BindDeleteHold(button);
-                    continue;
-                }
-                else if (keyName == LanguageKey)
-                {
-                    button.onClick.AddListener(OnLangPressed);
-                }
-                else if (keyName == SpaceKey)
-                {
-                    button.onClick.AddListener(() => OnRawPressed(' '));
-                }
-                else
-                {
-                    continue;
-                }
-
-                button.onClick.AddListener(OnKeyClicked);
+                if (BindKey(button, keyName)) boundKeys.Add(keyName);
             }
+
+            WarnMissingKeys(boundKeys);
+        }
+
+        /// <summary>
+        /// 키 버튼 하나에 이름에 맞는 동작을 연결한다. 알 수 없는 이름이면 false.
+        /// </summary>
+        private bool BindKey(Button button, string keyName)
+        {
+            if (BaseMap.ContainsKey(keyName))
+            {
+                button.onClick.AddListener(() => OnLetterPressed(keyName));
+
+                TMP_Text label = FindLabel(button.transform);
+                if (label) _keyLabels[keyName] = label;
+                else if (_logger != null) _logger.ZLogWarning($"[VisitorNamePanel] {keyName} 키에 글자 TMP가 없어 자판을 바꿔도 글자가 바뀌지 않습니다.");
+            }
+            else if (NumberMap.TryGetValue(keyName, out char number))
+            {
+                button.onClick.AddListener(() => OnRawPressed(number));
+            }
+            else if (keyName == ShiftKey)
+            {
+                button.onClick.AddListener(OnShiftPressed);
+
+                _shiftButtonImage = button.image;
+                if (_shiftButtonImage) _shiftNormalColor = _shiftButtonImage.color;
+                else if (_logger != null) _logger.ZLogWarning($"[VisitorNamePanel] Shift 키에 Image가 없어 눌림 표시를 바꿀 수 없습니다.");
+            }
+            else if (keyName == DeleteKey)
+            {
+                BindDeleteHold(button);
+                return true;
+            }
+            else if (keyName == LanguageKey)
+            {
+                button.onClick.AddListener(OnLangPressed);
+            }
+            else if (keyName == SpaceKey)
+            {
+                button.onClick.AddListener(() => OnRawPressed(' '));
+            }
+            else
+            {
+                return false;
+            }
+
+            button.onClick.AddListener(OnKeyClicked);
+            return true;
+        }
+
+        /// <summary>
+        /// 키 버튼 아래에서 글자를 보여 주는 TMP를 찾는다 (없으면 null).
+        /// </summary>
+        private static TMP_Text FindLabel(Transform keyButton)
+        {
+            List<TMP_Text> labels = new List<TMP_Text>();
+            CollectInHierarchy(keyButton, labels);
+            return labels.Count > 0 ? labels[0] : null;
+        }
+
+        /// <summary>
+        /// 화면 키보드에 있어야 하는 키 중 찾지 못한 것을 경고한다 — 키 이름을 바꾸면 그 키가 조용히 동작하지 않기 때문이다.
+        /// </summary>
+        private void WarnMissingKeys(HashSet<string> boundKeys)
+        {
+            if (_logger == null) return;
+
+            foreach (string key in BaseMap.Keys)
+                if (!boundKeys.Contains(key)) _logger.ZLogWarning($"[VisitorNamePanel] 화면 키보드에 {key} 키가 없습니다.");
+            foreach (string key in NumberMap.Keys)
+                if (!boundKeys.Contains(key)) _logger.ZLogWarning($"[VisitorNamePanel] 화면 키보드에 {key} 키가 없습니다.");
+            foreach (string key in new[] { ShiftKey, DeleteKey, LanguageKey, SpaceKey })
+                if (!boundKeys.Contains(key)) _logger.ZLogWarning($"[VisitorNamePanel] 화면 키보드에 {key} 키가 없습니다.");
         }
 
         /// <summary>
@@ -398,8 +469,21 @@ namespace Admin
                     label = shiftActive && ShiftMap.TryGetValue(pair.Key, out char shifted) ? shifted : BaseMap[pair.Key];
                 }
 
-                pair.Value.text = label.ToString();
+                pair.Value.text = LabelOf(label);
             }
+        }
+
+        /// <summary>
+        /// 글자 하나짜리 문자열을 캐시에서 꺼내 준다 (처음 쓰는 글자만 만든다).
+        /// </summary>
+        private static string LabelOf(char c)
+        {
+            if (!LabelStrings.TryGetValue(c, out string text))
+            {
+                text = c.ToString();
+                LabelStrings[c] = text;
+            }
+            return text;
         }
 
         /// <summary>

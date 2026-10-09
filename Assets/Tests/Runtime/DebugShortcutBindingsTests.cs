@@ -47,7 +47,7 @@ namespace DG.Zone1.Tests
             _actions.Dispose();
             InputSystem.RemoveDevice(_keyboard);
             InputSystem.settings = _originalSettings;
-            Object.Destroy(_testSettings);
+            Object.DestroyImmediate(_testSettings);
         }
 
         /// <summary>
