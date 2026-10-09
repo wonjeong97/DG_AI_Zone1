@@ -92,7 +92,7 @@ namespace Scenes
             if (backButton) backButton.onClick.AddListener(OnBackClicked);
 
             // 로봇 영상 — 진입과 동시에 루프 재생 (isLooping은 컴포넌트에 설정됨)
-            SceneFader.PlayLoopingVideo(robotVideoPlayer, Constants.VideoPaths.RobotUrl, destroyCancellationToken, _logger);
+            SceneFader.PlayRobotVideo(robotVideoPlayer, destroyCancellationToken, _logger);
 
             // 관리자 페이지에서 레벨을 골라 들어온 경우 — 레벨 선택 화면에서 그 레벨을 누른 것처럼 바로 스토리 화면으로 넘어간다
             if (_session != null && _session.pendingStoryLevelIndex >= 0)

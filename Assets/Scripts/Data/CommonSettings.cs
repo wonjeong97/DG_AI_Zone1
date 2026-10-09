@@ -13,5 +13,9 @@ namespace Data
         public float storyLineMoveDuration = 0.7f;
         public float storyLineInterval = 0.35f;
         public float storyLineYOffset = 22.0f;
+
+        // 인트로·스토리·아웃트로 로봇 영상 파일(StreamingAssets 기준 경로) — 영상을 다른 이름의 파일로 바꾸면 여기만 고친다.
+        // 비었거나 파일이 없으면 기본 경로(Constants.VideoPaths.RobotRelative)를 쓴다
+        public string robotVideoPath = Constants.VideoPaths.RobotRelative;
     }
 }

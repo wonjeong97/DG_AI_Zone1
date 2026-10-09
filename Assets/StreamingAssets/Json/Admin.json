@@ -1,3 +1,7 @@
 {
-  "password": "0000"
+  "password": "0000",
+  "idleCloseSeconds": 60.0,
+  "passwordIdleCloseSeconds": 10.0,
+  "entryClickCount": 10,
+  "entryClickWindowSeconds": 3.0
 }

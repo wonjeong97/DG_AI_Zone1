@@ -13,6 +13,34 @@
 
 ---
 
+### [2026-10-09 15:10] Claude → Antigravity · 빌드 후 바꿀 값 JSON으로 (feat/json-externalize)
+- 요청(사용자): 영상처럼 빌드 뒤에 고칠 수 있어야 하는 것이 모두 JSON으로 빠져 있는지 확인. 조사 결과 효과음(Settings.json)·서버(Server.json)·비밀번호(Admin.json)·연출 시간(씬별 JSON)은 이미 빠져 있었다. 빠지지 않은 것 중 사용자가 고른 4가지를 고쳤다: 로봇 영상 경로, 안 쓰는 영상 2개 삭제, 관리자 창 시간·진입 클릭 수, 타이틀 안내 문구. 스토리·문제·힌트 문구(레벨 데이터), 인트로·아웃트로 문장(씬), 튜토리얼 이미지, 채점 기준, API 경로는 그대로 둔다.
+- 변경 파일:
+  - `Data/CommonSettings.cs`·`00_Common.json`: robotVideoPath를 추가했다(기본 Videos/Robot_260728.webm).
+  - `Scenes/SceneFader.cs`: PlayLoopingVideo(url)를 PlayRobotVideo로 바꿨다. 대기 작업을 바로 등록하고, 경로 읽기·Prepare·재생·첫 프레임 대기를 그 안에서 한다. 경로가 비었거나 파일이 없으면 경고를 남기고 기본 경로를 쓴다. Intro·Story·Outro 호출부 3곳도 바꿨다. `Constants.VideoPaths.RobotUrl`은 지우고 RobotRelative는 기본값으로 남겼다.
+  - `Data/AdminSettings.cs`·`Admin.json`: idleCloseSeconds(60)·passwordIdleCloseSeconds(10)·entryClickCount(10)·entryClickWindowSeconds(3)를 추가했다. 정적 LoadAsync는 1보다 작은 값을 경고와 함께 기본값으로 바꾼다(ClampToValid). 기본값은 `Constants.Admin.Default*`에 둔다.
+  - `Admin/AdminTrigger.cs`: 인스펙터 값 대신 Start에서 Admin.json을 읽어 클릭 카운터를 다시 만든다.
+  - `Admin/AdminPanel.cs`: Open마다 idleCloseSeconds를 읽고, 이름 입력 창에 같은 값을 넘긴다.
+  - `Admin/VisitorNamePanel.cs`: Open(onSaved, idleCloseSeconds)로 시간을 받는다.
+  - `Admin/AdminPasswordPanel.cs`: Open과 OpenForChange 때 passwordIdleCloseSeconds를 읽는다. 비밀번호를 저장할 때는 파일을 읽어 비밀번호만 바꿔 저장한다(예전에는 new AdminSettings로 덮어써 다른 값이 사라졌다).
+  - `Data/TitleSceneSettings.cs`·`0_Title.json`: 안내 문구 7개를 추가했다. 이름 자리는 `{0}`에서 `{name}`으로 바꿨다(형식 오류 예외 방지). `Constants.TitleMessages`는 기본값으로 남기고 StartGuideWithNameFormat은 StartGuideWithName으로 바꿨다.
+  - `Scenes/TitleSceneManager.cs`: 0_Title.json을 먼저 읽고 안내를 띄운다(첫 안내부터 JSON 문구). 문구는 _sceneSettings에서 쓰고, Cysharp.Text using을 지웠다.
+  - 삭제: `StreamingAssets/Videos/Robot_260710.webm`(10.7MB), `Tutorial_260710.webm`(5.8MB)과 meta. GUID·이름 참조가 없음을 확인했다.
+  - 테스트 `SettingsJsonTests`(새 파일, 7개): 세 JSON에 설정 클래스의 모든 키가 있는지, 로봇 영상·기본 영상 파일이 있는지, 예전 Admin.json이 기본값으로 읽히는지, 1보다 작은 값을 바로잡는지, 이름 안내에 {name}이 있는지 확인한다. `CHANGELOG.md`, `TODO.md`. 버전은 이미 26.10.9다.
+- 테스트: Rider 에러 0, Unity 컴파일 에러 0, PlayMode 163/163(뒤에 EditorSettings 되돌림).
+- Play 모드 확인(Claude, JSON을 잠시 바꿔 확인한 뒤 백업으로 되돌림):
+  - startGuideText를 바꾸자 타이틀 첫 안내가 바뀐 문구로 나왔다.
+  - entryClickCount를 3으로 바꾸자 3번 눌러 비밀번호 창이 열렸다.
+  - 비밀번호 창 4초, 관리자 화면 5초 뒤 자동으로 닫혔고, 이름 입력 창도 관리자 값 5초를 받아 닫혔다.
+  - 비밀번호를 1357로 저장하자 비밀번호만 바뀌고 다른 4개 값이 남았다.
+  - robotVideoPath를 없는 파일로 바꾸자 경고를 남기고 기본 영상을 재생했다(인트로 VideoPlayer 재생 중).
+  - 콘솔 에러는 없었다.
+- 확인 요청·결과: Antigravity 사용 한도로 사용자 지시에 따라 Claude가 대신 검증했다.
+  - JsonLoader.LoadAsync는 결과 전에 메인 스레드로 돌아오므로, 타이틀이 읽은 직후 UI를 바꿔도 안전하다. 비밀번호 저장도 SaveAsync 뒤 LoadAsync로 메인 스레드에 돌아온다.
+  - 공통 설정이 이미 캐시돼 있으면(타이틀의 페이드가 먼저 읽음) 영상 경로 읽기·재생이 예전처럼 같은 프레임에 끝나고, 대기 작업 등록 시점도 같다.
+  - 0_Title.unity에는 지운 인스펙터 필드 값이 저장돼 있지 않았으므로 예전 동작은 스크립트 기본값이었고, JSON 기본값과 같다(JSON을 고치지 않으면 동작이 같음).
+  - VisitorNamePanel.Open의 호출부는 AdminPanel 한 곳뿐이다.
+
 ### [2026-10-09 14:56] Claude → Antigravity · 로그 정리, 체험자 행동을 이름과 함께 한 줄로 (refactor/visitor-action-logs)
 - 요청(사용자): 로그 정리, 체험자 행동은 '{name}이 ~를 했다' 식으로. 사용자 선택: 정리 기준은 '운영 진단 + 행동'(4존 T53과 같음, 경고·오류는 그대로), 행동 범위는 화면 이동·코딩 조작·블록 붙이기와 떼기(인트로 문장·튜토리얼 넘기기와 블록 탭 고르기는 제외), 문장 끝은 '~함'(4존과 같게).
 - 변경 파일:

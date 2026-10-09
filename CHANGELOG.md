@@ -6,6 +6,12 @@
 
 ## [Unreleased]
 
+### Added
+- 로봇 영상 파일 경로(00_Common.json의 robotVideoPath), 관리자 화면·이름 입력·비밀번호 창의 자동 닫기 시간과 관리자 진입 클릭 횟수·시간(Admin.json), 타이틀 하단 안내 문구 7개(0_Title.json)를 빌드 없이 바꿀 수 있도록 추가(경로의 영상 파일이 없으면 기본 영상을 재생하고, 비밀번호를 바꿔도 Admin.json의 다른 값은 그대로 남음).
+
+### Removed
+- 쓰지 않던 영상 파일 2개(Robot_260710.webm·Tutorial_260710.webm, 약 16MB)를 빌드에서 뺌.
+
 ## [2026-10-09]
 
 ### Added

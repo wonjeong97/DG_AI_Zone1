@@ -3,5 +3,12 @@
   "qrBlinkMinAlpha": 0.3,
   "qrCheckingMinSeconds": 1.0,
   "scanResultMessageSeconds": 3.0,
-  "scanCharGapSeconds": 0.5
+  "scanCharGapSeconds": 0.5,
+  "qrGuideText": "QR 코드를 인식하여 주세요.",
+  "startGuideText": "시작하기를 눌러주세요.",
+  "startGuideWithNameText": "{name}님, 시작하기를 눌러주세요.",
+  "qrCheckingText": "QR 코드를 확인하고 있습니다.",
+  "qrCompletedText": "이미 체험을 완료한 QR 코드입니다.",
+  "qrNotFoundText": "등록되지 않은 QR 코드입니다.",
+  "qrCheckFailedText": "QR 코드를 확인할 수 없습니다. 잠시 후 다시 시도해 주세요."
 }
