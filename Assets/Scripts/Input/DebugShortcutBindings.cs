@@ -4,16 +4,16 @@ namespace App
 {
     // 타이틀의 QR 스캐너는 키보드처럼 uid의 영문 대문자를 입력하므로, 단일 문자 키면 스캔 중에 디버그 기능이 켜진다.
     // 스캐너는 대문자에 Shift만 붙이고 Ctrl은 보내지 않으므로 Ctrl 조합은 겹치지 않는다.
-    // 템플릿 패키지는 고치지 않고 런타임 바인딩 오버라이드로 바꾼다.
+    // 템플릿 패키지는 고치지 않고, 템플릿이 제공하는 RootLifetimeScope.ConfigureInputBindings에서 바인딩 오버라이드로 바꾼다.
     /// <summary>
-    /// 템플릿 디버그 단축키(D 디버그 창·I 인스펙터·M 마우스 커서)를 Ctrl 조합(Ctrl+D·Ctrl+I·Ctrl+M)으로 바꾼다.
+    /// 템플릿 단축키(D 디버그 창·I 인스펙터·M 마우스 커서·F 창 포커스 복구)를 Ctrl 조합(Ctrl+D·Ctrl+I·Ctrl+M·Ctrl+F)으로 바꾼다.
     /// </summary>
     public static class DebugShortcutBindings
     {
         private const string CtrlPath = "<Keyboard>/ctrl";
 
         /// <summary>
-        /// 세 단축키의 단일 키 바인딩을 끄고 같은 키에 Ctrl 조합 바인딩을 추가한다.
+        /// 네 단축키의 단일 키 바인딩을 끄고 같은 키에 Ctrl 조합 바인딩을 추가한다.
         /// </summary>
         public static void Apply(TemplateInputActions actions)
         {
@@ -21,6 +21,9 @@ namespace App
             RequireCtrl(actions.System.ToggleDebug);
             RequireCtrl(actions.System.ToggleInspector);
             RequireCtrl(actions.System.ToggleMouse);
+
+            // F로 창 포커스 복구가 꺼지면 다른 창이 포커스를 가져간 뒤 스캐너 입력이 다시 끊긴다
+            RequireCtrl(actions.System.ToggleFocusRestore);
         }
 
         /// <summary>

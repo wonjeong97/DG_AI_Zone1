@@ -56,7 +56,7 @@ namespace App
         }
 
         /// <summary>
-        /// 템플릿 컴포넌트를 즉시 만들고, 템플릿 디버그 단축키를 이 프로젝트의 입력과 겹치지 않게 바꾼다.
+        /// 템플릿 컴포넌트를 즉시 만든다.
         /// </summary>
         private static void ConfigureTemplateComponents(IContainerBuilder builder)
         {
@@ -67,11 +67,15 @@ namespace App
                 container.Resolve<GameCloser>();
                 container.Resolve<SystemCanvas>();
             });
+        }
 
-            // 템플릿 디버그 단축키(D·I·M)를 Ctrl 조합으로 — QR 스캐너가 입력하는 uid 문자와 겹치지 않게
-            // GameManagerBase가 주입받는 것과 같은 싱글톤 인스턴스라 그대로 반영된다
-            builder.RegisterBuildCallback(container =>
-                DebugShortcutBindings.Apply(container.Resolve<TemplateInputActions>()));
+        /// <summary>
+        /// 템플릿 단축키(D·I·M·F)를 Ctrl 조합으로 바꾼다 — QR 스캐너가 입력하는 uid 문자와 겹치지 않게 한다.
+        /// </summary>
+        protected override void ConfigureInputBindings(TemplateInputActions inputActions)
+        {
+            // 템플릿이 입력 액션을 만든 직후 어떤 소비자가 켜기 전에 불러 준다
+            DebugShortcutBindings.Apply(inputActions);
         }
 
         /// <summary>

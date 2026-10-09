@@ -8,7 +8,6 @@
 
 ## 할 일
 
-- [ ] (템플릿 갱신 뒤) Template 패키지에 창 포커스 복구(포커스를 잃으면 앱 창을 다시 앞으로 — QR 스캐너 입력 유지)와 Reporter 문자열 캐시 수정이 머지되면 Packages/packages-lock.json의 com.huliacdev.template 고정 커밋을 올리고, 포커스 복구를 이 프로젝트에서 켜는 설정(템플릿이 정한 방식)을 확인 — Reporter는 매일 재시작 전제라 낮음
 - [ ] (출시 후) ResultSequence의 3D 연출 4종(풍력·수력·발전소·연구소)을 공통 베이스(SetNeutral·ApplyAsync)로 묶기 — 직렬화 필드 타입이 바뀌어 4_Result 씬 재연결 필요
 - [ ] (출시 후) CodingBlock(1300줄)의 컴파일 결과 하이라이트 부분을 별도 컴포넌트로 분리 — 블록 프리팹 재연결 필요
 - [ ] (출시 후) TitleSceneManager의 QR 스캐너 입력을 별도 클래스로 분리하고 대기·확인·시작하기 상태를 HuliacDev.Core StateMachine으로
@@ -16,6 +15,7 @@
 
 ## 완료
 
+- [x] HuliacDev Template 26.10.9-1 → 26.10.10-1 반영(창 포커스 복구 WindowFocusRestorer·Reporter 문자열 캐시 수정, packages-lock 고정 커밋 640d05e → 36ec69a), 템플릿 단축키 D·I·M·F를 ConfigureInputBindings override로 Ctrl 조합(F 추가), Settings.json focusRestoreDelay·focusRestoreRetryInterval 3초 — 담당: Claude / 검증: Antigravity (2026-10-10)
 - [x] 6차 검사 지적 수정 — 관리자 창이 열린 동안 QR 무시·늦은 확인 결과 버림, 사라진 손가락 일괄 복귀 재시도, 복귀 순서(나중에 집은 블록부터) — PlayMode 185/185, 포커스 복구는 Template로 — 담당: Claude / 검증: Antigravity (2026-10-10)
 - [x] 6차 전체 검사(5차 수정 회귀·빌드 환경 차이·비동기 경합) — 중간 이상 코드 버그 0건, 낮음 4건, 설정·운영 결정 5건, 목록은 docs/agents/HANDOFF.md — 담당: Claude / 검증: Antigravity + Claude 서브에이전트 (2026-10-10)
 - [x] 5차 검사 지적 수정 — 끝 신호 없이 사라진 손가락의 드래그 복귀, 핀치 복귀 순서 재시도·행동 로그, 레벨5 스토리 오타(계선→계산), 템플릿 Reporter는 별도 프롬프트로 — PlayMode 183/183 — 담당: Claude / 검증: Antigravity (2026-10-10)
