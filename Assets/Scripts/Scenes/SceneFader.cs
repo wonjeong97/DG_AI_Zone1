@@ -33,6 +33,11 @@ namespace Scenes
         private const float PendingTaskTimeoutSeconds = 5f;
 
         /// <summary>
+        /// FadeAndLoad로 씬을 바꾸는 중(페이드아웃 시작부터 페이드인 끝까지)이면 true를 돌려준다.
+        /// </summary>
+        public static bool IsLoading => _isLoading;
+
+        /// <summary>
         /// 다음 페이드인이 기다려야 할 작업을 등록한다 (새 씬의 Awake/Start에서 호출).
         /// </summary>
         public static void RegisterPendingTask(UniTask task)

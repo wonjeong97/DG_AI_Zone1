@@ -13,6 +13,14 @@
 
 ---
 
+### [2026-10-10] Claude → Antigravity · 7차 점검 지적 수정 (chore/template-26.10.10-2)
+- 요청(사용자): 페이드 중 터치는 막기. 정상 플레이는 한 사람이라 두 사람 드래그 핀치 판정은 그대로, 타깃 PC에 키보드가 없어 Alt+Enter는 그대로, 관리자 레벨 이동 판 복귀는 현장 비활동 타이머로 충분해 그대로(프로젝트 메모리 touch-only-input·pre-release-audit-decisions 갱신).
+- 변경: SceneFader.IsLoading(FadeAndLoad의 페이드아웃 시작~페이드인 끝, finally로 해제) 공개. StoryLineAnimator.IsPointerPressedThisFrame이 IsSkipPress(Pointer.current, SceneFader.IsLoading)로 전환 중에는 false — 인트로 이름 연출 스킵, 인트로 터치→튜토리얼, 아웃트로 엔딩 연출 스킵, 결과 터치 안내 대기가 모두 이 판정을 씀. 아웃트로 종료 버튼은 커튼이 걷힌 뒤 바로 누를 수 있는 그대로(버튼은 커튼이 막음).
+- 새 테스트(2): StoryLineSkipPressTests(InputTestFixture 가상 터치스크린, 테스트 asmdef에 Unity.InputSystem.TestFramework 참조) — 전환 중이 아니면 스킵, 전환 중이면 스킵 아님. 판정을 빼면 두 번째 테스트가 실패함을 확인.
+- CHANGELOG: [Unreleased] 항목을 머지 전에 2026-10-10 섹션으로 옮김.
+- 테스트: Rider 에러 0, Unity 컴파일 에러 0, PlayMode 188/188(뒤에 EditorSettings 되돌림).
+- 확인 요청·결과(agy 1묶음): 전환 중 판정 범위·해제·누른 채 있는 손가락, 테스트·asmdef 2/2 통과.
+
 ### [2026-10-10] Claude → Antigravity · 7차 전체 점검(템플릿 26.10.10-2 연동·빌드 배포 설정·최근 수정 회귀·전체 흐름) — 읽기 전용
 - 방식: Claude 서브에이전트 3개(템플릿 연동 / 빌드·배포 설정 / 4b305e8·16c146b 회귀와 씬 흐름, 흐름은 하위 에이전트 1개 더) + agy 4묶음(템플릿 맞춤 변경 2/2, 관리자 창 QR 무시 2/2, 드래그 일괄 복귀 2/2 — 범위 밖 StopDrag 정리는 Claude가 확인, 단축키·포커스 복구 설정 2/2). Claude는 규칙 grep(위반 0, Debug는 허용 경우만), 씬·프리팹 스크립트 GUID 94개 모두 해석됨을 확인.
 - 결과: 6차 수정·템플릿 반영의 회귀 없음. 6차 낮음 3건 고쳐진 것 확인. 중간 이상 확정 코드 버그 0건.

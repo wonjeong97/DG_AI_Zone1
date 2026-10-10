@@ -15,12 +15,22 @@ namespace Scenes
     public static class StoryLineAnimator
     {
         /// <summary>
-        /// 이번 프레임에 마우스 또는 터치 눌림이 있었는지 반환한다 (연출 스킵용 기본 판정).
+        /// 이번 프레임에 마우스 또는 터치 눌림이 있었는지 반환한다 (연출 스킵용 기본 판정, 씬 전환 중에는 false).
         /// </summary>
         public static bool IsPointerPressedThisFrame()
         {
             // AnimateAsync의 skipRequested 인자로 그대로 넘겨 쓴다.
-            Pointer pointer = Pointer.current;
+            return IsSkipPress(Pointer.current, SceneFader.IsLoading);
+        }
+
+        /// <summary>
+        /// 씬 전환 중이 아니고 포인터가 이번 프레임에 눌렸으면 true를 돌려준다.
+        /// </summary>
+        public static bool IsSkipPress(Pointer pointer, bool isSceneLoading)
+        {
+            // 페이드 커튼은 UI 레이캐스트만 막아 이 판정은 막지 못하므로, 앞 화면을 연타하던 터치가
+            // 새 씬의 연출(인트로 이름·아웃트로 엔딩 문구)을 건너뛰거나 다음 단계로 넘기지 않도록 전환 중에는 받지 않는다.
+            if (isSceneLoading) return false;
             return pointer != null && pointer.press.wasPressedThisFrame;
         }
 
