@@ -13,6 +13,17 @@
 
 ---
 
+### [2026-10-10] Claude → Antigravity · 7차 전체 점검(템플릿 26.10.10-2 연동·빌드 배포 설정·최근 수정 회귀·전체 흐름) — 읽기 전용
+- 방식: Claude 서브에이전트 3개(템플릿 연동 / 빌드·배포 설정 / 4b305e8·16c146b 회귀와 씬 흐름, 흐름은 하위 에이전트 1개 더) + agy 4묶음(템플릿 맞춤 변경 2/2, 관리자 창 QR 무시 2/2, 드래그 일괄 복귀 2/2 — 범위 밖 StopDrag 정리는 Claude가 확인, 단축키·포커스 복구 설정 2/2). Claude는 규칙 grep(위반 0, Debug는 허용 경우만), 씬·프리팹 스크립트 GUID 94개 모두 해석됨을 확인.
+- 결과: 6차 수정·템플릿 반영의 회귀 없음. 6차 낮음 3건 고쳐진 것 확인. 중간 이상 확정 코드 버그 0건.
+- 확인 필요(중간, 기존·멀티터치): 두 사람이 각각 블록을 끌다가 블록 목록에서 끈 손가락이 코딩 패널로 들어오면 두 손가락이 모두 패널 안이 되는 프레임에 핀치로 판정돼 두 블록이 원래 자리로 돌아가고 배율이 바뀜(CodingZoneZoom.cs:163-179, 핀치가 아닐 때 매 프레임 IsInsideViewport(현재 위치)로 판정). 제안: 두 터치의 시작 위치(touch.startPosition)가 모두 패널 안일 때만 핀치 시작.
+- 낮음: 씬 페이드인 중 터치가 인트로 이름·아웃트로 엔딩 문구 연출 스킵으로 처리됨 — 연출이 Start에서 바로 시작되고, 스킵은 Pointer.current를 직접 읽어 커튼(UI 레이캐스트만 막음)에 막히지 않음(StoryLineAnimator.cs:20-25, IntroSceneManager.cs Update). 결과 '다음'(664,-416)과 아웃트로 종료(665,-416)가 같은 자리라 결과에서 계속 누르면 페이드인 직후 종료가 눌려 아웃트로를 건너뜀. 제안: SceneFader 로딩 중에는 스킵 판정 false, 종료 버튼은 엔딩 연출 뒤 켜기.
+- 낮음(설정): allowFullscreenSwitch 1이라 유지보수 키보드 Alt+Enter로 창 모드가 되면 다음 실행도 1024x768 창 / SSAO(URP-HighFidelity-Renderer)가 후처리를 끈 UI 전용 카메라에서도 매 프레임 돎(URP 14 AddRenderPasses에 후처리 확인 없음, GPU 비용만) / 포커스를 뺏긴 뒤 3초(focusRestoreDelay) 안에 찍힌 QR의 Enter가 앞에 뜬 창의 기본 버튼을 누를 수 있음(추정) / 3_Game이 쓰지 않는 예전 조명 데이터(반사 프로브 160KB) 참조.
+- 확인(사용자): 관리자 레벨 이동 판을 관람객이 이어받아 '<'·결과 '다음'을 누르면 비밀번호 없이 관리자 화면이 열림(2026-10-07 요청 동작, 60초 무입력 닫기) / Unity 스플래시 / 출시 빌드의 Development Build 체크 해제(체크 시 Space로 모든 레벨 해금) / 현장 resetTime 20초 / ShutdownSettings 월요일만 09:10(모두 꺼짐) / Admin.json 저장은 Json 폴더 쓰기 권한 필요(Program Files·동기화 폴더 밖에 두기, 실패 시 기존 파일 유지).
+- 템플릿(Template TODO 8afd2a8에 일반 증상으로 기록): 파일 없음 경로가 취소를 확인하지 않음, GetTextWithRetryAsync 시도별 시간 초과 없음·성공 Information 로그, 포커스 복구를 꺼도 '곧 되돌림' 로그·화면 표시 없음, 멈춘 창에 AttachThreadInput(추정).
+- 정상(요약): 빌드 씬 6개·GUID, Quality·Graphics(4_Result 3D·그림자 조명 7개로 High Fidelity 맞음), 카메라 16개 후처리 꺼짐·Volume 없음, EnterPlayModeOptions 0, Addressables 키 전부, StreamingAssets JSON 9개 형식·키·범위, 에디터 코드·테스트 asmdef 조건, preview 패키지 없음, JsonLoader 호출부 8곳 취소 처리, Settings.json 키 일치, 이름 입력은 앱 안 키보드라 포커스 복구와 충돌 없음.
+- 결과: 수정 범위는 사용자 결정. 템플릿 반영 브랜치(chore/template-26.10.10-2)는 PR·머지 보류.
+
 ### [2026-10-10] Claude → Antigravity · HuliacDev Template 26.10.10-2 반영 (chore/template-26.10.10-2)
 - 요청(사용자): 템플릿 업데이트 후 다시 전체 점검.
 - 템플릿 변경(26.10.10-2): JsonLoader.TryLoadAsync, LoadAsync·SaveAsync 취소 시 OperationCanceledException(파일이 없으면 취소 확인 없이 new T()), SaveAsync/Save bool 반환·.json.tmp 경유 File.Replace 저장, Settings.json 읽기 실패 시 비활동 타이머 90초 대체 설정, ConsecutiveClickCounter·ApiRetryUtil.GetTextWithRetryAsync 추가, Reporter 빈 Test 폴더 .meta 삭제. packages-lock 고정 커밋 36ec69a → 03cbcdb(26.10.10-2 뒤 TODO 문서 커밋까지).
