@@ -13,6 +13,13 @@
 
 ---
 
+### [2026-10-10] Claude → Antigravity · HuliacDev Template 26.10.10-2 반영 (chore/template-26.10.10-2)
+- 요청(사용자): 템플릿 업데이트 후 다시 전체 점검.
+- 템플릿 변경(26.10.10-2): JsonLoader.TryLoadAsync, LoadAsync·SaveAsync 취소 시 OperationCanceledException(파일이 없으면 취소 확인 없이 new T()), SaveAsync/Save bool 반환·.json.tmp 경유 File.Replace 저장, Settings.json 읽기 실패 시 비활동 타이머 90초 대체 설정, ConsecutiveClickCounter·ApiRetryUtil.GetTextWithRetryAsync 추가, Reporter 빈 Test 폴더 .meta 삭제. packages-lock 고정 커밋 36ec69a → 03cbcdb(26.10.10-2 뒤 TODO 문서 커밋까지).
+- 이 프로젝트 변경: AdminPasswordPanel.SavePasswordAsync가 저장 뒤 다시 읽어 비교하던 것을 SaveAsync 결과로 판정. '취소돼도 기본값' 주석 5곳(TitleSceneManager·StoryManager·VisitorApiClient·AdminSettings·VisitorApiClientTests)을 '파일이 없으면 취소 확인 없이 기본값'으로 — 그 경로 때문에 호출부 ThrowIfCancellationRequested는 유지. VisitorApiClient가 템플릿 재시도를 쓰지 않는 이유를 '요청별 시간 초과를 정할 수 없음'으로 고침(GetTextWithRetryAsync는 request.timeout이 없고 성공마다 Information 로그). 프로젝트 Admin.ConsecutiveClickCounter는 템플릿 HuliacDev.Utils와 이름이 같지만 AdminTrigger가 HuliacDev.Utils를 쓰지 않아 충돌 없음 — 교체 여부는 점검 결과와 함께 보고.
+- 테스트: Rider 에러 0, Unity 컴파일 에러 0, PlayMode 186/186(뒤에 EditorSettings 되돌림).
+- 확인 요청·결과(agy 1묶음): SaveAsync 결과 판정·취소·메인 스레드, 주석 정확성과 ThrowIfCancellationRequested 유지 2/2 통과.
+
 ### [2026-10-10] Claude → Antigravity · HuliacDev Template 26.10.10-1 반영 (fix/third-audit)
 - 요청(사용자): 템플릿에 창 포커스 복구·Reporter 수정을 넣어 패키지를 올렸으니 이어서 진행.
 - 템플릿 변경: WindowFocusRestorer(앱이 포커스를 잃으면 3초 뒤 창을 다시 앞으로, Windows 스탠드얼론 빌드만, 기본 켜짐, System/ToggleFocusRestore 기본 F), RootLifetimeScope.ConfigureInputBindings 훅, Reporter.Clear가 cachedString도 비움. packages-lock 고정 커밋 640d05e → 36ec69a(사용자가 갱신).
