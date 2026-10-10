@@ -63,7 +63,7 @@ namespace DG.Zone1.Tests
 
         /// <summary>
         /// 취소된 요청은 Server.json을 기본값(빈 baseUrl)으로 읽어도 '서버 주소 없음' 실패로 끝나지 않고 취소로 전달된다
-        /// (JsonLoader는 취소돼도 예외 대신 기본값을 돌려준다).
+        /// (JsonLoader는 파일이 없으면 취소돼도 예외 대신 기본값을 돌려준다).
         /// </summary>
         [UnityTest]
         public IEnumerator 취소된_요청은_서버_주소_없음이_아니라_취소로_전달된다() => UniTask.ToCoroutine(async () =>

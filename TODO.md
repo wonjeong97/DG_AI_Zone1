@@ -15,6 +15,9 @@
 
 ## 완료
 
+- [x] 7차 점검 지적 수정 — 씬 전환(페이드) 중 터치를 연출 스킵·진행으로 받지 않음(SceneFader.IsLoading). 두 사람 드래그 핀치 판정(정상 플레이는 한 사람)·Alt+Enter(타깃 PC 키보드 없음)·관리자 레벨 이동 판 복귀(비활동 타이머로 충분)는 그대로 — PlayMode 188/188 — 담당: Claude / 검증: Antigravity (2026-10-10)
+- [x] 7차 전체 점검(템플릿 26.10.10-2 연동·빌드 배포 설정·최근 수정 회귀·전체 흐름) — 회귀 없음, 중간 이상 확정 코드 버그 0건, 확인 필요 중간 1건(두 사람 드래그가 핀치로 판정)·낮음 2건(페이드 중 터치로 연출 스킵·아웃트로 종료 연타)·설정 낮음 4건, 목록은 docs/agents/HANDOFF.md — 담당: Claude / 검증: Antigravity + Claude 서브에이전트 (2026-10-10)
+- [x] HuliacDev Template 26.10.10-1 → 26.10.10-2 반영(packages-lock 고정 커밋 36ec69a → 03cbcdb — JsonLoader 취소 예외·저장 결과 반환·임시 파일 저장, Settings.json 읽기 실패 시 대체 설정), 관리자 비밀번호 저장은 SaveAsync 결과로 판정, 바뀐 동작과 어긋난 주석 정리 — PlayMode 186/186 — 담당: Claude / 검증: Antigravity (2026-10-10)
 - [x] HuliacDev Template 26.10.9-1 → 26.10.10-1 반영(창 포커스 복구 WindowFocusRestorer·Reporter 문자열 캐시 수정, packages-lock 고정 커밋 640d05e → 36ec69a), 템플릿 단축키 D·I·M·F를 ConfigureInputBindings override로 Ctrl 조합(F 추가), Settings.json focusRestoreDelay·focusRestoreRetryInterval 3초 — 담당: Claude / 검증: Antigravity (2026-10-10)
 - [x] 6차 검사 지적 수정 — 관리자 창이 열린 동안 QR 무시·늦은 확인 결과 버림, 사라진 손가락 일괄 복귀 재시도, 복귀 순서(나중에 집은 블록부터) — PlayMode 185/185, 포커스 복구는 Template로 — 담당: Claude / 검증: Antigravity (2026-10-10)
 - [x] 6차 전체 검사(5차 수정 회귀·빌드 환경 차이·비동기 경합) — 중간 이상 코드 버그 0건, 낮음 4건, 설정·운영 결정 5건, 목록은 docs/agents/HANDOFF.md — 담당: Claude / 검증: Antigravity + Claude 서브에이전트 (2026-10-10)

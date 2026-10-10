@@ -107,7 +107,7 @@ namespace Scenes
                 // 첫 안내부터 0_Title.json의 문구로 보이도록 설정을 먼저 읽는다 — 안내가 없어도 QR 확인·스캐너 값은 써야 하므로 항상 읽는다
                 _sceneSettings = await JsonLoader.LoadAsync<TitleSceneSettings>(Constants.SettingsFiles.Title, ct, _logger);
 
-                // JsonLoader는 취소돼도 기본값을 돌려주므로, 파괴된 뒤 스캐너 입력을 다시 구독하지 않도록 여기서 취소를 전달한다
+                // JsonLoader는 파일이 없으면 취소를 확인하지 않고 기본값을 돌려주므로, 파괴된 뒤 스캐너 입력을 다시 구독하지 않도록 여기서 취소를 전달한다
                 ct.ThrowIfCancellationRequested();
                 ApplyScanCharGap();
 

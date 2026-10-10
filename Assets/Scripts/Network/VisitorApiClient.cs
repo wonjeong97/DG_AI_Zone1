@@ -13,7 +13,7 @@ namespace Network
 {
     // 서버 주소·시간 초과·재시도 횟수는 StreamingAssets/Json/Server.json에서
     // 호출마다 읽어 현장에서 파일만 고쳐도 다음 호출부터 반영된다. 네트워크가 불안정할 수 있어 요청이 실패하면 다시 시도한다.
-    // 템플릿 ApiRetryUtil은 응답 본문을 돌려주지 않고 에디터에서는 전송을 생략하는 로그 전송용이라 쓰지 않는다.
+    // 템플릿 ApiRetryUtil.GetTextWithRetryAsync는 요청마다 시간 초과(Server.json)를 정할 수 없어 쓰지 않는다.
     // uid에는 생년월일이 들어 있어 로그에 남기지 않는다.
     /// <summary>
     /// 체험자 서버(현장 내부망) API를 호출한다.
@@ -131,7 +131,7 @@ namespace Network
             // baseUrl이 비어 있으면 로그를 남기고 null을 돌려주며, 취소는 예외로 전달한다.
             ServerSettings settings = await JsonLoader.LoadAsync<ServerSettings>(Constants.SettingsFiles.Server, cancellationToken, _logger);
 
-            // JsonLoader는 취소돼도 기본값(빈 baseUrl)을 돌려주므로 여기서 취소를 전달한다 — 취소 뒤 'baseUrl이 비어 있어' 에러가 남지 않게
+            // JsonLoader는 파일이 없으면 취소를 확인하지 않고 기본값(빈 baseUrl)을 돌려주므로 여기서 취소를 전달한다 — 취소 뒤 'baseUrl이 비어 있어' 에러가 남지 않게
             cancellationToken.ThrowIfCancellationRequested();
             if (!string.IsNullOrEmpty(settings.baseUrl)) return settings;
 

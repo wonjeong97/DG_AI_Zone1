@@ -316,14 +316,11 @@ namespace Admin
                 }
 
                 current.password = newPassword;
-                await JsonLoader.SaveAsync(Constants.SettingsFiles.Admin, current, ct, _logger);
-                // JsonLoader.SaveAsync는 실패를 로그로만 남기므로, 다시 읽어 실제로 저장됐는지 확인한다
-                AdminSettings saved = await JsonLoader.LoadAsync<AdminSettings>(Constants.SettingsFiles.Admin, ct, _logger);
+                bool isSaved = await JsonLoader.SaveAsync(Constants.SettingsFiles.Admin, current, ct, _logger);
 
                 // 파일 입출력 뒤 관리자 화면 UI를 고치므로 메인 스레드로 돌아온다
                 await UniTask.SwitchToMainThread(ct);
 
-                bool isSaved = saved.password == newPassword;
                 if (_logger != null)
                 {
                     if (isSaved) _logger.ZLogInformation($"[AdminPasswordPanel] 관리자 비밀번호를 변경했습니다.");

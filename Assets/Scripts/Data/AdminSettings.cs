@@ -34,7 +34,7 @@ namespace Data
             // 비밀번호 검사는 키패드 규칙을 아는 AdminPasswordPanel이 한다.
             AdminSettings settings = await JsonLoader.LoadAsync<AdminSettings>(Constants.SettingsFiles.Admin, ct, logger);
 
-            // JsonLoader는 취소돼도 기본값을 돌려주므로, 파괴된 창에 기본 비밀번호·시간을 넣지 않도록 여기서 취소를 전달한다
+            // JsonLoader는 파일이 없으면 취소를 확인하지 않고 기본값을 돌려주므로, 파괴된 창에 기본 비밀번호·시간을 넣지 않도록 여기서 취소를 전달한다
             ct.ThrowIfCancellationRequested();
             if (settings.ClampToValid() && logger != null)
                 logger.ZLogWarning($"[AdminSettings] Admin.json의 시간·횟수 값이 1보다 작아 그 값은 기본값을 씁니다.");
