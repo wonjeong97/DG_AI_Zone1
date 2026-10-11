@@ -23,6 +23,7 @@ namespace DG.Zone1.Tests
         [TestCase(typeof(GameSceneSettings), Constants.SettingsFiles.Game)]
         [TestCase(typeof(ResultSceneSettings), Constants.SettingsFiles.Result)]
         [TestCase(typeof(ServerSettings), Constants.SettingsFiles.Server)]
+        [TestCase(typeof(ArduinoSettings), Constants.SettingsFiles.Arduino)]
         public void 설정_JSON에_모든_항목이_같은_이름으로_있다(Type settingsType, string fileName)
         {
             string json = ReadSettingsJson(fileName);

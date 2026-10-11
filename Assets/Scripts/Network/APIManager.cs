@@ -1,12 +1,24 @@
 using Cysharp.Threading.Tasks;
 using UnityEngine.SceneManagement;
 using HuliacDev.Network;
+using VContainer;
 using ZLogger;
 
 namespace Network
 {
     public class APIManager : ApiManagerBase
     {
+        private ArduinoUdpClient _arduino;
+
+        /// <summary>
+        /// 비활동 타임아웃 때 exit를 보낼 아두이노 명령 클라이언트를 주입받는다 — 로거 등은 ApiManagerBase.Construct가 받는다.
+        /// </summary>
+        [Inject]
+        public void ConstructArduino(ArduinoUdpClient arduino)
+        {
+            _arduino = arduino;
+        }
+
         /// <summary>
         /// 비활동 타임아웃 로그를 지금 씬에 맞게 보낸다 — 타이틀에서는 보내지 않고, 아웃트로에서는 move_idle로 집계한다.
         /// </summary>
@@ -31,6 +43,10 @@ namespace Network
             }
 
             base.OnInactivityTimeout();
+
+            // 레벨을 골라 enter를 보낸 뒤 결과 화면 다음 버튼 전에 자리를 떠났으면 move_idle_timeout과 함께 exit를 한 번 보낸다
+            if (_arduino != null) _arduino.SendExit();
+            else if (Logger != null) Logger.ZLogWarning($"[APIManager] ArduinoUdpClient가 주입되지 않아 비활동 타임아웃 때 아두이노에 exit를 보내지 못했습니다.");
         }
     }
 }

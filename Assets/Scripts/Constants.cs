@@ -52,6 +52,7 @@ public static class Constants
         public const string Result = Folder + "/4_Result";
         public const string Admin  = Folder + "/Admin";     // 관리자 비밀번호·자동 닫기 시간·진입 클릭 수
         public const string Server = Folder + "/Server";    // 체험자 서버 주소·재시도
+        public const string Arduino = Folder + "/Arduino";  // 조명·장치 아두이노 주소
     }
 
     // ── 4. 방향 명칭 ───────────────────────────────────────────
@@ -571,5 +572,17 @@ public static class Constants
 
         // 이 존(1존)의 레벨 수 — getUser 기록은 A1~A5만 보고, 서버에 A6처럼 없는 레벨 키가 생겨도 무시한다
         public const int LevelCount = 5;
+    }
+
+    // ── 24. 아두이노 명령 (조명·장치 — 좌·우 PC가 아두이노 한 대에 UDP로 같은 명령을 보낸다) ──────
+    public static class Arduino
+    {
+        // 아두이노 주소 JSON은 SettingsFiles.Arduino
+
+        // {0}에 레벨 번호(1부터)를 넣는다 — 예: 1_enter, 3_success, 5_exit
+        public const string EnterFormat   = "{0}_enter";   // 레벨을 골라 스토리 화면이 나올 때
+        public const string SuccessFormat = "{0}_success"; // 결과 화면 입장 — 전력 수급 상태 '양호'
+        public const string FailFormat    = "{0}_fail";    // 결과 화면 입장 — '보통'·'부족'
+        public const string ExitFormat    = "{0}_exit";    // enter 뒤 결과 화면 다음 버튼이나 비활동 타임아웃(move_idle_timeout) 때 한 번
     }
 }

@@ -6,6 +6,9 @@
 
 ## [Unreleased]
 
+### Added
+- 좌·우 PC가 함께 쓰는 조명·장치 아두이노에 UDP로 레벨 진입(n_enter)·결과(양호면 n_success, 보통·부족이면 n_fail)·종료(결과 화면 다음 버튼이나 무입력 타임아웃 때 n_exit) 명령을 보내고 아두이노가 돌려준 응답을 로그로 남기도록 추가(주소는 StreamingAssets/Json/Arduino.json).
+
 ## [2026-10-10]
 
 ### Added

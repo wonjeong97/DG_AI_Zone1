@@ -14,6 +14,7 @@ using VContainer;
 using HuliacDev.Core;
 using HuliacDev.UI;
 using HuliacDev.Utils;
+using Network;
 using ZLogger;
 
 namespace Scenes
@@ -40,19 +41,21 @@ namespace Scenes
         private InactivityTimer _inactivityTimer;
         private SoundManager _soundManager;
         private VisitorInfoProvider _visitorInfoProvider; // 행동 로그 주어
+        private ArduinoUdpClient _arduino;
 
         /// <summary>
-        /// 게임 세션, 로거, 비활동 타이머, 사운드 매니저, 체험자 정보를 주입받는다.
+        /// 게임 세션, 로거, 비활동 타이머, 사운드 매니저, 체험자 정보, 아두이노 명령 클라이언트를 주입받는다.
         /// </summary>
         [Inject]
         public void Construct(GameSession session, ILogger<StoryManager> log, InactivityTimer inactivityTimer, SoundManager soundManager,
-            VisitorInfoProvider visitorInfoProvider)
+            VisitorInfoProvider visitorInfoProvider, ArduinoUdpClient arduino)
         {
             _session = session;
             _logger = log;
             _inactivityTimer = inactivityTimer;
             _soundManager = soundManager;
             _visitorInfoProvider = visitorInfoProvider;
+            _arduino = arduino;
         }
 
         private LevelData _currentLevel;
@@ -187,6 +190,10 @@ namespace Scenes
             }
 
             _currentLevel = levelDataList[index];
+
+            // 스토리 화면이 나오는 순간 아두이노 조명·장치를 이 레벨로 바꾼다 — 관리자 페이지에서 레벨을 골라 들어온 경우도 같다
+            if (_arduino != null) _arduino.SendEnter(_currentLevel.levelIndex);
+            else if (_logger != null) _logger.ZLogWarning($"[StoryManager] ArduinoUdpClient가 주입되지 않아 아두이노에 {index + 1}레벨 enter를 보내지 못했습니다.");
 
             // 선택한 레벨 버튼을 클릭 즉시 두 패널(levelSelectPanel·storyPanel) 바깥의 공통 부모로 옮김.
             // 두 패널 모두 CanvasGroup으로 페이드되는데, 그 자식으로 두면 페이드 도중 알파 블렌딩 때문에

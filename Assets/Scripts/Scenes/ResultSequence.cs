@@ -71,13 +71,14 @@ namespace Scenes
         private SoundManager _soundManager;
         private VisitorInfoProvider _visitorInfoProvider;
         private VisitorApiClient _visitorApiClient;
+        private ArduinoUdpClient _arduino;
 
         /// <summary>
-        /// 게임 세션, 비활동 타이머, 로거, 사운드 매니저, 체험자 정보 제공자, 체험자 서버 API를 주입받는다.
+        /// 게임 세션, 비활동 타이머, 로거, 사운드 매니저, 체험자 정보 제공자, 체험자 서버 API, 아두이노 명령 클라이언트를 주입받는다.
         /// </summary>
         [Inject]
         public void Construct(GameSession session, InactivityTimer inactivityTimer, ILogger<ResultSequence> logger,
-            SoundManager soundManager, VisitorInfoProvider visitorInfoProvider, VisitorApiClient visitorApiClient)
+            SoundManager soundManager, VisitorInfoProvider visitorInfoProvider, VisitorApiClient visitorApiClient, ArduinoUdpClient arduino)
         {
             _session = session;
             _inactivityTimer = inactivityTimer;
@@ -85,6 +86,7 @@ namespace Scenes
             _soundManager = soundManager;
             _visitorInfoProvider = visitorInfoProvider;
             _visitorApiClient = visitorApiClient;
+            _arduino = arduino;
         }
 
         private const int MaxPercent = Constants.ResultMessages.MaxPercent;
@@ -245,6 +247,11 @@ namespace Scenes
                 _logger.ZLogWarning($"[ResultSequence] 현재 레벨 정보가 없어 진행도를 갱신하지 않고 {nextScene}(으)로 이동합니다.");
 
             if (_logger != null) _logger.ZLogInformation($"[ResultSequence] {VisitorInfoProvider.LogSubjectOf(_visitorInfoProvider)} 결과 화면에서 다음을 누름 — {nextScene}(으)로 이동함.");
+
+            // 연타해도 enter 한 번에 exit는 한 번만 나간다
+            if (_arduino != null) _arduino.SendExit();
+            else if (_logger != null) _logger.ZLogWarning($"[ResultSequence] ArduinoUdpClient가 주입되지 않아 아두이노에 exit를 보내지 못했습니다.");
+
             SceneFader.FadeAndLoad(nextScene, logger: _logger).Forget();
         }
 
@@ -298,6 +305,7 @@ namespace Scenes
             if (aiRows) aiRows.SetRows(ResultRowFactory.BuildAiRows(kind, _session.lastQuestionTime, CurrentCorrectAnswer));
 
             UploadLevelResult(isSuccess);
+            SendArduinoResult(percent);
 
             _missionResultSound = isSuccess ? Constants.Sounds.MissionSuccess : Constants.Sounds.MissionFailed;
 
@@ -344,6 +352,22 @@ namespace Scenes
             string code = VisitorApiClient.GetLevelCode(_session.currentLevel.levelIndex);
             _visitorApiClient.UpdateValueAsync(_visitorInfoProvider.VisitorIdx, _visitorInfoProvider.ServerVisitorName, code, isSuccess,
                 CancellationToken.None).Forget();
+        }
+
+        /// <summary>
+        /// 아두이노에 이번 레벨 결과를 보낸다 — 전력 수급 상태가 양호면 success, 보통·부족이면 fail.
+        /// </summary>
+        private void SendArduinoResult(float percent)
+        {
+            // 화면의 미션 성공(보통 이상)과 기준이 다르다 — 아두이노 성공 연출은 양호일 때만 낸다(2026-10-11 사용자 결정)
+            if (_arduino == null)
+            {
+                if (_logger != null) _logger.ZLogWarning($"[ResultSequence] ArduinoUdpClient가 주입되지 않아 아두이노에 레벨 결과를 보내지 못했습니다.");
+                return;
+            }
+
+            bool isGood = percent >= Constants.ResultMessages.GoodThresholdPercent;
+            _arduino.SendResult(_session.currentLevel.levelIndex, isGood);
         }
 
         /// <summary>
