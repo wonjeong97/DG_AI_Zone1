@@ -584,5 +584,9 @@ public static class Constants
         public const string SuccessFormat = "{0}_success"; // 결과 화면 입장 — 전력 수급 상태 '양호'
         public const string FailFormat    = "{0}_fail";    // 결과 화면 입장 — '보통'·'부족'
         public const string ExitFormat    = "{0}_exit";    // enter 뒤 결과 화면 다음 버튼이나 비활동 타임아웃(move_idle_timeout) 때 한 번
+
+        // 아두이노가 보낸 명령을 그대로 돌려주기를 기다리는 시간(초)과 최대 보내는 횟수(첫 전송 포함) — Arduino.json에 없을 때 기본값
+        public const float DefaultReplyTimeoutSeconds = 3f;
+        public const int   DefaultMaxSendAttempts     = 3;
     }
 }

@@ -12,5 +12,11 @@ namespace Data
 
         // 아두이노가 명령을 받는 UDP 포트 — 예: 9000
         public int port;
+
+        // 아두이노가 받은 명령을 그대로 돌려주기를 기다리는 시간(초) — 이 안에 오지 않으면 같은 명령을 다시 보낸다
+        public float replyTimeoutSeconds = Constants.Arduino.DefaultReplyTimeoutSeconds;
+
+        // 응답이 없을 때 최대 보내는 횟수(첫 전송 포함) — 아두이노가 꺼져 있어도 끝없이 보내지 않게 한다
+        public int maxSendAttempts = Constants.Arduino.DefaultMaxSendAttempts;
     }
 }

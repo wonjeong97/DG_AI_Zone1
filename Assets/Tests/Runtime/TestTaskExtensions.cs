@@ -26,5 +26,22 @@ namespace DG.Zone1.Tests
                 Assert.Fail($"제한 시간 {timeoutSeconds}초 내에 완료되지 않음. timeScale에 묶여 진행이 멈춘 것으로 보임.");
             }
         }
+
+        /// <summary>
+        /// 반환값이 있는 UniTask 완료를 기다리되, 제한 시간을 넘기면 Assert 실패로 끝낸다.
+        /// </summary>
+        public static async UniTask<T> AwaitWithRealtimeTimeout<T>(this UniTask<T> task, float timeoutSeconds = 3f)
+        {
+            (bool hasResultLeft, T result) = await UniTask.WhenAny(
+                task,
+                UniTask.Delay(TimeSpan.FromSeconds(timeoutSeconds), DelayType.UnscaledDeltaTime));
+
+            if (!hasResultLeft)
+            {
+                Assert.Fail($"제한 시간 {timeoutSeconds}초 내에 완료되지 않음. timeScale에 묶여 진행이 멈춘 것으로 보임.");
+            }
+
+            return result;
+        }
     }
 }

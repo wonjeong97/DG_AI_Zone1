@@ -1,14 +1,19 @@
+using System;
+using System.Collections;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using Cysharp.Threading.Tasks;
 using Data;
 using Network;
 using NUnit.Framework;
+using UnityEngine.TestTools;
 
 namespace DG.Zone1.Tests
 {
     /// <summary>
-    /// 아두이노에 보내는 명령 문자열, exit가 enter 한 번에 한 번만 나가는지, Arduino.json 주소 검사, 실제 UDP 패킷 내용을 검증한다.
+    /// 아두이노에 보내는 명령 문자열, exit가 enter 한 번에 한 번만 나가는지, Arduino.json 주소 검사, 실제 UDP 패킷 내용,
+    /// 응답(보낸 명령 미러링)이 없을 때 다시 보내기를 검증한다.
     /// </summary>
     public class ArduinoUdpClientTests
     {
@@ -111,6 +116,87 @@ namespace DG.Zone1.Tests
 
             Assert.IsFalse(arduino.SendTo("1_exit", (IPEndPoint)receiver.Client.LocalEndPoint));
             Assert.AreEqual(0, receiver.Available, "정리된 뒤에 명령이 나감");
+        }
+
+        /// <summary>
+        /// 아두이노가 보낸 명령을 그대로 돌려주면 응답을 받은 것으로 끝내고, 제한 시간이 지나도 다시 보내지 않는다.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator 응답이_오면_다시_보내지_않는다() => UniTask.ToCoroutine(async () =>
+        {
+            using UdpClient fakeArduino = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
+            using ArduinoUdpClient arduino = new ArduinoUdpClient(null);
+            UniTask reply = ReplyOnceAsync(fakeArduino, null);
+
+            bool replied = await arduino.SendAndWaitReplyAsync("1_success", EndPointOf(fakeArduino), 0.5f, 3).AwaitWithRealtimeTimeout(5f);
+            await reply.AwaitWithRealtimeTimeout();
+            await UniTask.Delay(TimeSpan.FromSeconds(0.8f), DelayType.Realtime);
+
+            Assert.IsTrue(replied, "돌려준 응답을 받지 못함");
+            Assert.AreEqual(0, CountReceived(fakeArduino), "응답을 받았는데 다시 보냄");
+        });
+
+        /// <summary>
+        /// 응답이 없으면 제한 시간마다 같은 명령을 다시 보내고, 최대 횟수(첫 전송 포함)에서 멈춘다.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator 응답이_없으면_최대_횟수까지_다시_보낸다() => UniTask.ToCoroutine(async () =>
+        {
+            using UdpClient fakeArduino = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
+            using ArduinoUdpClient arduino = new ArduinoUdpClient(null);
+
+            bool replied = await arduino.SendAndWaitReplyAsync("1_exit", EndPointOf(fakeArduino), 0.2f, 3).AwaitWithRealtimeTimeout(5f);
+
+            Assert.IsFalse(replied);
+            Assert.AreEqual(3, CountReceived(fakeArduino), "최대 횟수만큼 보내지 않음");
+        });
+
+        /// <summary>
+        /// 보낸 명령과 다른 문자열이 돌아오면 응답으로 치지 않고 다시 보낸다.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator 다른_문자열이_돌아오면_다시_보낸다() => UniTask.ToCoroutine(async () =>
+        {
+            using UdpClient fakeArduino = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
+            using ArduinoUdpClient arduino = new ArduinoUdpClient(null);
+            UniTask reply = ReplyOnceAsync(fakeArduino, "2_enter");
+
+            bool replied = await arduino.SendAndWaitReplyAsync("1_enter", EndPointOf(fakeArduino), 0.3f, 2).AwaitWithRealtimeTimeout(5f);
+            await reply.AwaitWithRealtimeTimeout();
+
+            Assert.IsFalse(replied, "다른 명령의 응답을 받은 것으로 침");
+            Assert.AreEqual(1, CountReceived(fakeArduino), "다시 보내지 않음(첫 전송은 응답 보내는 쪽이 읽음)");
+        });
+
+        /// <summary>
+        /// 가짜 아두이노가 명령 하나를 받아 replyText(null이면 받은 명령 그대로)를 보낸 쪽으로 돌려준다.
+        /// </summary>
+        private static async UniTask ReplyOnceAsync(UdpClient fakeArduino, string replyText)
+        {
+            UdpReceiveResult received = await fakeArduino.ReceiveAsync();
+            byte[] reply = replyText == null ? received.Buffer : Encoding.ASCII.GetBytes(replyText);
+            await fakeArduino.SendAsync(reply, reply.Length, received.RemoteEndPoint);
+        }
+
+        /// <summary>
+        /// 가짜 아두이노가 받는 주소를 돌려준다.
+        /// </summary>
+        private static IPEndPoint EndPointOf(UdpClient fakeArduino) => (IPEndPoint)fakeArduino.Client.LocalEndPoint;
+
+        /// <summary>
+        /// 가짜 아두이노에 쌓인 패킷을 모두 읽어 개수를 센다.
+        /// </summary>
+        private static int CountReceived(UdpClient fakeArduino)
+        {
+            int count = 0;
+            IPEndPoint sender = null;
+            while (fakeArduino.Available > 0)
+            {
+                fakeArduino.Receive(ref sender);
+                count++;
+            }
+
+            return count;
         }
     }
 }
