@@ -32,5 +32,15 @@ namespace Data
             changed = true;
             return fallback;
         }
+
+        /// <summary>
+        /// 0 이하면 fallback으로 바꾸고 바꿨다고 표시한다 (0이면 한 번도 동작하지 않는 횟수 같은 값에 쓴다).
+        /// </summary>
+        public static int Positive(int value, int fallback, ref bool changed)
+        {
+            if (value > 0) return value;
+            changed = true;
+            return fallback;
+        }
     }
 }

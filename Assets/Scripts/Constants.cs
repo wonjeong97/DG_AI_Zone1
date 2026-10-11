@@ -588,5 +588,8 @@ public static class Constants
         // 아두이노가 보낸 명령을 그대로 돌려주기를 기다리는 시간(초)과 최대 보내는 횟수(첫 전송 포함) — Arduino.json에 없을 때 기본값
         public const float DefaultReplyTimeoutSeconds = 3f;
         public const int   DefaultMaxSendAttempts     = 3;
+
+        // 응답 대기 시간 최댓값(초) — 대기 중에는 뒤 명령이 밀리므로 길게 적어도 이 안으로 줄인다
+        public const float MaxReplyTimeoutSeconds = 60f;
     }
 }

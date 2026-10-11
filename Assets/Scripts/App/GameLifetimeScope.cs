@@ -48,7 +48,7 @@ namespace App
             builder.Register<Admin.AdminScreenState>(Lifetime.Singleton);
             builder.Register<Network.VisitorApiClient>(Lifetime.Singleton);
 
-            // 조명·장치 아두이노 — 씬이 바뀌어도 enter를 보낸 레벨과 응답 소켓을 유지하고, 앱이 끝나면 컨테이너가 소켓을 닫는다
+            // 조명·장치 아두이노 — 씬이 바뀌어도 enter를 보낸 레벨과 응답 소켓을 유지하고, 앱이 끝나면 컨테이너가 Dispose해 남은 명령·exit를 보내고 소켓을 닫는다
             builder.Register<Network.ArduinoUdpClient>(Lifetime.Singleton);
 
             // 한 판의 진행 상태 — 앱을 켤 때마다 새 인스턴스로 시작하므로 처음부터 시작한다

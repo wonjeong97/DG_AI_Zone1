@@ -4,6 +4,7 @@
     "references": [
         "DG.Zone1",
         "HuliacDev.Template",
+        "MessagePipe",
         "UniTask",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",

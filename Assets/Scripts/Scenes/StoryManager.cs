@@ -298,6 +298,10 @@ namespace Scenes
             bool toAdmin = _session != null && _session.isAdminLevelJump;
             if (_logger != null) _logger.ZLogInformation($"[StoryManager] {VisitorInfoProvider.LogSubjectOf(_visitorInfoProvider)} 뒤로를 누름 — {(toAdmin ? "관리자 화면" : "레벨 선택")}으로 돌아감.");
 
+            // 고른 레벨을 그만두므로 아두이노 조명·장치를 그 레벨 상태로 두지 않는다
+            if (_arduino != null) _arduino.SendExit();
+            else if (_logger != null) _logger.ZLogWarning($"[StoryManager] ArduinoUdpClient가 주입되지 않아 뒤로를 눌렀을 때 아두이노에 exit를 보내지 못했습니다.");
+
             if (toAdmin)
             {
                 _session.openAdminOnTitle = true;
