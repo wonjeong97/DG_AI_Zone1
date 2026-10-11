@@ -2,8 +2,8 @@ using System;
 
 namespace Data
 {
-    // StreamingAssets/Json/Arduino.json 매핑 — 조명·장치를 움직이는 아두이노(1존 공용 1대)의 주소.
-    // 아두이노는 현장 내부망에 랜선으로 연결되어 있어 주소가 바뀌면 재빌드 없이 파일만 고친다.
+    // StreamingAssets/Json/Arduino.json 매핑 — 조명·장치를 움직이는 아두이노(1존 공용 1대)의 주소와 응답 대기·재전송 값.
+    // 아두이노는 현장 내부망에 랜선으로 연결되어 있어 주소가 바뀌면 재빌드 없이 파일만 고친다 — 첫 명령 때 한 번 읽으므로 고친 뒤 앱을 다시 켠다.
     [Serializable]
     public class ArduinoSettings
     {

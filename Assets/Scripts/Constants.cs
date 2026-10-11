@@ -52,7 +52,7 @@ public static class Constants
         public const string Result = Folder + "/4_Result";
         public const string Admin  = Folder + "/Admin";     // 관리자 비밀번호·자동 닫기 시간·진입 클릭 수
         public const string Server = Folder + "/Server";    // 체험자 서버 주소·재시도
-        public const string Arduino = Folder + "/Arduino";  // 조명·장치 아두이노 주소
+        public const string Arduino = Folder + "/Arduino";  // 조명·장치 아두이노 주소·응답 대기 시간·보내는 횟수
     }
 
     // ── 4. 방향 명칭 ───────────────────────────────────────────
@@ -583,7 +583,7 @@ public static class Constants
         public const string EnterFormat   = "{0}_enter";   // 레벨을 골라 스토리 화면이 나올 때
         public const string SuccessFormat = "{0}_success"; // 결과 화면 입장 — 전력 수급 상태 '양호'
         public const string FailFormat    = "{0}_fail";    // 결과 화면 입장 — '보통'·'부족'
-        public const string ExitFormat    = "{0}_exit";    // enter 뒤 결과 화면 다음 버튼이나 비활동 타임아웃(move_idle_timeout) 때 한 번
+        public const string ExitFormat    = "{0}_exit";    // enter 뒤 결과 화면 다음 버튼·스토리 화면 < 버튼·비활동 타임아웃(move_idle_timeout)·앱 종료 중 먼저 오는 쪽에서 한 번
 
         // 아두이노가 보낸 명령을 그대로 돌려주기를 기다리는 시간(초)과 최대 보내는 횟수(첫 전송 포함) — Arduino.json에 없을 때 기본값
         public const float DefaultReplyTimeoutSeconds = 3f;
