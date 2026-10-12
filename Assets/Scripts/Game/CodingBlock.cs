@@ -97,7 +97,6 @@ namespace Game
         private Touchscreen _dragTouchscreen;
         private int _dragTouchId;
         private Vector2 _dragScreenPos; // 블록을 마지막으로 옮긴 손가락 위치
-        private bool _dragFingerLostLogged;
 
         /// <summary>
         /// 이 포인터 이벤트가 지금 이 블록을 끄는 손가락의 것인지 확인한다(드롭 영역은 다른 손가락의 놓기로 블록을 옮기지 않는다).
@@ -659,7 +658,6 @@ namespace Game
             // 입력 모듈은 드래그를 시작한 프레임에도 OnDrag로 그 프레임 이동량만큼 옮기므로, 직전 위치에서 시작해 같은 만큼 따라가게 한다
             _dragScreenPos = e.position - e.delta;
             _dragTouchscreen = null;
-            _dragFingerLostLogged = false;
 
             if (e is ExtendedPointerEventData { device: Touchscreen touchscreen } touchEvent
                 && TryReadFinger(touchscreen, touchEvent.touchId, out _))
@@ -731,8 +729,6 @@ namespace Game
         /// </summary>
         private void FollowDragFinger()
         {
-            LogDragFingerLost();
-
             if (!TryReadFinger(_dragTouchscreen, _dragTouchId, out Vector2 position))
             {
                 FinishDrag(_dragScreenPos, _canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : _canvas.worldCamera);
@@ -745,19 +741,6 @@ namespace Game
             _dragScreenPos = position;
             _rt.anchoredPosition += delta / _canvas.scaleFactor;
             UpdateSnapHighlight();
-        }
-
-        /// <summary>
-        /// 입력 모듈이 끄는 손가락을 다른 포인터로 바꾸거나 지웠으면 드래그마다 한 번, 그때 장치를 남긴다(Windows가 마우스 입력을 섞는지 현장에서 확인).
-        /// </summary>
-        private void LogDragFingerLost()
-        {
-            if (_dragFingerLostLogged || _logger == null) return;
-            if (_dragEvent is ExtendedPointerEventData { device: Touchscreen } touchEvent && touchEvent.touchId == _dragTouchId) return;
-
-            _dragFingerLostLogged = true;
-            string device = _dragEvent is ExtendedPointerEventData { device: { } eventDevice } ? eventDevice.name : "없음";
-            _logger.ZLogInformation($"[CodingBlock] 입력 모듈이 {name}을 끄던 손가락을 놓쳐(지금 장치: {device}) 손가락 위치를 직접 읽어 끕니다.");
         }
 
         /// <summary>
