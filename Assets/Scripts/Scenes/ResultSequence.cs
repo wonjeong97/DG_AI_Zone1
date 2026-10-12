@@ -355,7 +355,7 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 아두이노에 이번 레벨 결과를 보낸다 — 전력 수급 상태가 양호면 success, 보통·부족이면 fail.
+        /// 아두이노에 이번 레벨 결과를 보낸다 — 전력 수급 상태가 양호면 success(레벨1은 정답 방향 번호를 붙임), 보통·부족이면 fail.
         /// </summary>
         private void SendArduinoResult(float percent)
         {
@@ -367,7 +367,12 @@ namespace Scenes
             }
 
             bool isGood = percent >= Constants.ResultMessages.GoodThresholdPercent;
-            _arduino.SendResult(_session.currentLevel.levelIndex, isGood);
+
+            // 레벨1(태양광) 양호는 문제의 정답 방향을 붙여 보낸다 — 정답 방향 블록이 없으면 양호가 나오지 않는다(틀린 방향만이면 최대 60%)
+            if (isGood && CurrentLevelKind == LevelKind.Solar)
+                _arduino.SendSolarSuccess(_session.currentLevel.levelIndex, CurrentCorrectAnswer);
+            else
+                _arduino.SendResult(_session.currentLevel.levelIndex, isGood);
         }
 
         /// <summary>

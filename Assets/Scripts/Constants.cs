@@ -581,9 +581,18 @@ public static class Constants
 
         // {0}에 레벨 번호(1부터)를 넣는다 — 예: 1_enter, 3_success, 5_exit
         public const string EnterFormat   = "{0}_enter";   // 레벨을 골라 스토리 화면이 나올 때
-        public const string SuccessFormat = "{0}_success"; // 결과 화면 입장 — 전력 수급 상태 '양호'
+        public const string SuccessFormat = "{0}_success"; // 결과 화면 입장 — 전력 수급 상태 '양호'(레벨1 태양광은 SolarSuccessFormat)
         public const string FailFormat    = "{0}_fail";    // 결과 화면 입장 — '보통'·'부족'
         public const string ExitFormat    = "{0}_exit";    // enter 뒤 결과 화면 다음 버튼·스토리 화면 < 버튼·비활동 타임아웃(move_idle_timeout)·앱 종료 중 먼저 오는 쪽에서 한 번
+
+        // 레벨1(태양광) 결과 화면 입장 — '양호'면 {1}에 문제의 정답 방향 번호를 넣는다(동쪽 1_success_1, 서쪽 1_success_2, 남쪽 1_success_3)
+        public const string SolarSuccessFormat = "{0}_success_{1}";
+        public readonly static System.Collections.Generic.IReadOnlyDictionary<string, int> SolarDirectionNumbers = new System.Collections.Generic.Dictionary<string, int>
+        {
+            [Directions.East]  = 1,
+            [Directions.West]  = 2,
+            [Directions.South] = 3,
+        };
 
         // 아두이노가 보낸 명령을 그대로 돌려주기를 기다리는 시간(초)과 최대 보내는 횟수(첫 전송 포함) — Arduino.json에 없을 때 기본값
         public const float DefaultReplyTimeoutSeconds = 3f;

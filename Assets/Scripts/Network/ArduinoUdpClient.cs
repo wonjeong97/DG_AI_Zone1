@@ -79,6 +79,20 @@ namespace Network
         }
 
         /// <summary>
+        /// 레벨1(태양광) 결과가 양호일 때 문제의 정답 방향 번호를 붙인 success를 보낸다 — 동쪽 1_success_1, 서쪽 1_success_2, 남쪽 1_success_3.
+        /// </summary>
+        public void SendSolarSuccess(int levelIndex, string direction)
+        {
+            if (!TryFormatSolarSuccess(levelIndex, direction, out string command))
+            {
+                if (_logger != null) _logger.ZLogWarning($"[ArduinoUdpClient] 레벨1 정답 방향 '{direction}'에 맞는 아두이노 명령이 없어 성공 명령을 보내지 않습니다.");
+                return;
+            }
+
+            Send(command);
+        }
+
+        /// <summary>
         /// enter를 보낸 레벨이 있으면 그 레벨의 exit를 한 번 보낸다.
         /// </summary>
         public void SendExit()
@@ -92,6 +106,21 @@ namespace Network
         /// 레벨 순번(0부터)을 레벨 번호(1부터)로 바꿔 명령 형식에 넣는다 — 레벨1의 enter는 1_enter.
         /// </summary>
         public static string FormatCommand(string format, int levelIndex) => ZString.Format(format, levelIndex + 1);
+
+        /// <summary>
+        /// 레벨1(태양광) success 명령에 방향 번호를 붙인다 — 동쪽·서쪽·남쪽이 아니면 false.
+        /// </summary>
+        public static bool TryFormatSolarSuccess(int levelIndex, string direction, out string command)
+        {
+            if (direction == null || !Constants.Arduino.SolarDirectionNumbers.TryGetValue(direction, out int number))
+            {
+                command = null;
+                return false;
+            }
+
+            command = ZString.Format(Constants.Arduino.SolarSuccessFormat, levelIndex + 1, number);
+            return true;
+        }
 
         /// <summary>
         /// Arduino.json을 읽는다 — 테스트는 이 메서드를 바꿔 루프백 주소의 가짜 아두이노로 보낸다.

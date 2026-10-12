@@ -33,6 +33,29 @@ namespace DG.Zone1.Tests
         }
 
         /// <summary>
+        /// 레벨1(태양광) success는 정답 방향 번호를 붙인다 — 동쪽 1, 서쪽 2, 남쪽 3.
+        /// </summary>
+        [TestCase(Constants.Directions.East, "1_success_1")]
+        [TestCase(Constants.Directions.West, "1_success_2")]
+        [TestCase(Constants.Directions.South, "1_success_3")]
+        public void 레벨1_성공은_정답_방향_번호를_붙인다(string direction, string expected)
+        {
+            Assert.IsTrue(ArduinoUdpClient.TryFormatSolarSuccess(0, direction, out string command));
+            Assert.AreEqual(expected, command);
+        }
+
+        /// <summary>
+        /// 동쪽·서쪽·남쪽이 아닌 방향은 레벨1 success 명령을 만들지 않는다 — 아두이노에 정해진 번호가 없다.
+        /// </summary>
+        [TestCase(Constants.Directions.North)]
+        [TestCase(null)]
+        public void 번호가_없는_방향은_레벨1_성공_명령을_만들지_않는다(string direction)
+        {
+            Assert.IsFalse(ArduinoUdpClient.TryFormatSolarSuccess(0, direction, out string command));
+            Assert.IsNull(command);
+        }
+
+        /// <summary>
         /// enter 뒤 exit는 한 번만 나간다 — 다음 버튼 연타나 다음 버튼 뒤 비활동 타임아웃이 exit를 다시 보내지 않는다.
         /// </summary>
         [Test]
@@ -153,6 +176,24 @@ namespace DG.Zone1.Tests
             CollectionAssert.AreEqual(new[] { "1_success" }, await replied.AwaitWithRealtimeTimeout());
             await DelayRealtime(0.8f);
             Assert.AreEqual(0, ReceiveAll(fakeArduino).Count, "응답을 받았는데 다시 보냄");
+        });
+
+        /// <summary>
+        /// 레벨1 success는 방향 번호를 붙여 보내고, 번호가 없는 방향이면 아무것도 보내지 않는다.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator 레벨1_성공은_방향_번호를_붙여_보낸다() => UniTask.ToCoroutine(async () =>
+        {
+            using UdpClient fakeArduino = CreateFakeArduino();
+            using LoopbackArduinoUdpClient arduino = new LoopbackArduinoUdpClient(fakeArduino, 0.5f, 3);
+            UniTask<List<string>> replied = ReplyAsync(fakeArduino, 1, null);
+
+            arduino.SendSolarSuccess(0, Constants.Directions.North);
+            arduino.SendSolarSuccess(0, Constants.Directions.West);
+
+            CollectionAssert.AreEqual(new[] { "1_success_2" }, await replied.AwaitWithRealtimeTimeout());
+            await DelayRealtime(0.8f);
+            Assert.AreEqual(0, ReceiveAll(fakeArduino).Count, "번호가 없는 방향의 명령이나 재전송이 나감");
         });
 
         /// <summary>
