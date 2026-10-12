@@ -13,6 +13,12 @@
 
 ---
 
+### [2026-10-12] Claude → Antigravity · PR #95 머지 전 정리 (fix/drag-orphan-mouse)
+- 요청(사용자): 남은 변경까지 다 커밋하고, 수정할 점이 없으면 머지 후 main으로.
+- 변경: 사용자가 바꿔 둔 Settings.json(useInactivityTimer true, resetTime 20 → 30) 커밋, CHANGELOG Changed 1줄(서버 모드 타이틀 시작하기 대기도 같은 값), [Unreleased]를 [2026-10-12]로 이동.
+- PR #95: 리뷰·코멘트 없음, CI 없음, CLEAN.
+- 확인 요청·결과(agy 1묶음): Settings.json 형식·값과 TitleSceneManager 대기 시간, CHANGELOG 이동 2/2 통과.
+
 ### [2026-10-12] Claude → Antigravity · HuliacDev Template 26.10.12-1 반영 (fix/drag-orphan-mouse)
 - 요청(사용자): 템플릿 업데이트도 드래그 수정 PR에 같이 넣기.
 - 템플릿 변경(26.10.12-1): ConfigureProjectMessageBrokers 훅(이 프로젝트는 ConfigureMessagePipe를 override하지 않아 영향 없음), GetTextWithRetryAsync 시도별 시간 초과·성공 로그 수준(이 프로젝트는 쓰지 않음), ToggleFocusRestore 토글 시 화면 표시(Ctrl+F, 바인딩 표시 문자열을 따름), 꺼 둔 상태의 포커스 잃음 로그, 응답 없는 포그라운드 창에 AttachThreadInput 안 함, SystemCanvas 숨은 종료 버튼 기본값 좌상단·투명(Settings.json closeSetting에 position (1,1)·imageAlpha 0이 있어 정상 설정에선 그대로), JsonLoader.TryLoadAsync 시작 시 취소 확인. packages-lock 고정 커밋 03cbcdb → 1c5e127(사용자가 갱신).
