@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 using VContainer;
 using HuliacDev.UI;
@@ -86,9 +87,8 @@ namespace Game
         private const int NoDragPointer = int.MinValue;
         private int _dragPointerId = NoDragPointer;
 
-        // 끄는 손가락의 이벤트와 그때 끌던 대상 — 입력 모듈이 끝 신호 없이 포인터를 지우면 이벤트의 pointerDrag가 비는 것으로 알아챈다
+        // 끄는 손가락의 이벤트 — 입력 모듈이 끝 신호 없이 포인터를 지우면 이 이벤트의 장치가 비거나 pointerId가 바뀌는 것으로 알아챈다
         private PointerEventData _dragEvent;
-        private GameObject _dragTarget;
 
         /// <summary>
         /// 이 포인터 이벤트가 지금 이 블록을 끄는 손가락의 것인지 확인한다(드롭 영역은 다른 손가락의 놓기로 블록을 옮기지 않는다).
@@ -637,13 +637,14 @@ namespace Game
 
             _isDragging = true;
             _dragEvent = e;
-            _dragTarget = e.pointerDrag;
             _dragStartOrder = ++_dragStartCounter;
             _activeDrags.Add(this);
         }
 
-        // 끄는 중인 손가락이 끝 신호 없이 사라졌는지 — 입력 모듈은 포인터를 지울 때 OnEndDrag 없이 이벤트의 pointerDrag만 비운다
-        private bool IsDragOrphaned => _isDragging && _dragTarget && _dragEvent != null && _dragEvent.pointerDrag != _dragTarget;
+        // 끄는 중인 손가락이 끝 신호 없이 사라졌는지 — 입력 모듈은 포인터를 지울 때 OnEndDrag 없이 이벤트의 device를 비우고, 그 이벤트를 다음 포인터에 다시 쓰며 pointerId를 바꾼다.
+        // pointerDrag로는 알 수 없다 — 입력 모듈이 왼쪽·오른쪽·가운데 버튼(터치 포함)에 이벤트 하나를 돌려쓰며 매 프레임 가운데 버튼의 빈 값으로 덮어쓴다
+        private bool IsDragOrphaned => _isDragging && _dragEvent != null
+            && (_dragEvent.pointerId != _dragPointerId || _dragEvent is ExtendedPointerEventData { device: null });
 
         /// <summary>
         /// 끄는 중인 손가락이 끝 신호 없이 사라졌으면 드래그를 취소해 원래 자리로 돌린다.
@@ -663,7 +664,6 @@ namespace Game
         private void ForgetDragEvent()
         {
             _dragEvent = null;
-            _dragTarget = null;
         }
 
         /// <summary>
