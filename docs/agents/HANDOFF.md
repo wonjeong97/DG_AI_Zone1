@@ -13,6 +13,14 @@
 
 ---
 
+### [2026-10-13] Claude → Claude · 터치 모니터 손가락 드래그가 원래 자리로 돌아감 (fix/touch-drag-mouse-interference)
+- 보고(사용자, 현장 PC Player.log): 손가락으로 끌면 잘 안 됨 — 거의 모든 드래그에 '끌던 손가락이 끝 신호 없이 사라져 원래 자리로 되돌립니다'. 아두이노 경고는 미연결이라 정상.
+- 원인: InputSystemUIInputModule(1.19.0, SingleMouseOrPenButMultiTouchAndTrack)은 마우스·펜 입력이 오면 끄던 터치 포인터의 이벤트를 마우스 것으로 고쳐 쓰거나(GetPointerStateIndexFor) 터치 포인터를 OnEndDrag 없이 지운다(FilterPointerStatesByType). Windows는 터치를 마우스로도 흉내 내고 길게 누르면 오른쪽 클릭을 보내, 10-12의 pointerId·device 검사가 정상 드래그를 사라진 손가락으로 판정. 포커스 경로는 Player.log에 WindowFocusRestorer 'Focus lost'가 없어 배제.
+- 변경: CodingBlock — 손가락으로 집은 블록(마우스 이벤트로 집혔어도 손가락이 닿아 있으면 가장 가까운 손가락)은 터치스크린의 그 touchId를 LateUpdate에서 직접 읽어 따라가고, 입력 모듈이 끝을 알리지 않았는데 손가락이 떨어지면 뗀 자리에 놓음(OnEndDrag 본문을 FinishDrag로). 사라진 포인터 취소는 손가락이면 터치스크린이 빠졌을 때만. 입력 모듈이 손가락을 놓치면 드래그마다 한 번 그때 장치 이름을 로그로 남김(현장 원인 확인용).
+- 테스트: BlockDragInputModuleTests에 실제 입력 모듈 재현 2개(터치 드래그 중 마우스 이동·오른쪽 클릭) — 수정 전 2개 실패('원래 자리로 돌아감') 확인, 수정 후 PlayMode 218/218(뒤에 EditorSettings 되돌림).
+- 검증: 사용자 요청으로 Antigravity 대신 Claude가 직접(빠르게).
+- 현장 확인 필요: 다음 Player.log에 '입력 모듈이 …을 끄던 손가락을 놓쳐(지금 장치: …)' 줄이 찍히면 Windows가 마우스 입력을 섞는 것. Windows 펜 및 터치 설정의 '길게 눌러 마우스 오른쪽 단추 클릭' 끄기도 권장.
+
 ### [2026-10-12] Claude → Antigravity · PR #95 머지 전 정리 (fix/drag-orphan-mouse)
 - 요청(사용자): 남은 변경까지 다 커밋하고, 수정할 점이 없으면 머지 후 main으로.
 - 변경: 사용자가 바꿔 둔 Settings.json(useInactivityTimer true, resetTime 20 → 30) 커밋, CHANGELOG Changed 1줄(서버 모드 타이틀 시작하기 대기도 같은 값), [Unreleased]를 [2026-10-12]로 이동.

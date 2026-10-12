@@ -16,6 +16,8 @@
 
 ## 완료
 
+- [x] 터치 모니터에서 손가락으로 끈 블록이 자꾸 원래 자리로 돌아가는 문제 수정(드래그 중 Windows가 섞어 보내는 마우스 입력·길게 누르기 오른쪽 클릭에 입력 모듈이 터치 포인터를 바꾸거나 지움 → 손가락을 직접 읽어 따라가고 뗀 자리에 놓음, 입력 모듈이 손가락을 놓치면 장치 이름 로그), 실제 입력 모듈 재현 테스트 2개, Player Settings Version 26.10.13 — PlayMode 218/218 — 담당: Claude / 검증: Claude(사용자 요청) (2026-10-13)
+
 - [x] HuliacDev Template 26.10.10-2 → 26.10.12-1 반영(packages-lock 고정 커밋 03cbcdb → 1c5e127 — Ctrl+F 포커스 복구 토글 화면 표시, Settings.json 실패 시 숨은 종료 버튼 좌상단·투명, 응답 없는 창에 AttachThreadInput 안 함, JsonLoader 시작 시 취소 확인, GetTextWithRetryAsync 시도별 시간 초과), 바뀐 동작과 어긋난 주석 정리(호출부 취소 확인 4곳은 읽기 오류 경로 때문에 유지) — PlayMode 216/216 — 담당: Claude / 검증: Antigravity (2026-10-12)
 
 - [x] 게임 씬 블록이 끌자마자 원래 자리로 돌아가는 문제 수정(마우스·터치 모두, 10-10 끝 신호 감지가 입력 모듈이 매 프레임 덮어쓰는 pointerDrag를 봄 → device·pointerId로 판단), 실제 입력 모듈 회귀 테스트 3개 — PlayMode 216/216 — 담당: Claude / 검증: Antigravity (2026-10-12)

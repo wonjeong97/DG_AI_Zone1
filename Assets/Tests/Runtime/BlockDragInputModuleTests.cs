@@ -116,6 +116,74 @@ namespace DG.Zone1.Tests
         }
 
         /// <summary>
+        /// 손가락으로 끄는 중 마우스가 움직여도(Windows는 터치를 마우스로도 흉내 내 보냄) 블록이 원래 자리로 돌아가지 않고 손가락을 따라가다 뗀 자리에 놓인다.
+        /// 입력 모듈은 마우스 입력이 오면 끄던 터치 포인터의 이벤트를 마우스 것으로 바꿔 쓴다.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator 터치로_끄는_중_마우스가_움직여도_손가락을_따라간다()
+        {
+            Mouse mouse = InputSystem.AddDevice<Mouse>();
+            InputSystem.AddDevice<Touchscreen>();
+            Vector2 start = BlockScreenPoint();
+            Vector2 middle = start + new Vector2(DragDistance, 0f);
+            Vector2 end = middle + new Vector2(0f, DragDistance);
+
+            BeginTouch(1, start);
+            yield return null;
+            MoveTouch(1, middle);
+            yield return null;
+            Assert.AreSame(_stage.Canvas.transform, _block.transform.parent, "테스트 전제: 블록을 끌고 있음");
+
+            Set(mouse.position, middle);
+            yield return null;
+            MoveTouch(1, end);
+            yield return null;
+            yield return null;
+
+            Assert.AreSame(_stage.Canvas.transform, _block.transform.parent, "마우스 입력이 섞이자 끄던 블록이 원래 자리로 돌아감");
+            Assert.AreEqual(end.y, BlockScreenPoint().y, 1f, "블록이 손가락을 따라 움직이지 않음");
+
+            EndTouch(1, end);
+            yield return null;
+            yield return null;
+
+            Assert.AreSame(_zone.transform, _block.transform.parent, "손가락을 뗀 블록이 코딩 영역에 놓이지 않음");
+            Assert.AreEqual(end.x, BlockScreenPoint().x, 1f, "놓은 블록이 손가락을 뗀 자리에 있지 않음");
+            Assert.AreEqual(end.y, BlockScreenPoint().y, 1f, "놓은 블록이 손가락을 뗀 자리에 있지 않음");
+        }
+
+        /// <summary>
+        /// 손가락을 멈춘 채 누르고 있어 Windows가 오른쪽 클릭을 보내도(길게 누르기) 블록이 원래 자리로 돌아가지 않고 뗀 자리에 놓인다.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator 터치로_끄는_중_길게_눌러_오른쪽_클릭이_와도_뗀_자리에_놓인다()
+        {
+            Mouse mouse = InputSystem.AddDevice<Mouse>();
+            InputSystem.AddDevice<Touchscreen>();
+            Vector2 start = BlockScreenPoint();
+            Vector2 end = start + new Vector2(DragDistance, 0f);
+
+            BeginTouch(1, start);
+            yield return null;
+            MoveTouch(1, end);
+            yield return null;
+            Assert.AreSame(_stage.Canvas.transform, _block.transform.parent, "테스트 전제: 블록을 끌고 있음");
+
+            Press(mouse.rightButton);
+            yield return null;
+            yield return null;
+
+            Assert.AreSame(_stage.Canvas.transform, _block.transform.parent, "오른쪽 클릭이 오자 끄던 블록이 원래 자리로 돌아감");
+
+            EndTouch(1, end);
+            yield return null;
+            yield return null;
+
+            Assert.AreSame(_zone.transform, _block.transform.parent, "손가락을 뗀 블록이 코딩 영역에 놓이지 않음");
+            Assert.AreEqual(end.x, BlockScreenPoint().x, 1f, "놓은 블록이 손가락을 뗀 자리에 있지 않음");
+        }
+
+        /// <summary>
         /// 끄던 중 터치스크린이 사라지면(입력 모듈이 끝 신호 없이 포인터를 지움) 블록이 원래 자리로 돌아가 다시 터치를 받는다.
         /// </summary>
         [UnityTest]

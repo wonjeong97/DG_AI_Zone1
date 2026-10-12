@@ -8,6 +8,8 @@ using Microsoft.Extensions.Logging;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 using VContainer;
@@ -89,6 +91,13 @@ namespace Game
 
         // 끄는 손가락의 이벤트 — 입력 모듈이 끝 신호 없이 포인터를 지우면 이 이벤트의 장치가 비거나 pointerId가 바뀌는 것으로 알아챈다
         private PointerEventData _dragEvent;
+
+        // 끄는 손가락 — Windows는 터치를 마우스로도 흉내 내 보내고(길게 누르면 오른쪽 클릭), 입력 모듈은 마우스 입력이 오면 끄던 터치 포인터를
+        // 끝 신호 없이 마우스 것으로 바꾸거나 지운다. 그래서 손가락으로 집은 블록은 터치스크린의 그 손가락을 직접 읽어, 닿아 있는 동안 따라가고 뗀 자리에 놓는다
+        private Touchscreen _dragTouchscreen;
+        private int _dragTouchId;
+        private Vector2 _dragScreenPos; // 블록을 마지막으로 옮긴 손가락 위치
+        private bool _dragFingerLostLogged;
 
         /// <summary>
         /// 이 포인터 이벤트가 지금 이 블록을 끄는 손가락의 것인지 확인한다(드롭 영역은 다른 손가락의 놓기로 블록을 옮기지 않는다).
@@ -637,33 +646,127 @@ namespace Game
 
             _isDragging = true;
             _dragEvent = e;
+            TrackDragFinger(e);
             _dragStartOrder = ++_dragStartCounter;
             _activeDrags.Add(this);
         }
 
-        // 끄는 중인 손가락이 끝 신호 없이 사라졌는지 — 입력 모듈은 포인터를 지울 때 OnEndDrag 없이 이벤트의 device를 비우고, 그 이벤트를 다음 포인터에 다시 쓰며 pointerId를 바꾼다.
-        // pointerDrag로는 알 수 없다 — 입력 모듈이 왼쪽·오른쪽·가운데 버튼(터치 포함)에 이벤트 하나를 돌려쓰며 매 프레임 가운데 버튼의 빈 값으로 덮어쓴다
-        private bool IsDragOrphaned => _isDragging && _dragEvent != null
-            && (_dragEvent.pointerId != _dragPointerId || _dragEvent is ExtendedPointerEventData { device: null });
+        /// <summary>
+        /// 블록을 집은 손가락을 기억한다 — 마우스 이벤트로 집혔어도 손가락이 닿아 있으면 Windows가 터치를 마우스로 흉내 낸 것이라 가장 가까운 손가락을 따른다.
+        /// </summary>
+        private void TrackDragFinger(PointerEventData e)
+        {
+            // 입력 모듈은 드래그를 시작한 프레임에도 OnDrag로 그 프레임 이동량만큼 옮기므로, 직전 위치에서 시작해 같은 만큼 따라가게 한다
+            _dragScreenPos = e.position - e.delta;
+            _dragTouchscreen = null;
+            _dragFingerLostLogged = false;
+
+            if (e is ExtendedPointerEventData { device: Touchscreen touchscreen } touchEvent
+                && TryReadFinger(touchscreen, touchEvent.touchId, out _))
+            {
+                _dragTouchscreen = touchscreen;
+                _dragTouchId = touchEvent.touchId;
+                return;
+            }
+
+            Touchscreen current = Touchscreen.current;
+            if (current == null) return;
+
+            float nearest = float.MaxValue;
+            foreach (TouchControl touch in current.touches)
+            {
+                if (!touch.press.isPressed) continue;
+
+                float distance = (touch.position.ReadValue() - e.position).sqrMagnitude;
+                if (distance >= nearest) continue;
+
+                nearest = distance;
+                _dragTouchscreen = current;
+                _dragTouchId = touch.touchId.ReadValue();
+            }
+        }
 
         /// <summary>
-        /// 끄는 중인 손가락이 끝 신호 없이 사라졌으면 드래그를 취소해 원래 자리로 돌린다.
+        /// 터치스크린에서 이 터치 ID의 손가락이 아직 닿아 있으면 그 위치를 읽는다.
+        /// </summary>
+        private static bool TryReadFinger(Touchscreen touchscreen, int touchId, out Vector2 position)
+        {
+            foreach (TouchControl touch in touchscreen.touches)
+            {
+                if (!touch.press.isPressed || touch.touchId.ReadValue() != touchId) continue;
+
+                position = touch.position.ReadValue();
+                return true;
+            }
+
+            position = default;
+            return false;
+        }
+
+        // 끄는 중인 포인터가 끝 신호 없이 사라졌는지 — 손가락은 터치스크린이 빠졌는지로, 마우스는 입력 모듈 이벤트로 본다.
+        // 입력 모듈은 포인터를 지울 때 OnEndDrag 없이 이벤트의 device를 비우고, 그 이벤트를 다음 포인터에 다시 쓰며 pointerId를 바꾼다.
+        // pointerDrag로는 알 수 없다 — 입력 모듈이 왼쪽·오른쪽·가운데 버튼(터치 포함)에 이벤트 하나를 돌려쓰며 매 프레임 가운데 버튼의 빈 값으로 덮어쓴다
+        private bool IsDragOrphaned => _isDragging && (_dragTouchscreen != null
+            ? !_dragTouchscreen.added
+            : _dragEvent != null && (_dragEvent.pointerId != _dragPointerId || _dragEvent is ExtendedPointerEventData { device: null }));
+
+        /// <summary>
+        /// 손가락으로 집은 블록을 손가락 위치로 옮기고, 끄던 포인터가 끝 신호 없이 사라졌으면 드래그를 취소해 원래 자리로 돌린다.
         /// </summary>
         private void LateUpdate()
         {
             // 그대로 두면 블록이 레이캐스트를 받지 않은 채 캔버스 위에 떠 있어 어떤 손가락으로도 다시 집을 수 없다(터치 장치 재연결 등).
             // 같은 프레임에 사라진 블록을 한꺼번에 되돌려야 같은 체인의 위·아래 블록이 원래 순서로 돌아가므로, 처음 알아챈 블록이 모두 처리한다
-            if (!IsDragOrphaned) return;
+            if (IsDragOrphaned)
+            {
+                CancelDrags(onlyOrphaned: true);
+                return;
+            }
 
-            CancelDrags(onlyOrphaned: true);
+            if (_isDragging && _dragTouchscreen != null) FollowDragFinger();
         }
 
         /// <summary>
-        /// 기억해 둔 드래그 이벤트를 놓는다(드래그가 끝나거나 취소될 때).
+        /// 블록을 끄는 손가락 위치로 옮기고, 입력 모듈이 끝을 알리지 않았는데 손가락이 떨어졌으면 뗀 자리에 놓는다.
+        /// </summary>
+        private void FollowDragFinger()
+        {
+            LogDragFingerLost();
+
+            if (!TryReadFinger(_dragTouchscreen, _dragTouchId, out Vector2 position))
+            {
+                FinishDrag(_dragScreenPos, _canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : _canvas.worldCamera);
+                return;
+            }
+
+            Vector2 delta = position - _dragScreenPos;
+            if (delta == Vector2.zero) return;
+
+            _dragScreenPos = position;
+            _rt.anchoredPosition += delta / _canvas.scaleFactor;
+            UpdateSnapHighlight();
+        }
+
+        /// <summary>
+        /// 입력 모듈이 끄는 손가락을 다른 포인터로 바꾸거나 지웠으면 드래그마다 한 번, 그때 장치를 남긴다(Windows가 마우스 입력을 섞는지 현장에서 확인).
+        /// </summary>
+        private void LogDragFingerLost()
+        {
+            if (_dragFingerLostLogged || _logger == null) return;
+            if (_dragEvent is ExtendedPointerEventData { device: Touchscreen } touchEvent && touchEvent.touchId == _dragTouchId) return;
+
+            _dragFingerLostLogged = true;
+            string device = _dragEvent is ExtendedPointerEventData { device: { } eventDevice } ? eventDevice.name : "없음";
+            _logger.ZLogInformation($"[CodingBlock] 입력 모듈이 {name}을 끄던 손가락을 놓쳐(지금 장치: {device}) 손가락 위치를 직접 읽어 끕니다.");
+        }
+
+        /// <summary>
+        /// 기억해 둔 드래그 이벤트와 손가락을 놓는다(드래그가 끝나거나 취소될 때).
         /// </summary>
         private void ForgetDragEvent()
         {
             _dragEvent = null;
+            _dragTouchscreen = null;
         }
 
         /// <summary>
@@ -685,6 +788,9 @@ namespace Game
         public void OnDrag(PointerEventData e)
         {
             if (!IsDragPointer(e) || !_canvas || IsDragCancelled) return;
+
+            // 손가락으로 집은 블록은 LateUpdate가 손가락 위치로 옮긴다
+            if (_dragTouchscreen != null) return;
 
             _rt.anchoredPosition += e.delta / _canvas.scaleFactor;
             UpdateSnapHighlight();
@@ -747,6 +853,15 @@ namespace Game
         {
             // 같은 블록을 함께 누르고 있던 다른 손가락의 끝은 무시한다
             if (!IsDragPointer(e)) return;
+
+            FinishDrag(e.position, e.pressEventCamera);
+        }
+
+        /// <summary>
+        /// 손가락(포인터)을 뗀 화면 위치에서 드래그를 끝낸다 — 입력 모듈의 OnEndDrag나, 입력 모듈이 놓친 손가락이 떨어진 것을 알아챈 LateUpdate가 부른다.
+        /// </summary>
+        private void FinishDrag(Vector2 screenPosition, Camera eventCamera)
+        {
             _dragPointerId = NoDragPointer;
             ForgetDragEvent();
 
@@ -775,7 +890,7 @@ namespace Game
             }
 
             if (!_canvas || transform.parent == _canvas.transform)
-                ReturnHomeOrRelease(e);
+                ReturnHomeOrRelease(screenPosition, eventCamera);
 
             LogDragResult(null);
             ClearDragCache();
@@ -1467,7 +1582,7 @@ namespace Game
         /// <summary>
         /// 포인터 위치가 코딩 영역 내부인지 판별하여 코딩 패널에 놓거나 인벤토리로 되돌린다.
         /// </summary>
-        private void ReturnHomeOrRelease(PointerEventData e)
+        private void ReturnHomeOrRelease(Vector2 screenPosition, Camera eventCamera)
         {
             CodingZone zone = _codingZone;
             if (!zone)
@@ -1488,7 +1603,7 @@ namespace Game
             ScrollRect scroll = zone.ScrollRect;
             if (scroll && scroll.viewport) zoneRect = scroll.viewport;
 
-            bool isInside = RectTransformUtility.RectangleContainsScreenPoint(zoneRect, e.position, e.pressEventCamera);
+            bool isInside = RectTransformUtility.RectangleContainsScreenPoint(zoneRect, screenPosition, eventCamera);
 
             if (isInside)
             {
