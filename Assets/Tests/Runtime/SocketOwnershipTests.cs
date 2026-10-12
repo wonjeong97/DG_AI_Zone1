@@ -288,18 +288,18 @@ namespace DG.Zone1.Tests
         }
 
         /// <summary>
-        /// 끌던 손가락이 끝 신호 없이 사라지면(입력 모듈이 포인터를 지우며 pointerDrag만 비움) 블록이 원래 자리로 돌아가 다시 집을 수 있다.
+        /// 끌던 손가락이 끝 신호 없이 사라지면(입력 모듈이 포인터를 지우고 그 이벤트를 다음 손가락에 다시 씀) 블록이 원래 자리로 돌아가 다시 집을 수 있다.
         /// </summary>
         [UnityTest]
         public IEnumerator 끌던_손가락이_끝_신호_없이_사라지면_원래_자리로_돌아간다()
         {
             CodingBlock block = MakeDraggableCommand("A");
-            PointerEventData pointer = new PointerEventData(null) { pointerId = 1, pointerDrag = block.gameObject };
+            PointerEventData pointer = new PointerEventData(null) { pointerId = 1 };
 
             block.OnBeginDrag(pointer);
             Assert.AreSame(_canvas.transform, block.transform.parent, "끌기를 시작했는데 캔버스로 들어 올리지 않음");
 
-            pointer.pointerDrag = null;
+            pointer.pointerId = 3;
             yield return null;
 
             Assert.AreSame(_zone.transform, block.transform.parent, "사라진 손가락의 블록이 캔버스 위에 떠 있음");
@@ -362,13 +362,13 @@ namespace DG.Zone1.Tests
             ChainOutSocket.OfBlock(q).Accept(p);
             ChainOutSocket.OfBlock(p).Accept(x);
 
-            PointerEventData lower = new PointerEventData(null) { pointerId = 1, pointerDrag = x.gameObject };
-            PointerEventData upper = new PointerEventData(null) { pointerId = 2, pointerDrag = p.gameObject };
+            PointerEventData lower = new PointerEventData(null) { pointerId = 1 };
+            PointerEventData upper = new PointerEventData(null) { pointerId = 2 };
             x.OnBeginDrag(lower);
             p.OnBeginDrag(upper);
 
-            lower.pointerDrag = null;
-            upper.pointerDrag = null;
+            lower.pointerId = 3;
+            upper.pointerId = 4;
             yield return null;
 
             Assert.AreSame(p, ChainOutSocket.OfBlock(q).Occupant, "위 블록이 원래 자리로 돌아가지 않음");

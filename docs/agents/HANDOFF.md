@@ -13,6 +13,14 @@
 
 ---
 
+### [2026-10-12] Claude → Antigravity · 블록이 끌자마자 원래 자리로 돌아가는 문제 (fix/drag-orphan-mouse)
+- 요청(사용자): 템플릿 업데이트 뒤 게임 씬에서 블록을 마우스로 끌면 '반복하기(무한)을 끌던 손가락이 끝 신호 없이 사라져 원래 자리로 되돌립니다' 로그만 나오고 드래그가 안 됨.
+- 원인: 템플릿 변경(03cbcdb → 1c5e127)과 무관. 5차 수정(d60f329, 2026-10-10)의 사라진 손가락 감지가 PointerEventData.pointerDrag를 봤는데, InputSystemUIInputModule(1.19.0)은 포인터 하나의 이벤트를 왼쪽·오른쪽·가운데 버튼 처리에 돌려쓰며 CopyPressStateTo로 pointerDrag를 매 프레임 가운데 버튼 값(null)으로 덮어씀(InputSystemUIInputModule.cs:474-506, PointerModel.cs:260-281). 터치도 같은 경로라 마우스·터치 모두 OnBeginDrag 프레임의 LateUpdate에서 바로 취소됨. 합성 PointerEventData만 쓰던 테스트로는 드러나지 않았음.
+- 변경: CodingBlock.IsDragOrphaned를 '이벤트의 pointerId가 드래그 시작 때와 다름(지운 이벤트를 다음 포인터에 재사용) 또는 ExtendedPointerEventData.device가 null(RemovePointerAtIndex가 비움)'로. _dragTarget 삭제. CHANGELOG [Unreleased] Fixed. Player Settings Version은 이미 26.10.12.
+- 새 테스트(3): BlockDragInputModuleTests(InputTestFixture + 실제 InputSystemUIInputModule) — 마우스 드래그·터치 드래그가 움직이지 않는 프레임에도 유지되고 놓으면 코딩 영역에 놓임, 끌던 터치스크린 제거 시 원래 자리로 복귀. 수정 전 코드에서 마우스·터치 2개 실패, device 조건을 빼면 장치 제거 테스트 실패를 확인. SocketOwnershipTests의 사라짐 흉내 2개는 pointerDrag=null 대신 pointerId 변경으로.
+- 테스트: Rider는 다른 프로젝트가 열려 있어 생략, Unity 컴파일 에러 0, PlayMode 216/216(뒤에 EditorSettings·테스트 중 바뀐 폰트 아틀라스 되돌림).
+- 확인 요청·결과(agy 2묶음): 감지 로직(정상 드래그 중 오판 없음·OnEndDrag 없는 제거 경로는 모두 RemovePointerAtIndex에서 device=null·pointerId 재사용 흉내) 3/3 통과 / 테스트 상태 누수·환경 의존 2/2 통과(실패 시 _activeDrags 잔류 추측은 OnDisable에서 제거해 오탐).
+
 ### [2026-10-12] Claude → Antigravity · 레벨1 '북쪽' 블록 삭제 (feat/level1-remove-north)
 - 요청(사용자): 레벨1 문제 및 블록에서 '북쪽'을 없애기.
 - 조사: 레벨1 문제 문구·문제 값 후보(아침 8시~오후 4시, 정답 동·남·서쪽)·힌트 텍스트·힌트 그림(Hint_Level1_Horizon은 동·남·서쪽만)·튜토리얼 이미지(블록에 글자 없음)에는 북쪽이 없음. 3_Game 씬의 '북쪽' 텍스트는 레벨2 힌트(Level2Panel/Image_Wind_North)라 그대로.
