@@ -13,6 +13,14 @@
 
 ---
 
+### [2026-10-13] Claude → Antigravity · 레벨1 아두이노 방향 명령, 드래그 진단 로그 삭제 (feat/arduino-solar-direction)
+- 요청(사용자): 레벨1은 1_success_1(동)·1_success_2(서)·1_success_3(남)을 보내도록. 이어서 '입력 모듈이 …을 끄던 손가락을 놓쳐(지금 장치: Mouse)' 로그가 자꾸 나오지만 드래그는 잘 됨.
+- 변경 1: 레벨1(태양광) 양호면 ResultSequence가 SendSolarSuccess(문제의 정답 방향)를 부름 — ArduinoUdpClient.TryFormatSolarSuccess가 Constants.Arduino.SolarSuccessFormat·SolarDirectionNumbers로 만들고, 번호가 없는 방향(북쪽·null)이면 경고만 남기고 보내지 않음. 레벨1 양호는 정답 방향 블록이 있어야 나와(틀린 방향만이면 최대 60%) 정답 방향을 붙임. 다른 레벨 success와 fail·enter·exit는 그대로.
+- 변경 2: 10-13 드래그 수정 때 현장 원인 확인용으로 넣은 CodingBlock 진단 로그 삭제 — 현장 로그의 장치가 Mouse라 Windows가 터치에 마우스 입력을 섞는 것이 확인됐고 손가락 직접 추적으로 드래그 정상(아래 항목의 '현장 확인 필요' 완료).
+- 테스트: ArduinoUdpClientTests 6개 추가, Unity 컴파일 에러 0, PlayMode 224/224(뒤에 EditorSettings 되돌림).
+- 확인 요청·결과(agy 3묶음): 아두이노 분기·문자열·데이터·테스트 3/3 통과(레벨1 정답 방향 없이 최고 60% 계산 확인, 01_SolarData 정답 모두 동·남·서) / 드래그 로그 삭제 잔여 참조·동작·주석 2/2 통과 / CHANGELOG·CLAUDE.md 2/2 통과.
+- 현장: 아두이노 펌웨어가 1_success_1~3을 받아 실행하고 그대로 돌려주도록 수정 필요(1_success는 더 이상 보내지 않음).
+
 ### [2026-10-13] Claude → Claude · 터치 모니터 손가락 드래그가 원래 자리로 돌아감 (fix/touch-drag-mouse-interference)
 - 보고(사용자, 현장 PC Player.log): 손가락으로 끌면 잘 안 됨 — 거의 모든 드래그에 '끌던 손가락이 끝 신호 없이 사라져 원래 자리로 되돌립니다'. 아두이노 경고는 미연결이라 정상.
 - 원인: InputSystemUIInputModule(1.19.0, SingleMouseOrPenButMultiTouchAndTrack)은 마우스·펜 입력이 오면 끄던 터치 포인터의 이벤트를 마우스 것으로 고쳐 쓰거나(GetPointerStateIndexFor) 터치 포인터를 OnEndDrag 없이 지운다(FilterPointerStatesByType). Windows는 터치를 마우스로도 흉내 내고 길게 누르면 오른쪽 클릭을 보내, 10-12의 pointerId·device 검사가 정상 드래그를 사라진 손가락으로 판정. 포커스 경로는 Player.log에 WindowFocusRestorer 'Focus lost'가 없어 배제.
