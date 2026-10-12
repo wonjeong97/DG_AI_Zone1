@@ -6,6 +6,9 @@
 
 ## [Unreleased]
 
+### Changed
+- 레벨1(태양광) 성공 명령 `1_success_1`(동쪽)·`1_success_2`(서쪽) 바로 뒤에 `1_success_3`을 보내 패널을 제자리(남쪽)로 되돌림(정답이 남쪽이면 `1_success_3` 한 번만).
+
 ## [2026-10-13]
 
 ### Changed

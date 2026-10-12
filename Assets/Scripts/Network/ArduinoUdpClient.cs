@@ -79,7 +79,7 @@ namespace Network
         }
 
         /// <summary>
-        /// 레벨1(태양광) 결과가 양호일 때 문제의 정답 방향 번호를 붙인 success를 보낸다 — 동쪽 1_success_1, 서쪽 1_success_2, 남쪽 1_success_3.
+        /// 레벨1(태양광) 결과가 양호일 때 문제의 정답 방향 번호를 붙인 success를 보내고, 제자리(남쪽)가 아니면 바로 뒤에 남쪽 success를 보내 패널을 되돌린다.
         /// </summary>
         public void SendSolarSuccess(int levelIndex, string direction)
         {
@@ -90,6 +90,11 @@ namespace Network
             }
 
             Send(command);
+
+            // 아두이노는 패널을 성공 방향으로 돌린 뒤 제자리로 돌리지 않는다 — 차례에 이어 넣으면 앞 동작이 끝난 뒤 되돌아온다
+            if (direction != Constants.Arduino.SolarHomeDirection
+                && TryFormatSolarSuccess(levelIndex, Constants.Arduino.SolarHomeDirection, out string homeCommand))
+                Send(homeCommand);
         }
 
         /// <summary>

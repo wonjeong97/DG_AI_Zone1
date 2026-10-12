@@ -13,6 +13,12 @@
 
 ---
 
+### [2026-10-13] Claude → Antigravity · 레벨1 패널 제자리 복귀 (feat/arduino-solar-return)
+- 요청(사용자): 레벨1 패널이 1_success_1 등을 받은 뒤 원래 자리로 돌아오지 않으니 1_success_3을 바로 이어 보내기.
+- 변경: ArduinoUdpClient.SendSolarSuccess가 정답이 동쪽·서쪽이면 방향 명령 바로 뒤에 Constants.Arduino.SolarHomeDirection(남쪽)의 1_success_3을 차례에 넣음. 남쪽이면 한 번만. 앞 명령 응답이 없으면 뒤 명령이 기다리므로 앞 명령은 더 다시 보내지 않음(기존 규칙).
+- 테스트: 레벨1 UDP 테스트를 2개 명령 기대로 고치고 남쪽 한 번 테스트 추가, Unity 컴파일 에러 0, PlayMode 225/225(뒤에 EditorSettings 되돌림).
+- 확인 요청·결과(agy 1묶음): 차례 순서·재전송 영향, 테스트 기대값·시간 의존, 문서 일치 3/3 통과.
+
 ### [2026-10-13] Claude → Antigravity · 레벨1 아두이노 방향 명령, 드래그 진단 로그 삭제 (feat/arduino-solar-direction)
 - 요청(사용자): 레벨1은 1_success_1(동)·1_success_2(서)·1_success_3(남)을 보내도록. 이어서 '입력 모듈이 …을 끄던 손가락을 놓쳐(지금 장치: Mouse)' 로그가 자꾸 나오지만 드래그는 잘 됨.
 - 변경 1: 레벨1(태양광) 양호면 ResultSequence가 SendSolarSuccess(문제의 정답 방향)를 부름 — ArduinoUdpClient.TryFormatSolarSuccess가 Constants.Arduino.SolarSuccessFormat·SolarDirectionNumbers로 만들고, 번호가 없는 방향(북쪽·null)이면 경고만 남기고 보내지 않음. 레벨1 양호는 정답 방향 블록이 있어야 나와(틀린 방향만이면 최대 60%) 정답 방향을 붙임. 다른 레벨 success와 fail·enter·exit는 그대로.

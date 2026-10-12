@@ -594,6 +594,9 @@ public static class Constants
             [Directions.South] = 3,
         };
 
+        // 레벨1 패널의 제자리 방향 — 패널은 성공 방향에 멈춰 있으므로 다른 방향 success 바로 뒤에 이 방향 success를 보내 되돌린다
+        public const string SolarHomeDirection = Directions.South;
+
         // 아두이노가 보낸 명령을 그대로 돌려주기를 기다리는 시간(초)과 최대 보내는 횟수(첫 전송 포함) — Arduino.json에 없을 때 기본값
         public const float DefaultReplyTimeoutSeconds = 3f;
         public const int   DefaultMaxSendAttempts     = 3;
