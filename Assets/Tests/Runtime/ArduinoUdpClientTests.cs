@@ -179,21 +179,38 @@ namespace DG.Zone1.Tests
         });
 
         /// <summary>
-        /// 레벨1 success는 방향 번호를 붙여 보내고, 번호가 없는 방향이면 아무것도 보내지 않는다.
+        /// 레벨1 success는 방향 번호를 붙여 보내고 바로 뒤에 제자리(남쪽) success를 보내며, 번호가 없는 방향이면 아무것도 보내지 않는다.
         /// </summary>
         [UnityTest]
-        public IEnumerator 레벨1_성공은_방향_번호를_붙여_보낸다() => UniTask.ToCoroutine(async () =>
+        public IEnumerator 레벨1_성공은_방향_번호를_붙여_보내고_제자리로_되돌린다() => UniTask.ToCoroutine(async () =>
+        {
+            using UdpClient fakeArduino = CreateFakeArduino();
+            using LoopbackArduinoUdpClient arduino = new LoopbackArduinoUdpClient(fakeArduino, 0.5f, 3);
+            UniTask<List<string>> replied = ReplyAsync(fakeArduino, 2, null);
+
+            arduino.SendSolarSuccess(0, Constants.Directions.North);
+            arduino.SendSolarSuccess(0, Constants.Directions.West);
+
+            CollectionAssert.AreEqual(new[] { "1_success_2", "1_success_3" }, await replied.AwaitWithRealtimeTimeout());
+            await DelayRealtime(0.8f);
+            Assert.AreEqual(0, ReceiveAll(fakeArduino).Count, "번호가 없는 방향의 명령이나 재전송이 나감");
+        });
+
+        /// <summary>
+        /// 정답이 제자리(남쪽)면 패널이 이미 제자리로 가므로 되돌리는 명령을 따로 보내지 않는다.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator 레벨1_남쪽_성공은_한_번만_보낸다() => UniTask.ToCoroutine(async () =>
         {
             using UdpClient fakeArduino = CreateFakeArduino();
             using LoopbackArduinoUdpClient arduino = new LoopbackArduinoUdpClient(fakeArduino, 0.5f, 3);
             UniTask<List<string>> replied = ReplyAsync(fakeArduino, 1, null);
 
-            arduino.SendSolarSuccess(0, Constants.Directions.North);
-            arduino.SendSolarSuccess(0, Constants.Directions.West);
+            arduino.SendSolarSuccess(0, Constants.Directions.South);
 
-            CollectionAssert.AreEqual(new[] { "1_success_2" }, await replied.AwaitWithRealtimeTimeout());
+            CollectionAssert.AreEqual(new[] { "1_success_3" }, await replied.AwaitWithRealtimeTimeout());
             await DelayRealtime(0.8f);
-            Assert.AreEqual(0, ReceiveAll(fakeArduino).Count, "번호가 없는 방향의 명령이나 재전송이 나감");
+            Assert.AreEqual(0, ReceiveAll(fakeArduino).Count, "남쪽 success가 두 번 나감");
         });
 
         /// <summary>
