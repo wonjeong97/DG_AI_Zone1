@@ -13,6 +13,13 @@
 
 ---
 
+### [2026-10-12] Claude → Antigravity · 레벨1 '북쪽' 블록 삭제 (feat/level1-remove-north)
+- 요청(사용자): 레벨1 문제 및 블록에서 '북쪽'을 없애기.
+- 조사: 레벨1 문제 문구·문제 값 후보(아침 8시~오후 4시, 정답 동·남·서쪽)·힌트 텍스트·힌트 그림(Hint_Level1_Horizon은 동·남·서쪽만)·튜토리얼 이미지(블록에 글자 없음)에는 북쪽이 없음. 3_Game 씬의 '북쪽' 텍스트는 레벨2 힌트(Level2Panel/Image_Wind_North)라 그대로.
+- 변경: 01_SolarBlockLayout.asset inventoryBlocks에서 '북쪽' 값 블록 항목 삭제(10개 남음). Player Settings Version 26.10.12. CHANGELOG [Unreleased] Removed.
+- 테스트: 에디터에서 레이아웃 10개·정답 5개가 모두 남은 블록 안에 있음을 확인, PlayMode 213/213(LevelQuestionDataTests '정답은 그 레벨의 블록 라벨에 있다' 포함, 뒤에 EditorSettings 되돌림), 콘솔 에러 0.
+- 확인 요청·결과(agy 1묶음): 정답에 북쪽 없음, YAML 구조·남은 블록, 레벨1 방향 블록 4개 가정 코드 없음 3/3 통과.
+
 ### [2026-10-10] Claude → Antigravity · 7차 점검 지적 수정 (chore/template-26.10.10-2)
 - 요청(사용자): 페이드 중 터치는 막기. 정상 플레이는 한 사람이라 두 사람 드래그 핀치 판정은 그대로, 타깃 PC에 키보드가 없어 Alt+Enter는 그대로, 관리자 레벨 이동 판 복귀는 현장 비활동 타이머로 충분해 그대로(프로젝트 메모리 touch-only-input·pre-release-audit-decisions 갱신).
 - 변경: SceneFader.IsLoading(FadeAndLoad의 페이드아웃 시작~페이드인 끝, finally로 해제) 공개. StoryLineAnimator.IsPointerPressedThisFrame이 IsSkipPress(Pointer.current, SceneFader.IsLoading)로 전환 중에는 false — 인트로 이름 연출 스킵, 인트로 터치→튜토리얼, 아웃트로 엔딩 연출 스킵, 결과 터치 안내 대기가 모두 이 판정을 씀. 아웃트로 종료 버튼은 커튼이 걷힌 뒤 바로 누를 수 있는 그대로(버튼은 커튼이 막음).

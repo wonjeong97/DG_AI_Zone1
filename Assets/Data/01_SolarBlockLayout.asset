@@ -68,15 +68,6 @@ MonoBehaviour:
     chainBlocks: []
     chainSocketOffset: {x: 0, y: 0}
   - category: 2
-    label: "\uBD81\uCABD"
-    controlRole: 0
-    valueLabel: 
-    valueKind: 1
-    innerBlocks: []
-    elseBlocks: []
-    chainBlocks: []
-    chainSocketOffset: {x: 0, y: 0}
-  - category: 2
     label: "20\uAC1C"
     controlRole: 0
     valueLabel: 
