@@ -264,7 +264,7 @@ namespace Scenes
                 {
                     StorySceneSettings sceneSettings = await JsonLoader.LoadAsync<StorySceneSettings>(Constants.SettingsFiles.Story, ct, _logger);
 
-                    // JsonLoader는 파일이 없으면 취소를 확인하지 않고 기본값을 돌려주므로, 파괴된 버튼에 트윈을 걸지 않도록 여기서 취소를 전달한다
+                    // JsonLoader는 파일을 읽다가 오류가 나면 취소를 다시 확인하지 않고 기본값을 돌려주므로, 파괴된 버튼에 트윈을 걸지 않도록 여기서 취소를 전달한다
                     ct.ThrowIfCancellationRequested();
 
                     _ = selectedButtonRect.DOAnchorPos(selectedLevelButtonPosition, sceneSettings.selectedLevelButtonMoveDuration)

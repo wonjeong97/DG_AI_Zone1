@@ -16,6 +16,8 @@
 
 ## 완료
 
+- [x] HuliacDev Template 26.10.10-2 → 26.10.12-1 반영(packages-lock 고정 커밋 03cbcdb → 1c5e127 — Ctrl+F 포커스 복구 토글 화면 표시, Settings.json 실패 시 숨은 종료 버튼 좌상단·투명, 응답 없는 창에 AttachThreadInput 안 함, JsonLoader 시작 시 취소 확인, GetTextWithRetryAsync 시도별 시간 초과), 바뀐 동작과 어긋난 주석 정리(호출부 취소 확인 4곳은 읽기 오류 경로 때문에 유지) — PlayMode 216/216 — 담당: Claude / 검증: Antigravity (2026-10-12)
+
 - [x] 게임 씬 블록이 끌자마자 원래 자리로 돌아가는 문제 수정(마우스·터치 모두, 10-10 끝 신호 감지가 입력 모듈이 매 프레임 덮어쓰는 pointerDrag를 봄 → device·pointerId로 판단), 실제 입력 모듈 회귀 테스트 3개 — PlayMode 216/216 — 담당: Claude / 검증: Antigravity (2026-10-12)
 
 - [x] 레벨1(태양광) 블록 목록에서 '북쪽' 값 블록 삭제(문제 값 후보·힌트에는 원래 북쪽 없음), Player Settings Version 26.10.12 — PlayMode 213/213 — 담당: Claude / 검증: Antigravity (2026-10-12)

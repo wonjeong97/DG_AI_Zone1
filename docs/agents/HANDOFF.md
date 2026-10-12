@@ -13,6 +13,14 @@
 
 ---
 
+### [2026-10-12] Claude → Antigravity · HuliacDev Template 26.10.12-1 반영 (fix/drag-orphan-mouse)
+- 요청(사용자): 템플릿 업데이트도 드래그 수정 PR에 같이 넣기.
+- 템플릿 변경(26.10.12-1): ConfigureProjectMessageBrokers 훅(이 프로젝트는 ConfigureMessagePipe를 override하지 않아 영향 없음), GetTextWithRetryAsync 시도별 시간 초과·성공 로그 수준(이 프로젝트는 쓰지 않음), ToggleFocusRestore 토글 시 화면 표시(Ctrl+F, 바인딩 표시 문자열을 따름), 꺼 둔 상태의 포커스 잃음 로그, 응답 없는 포그라운드 창에 AttachThreadInput 안 함, SystemCanvas 숨은 종료 버튼 기본값 좌상단·투명(Settings.json closeSetting에 position (1,1)·imageAlpha 0이 있어 정상 설정에선 그대로), JsonLoader.TryLoadAsync 시작 시 취소 확인. packages-lock 고정 커밋 03cbcdb → 1c5e127(사용자가 갱신).
+- 이 프로젝트 변경: 호출부 ThrowIfCancellationRequested 4곳(TitleSceneManager·StoryManager·AdminSettings·VisitorApiClient)의 이유 주석을 '파일이 없으면 취소를 확인하지 않고' → '파일을 읽다가 오류가 나면 취소를 다시 확인하지 않고'로(처음엔 지웠다가, 읽기 IOException이 catch(Exception)에서 취소 확인 없이 기본값을 돌려주는 경로가 남아 되살림). VisitorApiClientTests 요약 갱신. VisitorApiClient의 '템플릿 재시도를 쓰지 않는 이유' 주석을 '먼저 만든 이 클래스의 재시도를 씀(템플릿도 시도별 시간 초과를 받음)'으로. CHANGELOG [Unreleased] Added 1·Fixed 2.
+- 참고(사용자 보고): Settings.json을 읽지 못하면 종료 버튼이 좌상단 150x150 투명으로 놓여(SystemCanvas 최상단), 타이틀 좌상단 관리자 진입 10번 터치가 앱 종료로 바뀔 수 있음. 정상 설정에서는 우상단이라 겹치지 않음.
+- 테스트: Unity 컴파일 에러 0, PlayMode 216/216(뒤에 EditorSettings·폰트 아틀라스 되돌림).
+- 확인 요청·결과(agy 3묶음): 지운 취소 확인 4곳 '문제'(빈 파일·파싱 실패·파일 없음 틈·읽은 직후 취소) — UniTask SwitchToMainThread의 GetResult가 항상 취소를 확인하고 이후 호출부까지 동기라 4경로 모두 오탐, 대신 Claude가 읽기 오류 경로를 찾아 지운 확인을 되살림 / 주석 2곳 통과 / CHANGELOG·packages-lock 2/2 통과 / 고친 주석 재확인 2/2 통과(덧붙인 파일 없음 틈·빈 파일 경로는 동기 구간이라 오탐)
+
 ### [2026-10-12] Claude → Antigravity · 블록이 끌자마자 원래 자리로 돌아가는 문제 (fix/drag-orphan-mouse)
 - 요청(사용자): 템플릿 업데이트 뒤 게임 씬에서 블록을 마우스로 끌면 '반복하기(무한)을 끌던 손가락이 끝 신호 없이 사라져 원래 자리로 되돌립니다' 로그만 나오고 드래그가 안 됨.
 - 원인: 템플릿 변경(03cbcdb → 1c5e127)과 무관. 5차 수정(d60f329, 2026-10-10)의 사라진 손가락 감지가 PointerEventData.pointerDrag를 봤는데, InputSystemUIInputModule(1.19.0)은 포인터 하나의 이벤트를 왼쪽·오른쪽·가운데 버튼 처리에 돌려쓰며 CopyPressStateTo로 pointerDrag를 매 프레임 가운데 버튼 값(null)으로 덮어씀(InputSystemUIInputModule.cs:474-506, PointerModel.cs:260-281). 터치도 같은 경로라 마우스·터치 모두 OnBeginDrag 프레임의 LateUpdate에서 바로 취소됨. 합성 PointerEventData만 쓰던 테스트로는 드러나지 않았음.
