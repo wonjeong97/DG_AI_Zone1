@@ -1,5 +1,6 @@
 using App;
 using Cysharp.Threading.Tasks;
+using Data;
 using TMPro;
 using UnityEngine;
 using Microsoft.Extensions.Logging;
@@ -7,6 +8,7 @@ using UnityEngine.Video;
 using VContainer;
 using HuliacDev.Core;
 using HuliacDev.UI;
+using HuliacDev.Utils;
 using ZLogger;
 
 namespace Scenes
@@ -69,7 +71,7 @@ namespace Scenes
 
         /// <summary>
         /// 텍스트의 "{name}" 플레이스홀더를 서버 연동 시 실제 이름, 미연동 시 VisitorSettings의 이름(관리자 페이지에서 변경)으로 치환한 뒤,
-        /// 2_Story/5_Outro와 동일하게 한 줄씩 올라오며 페이드인되는 연출로 표시한다.
+        /// 씬 페이드인이 끝나면 나레이션을 틀고 1_Intro.json의 시각에 맞춰 한 줄씩 올라오며 페이드인되는 연출로 표시한다.
         /// </summary>
         private async UniTaskVoid ApplyVisitorNameAsync(System.Threading.CancellationToken ct)
         {
@@ -78,7 +80,16 @@ namespace Scenes
                 // visitorNameText 누락은 Start에서 이미 경고했다 — 연출 없이 화면 터치만 열어 준다
                 if (!visitorNameText) return;
 
-                await StoryLineAnimator.AnimateWithVisitorNameAsync(visitorNameText, _visitorInfoProvider, ct, _inactivityTimer, _logger);
+                // 페이드인을 기다리는 동안 원문이 보이지 않도록 먼저 숨긴다
+                StoryLineAnimator.HideBeforeAnimate(visitorNameText);
+
+                // 첫 문장이 페이드 커튼에 가려 지나가지 않도록 페이드인이 끝난 뒤 나레이션과 줄 연출을 같은 프레임에 시작한다
+                IntroSceneSettings settings = await JsonLoader.LoadAsync<IntroSceneSettings>(Constants.SettingsFiles.Intro, ct, _logger);
+                await UniTask.WaitWhile(() => SceneFader.IsLoading, cancellationToken: ct);
+
+                if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.Narration);
+                await StoryLineAnimator.AnimateWithVisitorNameAsync(visitorNameText, _visitorInfoProvider, ct, _inactivityTimer, _logger,
+                    settings.narrationLineStartTimes);
             }
             catch (System.OperationCanceledException)
             {
@@ -93,7 +104,7 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 이름 연출이 끝난 뒤 화면을 터치하면 클릭음을 내고 튜토리얼 패널로 전환한다 (한 번만).
+        /// 이름 연출이 끝난 뒤 화면을 터치하면 나레이션을 멈추고 클릭음을 낸 뒤 튜토리얼 패널로 전환한다 (한 번만).
         /// </summary>
         private void Update()
         {
@@ -101,16 +112,23 @@ namespace Scenes
             if (!StoryLineAnimator.IsPointerPressedThisFrame()) return;
 
             _introTapEnabled = false;
-            if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
+            // 연출을 스킵해 나레이션이 아직 나오는 중이면 튜토리얼 화면에 겹치지 않게 끊는다(클릭음보다 먼저 — 효과음 소스를 함께 쓴다)
+            if (_soundManager)
+            {
+                _soundManager.StopSFX();
+                _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
+            }
             SwitchToTutorialPanelAsync(destroyCancellationToken).Forget();
         }
 
         /// <summary>
-        /// 튜토리얼 완료 구독을 해제한다.
+        /// 튜토리얼 완료 구독을 해제하고, 나레이션이 다음 씬까지 이어지지 않게 멈춘다.
         /// </summary>
         private void OnDestroy()
         {
             if (tutorialSlider) tutorialSlider.Finished -= OnTutorialFinished;
+            // 나레이션 도중 디버그 키 등으로 씬을 떠나는 경우 — SoundManager는 씬이 바뀌어도 남는다
+            if (_soundManager) _soundManager.StopSFX();
         }
 
         /// <summary>

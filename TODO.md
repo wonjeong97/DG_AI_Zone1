@@ -15,9 +15,12 @@
 - [ ] (출시 후) TitleSceneManager의 QR 스캐너 입력을 별도 클래스로 분리하고 대기·확인·시작하기 상태를 HuliacDev.Core StateMachine으로
 - [ ] (출시 후) 3_Game 드래그 레이어·코딩 패널 Content를 하위 Canvas로 분리(드래그·펄스 중 전체 재배칭 방지) — 프로파일러로 비용 확인 후, 하위 Canvas마다 GraphicRaycaster·셰이더 채널 필요
 - [ ] 현장에서 아두이노 연동 확인 — 좌·우 PC의 명령이 차례로 실행되는지, 로그에 아두이노 응답(보낸 명령 미러링)이 찍히고 '다시 보냅니다' 경고가 없는지(응답이 막히면 같은 명령이 3번 실행됨), 첫 실행 때 Windows 방화벽 허용 창이 뜨는지
+- [ ] 인트로 나레이션을 들으며 문구 줄이 문장마다 맞춰 올라오는지 확인 — 어긋나면 StreamingAssets/Json/1_Intro.json의 narrationLineStartTimes(나레이션 시작부터 각 줄이 올라오기 시작하는 초)를 고침
 - [ ] 현장(Windows 빌드)에서 창 항상 위 확인 — 시작 프로그램으로 다른 프로그램과 함께 켜도 앱 창이 가려지지 않는지, 유지보수용 키보드로 Ctrl+F를 누르면 작업 관리자 같은 다른 창이 앞으로 오는지
 
 ## 완료
+
+- [x] 1존 에피소드 나레이션(Zone_1_Episode_Narration.mp3)을 1_Intro 페이드인이 끝나면 틀고, 인트로 문구 줄이 나레이션 문장마다 맞춰 올라오게 함(1_Intro.json narrationLineStartTimes, 튜토리얼로 넘어가면 나레이션 멈춤) — PlayMode 227/227 — 담당: Claude / 검증: Antigravity + 서브에이전트 (2026-10-19)
 
 - [x] HuliacDev Template 26.10.12-1 → 26.10.16-1 반영(packages-lock 고정 커밋 1c5e127 → a036657 — WindowFocusRestorer alwaysOnTop 옵션), Settings.json alwaysOnTop true로 창 항상 위(Ctrl+F로 포커스 복구와 함께 끄고 켬) — PlayMode 225/225 — 담당: Claude / 검증: Antigravity + 서브에이전트 (2026-10-19)
 

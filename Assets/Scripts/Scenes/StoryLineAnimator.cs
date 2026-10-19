@@ -48,17 +48,19 @@ namespace Scenes
         /// 00_Common.json의 줄 연출 설정(이동 시간·간격·오프셋)으로, 화면을 누르면 스킵되는 AnimateAsync를 실행한다.
         /// </summary>
         public static async UniTask AnimateWithCommonSettingsAsync(TMP_Text text, CancellationToken token,
-            InactivityTimer inactivityTimer = null, Microsoft.Extensions.Logging.ILogger logger = null)
+            InactivityTimer inactivityTimer = null, Microsoft.Extensions.Logging.ILogger logger = null,
+            float[] lineStartTimes = null)
         {
             (float moveDuration, float interval, float yOffset) = await SceneFader.GetStoryLineSettingsAsync();
-            await AnimateAsync(text, moveDuration, interval, yOffset, IsPointerPressedThisFrame, token, inactivityTimer, logger);
+            await AnimateAsync(text, moveDuration, interval, yOffset, IsPointerPressedThisFrame, token, inactivityTimer, logger, lineStartTimes);
         }
 
         /// <summary>
         /// 문장의 "{name}"을 체험자 이름으로 바꾼 뒤 공통 설정으로 한 줄씩 올라오는 연출을 재생한다(인트로·아웃트로가 함께 쓴다).
         /// </summary>
         public static async UniTask AnimateWithVisitorNameAsync(TMP_Text text, VisitorInfoProvider visitorInfoProvider,
-            CancellationToken token, InactivityTimer inactivityTimer, Microsoft.Extensions.Logging.ILogger logger)
+            CancellationToken token, InactivityTimer inactivityTimer, Microsoft.Extensions.Logging.ILogger logger,
+            float[] lineStartTimes = null)
         {
             // 이름을 바꾸기 전 원문이 한 프레임 보이지 않도록 먼저 숨긴다
             HideBeforeAnimate(text);
@@ -68,7 +70,7 @@ namespace Scenes
             else if (logger != null)
                 logger.ZLogWarning($"[StoryLineAnimator] VisitorInfoProvider가 주입되지 않아 {text.name}의 이름을 치환하지 않습니다.");
 
-            await AnimateWithCommonSettingsAsync(text, token, inactivityTimer, logger);
+            await AnimateWithCommonSettingsAsync(text, token, inactivityTimer, logger, lineStartTimes);
         }
 
         /// <summary>
@@ -76,10 +78,12 @@ namespace Scenes
         /// </summary>
         public static async UniTask AnimateAsync(TMP_Text text, float lineMoveDuration, float lineInterval, float lineYOffset,
             Func<bool> skipRequested, CancellationToken token, InactivityTimer inactivityTimer = null,
-            Microsoft.Extensions.Logging.ILogger logger = null)
+            Microsoft.Extensions.Logging.ILogger logger = null, float[] lineStartTimes = null)
         {
             // 보이는 문자가 없는 줄(간격용 빈 줄)은 연출과 대기 없이 즉시 통과하고,
             // skipRequested가 true를 반환하면 남은 줄까지 즉시 표시하고 종료한다.
+            // lineStartTimes를 넘기면 연출을 시작한 순간부터 잰 그 시각(초)에 맞춰 보이는 줄이 차례로 올라오고(나레이션에 맞출 때),
+            // 값이 모자라면 남은 줄은 lineInterval 간격으로 올라온다.
             // inactivityTimer를 넘기면 연출이 진행되는 동안 비활동 타이머를 멈춘다 — 입력이 없어도 사용자는
             // 글을 읽고 있는 구간이라 타임아웃으로 타이틀에 튕기면 안 되며, 끝나거나 스킵하면 다시 켠다.
             // 씬을 떠나 취소된 경우에는 다음 씬을 불러올 때 GameManager가 타이머 상태를 정하므로 건드리지 않는다
@@ -95,7 +99,7 @@ namespace Scenes
             if (inactivityTimer) inactivityTimer.Pause();
             try
             {
-                await AnimateLinesAsync(text, lineMoveDuration, lineInterval, lineYOffset, skipRequested, token);
+                await AnimateLinesAsync(text, lineMoveDuration, lineInterval, lineYOffset, skipRequested, token, lineStartTimes);
             }
             finally
             {
@@ -106,7 +110,8 @@ namespace Scenes
         /// <summary>
         /// 줄 단위 정점 캐싱 → 전체 숨김 → 줄마다 올라오며 페이드인 → 전체 확정 순서로 연출한다.
         /// </summary>
-        private static async UniTask AnimateLinesAsync(TMP_Text text, float lineMoveDuration, float lineInterval, float lineYOffset, Func<bool> skipRequested, CancellationToken token)
+        private static async UniTask AnimateLinesAsync(TMP_Text text, float lineMoveDuration, float lineInterval, float lineYOffset, Func<bool> skipRequested, CancellationToken token,
+            float[] lineStartTimes)
         {
             // 호출부에서 미리 숨겨 둔 경우(maxVisibleCharacters=0)를 대비해 전체 노출로 되돌린 뒤 메쉬를 갱신함
             text.maxVisibleCharacters = int.MaxValue;
@@ -148,6 +153,10 @@ namespace Scenes
 
             bool skipped = false;
 
+            // 줄 시작 시각은 나레이션 소리에 맞춰야 하므로 프레임이 끊겨도 늦어지지 않는 실제 시간으로 잰다
+            float startRealtime = Time.realtimeSinceStartup;
+            int visibleLineIndex = 0;
+
             // 라인별로 하나씩 올라오는 연출 진행
             for (int l = 0; l < totalLines && !skipped; l++)
             {
@@ -155,6 +164,13 @@ namespace Scenes
 
                 // 보이는 문자가 없는 줄(간격용 빈 줄)은 연출과 대기 없이 즉시 통과함
                 if (!LineHasVisibleChar(textInfo, lineInfo)) continue;
+
+                if (lineStartTimes != null && visibleLineIndex < lineStartTimes.Length)
+                {
+                    skipped = await WaitUntilRealtimeOrSkipAsync(startRealtime + lineStartTimes[visibleLineIndex], skipRequested, token);
+                    if (skipped) break;
+                }
+                visibleLineIndex++;
 
                 // 정점 단위 보간이라 트윈 대상이 없으므로 DOVirtual로 진행하고, 스킵 입력이 오면 그 자리에서 Kill한다
                 // (외부 Kill은 await를 정상 완료시키고, 취소 토큰은 트윈을 멈추며 예외로 빠져나간다).
@@ -184,7 +200,9 @@ namespace Scenes
                 ApplyLineVertices(textInfo, lineInfo, cachedVertices, cachedColors, 0f, 255);
                 text.UpdateVertexData(TMP_VertexDataUpdateFlags.Vertices | TMP_VertexDataUpdateFlags.Colors32);
 
-                if (!skipped && l < totalLines - 1)
+                // 다음 줄의 시작 시각이 정해져 있으면 그 시각까지 기다리므로 줄 간격은 건너뜀
+                bool nextLineTimed = lineStartTimes != null && visibleLineIndex < lineStartTimes.Length;
+                if (!skipped && !nextLineTimed && l < totalLines - 1)
                     skipped = await WaitIntervalOrSkipAsync(lineInterval, skipRequested, token);
             }
 
@@ -205,6 +223,20 @@ namespace Scenes
             // 00_Common.json에 음수를 적어도 예외 없이 바로 다음 줄로 넘어간다
             float endTime = Time.time + Mathf.Max(0f, seconds);
             while (Time.time < endTime)
+            {
+                await UniTask.Yield(PlayerLoopTiming.Update, token);
+                if (skipRequested != null && skipRequested()) return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 실제 시간(Time.realtimeSinceStartup)이 targetRealtime에 이를 때까지 기다리되, 그 사이에 스킵 입력이 들어오면 바로 true를 반환한다.
+        /// </summary>
+        private static async UniTask<bool> WaitUntilRealtimeOrSkipAsync(float targetRealtime, Func<bool> skipRequested, CancellationToken token)
+        {
+            // 1_Intro.json에 이미 지난 시각(앞 줄보다 이르거나 음수)을 적어도 기다리지 않고 바로 올라온다
+            while (Time.realtimeSinceStartup < targetRealtime)
             {
                 await UniTask.Yield(PlayerLoopTiming.Update, token);
                 if (skipRequested != null && skipRequested()) return true;

@@ -47,6 +47,7 @@ public static class Constants
 
         public const string Common = Folder + "/00_Common"; // 씬 전환 페이드 등 공통 연출 타이밍
         public const string Title  = Folder + "/0_Title";
+        public const string Intro  = Folder + "/1_Intro";   // 인트로 나레이션에 맞춰 문구 줄이 올라오는 시각
         public const string Story  = Folder + "/2_Story";
         public const string Game   = Folder + "/3_Game";
         public const string Result = Folder + "/4_Result";
@@ -497,6 +498,7 @@ public static class Constants
         public const string ButtonClick    = "buttonClick";    // 전용 효과음이 없는 버튼 클릭, 인트로→튜토리얼 터치, 튜토리얼 페이지 넘기기
         public const string CodingAlert    = "codingAlert";    // 컴파일 실패(블록 빨간 테두리 경고)
         public const string CodingComplete = "codingComplete"; // 컴파일 성공
+        public const string Narration      = "zone1EpisodeNarration"; // 인트로 문구 나레이션(1_Intro 페이드인이 끝나면)
         public const string GameStart      = "gameStart";      // 타이틀 시작하기 버튼
         public const string HintEpisode    = "hintEpisode";    // 힌트·미션 다시보기 버튼
         public const string MissionFailed  = "missonFailed";   // 결과 완료 화면 '미션 실패!'

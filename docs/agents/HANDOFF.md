@@ -4,6 +4,18 @@ Claude가 Antigravity(agy)와 리뷰 서브에이전트에 맡긴 검증 기록.
 
 ---
 
+### [2026-10-19 16:36] Claude → Antigravity + 서브에이전트 · 인트로 나레이션과 줄 연출 맞추기 (feat/intro-narration)
+- 요청: StreamingAssets/Sounds에 넣은 1존 에피소드 나레이션을 인트로에서 틀고, 인트로 문구 줄도 나레이션에 맞춰 올라오게.
+- 변경: 1_Intro 페이드인이 끝나면 나레이션(Settings.json zone1EpisodeNarration)을 틀고 같은 프레임에 1_Intro.json narrationLineStartTimes(무음 구간 분석으로 0.5·3.8·8.6·13.8·17.5·20.3초) 시각에 맞춰 줄이 올라옴. StoryLineAnimator에 선택 인자 lineStartTimes 추가(안 주면 기존 동작). 튜토리얼로 넘어가는 탭과 씬 파괴 때 StopSFX. 테스트 2개.
+- Claude 확인: Rider 에러 0, Unity 컴파일 에러 0, PlayMode 227/227(뒤에 EditorSettings 되돌림). 클릭음 0.14초라 페이드아웃 0.5초 뒤 OnDestroy의 StopSFX에 안 잘림.
+- 서브에이전트 (1묶음):
+  - 줄 시작 시각 연출(null이면 기존과 같음, 빈 줄·스킵·값 부족·지난 시각, 테스트 안정성) → 통과
+- 교차 검증 (agy gemini-4-argon-high + 서브에이전트, 1묶음):
+  - 취소·JSON 실패 경로, 키·경로·기본값 일치, 탭의 Stop→클릭음 순서 → 둘 다 통과
+  - 앱을 켠 뒤 첫 재생은 클립을 읽는 동안 소리가 줄보다 늦고, 읽는 중에는 StopSFX로 못 막음 → 둘 다 지적(agy는 확인 필요, 서브에이전트는 중간) → 22초 64kbps mp3 디코드는 수십 ms로 줄 연출(0.7초)에 비해 작아 그대로 둠, Template SoundManager 문제라 Template TODO에 기록
+  - 이름이 길면 줄이 접혀 시각이 밀림 → 서브에이전트만(확인 필요) → 오탐: 문구 TMP가 자동 줄바꿈 꺼짐(m_enableWordWrapping 0)
+- 남은 것: 나레이션과 줄이 실제로 맞는지는 소리를 들어 확인해야 함(TODO 등록).
+
 ### [2026-10-19 10:11] Claude → Antigravity + 서브에이전트 · Template 26.10.16-1 반영, 창 항상 위 켬 (chore/template-26.10.16-1)
 - 요청: 템플릿 업데이트, 이어서 Settings.json에도 값 추가(사용자가 alwaysOnTop true 선택).
 - 변경: packages-lock 고정 커밋 1c5e127 → a036657(WindowFocusRestorer alwaysOnTop 옵션, 공개 API 변경 없음). Settings.json alwaysOnTop true. Version은 오늘 이미 26.10.19라 그대로.
