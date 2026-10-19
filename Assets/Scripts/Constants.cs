@@ -129,7 +129,8 @@ public static class Constants
     public static class CategoryNames
     {
         public const string Control         = "제어";
-        public const string Command         = "움직이기";
+        // Action과 같은 탭 이름 — 한 레벨에 Command·Action 블록이 함께 나오면 탭이 두 개 생기므로 그때는 이름을 나눠야 한다
+        public const string Command         = "동작";
         // 명령 블록 옆에 붙는 값 블록(동쪽, 20개 …) — 레벨3 조건 값(1m 이상 …)과 같은 탭 이름을 쓴다.
         // 한 레벨에 Value·Condition 블록이 함께 나오면 같은 이름의 탭이 두 개 생기므로 그때는 이름을 나눠야 한다
         public const string Value           = "숫자·정보";

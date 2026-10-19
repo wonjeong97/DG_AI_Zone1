@@ -1,17 +1,18 @@
 # HANDOFF
 
-에이전트 간 인계 기록. 새 항목을 맨 위에 추가한다.
-
-## 항목 형식
-
-```
-### [YYYY-MM-DD HH:MM] <보낸 쪽> → <받는 쪽> · <TASKS ID>
-- 변경 파일:
-- 확인 요청:
-- 결과: (받는 쪽이 작성 — 통과/실패와 근거)
-```
+Claude가 Antigravity(agy)와 리뷰 서브에이전트에 맡긴 검증 기록. 새 항목을 맨 위에 추가한다. 항목 형식은 공통 스킬 `handoff` 를 따른다.
 
 ---
+
+### [2026-10-19 09:38] Claude → Antigravity + 서브에이전트 · 명령 블록 탭 이름 '동작'으로 (feat/command-tab-name)
+- 요청: 핑크색 Command 카테고리 탭 이름을 '움직이기'에서 '동작'으로. 숫자·정보처럼 같은 이름 탭이 두 개 생기지 않으면 상관없음.
+- 변경: Constants.CategoryNames.Command를 "동작"으로, Action과 같은 이름이라 한 레벨에 함께 나오면 나눠야 한다는 주석. Player Settings Version 26.10.19.
+- Claude 확인: Rider 에러 0, Unity 강제 리프레시 후 컴파일 에러 0(콘솔은 도메인 리로드 때 MCP 웹소켓 경고 1줄뿐), 라벨 폰트 GamtanRoadTantan SDF에 '동'·'작' 글리프 있음. 탭 이름을 검사하는 테스트가 없고 에디터에 포커스가 있어 PlayMode 테스트는 돌리지 않음.
+- agy (gemini-4-argon-high, 1묶음):
+  - Command 이름이 탭 라벨에만 쓰이는지·문자열 비교 없는지, 레벨 5개에 Command·Action이 함께 나오지 않는지 2/2 통과(Action 블록은 레벨 데이터·git 기록 어디에도 없음)
+- 서브에이전트 (1묶음):
+  - CHANGELOG 형식, bundleVersion 날짜·다른 설정 섞임, TODO 형식 3/3 통과
+- 남은 것: 주석·테스트 메서드 이름에 남은 '움직이기'(BlockCompiler·BlockCompilerTests·SocketOwnershipTests)는 그대로 둠.
 
 ### [2026-10-13] Claude → Antigravity · 레벨1 패널 제자리 복귀 (feat/arduino-solar-return)
 - 요청(사용자): 레벨1 패널이 1_success_1 등을 받은 뒤 원래 자리로 돌아오지 않으니 1_success_3을 바로 이어 보내기.
