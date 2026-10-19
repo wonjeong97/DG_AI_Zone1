@@ -20,6 +20,8 @@
 
 ## 완료
 
+- [x] HuliacDev Template 26.10.16-1 → 26.10.19-1 반영(packages-lock 고정 커밋 a036657 → 7fbccfe — SoundManager.PreloadAsync 추가, 로드 중 StopSFX 뒤 재생 막음), 인트로가 나레이션 클립을 다 읽은 뒤 페이드인해 앱을 켠 뒤 첫 재생도 줄 연출과 같은 순간에 시작 — PlayMode 227/227, Play 모드로 타이틀→인트로 전환해 확인 — 담당: Claude / 검증: Antigravity + 서브에이전트 (2026-10-19)
+
 - [x] 1존 에피소드 나레이션(Zone_1_Episode_Narration.mp3)을 1_Intro 페이드인이 끝나면 틀고, 인트로 문구 줄이 나레이션 문장마다 맞춰 올라오게 함(1_Intro.json narrationLineStartTimes, 튜토리얼로 넘어가면 나레이션 멈춤) — PlayMode 227/227 — 담당: Claude / 검증: Antigravity + 서브에이전트 (2026-10-19)
 
 - [x] HuliacDev Template 26.10.12-1 → 26.10.16-1 반영(packages-lock 고정 커밋 1c5e127 → a036657 — WindowFocusRestorer alwaysOnTop 옵션), Settings.json alwaysOnTop true로 창 항상 위(Ctrl+F로 포커스 복구와 함께 끄고 켬) — PlayMode 225/225 — 담당: Claude / 검증: Antigravity + 서브에이전트 (2026-10-19)

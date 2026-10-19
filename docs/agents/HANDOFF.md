@@ -4,6 +4,15 @@ Claude가 Antigravity(agy)와 리뷰 서브에이전트에 맡긴 검증 기록.
 
 ---
 
+### [2026-10-19 17:28] Claude → Antigravity + 서브에이전트 · Template 26.10.19-1 반영, 나레이션 미리 읽기 (feat/intro-narration)
+- 요청: 사용자가 Template을 고쳤으니(SoundManager 미리 불러오기·로드 중 정지) 패키지를 업데이트하고 확인.
+- 변경: packages-lock 고정 커밋 a036657 → 7fbccfe(26.10.19-1, PreloadAsync 추가·로드 중 StopSFX 뒤 재생 막음). IntroSceneManager.Start가 나레이션 PreloadAsync를 SceneFader 대기 작업으로 등록해 클립을 다 읽은 뒤 페이드인.
+- Claude 확인: 세션 MCP 연결이 끊겨 MCP HTTP 서버에 직접 붙어 강제 리프레시, 패키지 26.10.19-1 설치·컴파일 에러 0, PlayMode 227/227(뒤에 EditorSettings 되돌림). Play 모드로 0_Title에서 FadeAndLoad(1_Intro)를 불러 확인: 페이드인이 끝난 프레임에 나레이션 클립이 캐시에 있었고(Play 직후라 처음엔 없었음) 다음 프레임부터 효과음 소스 재생, 콘솔 오류·경고 0. Rider는 다른 프로젝트를 열고 있어 생략.
+- 교차 검증 (agy gemini-4-argon-high + 서브에이전트, 1묶음):
+  - 대기 작업 등록(캐시면 바로 끝남, false·예외·취소·5초 제한에도 페이드인 진행, UniTask<bool> 암시적 변환) → 둘 다 통과
+  - 새 StopSFX와 인트로 두 곳(Stop 직후 클릭음, OnDestroy) → 둘 다 통과
+- 남은 것: 에디터에서 1_Intro로 바로 Play하면 대기 작업이 다음 전환 때 "폐기" 경고로 버려짐(기존 로봇 영상 등록과 같음, 에디터 전용).
+
 ### [2026-10-19 16:36] Claude → Antigravity + 서브에이전트 · 인트로 나레이션과 줄 연출 맞추기 (feat/intro-narration)
 - 요청: StreamingAssets/Sounds에 넣은 1존 에피소드 나레이션을 인트로에서 틀고, 인트로 문구 줄도 나레이션에 맞춰 올라오게.
 - 변경: 1_Intro 페이드인이 끝나면 나레이션(Settings.json zone1EpisodeNarration)을 틀고 같은 프레임에 1_Intro.json narrationLineStartTimes(무음 구간 분석으로 0.5·3.8·8.6·13.8·17.5·20.3초) 시각에 맞춰 줄이 올라옴. StoryLineAnimator에 선택 인자 lineStartTimes 추가(안 주면 기존 동작). 튜토리얼로 넘어가는 탭과 씬 파괴 때 StopSFX. 테스트 2개.

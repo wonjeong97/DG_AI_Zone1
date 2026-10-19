@@ -45,7 +45,7 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 패널 표시 상태를 정규화하고 튜토리얼 완료 구독·영상·체험자 이름 연출을 시작한다.
+        /// 패널 표시 상태를 정규화하고 튜토리얼 완료 구독·영상·나레이션 미리 읽기·체험자 이름 연출을 시작한다.
         /// </summary>
         private void Start()
         {
@@ -65,6 +65,10 @@ namespace Scenes
             else if (_logger != null) _logger.ZLogWarning($"[IntroSceneManager] tutorialSlider가 할당되지 않아 스토리 씬으로 넘어갈 수 없습니다.");
 
             SceneFader.PlayRobotVideo(robotVideoPlayer, destroyCancellationToken, _logger);
+
+            // 앱을 켠 뒤 첫 재생도 줄 연출과 같은 프레임에 나오도록 나레이션 클립을 다 읽을 때까지 페이드인을 미룬다
+            // (캐시에 있으면 바로 끝남, 읽기 실패는 SoundManager가 로그로 남긴다)
+            if (_soundManager) SceneFader.RegisterPendingTask(_soundManager.PreloadAsync(Constants.Sounds.Narration, destroyCancellationToken));
 
             ApplyVisitorNameAsync(destroyCancellationToken).Forget();
         }
