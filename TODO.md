@@ -18,6 +18,8 @@
 
 ## 완료
 
+- [x] 핑크색 명령 블록(Command) 탭 이름을 '움직이기'에서 '동작'으로 변경(Action도 '동작'이지만 쓰는 레벨이 없어 탭이 겹치지 않음), Player Settings Version 26.10.19 — 컴파일 에러 0, PlayMode 미실행(탭 이름 검사 테스트 없음) — 담당: Claude / 검증: Antigravity + 서브에이전트 (2026-10-19)
+
 - [x] 레벨1 패널이 성공 방향에서 제자리로 돌아오지 않아 1_success_1·1_success_2 바로 뒤에 1_success_3을 보내 되돌림(정답이 남쪽이면 1_success_3 한 번만) — PlayMode 225/225 — 담당: Claude / 검증: Antigravity (2026-10-13)
 
 - [x] 드래그 진단 로그('입력 모듈이 …을 끄던 손가락을 놓쳐') 삭제 — 현장 로그의 장치가 Mouse라 원인(Windows가 터치에 마우스 입력을 섞음) 확인, 드래그 정상 — PlayMode 224/224 — 담당: Claude / 검증: Antigravity (2026-10-13)
