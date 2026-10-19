@@ -4,6 +4,18 @@ Claude가 Antigravity(agy)와 리뷰 서브에이전트에 맡긴 검증 기록.
 
 ---
 
+### [2026-10-19 10:11] Claude → Antigravity + 서브에이전트 · Template 26.10.16-1 반영, 창 항상 위 켬 (chore/template-26.10.16-1)
+- 요청: 템플릿 업데이트, 이어서 Settings.json에도 값 추가(사용자가 alwaysOnTop true 선택).
+- 변경: packages-lock 고정 커밋 1c5e127 → a036657(WindowFocusRestorer alwaysOnTop 옵션, 공개 API 변경 없음). Settings.json alwaysOnTop true. Version은 오늘 이미 26.10.19라 그대로.
+- Claude 확인: Unity 강제 리프레시로 패키지 26.10.16-1 받음, 컴파일 에러·경고 0, PlayMode 225/225(뒤에 EditorSettings 되돌림). true 경로(1초마다 다시 적용, Ctrl+F로 끄면 바로 풀고 Tick 멈춤, Dispose 때 풂)는 코드로 직접 확인.
+- 서브에이전트 (1묶음):
+  - CHANGELOG·TODO 형식 → 통과, 옛 문구가 켜 둔 설정과 어긋남(중간) → 이미 고친 뒤였음, Ctrl+F로 끈 상태가 다시 켜면 풀림이 없음(낮음) → CHANGELOG에 덧붙임
+- 교차 검증 (agy gemini-4-argon-high + 서브에이전트, 3묶음):
+  - 템플릿 API 호환·키 없을 때와 대체 설정에서 false → 둘 다 통과
+  - false일 때 기존 동작·Ctrl+F 키 이름 표시 → 둘 다 통과(서브에이전트만: 화면에는 'Control+F'로 표시, 뜻은 같아 그대로 둠)
+  - Settings.json 키·JSON, 켰을 때 TemplateInputActions 등록으로 Ctrl+F 토글 가능, CHANGELOG 문장 → 둘 다 통과
+- 남은 것: 실제 항상 위는 Windows 빌드에서만 동작해 현장 확인 필요(TODO 등록). 타깃 PC에 키보드가 없으면 Ctrl+F로 끌 때 유지보수용 키보드를 연결해야 함(기존 Ctrl+F 운영과 같음).
+
 ### [2026-10-19 09:38] Claude → Antigravity + 서브에이전트 · 명령 블록 탭 이름 '동작'으로 (feat/command-tab-name)
 - 요청: 핑크색 Command 카테고리 탭 이름을 '움직이기'에서 '동작'으로. 숫자·정보처럼 같은 이름 탭이 두 개 생기지 않으면 상관없음.
 - 변경: Constants.CategoryNames.Command를 "동작"으로, Action과 같은 이름이라 한 레벨에 함께 나오면 나눠야 한다는 주석. Player Settings Version 26.10.19.
