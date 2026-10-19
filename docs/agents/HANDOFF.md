@@ -11,6 +11,10 @@ Claude가 Antigravity(agy)와 리뷰 서브에이전트에 맡긴 검증 기록.
 - 교차 검증 (agy gemini-4-argon-high + 서브에이전트, 1묶음):
   - 대기 작업 등록(캐시면 바로 끝남, false·예외·취소·5초 제한에도 페이드인 진행, UniTask<bool> 암시적 변환) → 둘 다 통과
   - 새 StopSFX와 인트로 두 곳(Stop 직후 클릭음, OnDestroy) → 둘 다 통과
+- agy (gemini-4-argon-high, 머지 전 PR #101 최종 1묶음):
+  - 통합 흐름(미리 읽기→페이드인→나레이션·연출→탭·OnDestroy 정지, 비활동 타이머, 기존 호출부)·코딩 규칙 → 통과
+- 서브에이전트 (머지 전 PR #101 최종 1묶음):
+  - CHANGELOG·TODO·HANDOFF·설정 파일 → 통과, 제안 1건(16:36 항목의 첫 재생 지연에 해결 표시) → 반영
 - 남은 것: 에디터에서 1_Intro로 바로 Play하면 대기 작업이 다음 전환 때 "폐기" 경고로 버려짐(기존 로봇 영상 등록과 같음, 에디터 전용).
 
 ### [2026-10-19 16:36] Claude → Antigravity + 서브에이전트 · 인트로 나레이션과 줄 연출 맞추기 (feat/intro-narration)
@@ -21,7 +25,7 @@ Claude가 Antigravity(agy)와 리뷰 서브에이전트에 맡긴 검증 기록.
   - 줄 시작 시각 연출(null이면 기존과 같음, 빈 줄·스킵·값 부족·지난 시각, 테스트 안정성) → 통과
 - 교차 검증 (agy gemini-4-argon-high + 서브에이전트, 1묶음):
   - 취소·JSON 실패 경로, 키·경로·기본값 일치, 탭의 Stop→클릭음 순서 → 둘 다 통과
-  - 앱을 켠 뒤 첫 재생은 클립을 읽는 동안 소리가 줄보다 늦고, 읽는 중에는 StopSFX로 못 막음 → 둘 다 지적(agy는 확인 필요, 서브에이전트는 중간) → 22초 64kbps mp3 디코드는 수십 ms로 줄 연출(0.7초)에 비해 작아 그대로 둠, Template SoundManager 문제라 Template TODO에 기록
+  - 앱을 켠 뒤 첫 재생은 클립을 읽는 동안 소리가 줄보다 늦고, 읽는 중에는 StopSFX로 못 막음 → 둘 다 지적(agy는 확인 필요, 서브에이전트는 중간) → 22초 64kbps mp3 디코드는 수십 ms로 줄 연출(0.7초)에 비해 작아 그대로 둠, Template SoundManager 문제라 Template TODO에 기록 → 17:28 항목에서 Template 26.10.19-1로 해결
   - 이름이 길면 줄이 접혀 시각이 밀림 → 서브에이전트만(확인 필요) → 오탐: 문구 TMP가 자동 줄바꿈 꺼짐(m_enableWordWrapping 0)
 - 남은 것: 나레이션과 줄이 실제로 맞는지는 소리를 들어 확인해야 함(TODO 등록).
 
