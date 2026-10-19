@@ -102,6 +102,37 @@ namespace DG.Zone1.Tests
         });
 
         /// <summary>
+        /// 줄 시작 시각을 주면 각 줄은 그 시각이 되기 전까지 보이지 않는다(인트로 나레이션에 맞춰 올라오는 연출).
+        /// </summary>
+        [UnityTest]
+        public IEnumerator 줄_시작_시각을_주면_그_시각까지_줄이_나오지_않는다() => UniTask.ToCoroutine(async () =>
+        {
+            // 줄 간격 10초는 무시되고 시각(0.4초·1.2초)에 맞춰 올라와야 한다
+            UniTask anim = StoryLineAnimator.AnimateAsync(_text, 0.05f, 10f, 20f, () => false, CancellationToken.None,
+                lineStartTimes: new[] { 0.4f, 1.2f });
+
+            await UniTask.Delay(TimeSpan.FromSeconds(0.2f), DelayType.Realtime);
+            Assert.AreEqual(0, ReadLineAlpha(0), "첫 줄 시작 시각(0.4초) 전인데 첫 줄이 보임");
+
+            await UniTask.Delay(TimeSpan.FromSeconds(0.6f), DelayType.Realtime);
+            Assert.AreEqual(255, ReadLineAlpha(0), "첫 줄 시작 시각이 지났는데 첫 줄이 다 올라오지 않음");
+            Assert.AreEqual(0, ReadLineAlpha(1), "둘째 줄 시작 시각(1.2초) 전인데 둘째 줄이 보임");
+
+            await anim.AwaitWithRealtimeTimeout();
+            Assert.AreEqual(255, ReadLineAlpha(1), "연출이 끝났는데 둘째 줄이 보이지 않음");
+        });
+
+        /// <summary>
+        /// l번째 줄 첫 글자 정점의 알파를 읽는다.
+        /// </summary>
+        private byte ReadLineAlpha(int line)
+        {
+            TMP_TextInfo info = _text.textInfo;
+            TMP_CharacterInfo ch = info.characterInfo[info.lineInfo[line].firstCharacterIndex];
+            return info.meshInfo[ch.materialReferenceIndex].colors32[ch.vertexIndex].a;
+        }
+
+        /// <summary>
         /// 스킵 입력이 들어오면 남은 줄 간격을 기다리지 않고 모든 줄이 즉시 표시된다.
         /// </summary>
         [UnityTest]

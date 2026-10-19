@@ -20,6 +20,7 @@
     { "key": "gameStart",      "clipPath": "Sounds/gameStart.mp3",      "volume": 1.0 },
     { "key": "hintEpisode",    "clipPath": "Sounds/hintEpisode.mp3",    "volume": 1.0 },
     { "key": "missonFailed",   "clipPath": "Sounds/missonFailed.mp3",   "volume": 1.0 },
-    { "key": "missonSuccess",  "clipPath": "Sounds/missonSuccess.mp3",  "volume": 1.0 }
+    { "key": "missonSuccess",  "clipPath": "Sounds/missonSuccess.mp3",  "volume": 1.0 },
+    { "key": "zone1EpisodeNarration", "clipPath": "Sounds/Zone_1_Episode_Narration.mp3", "volume": 1.0 }
   ]
 }

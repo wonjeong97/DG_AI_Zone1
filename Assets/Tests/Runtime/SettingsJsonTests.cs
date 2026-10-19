@@ -19,6 +19,7 @@ namespace DG.Zone1.Tests
         [TestCase(typeof(CommonSettings), Constants.SettingsFiles.Common)]
         [TestCase(typeof(AdminSettings), Constants.SettingsFiles.Admin)]
         [TestCase(typeof(TitleSceneSettings), Constants.SettingsFiles.Title)]
+        [TestCase(typeof(IntroSceneSettings), Constants.SettingsFiles.Intro)]
         [TestCase(typeof(StorySceneSettings), Constants.SettingsFiles.Story)]
         [TestCase(typeof(GameSceneSettings), Constants.SettingsFiles.Game)]
         [TestCase(typeof(ResultSceneSettings), Constants.SettingsFiles.Result)]
