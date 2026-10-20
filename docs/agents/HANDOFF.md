@@ -12,6 +12,8 @@ Claude가 Antigravity(agy)와 리뷰 서브에이전트에 맡긴 검증 기록.
   - meta GUID와 Addressables 항목 일치·남은 파일 없음, 주소로 로드, 콘솔 → 통과
 - 서브에이전트 (1묶음):
   - Version·CHANGELOG·TODO 형식, 새 이미지 말풍선 문구와 CHANGELOG 일치 → 통과
+- 서브에이전트 (머지 전 PR #102 최종 1묶음):
+  - CHANGELOG 항목을 [2026-10-20] 섹션으로 옮긴 위치·중복 없음 → 통과
 
 ### [2026-10-19 17:28] Claude → Antigravity + 서브에이전트 · Template 26.10.19-1 반영, 나레이션 미리 읽기 (feat/intro-narration)
 - 요청: 사용자가 Template을 고쳤으니(SoundManager 미리 불러오기·로드 중 정지) 패키지를 업데이트하고 확인.
