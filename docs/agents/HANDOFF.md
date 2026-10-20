@@ -4,6 +4,17 @@ Claude가 Antigravity(agy)와 리뷰 서브에이전트에 맡긴 검증 기록.
 
 ---
 
+### [2026-10-20 13:47] Claude → Antigravity + 서브에이전트 · 튜토리얼 이미지 7번 교체 (chore/tutorial7-image)
+- 요청: Tutorial 폴더에 넣은 새 튜토리얼 7번 이미지로 교체.
+- 변경: 사용자가 넣은 '튜토리얼 7.png'(1920×1080, 같은 임포트 설정)의 내용으로 Tutorial7.png만 덮어쓰고, 넣은 파일과 그 meta는 지움. meta를 그대로 둬 GUID와 Addressables 주소 Tutorial7 유지. Version 26.10.20.
+- Claude 확인: Unity 에셋 강제 리프레시 뒤 콘솔 에러·경고 0, 지운 파일의 GUID를 참조하는 곳 0. 코드 변경이 없어 PlayMode 테스트는 돌리지 않음.
+- agy (gemini-4-argon-high, 1묶음):
+  - meta GUID와 Addressables 항목 일치·남은 파일 없음, 주소로 로드, 콘솔 → 통과
+- 서브에이전트 (1묶음):
+  - Version·CHANGELOG·TODO 형식, 새 이미지 말풍선 문구와 CHANGELOG 일치 → 통과
+- 서브에이전트 (머지 전 PR #102 최종 1묶음):
+  - CHANGELOG 항목을 [2026-10-20] 섹션으로 옮긴 위치·중복 없음 → 통과
+
 ### [2026-10-19 17:28] Claude → Antigravity + 서브에이전트 · Template 26.10.19-1 반영, 나레이션 미리 읽기 (feat/intro-narration)
 - 요청: 사용자가 Template을 고쳤으니(SoundManager 미리 불러오기·로드 중 정지) 패키지를 업데이트하고 확인.
 - 변경: packages-lock 고정 커밋 a036657 → 7fbccfe(26.10.19-1, PreloadAsync 추가·로드 중 StopSFX 뒤 재생 막음). IntroSceneManager.Start가 나레이션 PreloadAsync를 SceneFader 대기 작업으로 등록해 클립을 다 읽은 뒤 페이드인.
