@@ -1,6 +1,8 @@
 {
   "programBlockScale": 0.6,
-  "programBlockInterval": 0.3,
+  "programBlockRiseDuration": 0.4,
+  "programValueSlideDuration": 0.25,
+  "programBlockInterval": 0.15,
   "programScrollDuration": 0.3,
   "effCountDuration": 1.6,
   "touchGuideDelay": 1.0,

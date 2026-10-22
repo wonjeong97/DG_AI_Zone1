@@ -12,8 +12,14 @@ namespace Data
         // 결과 패널에 다시 조립한 블록의 배율 — 게임 코딩 패널 블록 크기 대비(칸보다 넓은 묶음은 폭에 맞춰 더 줄인다)
         public float programBlockScale = 0.6f;
 
-        // 결과 패널 블록이 하나씩 붙어 보이는 간격(초)
-        public float programBlockInterval = 0.3f;
+        // 결과 패널 블록이 아래에서 올라와 맞물리는 시간(초) — 아래로 잇는 블록·ㄷ자 안쪽 블록
+        public float programBlockRiseDuration = 0.4f;
+
+        // 값·조건 블록이 오른쪽에서 미끄러져 와 붙는 시간(초)
+        public float programValueSlideDuration = 0.25f;
+
+        // 블록 하나가 붙은 뒤 다음 블록까지 쉬는 시간(초)
+        public float programBlockInterval = 0.15f;
 
         // 블록이 칸 아래로 벗어나 자동 스크롤하는 시간(초)
         public float programScrollDuration = 0.3f;
@@ -56,6 +62,8 @@ namespace Data
         {
             bool changed = false;
             programBlockScale = SettingsClamp.NonNegative(programBlockScale, ref changed);
+            programBlockRiseDuration = SettingsClamp.NonNegative(programBlockRiseDuration, ref changed);
+            programValueSlideDuration = SettingsClamp.NonNegative(programValueSlideDuration, ref changed);
             programBlockInterval = SettingsClamp.NonNegative(programBlockInterval, ref changed);
             programScrollDuration = SettingsClamp.NonNegative(programScrollDuration, ref changed);
             effCountDuration = SettingsClamp.NonNegative(effCountDuration, ref changed);

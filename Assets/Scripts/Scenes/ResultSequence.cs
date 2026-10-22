@@ -439,7 +439,7 @@ namespace Scenes
 
         /// <summary>
         /// 4_Result.json을 읽은 뒤 '나의 코딩 결과'(게임에서 조립한 블록, 건너뛰었으면 시작하기만)와
-        /// 'AI 코딩 결과'(레벨별 정답) 블록을 투명한 채로 조립해 둔다.
+        /// 'AI 코딩 결과'(레벨별 정답) 블록을 조립할 자리와 배율을 재 둔다(블록은 연출 때 하나씩 붙인다).
         /// </summary>
         private async UniTask PrepareAsync(CancellationToken ct)
         {
@@ -740,6 +740,8 @@ namespace Scenes
             {
                 if (!view) continue;
                 view.BlockScale = _sceneSettings.programBlockScale;
+                view.RiseDuration = _sceneSettings.programBlockRiseDuration;
+                view.SlideDuration = _sceneSettings.programValueSlideDuration;
                 view.RevealInterval = _sceneSettings.programBlockInterval;
                 view.ScrollDuration = _sceneSettings.programScrollDuration;
             }
