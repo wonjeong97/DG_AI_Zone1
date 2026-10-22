@@ -4,10 +4,28 @@ Claude가 Antigravity(agy)와 리뷰 서브에이전트에 맡긴 검증 기록.
 
 ---
 
+### [2026-10-23 06:45] Claude → Antigravity + 서브에이전트 · 머지 전 최종 리뷰 PR #104 (feat/result-program-blocks)
+- 요청: PR 리뷰하고 고칠 점이 없으면 머지.
+- agy (gemini-3.8-flash-high, 2묶음):
+  - 통합 흐름(완성하기→블록 모양 저장→측정→플레이어·AI 연출→터치 안내→완료 패널, 건너뛰기·게임 씬 없이 진입), 비활동 타이머·취소 → 통과
+  - 새 파일 코딩 규칙 → 통과, 낮음 1건(ResultAiProgram.Build summary 두 문장) → 한 문장으로 반영
+- 서브에이전트 (1묶음, PR #103과 함께):
+  - CHANGELOG·TODO 형식 → 통과, 낮음 2건(10-23 빌드 변경이 있어 Version 26.10.23이어야 함, HANDOFF의 3_Game 문구가 etc 커밋과 다름) → 반영
+  - 3_Game.unity 변경의 빌드 영향 → 없음(testLevel은 3_Game 바로 Play용, startZoom은 기본값과 같음)
+- 반영: main(PR #103) 병합 충돌(CHANGELOG·TODO·HANDOFF) 해결, CHANGELOG 항목을 [2026-10-23] 섹션으로 옮김, Version 26.10.23.
+
+### [2026-10-23 06:30] Claude → Antigravity + 서브에이전트 · 머지 전 최종 리뷰 PR #103 (feat/tutorial-arrow-buttons)
+- 요청: PR 리뷰하고 고칠 점이 없으면 머지.
+- agy (gemini-3.8-flash-high, 1묶음):
+  - 통합 흐름(인트로→튜토리얼 패널 전환 중 버튼 입력, 마지막 장 > 연타, 첫 장 < 숨김)·코딩 규칙 → 통과
+- 서브에이전트 (1묶음, PR #104와 함께):
+  - CHANGELOG·TODO·HANDOFF 형식, Version 26.10.22 → 통과
+- 반영: CHANGELOG 항목을 [2026-10-23] 섹션으로 옮김.
+
 ### [2026-10-23 06:10] Claude → Antigravity + 서브에이전트 · 결과 블록 4존식 등장 연출 (feat/result-program-blocks)
 - 요청: 결과 화면 블록이 단순 페이드인이라 4존처럼 애니메이션을 넣고, ㄷ자 블록이 처음부터 늘어난 채로 나오지 않게.
 - 변경: ResultProgramView를 두 단계로 바꿈 — BuildAsync는 한 번 투명하게 다 조립해 묶음 위치·배율·폭만 재고 지움, PlayAsync는 블록을 하나씩 만들어 실제 소켓에 붙이며 체인·안쪽 블록은 아래에서 올라오고(InOutSine) 값·조건 블록은 오른쪽에서 미끄러져 옴(OutCubic). ㄷ자 블록은 빈 채로 나와 안쪽 블록이 붙을 때마다 늘어남(게임과 같은 FlowInnerResize). 4_Result.json에 programBlockRiseDuration 0.4·programValueSlideDuration 0.25, programBlockInterval은 붙은 뒤 쉬는 시간 0.15로.
-- Claude 확인: 컴파일·콘솔 에러 0, PlayMode 228/228(뒤에 EditorSettings 되돌림), Play 모드 레벨4 연속 캡처로 만약이 빈 채로 올라온 뒤 놀이시설 블록이 들어오며 늘어나고 조건 줄이 오른쪽에서 붙는 것 확인. 작업 중 3_Game.unity의 testLevel·startZoom 변경은 사용자 편집으로 보여 건드리지 않음.
+- Claude 확인: 컴파일·콘솔 에러 0, PlayMode 228/228(뒤에 EditorSettings 되돌림), Play 모드 레벨4 연속 캡처로 만약이 빈 채로 올라온 뒤 놀이시설 블록이 들어오며 늘어나고 조건 줄이 오른쪽에서 붙는 것 확인. 작업 중 생긴 3_Game.unity의 testLevel·startZoom 변경은 사용자 편집으로 보여 따로 두었다가 사용자 요청으로 'etc' 커밋에 넣음(빌드 흐름에선 쓰지 않는 에디터 대체 레벨, startZoom은 코드 기본값과 같은 0.8).
 - 교차 검증 (agy gemini-3.8-flash-high + 서브에이전트, 1묶음):
   - 스냅 완료 뒤 위치와 연출 시작·끝, 취소, 미리 재기용 블록 정리 → 둘 다 통과
   - 잰 위치·폭·content 높이·스크롤 범위, 설정 키 → agy 통과, 서브에이전트 지적(중간): 겹친 ㄷ자는 바깥이 몇 프레임 늦게 늘어나 마지막 블록 뒤 높이가 짧을 수 있음 → 연출이 끝난 뒤 높이를 다시 재도록 반영. 낮음(안쪽 블록이 올라오는 동안 ㄷ자가 잠깐 더 늘었다 줄어듦)은 늘어나는 연출로 보고 유지
@@ -26,6 +44,29 @@ Claude가 Antigravity(agy)와 리뷰 서브에이전트에 맡긴 검증 기록.
   - AI 정답 모양·채점 만점·테스트 → 통과, 낮음 4건 중 주석 정정·레벨2 테스트 전체 방향 반영, 블록이 빠진 에셋 테스트·레벨4 문제 값 1개는 현재 에셋에 해당 없어 그대로
   - 4_Result 씬(Missing Script·참조·새 구조) → 통과
 - 남은 것: 실제 게임에서 블록을 끌어 완성하기한 뒤 결과 화면 확인(이번엔 세션 값을 코드로 넣어 확인), 조립이 5초를 넘으면 페이드인이 먼저 끝나 빈 칸이 잠시 보일 수 있음(현장 첫 실행 확인).
+
+### [2026-10-22 17:30] Claude → Antigravity + 서브에이전트 · 첫 장 < 버튼 숨김, 안내 문구 (feat/tutorial-arrow-buttons)
+- 요청: 안내 문구에서 '화면을 눌러서'를 지워 '모두 확인해보자'로, 첫 장의 < 버튼은 비활성 대신 안 보이게.
+- 변경: UpdatePageAsync에서 previousButton.interactable 대신 gameObject.SetActive(_currentIndex > 0). 1_Intro GuideText 문구에서 '화면을 눌러서 ' 삭제(줄바꿈 유지).
+- Claude 확인: MCP HTTP 서버로 씬 문구 수정·저장, 컴파일·콘솔 에러 0, PlayMode 227/227(뒤에 EditorSettings 되돌림).
+- 교차 검증 (agy gemini-3.8-flash-high + 서브에이전트, 1묶음; argon-high는 같은 날 할당량 초과라 부르지 않음):
+  - 자기 onClick 안에서 < 버튼 비활성화·첫 프레임·페이지 이동 중 표시·OnDestroy 해제 → 둘 다 통과
+  - 문구 변경과 줄바꿈(\L) 유지 → 둘 다 통과
+- 남은 것: 1쪽에서 < 버튼이 안 보이는지는 Play 모드·현장에서 눈으로 확인.
+
+### [2026-10-22 17:05] Claude → Antigravity + 서브에이전트 · 튜토리얼 < > 버튼 넘기기 (feat/tutorial-arrow-buttons)
+- 요청: 인트로 튜토리얼 이미지를 좌·우 터치 대신 양옆 < > 버튼으로 넘기게. 도중에 버튼을 적당히 크게, 버튼 배경 알파를 더 진하게 요청.
+- 변경: TutorialImageSlider의 IPointerClickHandler(좌·우 절반 판정) 제거, previousButton·nextButton onClick으로 이전·다음, 첫 장에서 < 버튼 interactable false. 1_Intro TutorialPanel에 Button_Previous·Button_Next(160×160, 내장 Knob, 검정 알파 0.9, TMP 글자 120, 가로 ±830·세로 30) 추가·연결. Version 26.10.22.
+- Claude 확인: 세션 MCP 도구가 다른 서버를 봐서 MCP HTTP 서버(8080)에 직접 붙어 씬 수정. 컴파일·콘솔 에러 0, PlayMode 227/227(뒤에 EditorSettings 되돌림), 게임 뷰 캡처로 배치 확인. 선형 색 공간이라 알파 0.8은 화면에서 배경을 절반쯤만 어둡게 해 0.9로 올림(0.9 캡처는 게임 뷰가 검게 찍혀 못 봄).
+- agy: gemini-4-argon-high는 할당량 초과(429)로 gemini-3.8-flash-high에 맡김.
+- 교차 검증 (agy gemini-3.8-flash-high + 서브에이전트, 코드 1묶음):
+  - 리스너 등록·해제, null 처리, 터치 코드 잔재 → 둘 다 통과, 서브에이전트가 주석 공백 하나 빠짐 지적 → 반영
+  - 첫 장 < 무시·마지막 장 > Finished·연타 시 이미지 덮어쓰기 방지·interactable 갱신 시점 → 둘 다 통과
+  - 콘솔 → agy는 MCP 미연결로 못 봄, Claude가 확인(에러 0)
+- 서브에이전트 (씬 1묶음):
+  - 버튼 참조 fileID·부모/자식 연결, 화면 안 배치·이미지와 겹침 없음·CanvasGroup 묶임 → 통과
+- 남은 것: 아래 안내 문구 '화면을 눌러서 모두 확인해보자'(GuideText)는 버튼 방식과 맞지 않아 사용자 결정 필요. 현장 터치로 버튼 크기·진하기 확인.
+
 
 ### [2026-10-20 13:47] Claude → Antigravity + 서브에이전트 · 튜토리얼 이미지 7번 교체 (chore/tutorial7-image)
 - 요청: Tutorial 폴더에 넣은 새 튜토리얼 7번 이미지로 교체.

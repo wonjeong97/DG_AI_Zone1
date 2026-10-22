@@ -11,8 +11,7 @@ namespace Scenes
     public static class ResultAiProgram
     {
         /// <summary>
-        /// 레벨의 정답 블록 모양을 레벨 블록 목록의 블록으로 만든다 — 문제 값(높이·시간)과 정답 방향에 맞춘다.
-        /// 목록에 없는 블록은 경고를 남기고 뺀다 — 그 블록의 안쪽·값 슬롯에 들어갈 블록도 함께 빠지고, 시작하기~완성하기 체인은 남은 블록으로 잇는다.
+        /// 레벨의 정답 블록 모양을 문제 값(높이·시간)과 정답 방향에 맞춰 레벨 블록 목록의 블록으로 만든다(목록에 없는 블록은 경고하고 그 안쪽·값 블록과 함께 빼고, 시작하기~완성하기는 남은 블록으로 잇는다).
         /// </summary>
         public static ProgramShape Build(LevelData level, string questionValue, string correctAnswer, ILogger logger = null)
         {
