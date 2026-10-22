@@ -6,7 +6,6 @@ using Microsoft.Extensions.Logging;
 using TMPro;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
-using UnityEngine.EventSystems;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.UI;
 using VContainer;
@@ -16,14 +15,13 @@ using ZLogger;
 namespace Scenes
 {
     [RequireComponent(typeof(Image))]
-    public class TutorialImageSlider : MonoBehaviour, IPointerClickHandler
+    public class TutorialImageSlider : MonoBehaviour
     {
-        // 화면 오른쪽 절반을 누르면 다음, 왼쪽 절반을 누르면 이전 페이지
-        private const float NextPageThreshold = 0.5f;
-
         [Tooltip("튜토리얼 이미지 장수 — Addressables 주소 Tutorial1 ~ TutorialN")]
         [SerializeField] private int totalPages = 7;
         [SerializeField] private TMP_Text pageText;
+        [SerializeField] private Button previousButton;
+        [SerializeField] private Button nextButton;
 
         // 마지막 페이지에서 다음으로 넘기려 할 때 발생 — 인트로 씬이 스토리 씬으로 넘어가는 신호로 쓴다
         public event Action Finished;
@@ -32,7 +30,6 @@ namespace Scenes
         private readonly Dictionary<int, AsyncOperationHandle<Sprite>> _spriteHandles = new();
 
         private Image _image;
-        private RectTransform _rectTransform;
         private int _currentIndex;
         private ILogger<TutorialImageSlider> _logger;
         private SoundManager _soundManager;
@@ -48,21 +45,25 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 이미지와 RectTransform 참조를 캐싱한다 (씬 주입은 Awake 뒤라 실패 로그는 Start에서 남긴다).
+        /// 이미지 참조를 캐싱한다 (씬 주입은 Awake 뒤라 실패 로그는 Start에서 남긴다).
         /// </summary>
         private void Awake()
         {
             TryGetComponent(out _image);
-            _rectTransform = (RectTransform)transform;
         }
 
         /// <summary>
-        /// 첫 페이지를 표시한다.
+        /// &lt; &gt; 버튼에 페이지 넘기기를 연결하고 첫 페이지를 표시한다.
         /// </summary>
         private void Start()
         {
             if (!_image && _logger != null)
                 _logger.ZLogError($"[TutorialImageSlider] {name}에 Image가 없습니다.");
+
+            if (previousButton) previousButton.onClick.AddListener(ShowPrevious);
+            else if (_logger != null) _logger.ZLogWarning($"[TutorialImageSlider] previousButton이 할당되지 않았습니다.");
+            if (nextButton) nextButton.onClick.AddListener(ShowNext);
+            else if (_logger != null) _logger.ZLogWarning($"[TutorialImageSlider] nextButton이 할당되지 않아 스토리 씬으로 넘어갈 수 없습니다.");
 
             _currentIndex = 0;
             UpdatePageAsync().Forget();
@@ -73,23 +74,12 @@ namespace Scenes
         /// </summary>
         private void OnDestroy()
         {
+            if (previousButton) previousButton.onClick.RemoveListener(ShowPrevious);
+            if (nextButton) nextButton.onClick.RemoveListener(ShowNext);
+
             foreach (AsyncOperationHandle<Sprite> handle in _spriteHandles.Values)
                 if (handle.IsValid()) Addressables.Release(handle);
             _spriteHandles.Clear();
-        }
-
-        /// <summary>
-        /// 이미지의 오른쪽 절반을 누르면 다음, 왼쪽 절반을 누르면 이전 페이지로 넘긴다.
-        /// </summary>
-        public void OnPointerClick(PointerEventData eventData)
-        {
-            RectTransformUtility.ScreenPointToLocalPointInRectangle(_rectTransform, eventData.position, eventData.pressEventCamera, out Vector2 localPoint);
-
-            Rect rect = _rectTransform.rect;
-            float normalizedX = (localPoint.x - rect.xMin) / rect.width;
-
-            if (normalizedX >= NextPageThreshold) ShowNext();
-            else ShowPrevious();
         }
 
         /// <summary>
@@ -127,6 +117,8 @@ namespace Scenes
         private async UniTaskVoid UpdatePageAsync()
         {
             int page = _currentIndex + 1;
+            // 첫 페이지에서는 이전으로 갈 곳이 없으므로 < 버튼을 숨긴다
+            if (previousButton) previousButton.gameObject.SetActive(_currentIndex > 0);
             if (pageText) pageText.text = ZString.Format(Constants.TutorialMessages.PageFormat, page, totalPages);
             else if (_logger != null) _logger.ZLogWarning($"[TutorialImageSlider] pageText가 할당되지 않아 페이지 번호를 표시하지 못했습니다.");
 

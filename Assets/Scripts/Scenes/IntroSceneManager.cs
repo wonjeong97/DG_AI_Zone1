@@ -60,7 +60,7 @@ namespace Scenes
             SceneFader.InitializePanelState(introPanel, true);
             SceneFader.InitializePanelState(tutorialPanel, false);
 
-            // 튜토리얼은 이미지 좌/우 터치로 넘기고, 마지막 페이지에서 다음으로 넘기면 스토리 씬으로 간다
+            // 튜토리얼은 좌우 < > 버튼으로 넘기고, 마지막 페이지에서 > 버튼을 누르면 스토리 씬으로 간다
             if (tutorialSlider) tutorialSlider.Finished += OnTutorialFinished;
             else if (_logger != null) _logger.ZLogWarning($"[IntroSceneManager] tutorialSlider가 할당되지 않아 스토리 씬으로 넘어갈 수 없습니다.");
 
