@@ -4,6 +4,15 @@ Claude가 Antigravity(agy)와 리뷰 서브에이전트에 맡긴 검증 기록.
 
 ---
 
+### [2026-10-22 17:30] Claude → Antigravity + 서브에이전트 · 첫 장 < 버튼 숨김, 안내 문구 (feat/tutorial-arrow-buttons)
+- 요청: 안내 문구에서 '화면을 눌러서'를 지워 '모두 확인해보자'로, 첫 장의 < 버튼은 비활성 대신 안 보이게.
+- 변경: UpdatePageAsync에서 previousButton.interactable 대신 gameObject.SetActive(_currentIndex > 0). 1_Intro GuideText 문구에서 '화면을 눌러서 ' 삭제(줄바꿈 유지).
+- Claude 확인: MCP HTTP 서버로 씬 문구 수정·저장, 컴파일·콘솔 에러 0, PlayMode 227/227(뒤에 EditorSettings 되돌림).
+- 교차 검증 (agy gemini-3.8-flash-high + 서브에이전트, 1묶음; argon-high는 같은 날 할당량 초과라 부르지 않음):
+  - 자기 onClick 안에서 < 버튼 비활성화·첫 프레임·페이지 이동 중 표시·OnDestroy 해제 → 둘 다 통과
+  - 문구 변경과 줄바꿈(\L) 유지 → 둘 다 통과
+- 남은 것: 1쪽에서 < 버튼이 안 보이는지는 Play 모드·현장에서 눈으로 확인.
+
 ### [2026-10-22 17:05] Claude → Antigravity + 서브에이전트 · 튜토리얼 < > 버튼 넘기기 (feat/tutorial-arrow-buttons)
 - 요청: 인트로 튜토리얼 이미지를 좌·우 터치 대신 양옆 < > 버튼으로 넘기게. 도중에 버튼을 적당히 크게, 버튼 배경 알파를 더 진하게 요청.
 - 변경: TutorialImageSlider의 IPointerClickHandler(좌·우 절반 판정) 제거, previousButton·nextButton onClick으로 이전·다음, 첫 장에서 < 버튼 interactable false. 1_Intro TutorialPanel에 Button_Previous·Button_Next(160×160, 내장 Knob, 검정 알파 0.9, TMP 글자 120, 가로 ±830·세로 30) 추가·연결. Version 26.10.22.

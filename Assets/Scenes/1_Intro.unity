@@ -907,8 +907,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_text: "\uBA3C\uC800 \uCF54\uB529 \uD654\uBA74 \uC0AC\uC6A9 \uBC29\uBC95\uC744
-    \uBC30\uC6CC\uBCFC\uAE4C?\L\uD654\uBA74\uC744 \uB20C\uB7EC\uC11C \uBAA8\uB450
-    \uD655\uC778\uD574\uBCF4\uC790"
+    \uBC30\uC6CC\uBCFC\uAE4C?\L\uBAA8\uB450 \uD655\uC778\uD574\uBCF4\uC790"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: d0d2f5797b1d2f34ea9ffb7c01ef8fd6, type: 2}
   m_sharedMaterial: {fileID: -119739183008471601, guid: d0d2f5797b1d2f34ea9ffb7c01ef8fd6,

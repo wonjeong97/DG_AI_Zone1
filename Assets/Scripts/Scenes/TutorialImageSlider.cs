@@ -117,8 +117,8 @@ namespace Scenes
         private async UniTaskVoid UpdatePageAsync()
         {
             int page = _currentIndex + 1;
-            // 첫 페이지에서는 이전으로 갈 곳이 없으므로 < 버튼을 누를 수 없게 한다
-            if (previousButton) previousButton.interactable = _currentIndex > 0;
+            // 첫 페이지에서는 이전으로 갈 곳이 없으므로 < 버튼을 숨긴다
+            if (previousButton) previousButton.gameObject.SetActive(_currentIndex > 0);
             if (pageText) pageText.text = ZString.Format(Constants.TutorialMessages.PageFormat, page, totalPages);
             else if (_logger != null) _logger.ZLogWarning($"[TutorialImageSlider] pageText가 할당되지 않아 페이지 번호를 표시하지 못했습니다.");
 

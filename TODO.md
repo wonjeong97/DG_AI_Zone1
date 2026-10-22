@@ -20,7 +20,7 @@
 
 ## 완료
 
-- [x] 인트로 튜토리얼 이미지 넘기기를 이미지 좌·우 터치에서 양옆 < > 버튼으로 변경 — TutorialPanel에 Button_Previous·Button_Next(160×160, 검정 알파 0.9, 글자 120, 가로 ±830), 첫 장에서 < 버튼 비활성, Player Settings Version 26.10.22 — PlayMode 227/227 — 담당: Claude / 검증: Antigravity + 서브에이전트 (2026-10-22)
+- [x] 인트로 튜토리얼 이미지 넘기기를 이미지 좌·우 터치에서 양옆 < > 버튼으로 변경 — TutorialPanel에 Button_Previous·Button_Next(160×160, 검정 알파 0.9, 글자 120, 가로 ±830), 첫 장에서 < 버튼 숨김, 안내 문구 '화면을 눌러서' 삭제, Player Settings Version 26.10.22 — PlayMode 227/227 — 담당: Claude / 검증: Antigravity + 서브에이전트 (2026-10-22)
 
 - [x] 튜토리얼 이미지 7번을 새 이미지(에피소드 건너뛰기 안내)로 교체 — 사용자가 넣은 '튜토리얼 7.png'의 내용으로 Tutorial7.png만 덮어써 GUID·Addressables 주소 Tutorial7 유지, 넣은 파일과 meta는 지움, Player Settings Version 26.10.20 — 콘솔 에러 0, PlayMode 미실행(코드 변경 없음) — 담당: Claude / 검증: Antigravity + 서브에이전트 (2026-10-20)
 
