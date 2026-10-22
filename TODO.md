@@ -20,6 +20,8 @@
 
 ## 완료
 
+- [x] 결과 화면 레이아웃 변경 — '항목 | 값' 대신 게임에서 조립한 블록(나의 코딩 결과)과 레벨별 정답 블록(AI 코딩 결과)을 게임 블록으로 다시 조립해 4존처럼 하나씩 붙이고(체인·안쪽은 아래에서 올라옴, 값·조건은 오른쪽에서 미끄러짐, ㄷ자 블록은 안쪽이 붙을 때 늘어남) 아래로 자동 스크롤(함수 정의는 오른쪽, 칸보다 넓으면 폭에만 맞춰 줄임), 제목 아래 문제 설명 상자, 새 패널 배경(Panel_CodingResultPlayer/AI.png), 레퍼런스 이미지는 드라이브 ProjectFiles/DG_AI_Zone1/references로, Player Settings Version 26.10.23 — PlayMode 228/228, Play 모드로 레벨1(건너뛰기)·4·5 결과 확인 — 담당: Claude / 검증: Antigravity + 서브에이전트 (2026-10-23)
+
 - [x] 인트로 튜토리얼 이미지 넘기기를 이미지 좌·우 터치에서 양옆 < > 버튼으로 변경 — TutorialPanel에 Button_Previous·Button_Next(160×160, 검정 알파 0.9, 글자 120, 가로 ±830), 첫 장에서 < 버튼 숨김, 안내 문구 '화면을 눌러서' 삭제, Player Settings Version 26.10.22 — PlayMode 227/227 — 담당: Claude / 검증: Antigravity + 서브에이전트 (2026-10-22)
 
 - [x] 튜토리얼 이미지 7번을 새 이미지(에피소드 건너뛰기 안내)로 교체 — 사용자가 넣은 '튜토리얼 7.png'의 내용으로 Tutorial7.png만 덮어써 GUID·Addressables 주소 Tutorial7 유지, 넣은 파일과 meta는 지움, Player Settings Version 26.10.20 — 콘솔 에러 0, PlayMode 미실행(코드 변경 없음) — 담당: Claude / 검증: Antigravity + 서브에이전트 (2026-10-20)

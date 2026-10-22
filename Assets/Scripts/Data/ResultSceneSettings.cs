@@ -3,17 +3,26 @@ using System;
 namespace Data
 {
     // StreamingAssets/Json/4_Result.json 매핑 — 결과 씬 연출 타이밍.
-    // 전체 시퀀스(플레이어 타이핑 → 패널 회전 → 효율 카운트업 → AI 안내 → AI 반복)의 길이를
+    // 전체 시퀀스(플레이어 블록 조립 → 패널 회전 → 효율 카운트업 → AI 안내 → AI 반복)의 길이를
     // 좌우하는 값들만 모았다. 판정 경계(부족/보통/양호)나 결과 텍스트 포맷은 채점·콘텐츠 규칙이라
     // 여기에 두지 않는다.
     [Serializable]
     public class ResultSceneSettings
     {
-        // 결과 행의 값이 한 글자씩 찍히는 간격(초)
-        public float typewriterCharInterval = 0.06f;
+        // 결과 패널에 다시 조립한 블록의 배율 — 게임 코딩 패널 블록 크기 대비(칸보다 넓은 묶음은 폭에 맞춰 더 줄인다)
+        public float programBlockScale = 0.6f;
 
-        // 결과 행이 하나씩 나타나는 페이드인 시간(초)
-        public float rowFadeDuration = 0.4f;
+        // 결과 패널 블록이 아래에서 올라와 맞물리는 시간(초) — 아래로 잇는 블록·ㄷ자 안쪽 블록
+        public float programBlockRiseDuration = 0.4f;
+
+        // 값·조건 블록이 오른쪽에서 미끄러져 와 붙는 시간(초)
+        public float programValueSlideDuration = 0.25f;
+
+        // 블록 하나가 붙은 뒤 다음 블록까지 쉬는 시간(초)
+        public float programBlockInterval = 0.15f;
+
+        // 블록이 칸 아래로 벗어나 자동 스크롤하는 시간(초)
+        public float programScrollDuration = 0.3f;
 
         // 에너지 효율 0% -> N% 카운트업 시간(초)
         public float effCountDuration = 1.6f;
@@ -52,8 +61,11 @@ namespace Data
         public bool ClampToValid()
         {
             bool changed = false;
-            typewriterCharInterval = SettingsClamp.NonNegative(typewriterCharInterval, ref changed);
-            rowFadeDuration = SettingsClamp.NonNegative(rowFadeDuration, ref changed);
+            programBlockScale = SettingsClamp.NonNegative(programBlockScale, ref changed);
+            programBlockRiseDuration = SettingsClamp.NonNegative(programBlockRiseDuration, ref changed);
+            programValueSlideDuration = SettingsClamp.NonNegative(programValueSlideDuration, ref changed);
+            programBlockInterval = SettingsClamp.NonNegative(programBlockInterval, ref changed);
+            programScrollDuration = SettingsClamp.NonNegative(programScrollDuration, ref changed);
             effCountDuration = SettingsClamp.NonNegative(effCountDuration, ref changed);
             touchGuideDelay = SettingsClamp.NonNegative(touchGuideDelay, ref changed);
             panelPoseDuration = SettingsClamp.NonNegative(panelPoseDuration, ref changed);

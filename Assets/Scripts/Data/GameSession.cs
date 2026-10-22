@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+using Game.Runtime;
 
 namespace Data
 {
@@ -14,17 +14,10 @@ namespace Data
         // 마지막 실행 결과 — 결과 씬 표시용
         public int lastScore;
         public string lastQuestionTime;
-        public string lastDirection;
-        public string lastCount;
-        public bool lastRepeatUsed;   // 레벨2 결과의 '반복 감지' 표시용
-        public string lastGateHeight; // 레벨3 결과의 '수문 개방 높이' — null이면 조건 감지 OFF
-        public bool lastElseUsed;     // 레벨3 결과의 '수문 닫기 조건(아니면)' 표시용
-        public bool lastGateOrderCorrect; // 레벨3 결과의 '수문 열기·닫기 순서' 표시용
-        public string lastConditionText;  // 레벨4 결과의 '설정한 조건' — 만약에 연결한 조건식
-        public bool lastAmusementPowerCut; // 레벨4 결과의 '놀이시설 끄기 조건(만약)'
-        public bool lastHospitalPowerKept; // 레벨4 결과의 '병원 전력 유지'
-        public bool lastFunctionUsed;      // 레벨5 결과의 '함수 사용'
-        public List<string> lastEnergiesInFunction; // 레벨5 결과의 에너지별 ON/OFF — 함수 안에 넣은 에너지 이름
+        public string lastDirection;  // 레벨1 결과 스테이지의 패널 방향
+
+        // 코딩 패널에 조립한 블록 모양 — 결과 화면 '나의 코딩 결과'에 같은 블록으로 다시 조립한다
+        public ProgramShape lastProgram;
 
         // 컴파일에 성공해 채점까지 끝난 결과인지 — 넘어가기/미완료와 구분한다.
         // 레벨마다 채워지는 값이 달라 개별 필드로 판정하면 분기가 계속 늘고,
@@ -62,16 +55,7 @@ namespace Data
             // 문제 값(lastQuestionTime)은 결과 씬에서도 계속 쓰이므로 건드리지 않는다.
             lastScore = 0;
             lastDirection = null;
-            lastCount = null;
-            lastRepeatUsed = false;
-            lastGateHeight = null;
-            lastElseUsed = false;
-            lastGateOrderCorrect = false;
-            lastConditionText = null;
-            lastAmusementPowerCut = false;
-            lastHospitalPowerKept = false;
-            lastFunctionUsed = false;
-            lastEnergiesInFunction = null;
+            lastProgram = null;
             hasCodingResult = false;
         }
     }

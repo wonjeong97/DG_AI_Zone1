@@ -21,9 +21,11 @@ namespace Scenes
 {
     public class ResultSequence : MonoBehaviour
     {
-        [SerializeField] private ResultRowsView playerRows;
+        [Tooltip("'나의 코딩 결과' 위쪽 칸 — 게임에서 조립한 블록을 같은 블록으로 다시 조립해 하나씩 보여 준다")]
+        [SerializeField] private ResultProgramView playerProgram;
         [SerializeField] private CanvasGroup playerImageGroup;
-        [SerializeField] private ResultRowsView aiRows;
+        [Tooltip("'AI 코딩 결과' 위쪽 칸 — 레벨별 정답 블록을 조립해 하나씩 보여 준다")]
+        [SerializeField] private ResultProgramView aiProgram;
         [SerializeField] private CanvasGroup aiImageGroup;
         [SerializeField] private CanvasGroup aiResultGroup;
         [SerializeField] private CanvasGroup playerEffGroup;
@@ -64,6 +66,8 @@ namespace Scenes
         [SerializeField] private TMP_Text aiStartText;
         [SerializeField] private float aiStartHold = 3f;
         [SerializeField] private TMP_Text topText;
+        [Tooltip("상단 제목 아래 문제 설명 — 게임에서 낸 문제 문구를 그대로 보여 준다")]
+        [SerializeField] private TMP_Text questionText;
 
         private GameSession _session;
         private InactivityTimer _inactivityTimer;
@@ -93,7 +97,7 @@ namespace Scenes
 
         private LevelKind CurrentLevelKind => _session != null && _session.currentLevel ? _session.currentLevel.kind : LevelKind.Solar;
 
-        // 이번 판 문제의 정답 방향 — AI 결과 행과 AI 패널 연출에 쓴다 (정답 방향이 없는 레벨은 null)
+        // 이번 판 문제의 정답 방향 — AI 정답 블록과 AI 패널 연출에 쓴다 (정답 방향이 없는 레벨은 null)
         private string CurrentCorrectAnswer =>
             _session != null && _session.currentLevel ? _session.currentLevel.GetCorrectAnswer(_session.lastQuestionTime) : null;
 
@@ -116,7 +120,7 @@ namespace Scenes
         private ResultSceneSettings _sceneSettings;
 
         /// <summary>
-        /// 표시 상태를 초기화하고 결과 텍스트를 구성한 뒤 결과 연출 시퀀스를 시작한다.
+        /// 표시 상태를 초기화하고 결과 텍스트를 구성한 뒤, 블록 조립이 끝나면 페이드인하도록 등록하고 결과 연출 시퀀스를 시작한다.
         /// </summary>
         private void Start()
         {
@@ -131,9 +135,36 @@ namespace Scenes
 
             ApplyTopText();
             AnimateTopDots(destroyCancellationToken);
+            ApplyQuestionText();
 
             ApplySessionResults();
-            PlaySequence().Forget();
+
+            // 블록을 만드는 동안 빈 칸이 보이지 않도록 씬 페이드인을 조립이 끝날 때까지 미룬다(연출도 같은 작업을 기다린다).
+            // 페이드와 연출이 동시에 기다리므로 Preserve(끝난 뒤 다시 기다리기만 허용) 대신 여러 곳이 기다릴 수 있는 완료 소스를 쓴다
+            UniTaskCompletionSource prepared = new UniTaskCompletionSource();
+            RunPrepareAsync(prepared, destroyCancellationToken).Forget();
+            SceneFader.RegisterPendingTask(prepared.Task);
+            PlaySequence(prepared.Task).Forget();
+        }
+
+        /// <summary>
+        /// 블록 조립을 진행하고 결과(완료·취소·오류)를 완료 소스에 넘긴다.
+        /// </summary>
+        private async UniTaskVoid RunPrepareAsync(UniTaskCompletionSource prepared, CancellationToken ct)
+        {
+            try
+            {
+                await PrepareAsync(ct);
+                prepared.TrySetResult();
+            }
+            catch (OperationCanceledException)
+            {
+                prepared.TrySetCanceled();
+            }
+            catch (Exception ex)
+            {
+                prepared.TrySetException(ex);
+            }
         }
 
         /// <summary>
@@ -143,8 +174,9 @@ namespace Scenes
         {
             if (_logger == null) return;
 
-            if (!playerRows) _logger.ZLogWarning($"[ResultSequence] playerRows가 할당되지 않았습니다.");
-            if (!aiRows) _logger.ZLogWarning($"[ResultSequence] aiRows가 할당되지 않았습니다.");
+            if (!playerProgram) _logger.ZLogWarning($"[ResultSequence] playerProgram이 할당되지 않았습니다.");
+            if (!aiProgram) _logger.ZLogWarning($"[ResultSequence] aiProgram이 할당되지 않았습니다.");
+            if (!questionText) _logger.ZLogWarning($"[ResultSequence] questionText가 할당되지 않아 문제 설명을 표시하지 않습니다.");
             if (!playerImageGroup) _logger.ZLogWarning($"[ResultSequence] playerImageGroup이 할당되지 않았습니다.");
             if (!touchGuideGroup) _logger.ZLogWarning($"[ResultSequence] touchGuideGroup이 할당되지 않았습니다.");
             if (!nextButton) _logger.ZLogWarning($"[ResultSequence] nextButton이 할당되지 않아 다음 씬으로 넘어갈 수 없습니다.");
@@ -275,7 +307,7 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 게임 씬에서 저장한 결과로 플레이어·AI 결과 텍스트를 구성한다 (거치지 않고 진입하면 씬 기본 텍스트 유지).
+        /// 게임 씬에서 저장한 점수로 성공·실패를 정해 흑백 전환·서버 기록·아두이노 결과·완료 제목을 준비한다 (거치지 않고 진입하면 씬 기본값 유지).
         /// </summary>
         private void ApplySessionResults()
         {
@@ -288,7 +320,6 @@ namespace Scenes
 
             LevelKind kind = CurrentLevelKind;
 
-            // 코딩 완료(컴파일 성공) 없이 넘어온 경우 값 대신 '-' 표시.
             // 레벨마다 채워지는 값이 달라 개별 필드로 판정하지 않고 게임 씬이 세운 플래그를 그대로 쓴다.
             // 넘어가기·코딩 미완료는 발전이 일어나지 않았으니 효율 0%, 전력 수급 상태는 '부족'이다
             bool hasCoding = _session.hasCodingResult;
@@ -300,9 +331,6 @@ namespace Scenes
             bool isSuccess = percent >= Constants.ResultMessages.NormalThresholdPercent;
             if (!isSuccess) ApplyGrayscale();
 
-            string status = ResultRowFactory.ToStatusText(percent);
-            if (playerRows) playerRows.SetRows(ResultRowFactory.BuildPlayerRows(kind, _session, hasCoding, status));
-            if (aiRows) aiRows.SetRows(ResultRowFactory.BuildAiRows(kind, _session.lastQuestionTime, CurrentCorrectAnswer));
 
             UploadLevelResult(isSuccess);
             SendArduinoResult(percent);
@@ -410,11 +438,49 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 비활동 타이머를 멈춘 채 결과 연출 전체를 진행한다.
+        /// 4_Result.json을 읽은 뒤 '나의 코딩 결과'(게임에서 조립한 블록, 건너뛰었으면 시작하기만)와
+        /// 'AI 코딩 결과'(레벨별 정답) 블록을 조립할 자리와 배율을 재 둔다(블록은 연출 때 하나씩 붙인다).
         /// </summary>
-        private async UniTaskVoid PlaySequence()
+        private async UniTask PrepareAsync(CancellationToken ct)
         {
-            await RunWithTimerPausedAsync(_inactivityTimer, PlaySequenceStepsAsync, destroyCancellationToken, ex =>
+            await LoadSceneSettingsAsync(ct);
+
+            LevelData level = _session != null ? _session.currentLevel : null;
+            if (!level)
+            {
+                if (_logger != null) _logger.ZLogInformation($"[ResultSequence] 게임 씬 결과가 없어 코딩 결과 블록을 조립하지 않습니다.");
+                return;
+            }
+
+            ProgramShape playerShape = _session.lastProgram ?? StartOnly(level);
+            if (playerProgram) await playerProgram.BuildAsync(playerShape, ct);
+            if (aiProgram) await aiProgram.BuildAsync(ResultAiProgram.Build(level, _session.lastQuestionTime, CurrentCorrectAnswer, _logger), ct);
+        }
+
+        /// <summary>
+        /// 코딩을 건너뛰어 조립 모양이 없을 때 보여 줄 시작하기 블록 하나짜리 모양을 만든다.
+        /// </summary>
+        private static ProgramShape StartOnly(LevelData level)
+        {
+            ProgramShape shape = new ProgramShape();
+            BlockEntry[] blocks = level.blockLayout ? level.blockLayout.inventoryBlocks : null;
+            if (blocks is null) return shape;
+
+            foreach (BlockEntry entry in blocks)
+            {
+                if (entry is null || entry.category != Game.BlockCategory.Control || entry.controlRole != ControlRole.Start) continue;
+                shape.Start = ProgramBlock.From(entry);
+                break;
+            }
+            return shape;
+        }
+
+        /// <summary>
+        /// 비활동 타이머를 멈춘 채 결과 연출 전체를 진행한다 — 블록 조립(prepare)이 끝난 뒤 시작한다.
+        /// </summary>
+        private async UniTaskVoid PlaySequence(UniTask prepare)
+        {
+            await RunWithTimerPausedAsync(_inactivityTimer, ct => PlaySequenceStepsAsync(prepare, ct), destroyCancellationToken, ex =>
             {
                 if (_logger != null) _logger.ZLogError(ex, $"[ResultSequence] 결과 연출 중 오류가 발생해 완료 화면을 바로 띄우고 비활동 타이머를 재개합니다.");
                 ShowCompletePanelImmediately();
@@ -462,12 +528,12 @@ namespace Scenes
         /// <summary>
         /// 플레이어 결과 → AI 결과 → 터치 안내 → 완료 패널 순서의 결과 연출 전체를 진행한다.
         /// </summary>
-        private async UniTask PlaySequenceStepsAsync(CancellationToken ct)
+        private async UniTask PlaySequenceStepsAsync(UniTask prepare, CancellationToken ct)
         {
-            await LoadSceneSettingsAsync(ct);
+            await prepare;
             _fadeDuration = await SceneFader.GetPanelFadeDurationAsync();
 
-            if (playerRows) await playerRows.PlayAsync(ct);
+            if (playerProgram) await playerProgram.PlayAsync(ct);
             await SceneFader.FadeCanvasGroupAsync(playerImageGroup, 0f, 1f, _fadeDuration, ct);
             await PlayPlayerStageAsync(ct);
             await PlayEfficiencyAsync(playerEffGroup, playerEffText, _playerPercent, ct);
@@ -479,7 +545,7 @@ namespace Scenes
             if (aiResultGroup)
                 await SceneFader.FadeCanvasGroupAsync(aiResultGroup, 0f, 1f, _fadeDuration, ct);
 
-            if (aiRows) await aiRows.PlayAsync(ct);
+            if (aiProgram) await aiProgram.PlayAsync(ct);
             await SceneFader.FadeCanvasGroupAsync(aiImageGroup, 0f, 1f, _fadeDuration, ct);
             await PlayAiStageAsync(ct);
             await PlayEfficiencyAsync(aiEffGroup, aiEffText, MaxPercent, ct);
@@ -661,7 +727,7 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 4_Result.json을 로드하고, 타이프라이터·패널 자세처럼 다른 컴포넌트가 가진 값도 여기서 밀어넣는다.
+        /// 4_Result.json을 로드하고, 블록 조립·패널 자세처럼 다른 컴포넌트가 가진 값도 여기서 밀어넣는다.
         /// </summary>
         private async UniTask LoadSceneSettingsAsync(CancellationToken ct)
         {
@@ -670,15 +736,14 @@ namespace Scenes
             if (_sceneSettings.ClampToValid() && _logger != null)
                 _logger.ZLogWarning($"[ResultSequence] 4_Result.json에 음수 값이 있어 그 값은 0으로 씁니다.");
 
-            if (playerRows)
+            foreach (ResultProgramView view in new[] { playerProgram, aiProgram })
             {
-                playerRows.CharInterval = _sceneSettings.typewriterCharInterval;
-                playerRows.RowFadeDuration = _sceneSettings.rowFadeDuration;
-            }
-            if (aiRows)
-            {
-                aiRows.CharInterval = _sceneSettings.typewriterCharInterval;
-                aiRows.RowFadeDuration = _sceneSettings.rowFadeDuration;
+                if (!view) continue;
+                view.BlockScale = _sceneSettings.programBlockScale;
+                view.RiseDuration = _sceneSettings.programBlockRiseDuration;
+                view.SlideDuration = _sceneSettings.programValueSlideDuration;
+                view.RevealInterval = _sceneSettings.programBlockInterval;
+                view.ScrollDuration = _sceneSettings.programScrollDuration;
             }
             if (playerPanelPose) playerPanelPose.AnimDuration = _sceneSettings.panelPoseDuration;
             if (aiPanelPose) aiPanelPose.AnimDuration = _sceneSettings.panelPoseDuration;
@@ -714,6 +779,20 @@ namespace Scenes
 
             topText.text = ZString.Concat(baseText, Constants.ResultMessages.ResultTopDots);
             topText.ForceMeshUpdate();
+        }
+
+        /// <summary>
+        /// 문제 설명에 게임 씬이 낸 문제 문구(레벨 문구 + 문제 값)를 넣는다 — 게임 씬을 거치지 않았으면 씬 텍스트를 그대로 둔다.
+        /// </summary>
+        private void ApplyQuestionText()
+        {
+            // questionText 누락은 WarnMissingReferences에서 이미 경고했다
+            if (!questionText) return;
+
+            LevelData level = _session != null ? _session.currentLevel : null;
+            if (!level || string.IsNullOrEmpty(level.questionFormat) || string.IsNullOrEmpty(_session.lastQuestionTime)) return;
+
+            questionText.text = ZString.Format(level.questionFormat, _session.lastQuestionTime);
         }
 
         /// <summary>

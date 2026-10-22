@@ -4,6 +4,16 @@ Claude가 Antigravity(agy)와 리뷰 서브에이전트에 맡긴 검증 기록.
 
 ---
 
+### [2026-10-23 06:45] Claude → Antigravity + 서브에이전트 · 머지 전 최종 리뷰 PR #104 (feat/result-program-blocks)
+- 요청: PR 리뷰하고 고칠 점이 없으면 머지.
+- agy (gemini-3.8-flash-high, 2묶음):
+  - 통합 흐름(완성하기→블록 모양 저장→측정→플레이어·AI 연출→터치 안내→완료 패널, 건너뛰기·게임 씬 없이 진입), 비활동 타이머·취소 → 통과
+  - 새 파일 코딩 규칙 → 통과, 낮음 1건(ResultAiProgram.Build summary 두 문장) → 한 문장으로 반영
+- 서브에이전트 (1묶음, PR #103과 함께):
+  - CHANGELOG·TODO 형식 → 통과, 낮음 2건(10-23 빌드 변경이 있어 Version 26.10.23이어야 함, HANDOFF의 3_Game 문구가 etc 커밋과 다름) → 반영
+  - 3_Game.unity 변경의 빌드 영향 → 없음(testLevel은 3_Game 바로 Play용, startZoom은 기본값과 같음)
+- 반영: main(PR #103) 병합 충돌(CHANGELOG·TODO·HANDOFF) 해결, CHANGELOG 항목을 [2026-10-23] 섹션으로 옮김, Version 26.10.23.
+
 ### [2026-10-23 06:30] Claude → Antigravity + 서브에이전트 · 머지 전 최종 리뷰 PR #103 (feat/tutorial-arrow-buttons)
 - 요청: PR 리뷰하고 고칠 점이 없으면 머지.
 - agy (gemini-3.8-flash-high, 1묶음):
@@ -11,6 +21,29 @@ Claude가 Antigravity(agy)와 리뷰 서브에이전트에 맡긴 검증 기록.
 - 서브에이전트 (1묶음, PR #104와 함께):
   - CHANGELOG·TODO·HANDOFF 형식, Version 26.10.22 → 통과
 - 반영: CHANGELOG 항목을 [2026-10-23] 섹션으로 옮김.
+
+### [2026-10-23 06:10] Claude → Antigravity + 서브에이전트 · 결과 블록 4존식 등장 연출 (feat/result-program-blocks)
+- 요청: 결과 화면 블록이 단순 페이드인이라 4존처럼 애니메이션을 넣고, ㄷ자 블록이 처음부터 늘어난 채로 나오지 않게.
+- 변경: ResultProgramView를 두 단계로 바꿈 — BuildAsync는 한 번 투명하게 다 조립해 묶음 위치·배율·폭만 재고 지움, PlayAsync는 블록을 하나씩 만들어 실제 소켓에 붙이며 체인·안쪽 블록은 아래에서 올라오고(InOutSine) 값·조건 블록은 오른쪽에서 미끄러져 옴(OutCubic). ㄷ자 블록은 빈 채로 나와 안쪽 블록이 붙을 때마다 늘어남(게임과 같은 FlowInnerResize). 4_Result.json에 programBlockRiseDuration 0.4·programValueSlideDuration 0.25, programBlockInterval은 붙은 뒤 쉬는 시간 0.15로.
+- Claude 확인: 컴파일·콘솔 에러 0, PlayMode 228/228(뒤에 EditorSettings 되돌림), Play 모드 레벨4 연속 캡처로 만약이 빈 채로 올라온 뒤 놀이시설 블록이 들어오며 늘어나고 조건 줄이 오른쪽에서 붙는 것 확인. 작업 중 생긴 3_Game.unity의 testLevel·startZoom 변경은 사용자 편집으로 보여 따로 두었다가 사용자 요청으로 'etc' 커밋에 넣음(빌드 흐름에선 쓰지 않는 에디터 대체 레벨, startZoom은 코드 기본값과 같은 0.8).
+- 교차 검증 (agy gemini-3.8-flash-high + 서브에이전트, 1묶음):
+  - 스냅 완료 뒤 위치와 연출 시작·끝, 취소, 미리 재기용 블록 정리 → 둘 다 통과
+  - 잰 위치·폭·content 높이·스크롤 범위, 설정 키 → agy 통과, 서브에이전트 지적(중간): 겹친 ㄷ자는 바깥이 몇 프레임 늦게 늘어나 마지막 블록 뒤 높이가 짧을 수 있음 → 연출이 끝난 뒤 높이를 다시 재도록 반영. 낮음(안쪽 블록이 올라오는 동안 ㄷ자가 잠깐 더 늘었다 줄어듦)은 늘어나는 연출로 보고 유지
+- 남은 것: 실제 게임 플레이 뒤 결과 화면에서 연출 속도 확인(값은 4_Result.json으로 조정).
+
+### [2026-10-22 18:10] Claude → Antigravity + 서브에이전트 · 결과 화면 블록 조립 (feat/result-program-blocks)
+- 요청: 결과 레벨 레이아웃을 레퍼런스(드라이브 ProjectFiles/DG_AI_Zone1/references)대로 바꾸고, '항목 | 값' 대신 플레이어가 게임에서 조립한 블록을 배치(4존 결과처럼 하나씩, 아래로 스크롤). AI는 레벨별 정답 블록(사용자 확인), 시작·완성 블록 포함, 블록은 칸에 맞추지 않고 스크롤, 함수 정의는 오른쪽.
+- 변경: ProgramShape/ProgramCapture(컴파일 성공 직후 코딩 패널의 블록 모양을 소켓 연결 그대로 읽어 세션 lastProgram에 저장), ResultAiProgram(레벨별 정답 모양), ResultProgramView(BlockFactory로 투명하게 조립 → 묶음 배치·폭만 맞춤 → 하나씩 페이드인·장착음·위아래 자동 스크롤, 끄는 동안은 자동 스크롤 안 함). ResultSequence는 조립을 UniTaskCompletionSource로 감싸 페이드인과 연출이 함께 기다림, 문제 설명 표시. 글자 줄 코드(ResultRowsView·ResultRowView·ResultRowFactory·TypewriterTextTMP·전용 상수·설정·세션 필드)와 테스트 삭제. 4_Result 씬: 새 패널 배경 0.5배·레퍼런스 위치, ProgramScroll(세로만), QuestionBox, 효율 글자 92. 4_Result.json에 programBlockScale 0.6·programBlockInterval 0.3·programScrollDuration 0.3. Version 26.10.22.
+- Claude 확인: 컴파일·콘솔 에러 0, PlayMode 228/228(새 테스트 7개, 뒤에 EditorSettings 되돌림). 세션 MCP 도구가 연결되지 않아 MCP HTTP 서버(8080)에 직접 붙어 씬 수정·Play 모드 확인 — 세션 값을 코드로 채워 레벨4(조건 줄이 넓어 폭 맞춤 0.48)·레벨5(함수 정의 오른쪽)·레벨1 건너뛰기(시작하기만) 결과를 띄워 확인. 처음엔 Preserve로 두 곳이 동시에 기다려 'Already continuation registered'가 나 완료 소스로 바꿈, 블록 묶음이 content 가운데 앵커라 오른쪽으로 밀려 왼쪽 위 앵커로 고침.
+- agy: gemini-4-argon-high는 같은 날 할당량 초과(429)라 부르지 않고 gemini-3.8-flash-high에 맡김.
+- 교차 검증 (agy gemini-3.8-flash-high + 서브에이전트, 3묶음):
+  - 블록 모양 캡처·세션 필드 삭제 → 둘 다 통과. 서브에이전트 지적(중간): 파도타기 연출 뒤에 읽어 연출 중 끈 블록이 결과에 섞일 수 있음 → 컴파일 성공 직후 읽도록 반영. agy 낮음(사전 배치 블록 이름) → 오탐: 모든 블록이 BlockFactory로 이름=라벨
+  - 조립 뷰(취소·정리·배치·스크롤) → 서브에이전트 통과. agy는 300초 시간 초과로 두 항목을 나눠 다시 맡김: 배치·스크롤 통과, 취소 통과·정리 높음(체인 블록이 위 블록의 자식이 아니라 지워지지 않음) → 오탐: Accept→SnapInto가 SetParent(소켓)로 위 블록 아래에 넣음(CodingBlock.cs 1377, 서브에이전트도 같은 근거로 통과)
+  - 결과 연출 흐름·삭제 잔존·JSON 키 → 둘 다 통과. agy 높음(UniTaskCompletionSource는 한 곳만 기다릴 수 있음) → 오탐: 패키지 소스(UniTaskCompletionSource.cs 688~731)가 두 번째부터 목록에 모아 모두 부르고, Preserve가 실제로 동시 대기 예외를 냈음
+- 서브에이전트 (2묶음):
+  - AI 정답 모양·채점 만점·테스트 → 통과, 낮음 4건 중 주석 정정·레벨2 테스트 전체 방향 반영, 블록이 빠진 에셋 테스트·레벨4 문제 값 1개는 현재 에셋에 해당 없어 그대로
+  - 4_Result 씬(Missing Script·참조·새 구조) → 통과
+- 남은 것: 실제 게임에서 블록을 끌어 완성하기한 뒤 결과 화면 확인(이번엔 세션 값을 코드로 넣어 확인), 조립이 5초를 넘으면 페이드인이 먼저 끝나 빈 칸이 잠시 보일 수 있음(현장 첫 실행 확인).
 
 ### [2026-10-22 17:30] Claude → Antigravity + 서브에이전트 · 첫 장 < 버튼 숨김, 안내 문구 (feat/tutorial-arrow-buttons)
 - 요청: 안내 문구에서 '화면을 눌러서'를 지워 '모두 확인해보자'로, 첫 장의 < 버튼은 비활성 대신 안 보이게.
@@ -33,6 +66,7 @@ Claude가 Antigravity(agy)와 리뷰 서브에이전트에 맡긴 검증 기록.
 - 서브에이전트 (씬 1묶음):
   - 버튼 참조 fileID·부모/자식 연결, 화면 안 배치·이미지와 겹침 없음·CanvasGroup 묶임 → 통과
 - 남은 것: 아래 안내 문구 '화면을 눌러서 모두 확인해보자'(GuideText)는 버튼 방식과 맞지 않아 사용자 결정 필요. 현장 터치로 버튼 크기·진하기 확인.
+
 
 ### [2026-10-20 13:47] Claude → Antigravity + 서브에이전트 · 튜토리얼 이미지 7번 교체 (chore/tutorial7-image)
 - 요청: Tutorial 폴더에 넣은 새 튜토리얼 7번 이미지로 교체.
