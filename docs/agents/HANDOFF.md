@@ -4,6 +4,19 @@ Claude가 Antigravity(agy)와 리뷰 서브에이전트에 맡긴 검증 기록.
 
 ---
 
+### [2026-10-22 17:05] Claude → Antigravity + 서브에이전트 · 튜토리얼 < > 버튼 넘기기 (feat/tutorial-arrow-buttons)
+- 요청: 인트로 튜토리얼 이미지를 좌·우 터치 대신 양옆 < > 버튼으로 넘기게. 도중에 버튼을 적당히 크게, 버튼 배경 알파를 더 진하게 요청.
+- 변경: TutorialImageSlider의 IPointerClickHandler(좌·우 절반 판정) 제거, previousButton·nextButton onClick으로 이전·다음, 첫 장에서 < 버튼 interactable false. 1_Intro TutorialPanel에 Button_Previous·Button_Next(160×160, 내장 Knob, 검정 알파 0.9, TMP 글자 120, 가로 ±830·세로 30) 추가·연결. Version 26.10.22.
+- Claude 확인: 세션 MCP 도구가 다른 서버를 봐서 MCP HTTP 서버(8080)에 직접 붙어 씬 수정. 컴파일·콘솔 에러 0, PlayMode 227/227(뒤에 EditorSettings 되돌림), 게임 뷰 캡처로 배치 확인. 선형 색 공간이라 알파 0.8은 화면에서 배경을 절반쯤만 어둡게 해 0.9로 올림(0.9 캡처는 게임 뷰가 검게 찍혀 못 봄).
+- agy: gemini-4-argon-high는 할당량 초과(429)로 gemini-3.8-flash-high에 맡김.
+- 교차 검증 (agy gemini-3.8-flash-high + 서브에이전트, 코드 1묶음):
+  - 리스너 등록·해제, null 처리, 터치 코드 잔재 → 둘 다 통과, 서브에이전트가 주석 공백 하나 빠짐 지적 → 반영
+  - 첫 장 < 무시·마지막 장 > Finished·연타 시 이미지 덮어쓰기 방지·interactable 갱신 시점 → 둘 다 통과
+  - 콘솔 → agy는 MCP 미연결로 못 봄, Claude가 확인(에러 0)
+- 서브에이전트 (씬 1묶음):
+  - 버튼 참조 fileID·부모/자식 연결, 화면 안 배치·이미지와 겹침 없음·CanvasGroup 묶임 → 통과
+- 남은 것: 아래 안내 문구 '화면을 눌러서 모두 확인해보자'(GuideText)는 버튼 방식과 맞지 않아 사용자 결정 필요. 현장 터치로 버튼 크기·진하기 확인.
+
 ### [2026-10-20 13:47] Claude → Antigravity + 서브에이전트 · 튜토리얼 이미지 7번 교체 (chore/tutorial7-image)
 - 요청: Tutorial 폴더에 넣은 새 튜토리얼 7번 이미지로 교체.
 - 변경: 사용자가 넣은 '튜토리얼 7.png'(1920×1080, 같은 임포트 설정)의 내용으로 Tutorial7.png만 덮어쓰고, 넣은 파일과 그 meta는 지움. meta를 그대로 둬 GUID와 Addressables 주소 Tutorial7 유지. Version 26.10.20.
