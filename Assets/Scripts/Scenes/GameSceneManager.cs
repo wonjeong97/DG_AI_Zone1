@@ -295,13 +295,16 @@ namespace Scenes
 
                 if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.CodingComplete);
 
+                // 채점한 블록 모양을 지금 읽어 둔다 — 파도타기 연출 중에도 블록을 끌 수 있어, 연출 뒤에 읽으면 점수와 다른 모양이 결과에 나올 수 있다
+                ProgramShape program = advanceScene ? ProgramCapture.Capture(codingZone) : null;
+
                 // 시작하기 ~ 완성하기 순서로 성공(초록) 하이라이트가 파도타기처럼 순서대로 켜짐 (값 블록 포함)
                 await PlaySuccessWaveAsync(BuildSuccessOrder(codingZone, result.Instructions), ct);
 
                 // 스페이스바: 컴파일 검증까지만 — 채점·실행·씬 전환은 완료 버튼 전용
                 if (!advanceScene) return;
 
-                SaveResultToSession(result.Instructions, score.Value);
+                SaveResultToSession(result.Instructions, score.Value, program);
 
                 BlockExecutor executor = CreateExecutor();
                 await executor.RunAsync(result.Instructions, ct);
@@ -328,9 +331,9 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 결과 씬 표시에 쓸 점수와 조립 값들을 게임 세션에 기록한다.
+        /// 결과 씬 표시에 쓸 점수·패널 방향과 컴파일 때 읽어 둔 블록 모양을 게임 세션에 기록한다.
         /// </summary>
-        private void SaveResultToSession(List<BlockInstruction> instructions, int score)
+        private void SaveResultToSession(List<BlockInstruction> instructions, int score, ProgramShape program)
         {
             if (_session == null)
             {
@@ -340,16 +343,8 @@ namespace Scenes
 
             _session.lastScore = score;
             _session.lastQuestionTime = _questionTime;
-            (_session.lastDirection, _session.lastCount) = BlockScorer.ExtractValues(instructions);
-            _session.lastRepeatUsed = BlockScorer.ContainsRepeat(instructions);
-            _session.lastGateHeight = BlockScorer.GetHydroGateHeight(instructions);
-            _session.lastElseUsed = BlockScorer.HasHydroElse(instructions);
-            _session.lastGateOrderCorrect = BlockScorer.IsHydroGateOrderCorrect(instructions);
-            _session.lastConditionText = BlockScorer.GetConditionText(instructions);
-            _session.lastAmusementPowerCut = BlockScorer.IsAmusementPowerCut(instructions);
-            _session.lastHospitalPowerKept = BlockScorer.IsHospitalPowerKept(instructions);
-            _session.lastFunctionUsed = BlockScorer.UsesFunction(instructions);
-            _session.lastEnergiesInFunction = BlockScorer.GetEnergiesInFunction(instructions);
+            (_session.lastDirection, _) = BlockScorer.ExtractValues(instructions);
+            _session.lastProgram = program;
             _session.hasCodingResult = true;
         }
 

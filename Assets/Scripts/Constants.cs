@@ -169,16 +169,13 @@ public static class Constants
     // ── 8. 결과 씬 연출 메시지 및 평가 ─────────────────────────
     public static class ResultMessages
     {
-        public const string StatusPoor    = "<color=red>부족</color>";
-        public const string StatusNormal  = "보통";
-        public const string StatusGood    = "<color=#0B7A0B>양호</color>";
         public const string AiCodingStart = "AI가 코딩을 시작합니다";
 
         // 완료 패널 제목 — 전력 수급 상태가 '부족'이면(코딩을 건너뛴 경우 포함) 실패, '보통' 이상이면 성공
         public const string MissionSuccess = "미션 성공!";
         public const string MissionFail    = "미션 실패!";
 
-        // 에너지 효율(%) 최댓값 — 결과 행·3D 연출 세기 계산의 기준
+        // 에너지 효율(%) 최댓값 — 효율 표시·3D 연출 세기 계산의 기준
         public const int MaxPercent = 100;
 
         // 최고 점수 대비 비율(%)로 전력 수급 상태를 나눈다 — 미만/이상 경계값
@@ -188,39 +185,8 @@ public static class Constants
         // 효율 숫자 — '에너지 효율' 이름표는 배지 이미지 위 고정 텍스트
         public const string EfficiencyFormat = "{0:D2}%";
 
-        // 결과 패널 행 이름 (항목 | 값)
-        public const string LabelCount          = "가동수";
-        public const string LabelDirection      = "방향";
-        public const string LabelStatus         = "전력 수급 상태";
-        public const string LabelWindDirection  = "감지된 바람 방향";
-        public const string LabelBladeDirection = "풍차 방향";
-        public const string LabelRepeat         = "반복 감지";
-        public const string LabelGateHeight     = "수문 개방 높이";
-        public const string LabelConditionOn    = "조건 감지";
-        public const string LabelElse           = "수문 닫기 조건(아니면)";
-        public const string LabelGateOrder      = "수문 열기·닫기 순서";
-        public const string LabelSituation      = "상황";
-        public const string LabelCondition      = "조건";
-        public const string LabelAmusement      = "놀이시설 끄기 조건(만약)";
-        public const string LabelHospital       = "병원 전력 유지";
-        public const string LabelFunctionUsed   = "함수 사용";
-
-        // 체험자가 정하지 않은 값(코딩을 건너뛴 경우 등)
-        public const string NoValue = "-";
-
-        public const string PowerPlantSituation     = "밤 · 전기 과부하";  // 문제가 고정이라 상수
-        public const string PowerPlantBestCondition = "전기 과부하 · 밤";  // AI(정답) 조건식
-
         // 결과 텍스트는 폭이 좁아 조건식의 '그리고'를 가운뎃점으로 줄여 쓴다
         public const string ConditionAndSeparator = "·";
-
-        // '반복 감지'·'조건 감지' 줄의 ON/OFF 표기
-        public const string DetectedOn  = "ON";
-        public const string DetectedOff = "OFF";
-
-        // '수문 열기·닫기 순서' 줄 — 수문 열기가 만약 안, 수문 닫기가 아니면 안에 있으면 정상
-        public const string GateOrderCorrect = "정상";
-        public const string GateOrderWrong   = "오류";
 
         // 'AI가 코딩을 시작합니다' 뒤 말줄임 애니메이션
         public const string AiCodingDots = "...";      // 슬롯 3개 — AiCodingDotCycle과 맞춰야 함

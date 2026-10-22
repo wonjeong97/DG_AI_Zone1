@@ -4,6 +4,20 @@ Claude가 Antigravity(agy)와 리뷰 서브에이전트에 맡긴 검증 기록.
 
 ---
 
+### [2026-10-22 18:10] Claude → Antigravity + 서브에이전트 · 결과 화면 블록 조립 (feat/result-program-blocks)
+- 요청: 결과 레벨 레이아웃을 레퍼런스(드라이브 ProjectFiles/DG_AI_Zone1/references)대로 바꾸고, '항목 | 값' 대신 플레이어가 게임에서 조립한 블록을 배치(4존 결과처럼 하나씩, 아래로 스크롤). AI는 레벨별 정답 블록(사용자 확인), 시작·완성 블록 포함, 블록은 칸에 맞추지 않고 스크롤, 함수 정의는 오른쪽.
+- 변경: ProgramShape/ProgramCapture(컴파일 성공 직후 코딩 패널의 블록 모양을 소켓 연결 그대로 읽어 세션 lastProgram에 저장), ResultAiProgram(레벨별 정답 모양), ResultProgramView(BlockFactory로 투명하게 조립 → 묶음 배치·폭만 맞춤 → 하나씩 페이드인·장착음·위아래 자동 스크롤, 끄는 동안은 자동 스크롤 안 함). ResultSequence는 조립을 UniTaskCompletionSource로 감싸 페이드인과 연출이 함께 기다림, 문제 설명 표시. 글자 줄 코드(ResultRowsView·ResultRowView·ResultRowFactory·TypewriterTextTMP·전용 상수·설정·세션 필드)와 테스트 삭제. 4_Result 씬: 새 패널 배경 0.5배·레퍼런스 위치, ProgramScroll(세로만), QuestionBox, 효율 글자 92. 4_Result.json에 programBlockScale 0.6·programBlockInterval 0.3·programScrollDuration 0.3. Version 26.10.22.
+- Claude 확인: 컴파일·콘솔 에러 0, PlayMode 228/228(새 테스트 7개, 뒤에 EditorSettings 되돌림). 세션 MCP 도구가 연결되지 않아 MCP HTTP 서버(8080)에 직접 붙어 씬 수정·Play 모드 확인 — 세션 값을 코드로 채워 레벨4(조건 줄이 넓어 폭 맞춤 0.48)·레벨5(함수 정의 오른쪽)·레벨1 건너뛰기(시작하기만) 결과를 띄워 확인. 처음엔 Preserve로 두 곳이 동시에 기다려 'Already continuation registered'가 나 완료 소스로 바꿈, 블록 묶음이 content 가운데 앵커라 오른쪽으로 밀려 왼쪽 위 앵커로 고침.
+- agy: gemini-4-argon-high는 같은 날 할당량 초과(429)라 부르지 않고 gemini-3.8-flash-high에 맡김.
+- 교차 검증 (agy gemini-3.8-flash-high + 서브에이전트, 3묶음):
+  - 블록 모양 캡처·세션 필드 삭제 → 둘 다 통과. 서브에이전트 지적(중간): 파도타기 연출 뒤에 읽어 연출 중 끈 블록이 결과에 섞일 수 있음 → 컴파일 성공 직후 읽도록 반영. agy 낮음(사전 배치 블록 이름) → 오탐: 모든 블록이 BlockFactory로 이름=라벨
+  - 조립 뷰(취소·정리·배치·스크롤) → 서브에이전트 통과. agy는 300초 시간 초과로 두 항목을 나눠 다시 맡김: 배치·스크롤 통과, 취소 통과·정리 높음(체인 블록이 위 블록의 자식이 아니라 지워지지 않음) → 오탐: Accept→SnapInto가 SetParent(소켓)로 위 블록 아래에 넣음(CodingBlock.cs 1377, 서브에이전트도 같은 근거로 통과)
+  - 결과 연출 흐름·삭제 잔존·JSON 키 → 둘 다 통과. agy 높음(UniTaskCompletionSource는 한 곳만 기다릴 수 있음) → 오탐: 패키지 소스(UniTaskCompletionSource.cs 688~731)가 두 번째부터 목록에 모아 모두 부르고, Preserve가 실제로 동시 대기 예외를 냈음
+- 서브에이전트 (2묶음):
+  - AI 정답 모양·채점 만점·테스트 → 통과, 낮음 4건 중 주석 정정·레벨2 테스트 전체 방향 반영, 블록이 빠진 에셋 테스트·레벨4 문제 값 1개는 현재 에셋에 해당 없어 그대로
+  - 4_Result 씬(Missing Script·참조·새 구조) → 통과
+- 남은 것: 실제 게임에서 블록을 끌어 완성하기한 뒤 결과 화면 확인(이번엔 세션 값을 코드로 넣어 확인), 조립이 5초를 넘으면 페이드인이 먼저 끝나 빈 칸이 잠시 보일 수 있음(현장 첫 실행 확인).
+
 ### [2026-10-20 13:47] Claude → Antigravity + 서브에이전트 · 튜토리얼 이미지 7번 교체 (chore/tutorial7-image)
 - 요청: Tutorial 폴더에 넣은 새 튜토리얼 7번 이미지로 교체.
 - 변경: 사용자가 넣은 '튜토리얼 7.png'(1920×1080, 같은 임포트 설정)의 내용으로 Tutorial7.png만 덮어쓰고, 넣은 파일과 그 meta는 지움. meta를 그대로 둬 GUID와 Addressables 주소 Tutorial7 유지. Version 26.10.20.

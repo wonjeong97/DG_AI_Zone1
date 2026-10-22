@@ -1,6 +1,7 @@
 {
-  "typewriterCharInterval": 0.06,
-  "rowFadeDuration": 0.4,
+  "programBlockScale": 0.6,
+  "programBlockInterval": 0.3,
+  "programScrollDuration": 0.3,
   "effCountDuration": 1.6,
   "touchGuideDelay": 1.0,
   "panelPoseDuration": 1.5,
