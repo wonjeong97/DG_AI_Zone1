@@ -1124,7 +1124,7 @@ MonoBehaviour:
   blockScale: 0.6
   padding: 24
   functionGap: 48
-  revealInterval: 0.3
+  revealInterval: 1
   revealFadeDuration: 0.15
   scrollDuration: 0.3
 --- !u!1 &288038211
@@ -2829,7 +2829,7 @@ MonoBehaviour:
   blockScale: 0.6
   padding: 24
   functionGap: 48
-  revealInterval: 0.3
+  revealInterval: 1
   revealFadeDuration: 0.15
   scrollDuration: 0.3
 --- !u!1 &651893796

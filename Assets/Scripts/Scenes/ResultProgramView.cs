@@ -37,8 +37,8 @@ namespace Scenes
         [SerializeField] private float slideDistance = 120f;
         [Tooltip("값·조건 블록이 오른쪽에서 미끄러져 와 붙는 시간(초) — 4_Result.json의 programValueSlideDuration")]
         [SerializeField] private float slideDuration = 0.4f;
-        [Tooltip("블록 하나가 붙은 뒤 다음 블록까지 쉬는 시간(초) — 4_Result.json의 programBlockInterval")]
-        [SerializeField] private float revealInterval = 0.3f;
+        [Tooltip("블록이 붙기 시작해 다음 블록이 붙기 시작할 때까지 간격(초) — 4_Result.json의 programBlockInterval")]
+        [SerializeField] private float revealInterval = 1f;
         [SerializeField] private float scrollDuration = 0.3f;
 
         // 4_Result.json 값 — ResultSequence가 빌드 전에 넣는다
@@ -69,6 +69,8 @@ namespace Scenes
         // 미리 재기용으로 만든 블록(스냅 트윈을 끝내는 데만 쓴다)과 연출로 붙인 묶음의 맨 위 블록
         private readonly List<CodingBlock> _measureBlocks = new();
         private readonly List<CodingBlock> _playRoots = new();
+        // 값·조건 블록 연출 — 다음 블록이 이것을 기다리지 않고 시작하므로 PlayAsync가 끝에서 모아 기다린다
+        private readonly List<UniTask> _sideReveals = new();
         private bool _isDragging;
         private Tween _scrollTween;
 
@@ -167,11 +169,20 @@ namespace Scenes
             if (_shape is null) return;
 
             _playRoots.Clear();
+            _sideReveals.Clear();
             int rootIndex = 0;
             if (_shape.Start is not null)
                 await RevealTreeAsync(_shape.Start, null, Entrance.Rise, NextRootPosition(ref rootIndex), ct);
             foreach (ProgramBlock definition in _shape.FunctionDefs)
                 await RevealTreeAsync(definition, null, Entrance.Rise, NextRootPosition(ref rootIndex), ct);
+
+            // 기다리는 동안 값·조건 쪽에서 새로 붙는 연출이 생길 수 있어 빌 때까지 기다린다
+            while (_sideReveals.Count > 0)
+            {
+                UniTask[] pending = _sideReveals.ToArray();
+                _sideReveals.Clear();
+                await UniTask.WhenAll(pending);
+            }
         }
 
         /// <summary>
@@ -189,6 +200,7 @@ namespace Scenes
         /// </summary>
         private async UniTask RevealTreeAsync(ProgramBlock node, BlockSocket socket, Entrance entrance, Vector2 rootPosition, CancellationToken ct)
         {
+            float startTime = Time.time;
             CodingBlock block = await CreateBlockAsync(node, ct);
             if (!block) return;
 
@@ -213,10 +225,20 @@ namespace Scenes
             await PlayEntranceAsync(block, entrance, ct);
             // 겹친 ㄷ자는 안쪽이 늘어난 뒤 몇 프레임 늦게 바깥이 늘어나므로, 연출이 끝난 뒤 다시 재야 마지막 블록 뒤의 아래 막대까지 스크롤 범위에 든다
             UpdateContentHeight();
-            await UniTask.Delay(TimeSpan.FromSeconds(Mathf.Max(0f, revealInterval)), cancellationToken: ct);
 
-            await RevealChildAsync(block.GetSocket<ValueOutSocket>(), node.Value, node, Entrance.Slide, ct);
-            await RevealChildAsync(block.GetSocket<ConditionOutSocket>(), node.Condition, node, Entrance.Slide, ct);
+            // 4존처럼 값·조건 블록은 블록이 붙자마자 미끄러져 오고, 다음 블록은 그것을 기다리지 않고 이 블록이 붙기 시작한 지 revealInterval초 뒤에 붙는다
+            UniTask side = RevealSideAsync(block, node, ct);
+            if (entrance == Entrance.Slide)
+            {
+                // 값·조건 블록에 이어 붙은 블록은 쉬지 않고 바로 뒤이어 미끄러져 온다
+                await side;
+            }
+            else
+            {
+                _sideReveals.Add(side);
+                float remaining = revealInterval - (Time.time - startTime);
+                if (remaining > 0f) await UniTask.Delay(TimeSpan.FromSeconds(remaining), cancellationToken: ct);
+            }
 
             List<InnerSocket> inners = new List<InnerSocket>();
             block.GetSockets(inners);
@@ -224,6 +246,15 @@ namespace Scenes
                 await RevealChildAsync(i < inners.Count ? inners[i] : null, node.Inners[i], node, Entrance.Rise, ct);
 
             await RevealChildAsync(block.GetSocket<ChainOutSocket>(), node.Next, node, Entrance.Rise, ct);
+        }
+
+        /// <summary>
+        /// 블록의 값 소켓 → 조건 소켓 순서로 붙을 블록을 미끄러져 오게 붙인다.
+        /// </summary>
+        private async UniTask RevealSideAsync(CodingBlock block, ProgramBlock node, CancellationToken ct)
+        {
+            await RevealChildAsync(block.GetSocket<ValueOutSocket>(), node.Value, node, Entrance.Slide, ct);
+            await RevealChildAsync(block.GetSocket<ConditionOutSocket>(), node.Condition, node, Entrance.Slide, ct);
         }
 
         /// <summary>

@@ -4,6 +4,15 @@ Claude가 Antigravity(agy)와 리뷰 서브에이전트에 맡긴 검증 기록.
 
 ---
 
+### [2026-10-25] Claude → Antigravity + 서브에이전트 · 결과 값·조건 블록 4존처럼 겹치기 (feat/result-block-speed-zone4)
+- 요청: 값·조건 블록이 부모 블록이 올라온 바로 뒤에 미끄러져 오고, 다음 블록은 부모 시작 1초 뒤에 시작하게 4존과 똑같이.
+- 변경: ResultProgramView.RevealTreeAsync가 블록 시작 시각을 재 두고, 올라온 뒤 값·조건 연출(RevealSideAsync)을 기다리지 않고 _sideReveals에 모은 뒤 시작 revealInterval초 뒤에 안쪽·아래 블록으로 넘어감. 값·조건 체인 안에서는 쉬지 않고 바로 이어 붙음. PlayAsync 끝에서 목록이 빌 때까지 WhenAll로 기다림. programBlockInterval(JSON·코드·씬 revealInterval)을 시작 간격 1.0으로.
+- Claude 확인: 컴파일·콘솔 에러 0, PlayMode 228/228 두 번(뒤에 EditorSettings·TMP 폰트 에셋 되돌림). Play 모드에서 AI 결과 칸에 정답 모양을 직접 넣어 블록이 보이기 시작한 시각 측정 — 레벨2: 블록 간격 0.99~1.02초, 값 블록은 부모 0.67초 뒤, 다음 블록은 부모 1.02초 뒤. 레벨4: 만약 1.0초 뒤 안쪽 블록이 조건 체인(그리고·밤)이 아직 미끄러지는 중에 붙고, 스크롤은 아래로만 움직임.
+- 교차 검증 (agy gemini-4-argon-high + 서브에이전트, 1묶음):
+  - 모아 둔 UniTask를 끝에서 기다리는 구조(취소·한 번만 await·조건 체인 순서) → 둘 다 통과. 서브에이전트 불확실 1건(값·조건 쪽에서 나중에 목록에 들어온 연출을 WhenAll이 놓칠 수 있음) → 빌 때까지 기다리게 반영
+  - 미끄러지는 중 다음 블록이 붙을 때 레이아웃 → 둘 다 통과. 서브에이전트 낮음 1건(긴 조건 체인과 안쪽 블록의 자동 스크롤이 서로 덮어쓸 수 있음) → 레벨4 Play 모드 측정에서 스크롤 역행 없음, 수정 안 함
+  - JSON·코드·주석·씬 값 1 일치 → 둘 다 통과
+
 ### [2026-10-25] Claude → Antigravity + 서브에이전트 · 결과 블록 붙는 속도 4존과 맞춤 (feat/result-block-speed-zone4)
 - 요청: 결과 씬 블록이 붙는 속도를 4존과 똑같이.
 - 변경: 4존 4_Result.unity의 DesignPanel 값(riseDuration 0.7·valueSlideDuration 0.4, 거리 40/120, 블록 시작 간격 designBlockInterval 1.0)에 맞춰 1존 4_Result.json·코드 기본값을 0.7/0.4/0.3으로. 1존은 연출을 기다린 뒤 쉬므로 0.7+0.3=1.0초.

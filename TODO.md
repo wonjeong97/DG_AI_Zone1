@@ -20,6 +20,7 @@
 
 ## 완료
 
+- [x] 결과 화면 값·조건 블록도 4존처럼 — 부모 블록이 올라온 바로 뒤 미끄러져 오고(쉬는 시간 없음), 다음 블록은 그것을 기다리지 않고 부모가 붙기 시작한 1초 뒤에 붙음(programBlockInterval을 붙은 뒤 쉬는 시간 → 블록 시작 간격 1.0으로, 씬 revealInterval도 1) — PlayMode 228/228, Play 모드로 레벨2·4 AI 결과 시각 측정 — 담당: Claude / 검증: Antigravity + 서브에이전트 (2026-10-25)
 - [x] 결과 화면 블록 붙는 속도를 4존과 같게 — 4_Result.json의 programBlockRiseDuration 0.4→0.7·programValueSlideDuration 0.25→0.4·programBlockInterval 0.15→0.3(0.7+0.3으로 4존 블록 간격 1초), 코드 기본값도 같게, Player Settings Version 26.10.25 — 값·조건 블록이 붙은 블록은 1존이 따로 붙여 다음 블록이 0.7초 늦게 시작(구조 차이) — 담당: Claude / 검증: Antigravity + 서브에이전트 (2026-10-25)
 
 - [x] 결과 화면 레이아웃 변경 — '항목 | 값' 대신 게임에서 조립한 블록(나의 코딩 결과)과 레벨별 정답 블록(AI 코딩 결과)을 게임 블록으로 다시 조립해 4존처럼 하나씩 붙이고(체인·안쪽은 아래에서 올라옴, 값·조건은 오른쪽에서 미끄러짐, ㄷ자 블록은 안쪽이 붙을 때 늘어남) 아래로 자동 스크롤(함수 정의는 오른쪽, 칸보다 넓으면 폭에만 맞춰 줄임), 제목 아래 문제 설명 상자, 새 패널 배경(Panel_CodingResultPlayer/AI.png), 레퍼런스 이미지는 드라이브 ProjectFiles/DG_AI_Zone1/references로, Player Settings Version 26.10.23 — PlayMode 228/228, Play 모드로 레벨1(건너뛰기)·4·5 결과 확인 — 담당: Claude / 검증: Antigravity + 서브에이전트 (2026-10-23)

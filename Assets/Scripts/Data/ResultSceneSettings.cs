@@ -18,8 +18,8 @@ namespace Data
         // 값·조건 블록이 오른쪽에서 미끄러져 와 붙는 시간(초)
         public float programValueSlideDuration = 0.4f;
 
-        // 블록 하나가 붙은 뒤 다음 블록까지 쉬는 시간(초)
-        public float programBlockInterval = 0.3f;
+        // 블록이 붙기 시작해 다음 블록이 붙기 시작할 때까지 간격(초) — 값·조건 블록이 미끄러져 오는 것은 기다리지 않는다
+        public float programBlockInterval = 1f;
 
         // 블록이 칸 아래로 벗어나 자동 스크롤하는 시간(초)
         public float programScrollDuration = 0.3f;
