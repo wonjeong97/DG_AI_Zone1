@@ -191,8 +191,7 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 재 둔 모양대로 블록을 하나씩 만들어 붙인다 — 블록 → 값 → 조건 → 안쪽 → 아래 순서로, 붙을 때마다 장착 효과음을 내고 보이게 스크롤한다.
-        /// 함수 사용 블록이 붙을 때 함수 정의 블록도 함께 올라오고, 쓰이지 않은 함수 정의 블록은 시작하기 묶음 뒤에 붙인다.
+        /// 재 둔 모양대로 블록을 하나씩 만들어 붙인다 — 블록 → 값 → 조건 → 안쪽 → 아래 순서로 붙을 때마다 장착 효과음을 내고 보이게 스크롤하며, 함수 정의 블록은 함수 사용 블록과 함께(쓰이지 않았으면 시작하기 묶음 뒤에) 붙인다.
         /// </summary>
         public async UniTask PlayAsync(CancellationToken ct)
         {
@@ -232,19 +231,24 @@ namespace Scenes
             RootPosition(definitionIndex + (_shape.Start is not null ? 1 : 0));
 
         /// <summary>
-        /// 함수 사용 블록이면 아직 붙이지 않은 함수 정의 블록 묶음을 붙이기 시작한다(4존처럼 함수 사용 블록과 함께 올라옴) — 아니면 바로 끝난 작업.
+        /// 함수 사용 블록이면 아직 붙이지 않은 함수 정의 블록 묶음(같은 이름이 있으면 그것, 없으면 첫 번째)을 붙이기 시작한다(4존처럼 함수 사용 블록과 함께 올라옴) — 아니면 바로 끝난 작업.
         /// </summary>
         private UniTask RevealDefinitionAsync(ProgramBlock node, CancellationToken ct)
         {
             if (node.Category != BlockCategory.Function) return UniTask.CompletedTask;
 
+            int index = -1;
             for (int i = 0; i < _shape.FunctionDefs.Count; i++)
             {
                 ProgramBlock definition = _shape.FunctionDefs[i];
-                if (_revealedDefinitions.Add(definition))
-                    return RevealTreeAsync(definition, null, Entrance.Rise, DefinitionRootPosition(i), ct);
+                if (_revealedDefinitions.Contains(definition)) continue;
+                if (definition.Label == node.Label) { index = i; break; }
+                if (index < 0) index = i;
             }
-            return UniTask.CompletedTask;
+            if (index < 0) return UniTask.CompletedTask;
+
+            _revealedDefinitions.Add(_shape.FunctionDefs[index]);
+            return RevealTreeAsync(_shape.FunctionDefs[index], null, Entrance.Rise, DefinitionRootPosition(index), ct);
         }
 
         /// <summary>
