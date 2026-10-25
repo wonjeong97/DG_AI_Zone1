@@ -20,6 +20,7 @@
 
 ## 완료
 
+- [x] 결과 화면 함수 정의 블록을 4존처럼 함수 사용 블록과 함께 올리기 — 정의 안쪽 블록 1초 간격 뒤 완성하기 맨 마지막, 쓰이지 않은 정의는 시작하기 묶음 뒤 — PlayMode 228/228, Play 모드로 레벨5 AI 결과 시각 측정 — 담당: Claude / 검증: Antigravity + 서브에이전트 (2026-10-25)
 - [x] 결과 화면 코딩 결과 칸 오른쪽 스크롤바 — 3_Game의 Scrollbar Vertical(Scrollbar_Track·Handle)을 복제, 칸 폭 723→693, 스크롤바 영역도 넘기지 않는 칸 판정에 포함, 스크롤바를 끄는 동안 자동 스크롤 멈춤 — PlayMode 228/228, Play 모드 화면 캡처로 위치 확인 — 담당: Claude / 검증: Antigravity + 서브에이전트 (2026-10-25)
 - [x] 결과 화면 터치 안내 뒤 코딩 결과 칸(나의·AI) 안 터치는 완료 화면으로 넘기지 않고 스크롤만 — 눌린 위치가 ProgramScroll 안이면 넘기기에서 뺌(ResultSequence.IsCompletePress, ResultProgramView.ContainsScreenPoint) — PlayMode 228/228, Play 모드 확인은 사용자가 에디터 사용 중이라 생략 — 담당: Claude / 검증: Antigravity + 서브에이전트 (2026-10-25)
 - [x] 결과 화면 AI 코딩 결과 칸 끌기 스크롤 안 됨 수정 — 시작 때 막아 둔 Result_AI 입력(blocksRaycasts)을 페이드인 뒤 SetGroupInteractable로 켬 — PlayMode 228/228, Play 모드 확인은 사용자가 에디터 사용 중이라 생략 — 담당: Claude / 검증: Antigravity + 서브에이전트 (2026-10-25)

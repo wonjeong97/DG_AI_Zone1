@@ -71,6 +71,8 @@ namespace Scenes
         private readonly List<CodingBlock> _playRoots = new();
         // 값·조건 블록 연출 — 다음 블록이 이것을 기다리지 않고 시작하므로 PlayAsync가 끝에서 모아 기다린다
         private readonly List<UniTask> _sideReveals = new();
+        // 이미 붙이기 시작한 함수 정의 블록 묶음 — 함수 사용 블록과 함께 붙였으면 시작하기 묶음 뒤에 다시 붙이지 않는다
+        private readonly HashSet<ProgramBlock> _revealedDefinitions = new();
         private bool _isDragging;
         private Tween _scrollTween;
 
@@ -190,6 +192,7 @@ namespace Scenes
 
         /// <summary>
         /// 재 둔 모양대로 블록을 하나씩 만들어 붙인다 — 블록 → 값 → 조건 → 안쪽 → 아래 순서로, 붙을 때마다 장착 효과음을 내고 보이게 스크롤한다.
+        /// 함수 사용 블록이 붙을 때 함수 정의 블록도 함께 올라오고, 쓰이지 않은 함수 정의 블록은 시작하기 묶음 뒤에 붙인다.
         /// </summary>
         public async UniTask PlayAsync(CancellationToken ct)
         {
@@ -197,11 +200,15 @@ namespace Scenes
 
             _playRoots.Clear();
             _sideReveals.Clear();
-            int rootIndex = 0;
+            _revealedDefinitions.Clear();
             if (_shape.Start is not null)
-                await RevealTreeAsync(_shape.Start, null, Entrance.Rise, NextRootPosition(ref rootIndex), ct);
-            foreach (ProgramBlock definition in _shape.FunctionDefs)
-                await RevealTreeAsync(definition, null, Entrance.Rise, NextRootPosition(ref rootIndex), ct);
+                await RevealTreeAsync(_shape.Start, null, Entrance.Rise, RootPosition(0), ct);
+            for (int i = 0; i < _shape.FunctionDefs.Count; i++)
+            {
+                ProgramBlock definition = _shape.FunctionDefs[i];
+                if (_revealedDefinitions.Add(definition))
+                    await RevealTreeAsync(definition, null, Entrance.Rise, DefinitionRootPosition(i), ct);
+            }
 
             // 기다리는 동안 값·조건 쪽에서 새로 붙는 연출이 생길 수 있어 빌 때까지 기다린다
             while (_sideReveals.Count > 0)
@@ -213,13 +220,31 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 다음 묶음의 맨 위 블록 자리(BuildAsync가 잰 위치)를 돌려준다 — 재지 못했으면 칸 왼쪽 위.
+        /// index번째 묶음의 맨 위 블록 자리(BuildAsync가 잰 위치, 시작하기 → 함수 정의 순서)를 돌려준다 — 재지 못했으면 칸 왼쪽 위.
         /// </summary>
-        private Vector2 NextRootPosition(ref int index)
+        private Vector2 RootPosition(int index) =>
+            index < _rootPositions.Count ? _rootPositions[index] : new Vector2(padding, -padding);
+
+        /// <summary>
+        /// definitionIndex번째 함수 정의 묶음의 맨 위 블록 자리를 돌려준다(시작하기 묶음이 있으면 그 다음 자리부터).
+        /// </summary>
+        private Vector2 DefinitionRootPosition(int definitionIndex) =>
+            RootPosition(definitionIndex + (_shape.Start is not null ? 1 : 0));
+
+        /// <summary>
+        /// 함수 사용 블록이면 아직 붙이지 않은 함수 정의 블록 묶음을 붙이기 시작한다(4존처럼 함수 사용 블록과 함께 올라옴) — 아니면 바로 끝난 작업.
+        /// </summary>
+        private UniTask RevealDefinitionAsync(ProgramBlock node, CancellationToken ct)
         {
-            Vector2 position = index < _rootPositions.Count ? _rootPositions[index] : new Vector2(padding, -padding);
-            index++;
-            return position;
+            if (node.Category != BlockCategory.Function) return UniTask.CompletedTask;
+
+            for (int i = 0; i < _shape.FunctionDefs.Count; i++)
+            {
+                ProgramBlock definition = _shape.FunctionDefs[i];
+                if (_revealedDefinitions.Add(definition))
+                    return RevealTreeAsync(definition, null, Entrance.Rise, DefinitionRootPosition(i), ct);
+            }
+            return UniTask.CompletedTask;
         }
 
         /// <summary>
@@ -249,6 +274,8 @@ namespace Scenes
             UpdateContentHeight();
             ScrollToShow(rt);
             if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.BlockAssembled);
+            // 함수 정의 블록은 함수 사용 블록과 함께 올라오고, 그 안쪽 블록까지 다 붙은 뒤에 아래 블록(완성하기)을 붙인다
+            UniTask definition = RevealDefinitionAsync(node, ct);
             await PlayEntranceAsync(block, entrance, ct);
             // 겹친 ㄷ자는 안쪽이 늘어난 뒤 몇 프레임 늦게 바깥이 늘어나므로, 연출이 끝난 뒤 다시 재야 마지막 블록 뒤의 아래 막대까지 스크롤 범위에 든다
             UpdateContentHeight();
@@ -272,6 +299,7 @@ namespace Scenes
             for (int i = 0; i < node.Inners.Count; i++)
                 await RevealChildAsync(i < inners.Count ? inners[i] : null, node.Inners[i], node, Entrance.Rise, ct);
 
+            await definition;
             await RevealChildAsync(block.GetSocket<ChainOutSocket>(), node.Next, node, Entrance.Rise, ct);
         }
 

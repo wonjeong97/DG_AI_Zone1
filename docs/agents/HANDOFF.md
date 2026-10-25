@@ -4,6 +4,14 @@ Claude가 Antigravity(agy)와 리뷰 서브에이전트에 맡긴 검증 기록.
 
 ---
 
+### [2026-10-25] Claude → Antigravity + 서브에이전트 · 함수 정의 블록 함께 올리기 (feat/result-block-speed-zone4)
+- 요청: 4존처럼 함수 사용 블록이 붙을 때 정의 블록도 같이 올라오게.
+- 변경: RevealTreeAsync가 함수 사용 블록(BlockCategory.Function)이면 아직 안 붙인 첫 함수 정의 묶음을 동시에 붙이기 시작하고(RevealDefinitionAsync), 아래 블록 전에 그것을 기다림. PlayAsync는 붙인 정의를 _revealedDefinitions로 기억해 쓰이지 않은 정의만 시작하기 묶음 뒤에 붙임. NextRootPosition → RootPosition·DefinitionRootPosition.
+- Claude 확인: 컴파일·콘솔 에러 0, PlayMode 228/228(뒤에 EditorSettings·TMP 폰트·Prefab_WaterDam 되돌림). Play 모드 레벨5 AI 정답 — 시작하기 1.37초, 함수 사용 2.36·함수 정의 2.37, 태양광 3.36·풍력 4.37·수력 5.39·스마트 도시 6.39, 완성하기 7.39, 화면 캡처로 정의 블록 자리 확인.
+- 교차 검증 (agy gemini-4-argon-high + 서브에이전트, 1묶음):
+  - 정의 묶음 자리·한 번만 붙음 → 둘 다 통과. 서브에이전트 낮음(기존): 측정용 블록 생성이 실패하면 _rootPositions가 당겨짐
+  - 동시 진행(취소·한 번만 await·끝 대기·정의 안쪽/여러 함수 사용 블록) → 둘 다 통과. 서브에이전트 낮음: 메인 체인이 길면 정의 블록 자동 스크롤이 함수 사용 블록을 가릴 수 있음, 정의가 여러 개면 이름 대신 순서로 짝지음(레벨당 정의 하나라 영향 없음)
+
 ### [2026-10-25] Claude → Antigravity + 서브에이전트 · 결과 칸 스크롤바 (feat/result-block-speed-zone4)
 - 요청: 블록 오른쪽에 스크롤바, 리소스는 게임 씬 것 그대로.
 - 변경: 4_Result 두 ProgramScroll 폭 723→693(왼쪽 끝 유지), 3_Game의 Scrollbar Vertical을 복제해 칸 오른쪽 4 간격·폭 22·높이 칸-8로 두고 ScrollRect에 연결(Permanent, 원본과 같음). ContainsScreenPoint에 스크롤바 영역 포함. 스크롤바는 칸의 형제라 Awake에서 EventTrigger(BeginDrag/EndDrag)로 _isDragging을 같이 켜고 끔. 씬 재저장으로 ResultProgramView 새 필드(riseHeight 등, 코드 기본값과 같음) 직렬화가 함께 들어감.
