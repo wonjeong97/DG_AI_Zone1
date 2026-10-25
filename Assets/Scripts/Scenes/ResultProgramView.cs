@@ -86,12 +86,29 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 스크롤뷰의 content를 캐싱한다.
+        /// 스크롤뷰의 content를 캐싱하고, 칸 오른쪽 스크롤바를 끄는 동안에도 자동 스크롤을 멈추게 한다.
         /// </summary>
         private void Awake()
         {
             TryGetComponent(out _scrollRect);
             _content = _scrollRect ? _scrollRect.content : null;
+
+            // 스크롤바는 칸의 형제라 칸의 끌기 콜백이 오지 않으므로, 스크롤바에 같은 콜백을 걸어 둔다
+            Scrollbar scrollbar = _scrollRect ? _scrollRect.verticalScrollbar : null;
+            if (!scrollbar) return;
+            EventTrigger trigger = scrollbar.gameObject.AddComponent<EventTrigger>();
+            AddTrigger(trigger, EventTriggerType.BeginDrag, data => OnBeginDrag((PointerEventData)data));
+            AddTrigger(trigger, EventTriggerType.EndDrag, data => OnEndDrag((PointerEventData)data));
+        }
+
+        /// <summary>
+        /// EventTrigger에 이벤트 종류별 콜백을 하나 붙인다.
+        /// </summary>
+        private static void AddTrigger(EventTrigger trigger, EventTriggerType type, UnityEngine.Events.UnityAction<BaseEventData> callback)
+        {
+            EventTrigger.Entry entry = new EventTrigger.Entry { eventID = type };
+            entry.callback.AddListener(callback);
+            trigger.triggers.Add(entry);
         }
 
         /// <summary>
@@ -117,10 +134,14 @@ namespace Scenes
         public void OnEndDrag(PointerEventData eventData) => _isDragging = false;
 
         /// <summary>
-        /// 화면 좌표가 이 칸(스크롤뷰) 안인지 돌려준다 — 결과 캔버스가 Screen Space Overlay라 카메라 없이 잰다.
+        /// 화면 좌표가 이 칸(스크롤뷰)이나 칸 오른쪽 스크롤바 안인지 돌려준다 — 결과 캔버스가 Screen Space Overlay라 카메라 없이 잰다.
         /// </summary>
-        public bool ContainsScreenPoint(Vector2 screenPosition) =>
-            RectTransformUtility.RectangleContainsScreenPoint((RectTransform)transform, screenPosition);
+        public bool ContainsScreenPoint(Vector2 screenPosition)
+        {
+            if (RectTransformUtility.RectangleContainsScreenPoint((RectTransform)transform, screenPosition)) return true;
+            Scrollbar scrollbar = _scrollRect ? _scrollRect.verticalScrollbar : null;
+            return scrollbar && RectTransformUtility.RectangleContainsScreenPoint((RectTransform)scrollbar.transform, screenPosition);
+        }
 
         /// <summary>
         /// 블록 조립 모양을 한 번 투명하게 다 조립해 묶음 위치·배율·폭을 재 두고 지운다 — 블록은 PlayAsync가 하나씩 다시 붙인다.

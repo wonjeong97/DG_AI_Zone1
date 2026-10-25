@@ -4,6 +4,15 @@ Claude가 Antigravity(agy)와 리뷰 서브에이전트에 맡긴 검증 기록.
 
 ---
 
+### [2026-10-25] Claude → Antigravity + 서브에이전트 · 결과 칸 스크롤바 (feat/result-block-speed-zone4)
+- 요청: 블록 오른쪽에 스크롤바, 리소스는 게임 씬 것 그대로.
+- 변경: 4_Result 두 ProgramScroll 폭 723→693(왼쪽 끝 유지), 3_Game의 Scrollbar Vertical을 복제해 칸 오른쪽 4 간격·폭 22·높이 칸-8로 두고 ScrollRect에 연결(Permanent, 원본과 같음). ContainsScreenPoint에 스크롤바 영역 포함. 스크롤바는 칸의 형제라 Awake에서 EventTrigger(BeginDrag/EndDrag)로 _isDragging을 같이 켜고 끔. 씬 재저장으로 ResultProgramView 새 필드(riseHeight 등, 코드 기본값과 같음) 직렬화가 함께 들어감.
+- Claude 확인: 컴파일·콘솔 에러 0, PlayMode 228/228(뒤에 EditorSettings·TMP 폰트·Prefab_WaterDam 재직렬화 되돌림). Play 모드에서 레벨4 정답을 채워 화면 캡처 — 두 칸 오른쪽 상자 안에 스크롤바, 손잡이 아래쪽. 앞 작업(칸 안 터치는 넘기지 않음·AI 칸 끌기)은 사용자가 직접 확인.
+- 교차 검증 (agy gemini-4-argon-high + 서브에이전트, 1묶음):
+  - 복제본이 원본과 같음(스프라이트·타입·방향·HandleRect·ScrollRect 연결) → 둘 다 통과
+  - 위치(상자 안, 칸과 안 겹침)·칸 폭 축소 영향 → 둘 다 통과. 서브에이전트 낮음 1건(스크롤바를 끄는 동안 자동 스크롤과 다툼) → EventTrigger로 반영
+  - ContainsScreenPoint 스크롤바 포함·없을 때 안전 → 둘 다 통과
+
 ### [2026-10-25] Claude → Antigravity + 서브에이전트 · 코딩 결과 칸 터치는 넘기지 않기 (feat/result-block-speed-zone4)
 - 요청: 코딩 결과를 보려고 칸을 터치하면 완료 화면으로 넘어가니, 그 칸은 터치해도 스크롤만 되게.
 - 변경: 터치 안내 뒤 대기를 IsPointerPressedThisFrame에서 IsCompletePress로 — 눌린 프레임의 Pointer.current 위치가 playerProgram·aiProgram 칸(ProgramScroll RectTransform, Overlay 캔버스라 카메라 없이 판정) 안이면 넘기지 않음.

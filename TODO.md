@@ -20,6 +20,7 @@
 
 ## 완료
 
+- [x] 결과 화면 코딩 결과 칸 오른쪽 스크롤바 — 3_Game의 Scrollbar Vertical(Scrollbar_Track·Handle)을 복제, 칸 폭 723→693, 스크롤바 영역도 넘기지 않는 칸 판정에 포함, 스크롤바를 끄는 동안 자동 스크롤 멈춤 — PlayMode 228/228, Play 모드 화면 캡처로 위치 확인 — 담당: Claude / 검증: Antigravity + 서브에이전트 (2026-10-25)
 - [x] 결과 화면 터치 안내 뒤 코딩 결과 칸(나의·AI) 안 터치는 완료 화면으로 넘기지 않고 스크롤만 — 눌린 위치가 ProgramScroll 안이면 넘기기에서 뺌(ResultSequence.IsCompletePress, ResultProgramView.ContainsScreenPoint) — PlayMode 228/228, Play 모드 확인은 사용자가 에디터 사용 중이라 생략 — 담당: Claude / 검증: Antigravity + 서브에이전트 (2026-10-25)
 - [x] 결과 화면 AI 코딩 결과 칸 끌기 스크롤 안 됨 수정 — 시작 때 막아 둔 Result_AI 입력(blocksRaycasts)을 페이드인 뒤 SetGroupInteractable로 켬 — PlayMode 228/228, Play 모드 확인은 사용자가 에디터 사용 중이라 생략 — 담당: Claude / 검증: Antigravity + 서브에이전트 (2026-10-25)
 - [x] 결과 화면 값·조건 블록도 4존처럼 — 부모 블록이 올라온 바로 뒤 미끄러져 오고(쉬는 시간 없음), 다음 블록은 그것을 기다리지 않고 부모가 붙기 시작한 1초 뒤에 붙음(programBlockInterval을 붙은 뒤 쉬는 시간 → 블록 시작 간격 1.0으로, 씬 revealInterval도 1) — PlayMode 228/228, Play 모드로 레벨2·4 AI 결과 시각 측정 — 담당: Claude / 검증: Antigravity + 서브에이전트 (2026-10-25)
