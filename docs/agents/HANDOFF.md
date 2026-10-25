@@ -4,6 +4,20 @@ Claude가 Antigravity(agy)와 리뷰 서브에이전트에 맡긴 검증 기록.
 
 ---
 
+### [2026-10-25] Claude → Antigravity + 서브에이전트 · 머지 전 최종 리뷰 PR #105 (feat/result-block-speed-zone4)
+- 요청: PR 리뷰 후 고칠 점이 없으면 머지, 사용자 변경(3_Game.unity testLevel 등)은 되돌리기. 리뷰 중 추가 요청: 게임 화면 코딩 완료 뒤 비활성 버튼이 연해지지 않게.
+- agy (gemini-4-argon-high, 3묶음):
+  - ResultProgramView 통합 흐름 → 통과, 낮음 1건(PlayAsync summary 두 문장) → 반영
+  - ResultSequence 입력 흐름·코딩 규칙 → 통과
+  - 리뷰 반영분(함수 정의를 이름으로 짝짓기·summary) → 통과
+- 서브에이전트 (4묶음, 앞의 두 묶음은 agy와 교차):
+  - ResultProgramView 통합 흐름(취소·재호출 상태) → 통과, 낮음 2건(summary 두 문장 → 반영, 함수 정의를 이름 대신 순서로 짝지음 → 같은 Label 우선으로 반영)
+  - ResultSequence 입력 흐름 → 통과
+  - 설정·씬·문서 → 통과, 낮음 2건(CHANGELOG 섹션 순서, TODO의 옛 간격 0.3 표기) → 반영
+  - 3_Game 버튼 비활성 색(4줄, 대상 버튼·부작용) → 통과
+- Claude 확인: 3_Game.unity 사용자 변경 되돌림, 리뷰 반영 뒤 컴파일·콘솔 에러 0, PlayMode 228/228(뒤에 EditorSettings·TMP 폰트·Prefab_WaterDam 되돌림). 버튼 색은 씬 값만 바꿔 Play 모드 확인은 하지 않음.
+- 반영: CHANGELOG 항목을 [2026-10-25] 섹션으로 옮김(Added → Changed → Fixed).
+
 ### [2026-10-25] Claude → Antigravity + 서브에이전트 · 함수 정의 블록 함께 올리기 (feat/result-block-speed-zone4)
 - 요청: 4존처럼 함수 사용 블록이 붙을 때 정의 블록도 같이 올라오게.
 - 변경: RevealTreeAsync가 함수 사용 블록(BlockCategory.Function)이면 아직 안 붙인 첫 함수 정의 묶음을 동시에 붙이기 시작하고(RevealDefinitionAsync), 아래 블록 전에 그것을 기다림. PlayAsync는 붙인 정의를 _revealedDefinitions로 기억해 쓰이지 않은 정의만 시작하기 묶음 뒤에 붙임. NextRootPosition → RootPosition·DefinitionRootPosition.
