@@ -4,6 +4,73 @@ Claude가 Antigravity(agy)와 리뷰 서브에이전트에 맡긴 검증 기록.
 
 ---
 
+### [2026-10-25] Claude → Antigravity + 서브에이전트 · 머지 전 최종 리뷰 PR #105 (feat/result-block-speed-zone4)
+- 요청: PR 리뷰 후 고칠 점이 없으면 머지, 사용자 변경(3_Game.unity testLevel 등)은 되돌리기. 리뷰 중 추가 요청: 게임 화면 코딩 완료 뒤 비활성 버튼이 연해지지 않게.
+- agy (gemini-4-argon-high, 3묶음):
+  - ResultProgramView 통합 흐름 → 통과, 낮음 1건(PlayAsync summary 두 문장) → 반영
+  - ResultSequence 입력 흐름·코딩 규칙 → 통과
+  - 리뷰 반영분(함수 정의를 이름으로 짝짓기·summary) → 통과
+- 서브에이전트 (4묶음, 앞의 두 묶음은 agy와 교차):
+  - ResultProgramView 통합 흐름(취소·재호출 상태) → 통과, 낮음 2건(summary 두 문장 → 반영, 함수 정의를 이름 대신 순서로 짝지음 → 같은 Label 우선으로 반영)
+  - ResultSequence 입력 흐름 → 통과
+  - 설정·씬·문서 → 통과, 낮음 2건(CHANGELOG 섹션 순서, TODO의 옛 간격 0.3 표기) → 반영
+  - 3_Game 버튼 비활성 색(4줄, 대상 버튼·부작용) → 통과
+- Claude 확인: 3_Game.unity 사용자 변경 되돌림, 리뷰 반영 뒤 컴파일·콘솔 에러 0, PlayMode 228/228(뒤에 EditorSettings·TMP 폰트·Prefab_WaterDam 되돌림). 버튼 색은 씬 값만 바꿔 Play 모드 확인은 하지 않음.
+- 반영: CHANGELOG 항목을 [2026-10-25] 섹션으로 옮김(Added → Changed → Fixed).
+
+### [2026-10-25] Claude → Antigravity + 서브에이전트 · 함수 정의 블록 함께 올리기 (feat/result-block-speed-zone4)
+- 요청: 4존처럼 함수 사용 블록이 붙을 때 정의 블록도 같이 올라오게.
+- 변경: RevealTreeAsync가 함수 사용 블록(BlockCategory.Function)이면 아직 안 붙인 첫 함수 정의 묶음을 동시에 붙이기 시작하고(RevealDefinitionAsync), 아래 블록 전에 그것을 기다림. PlayAsync는 붙인 정의를 _revealedDefinitions로 기억해 쓰이지 않은 정의만 시작하기 묶음 뒤에 붙임. NextRootPosition → RootPosition·DefinitionRootPosition.
+- Claude 확인: 컴파일·콘솔 에러 0, PlayMode 228/228(뒤에 EditorSettings·TMP 폰트·Prefab_WaterDam 되돌림). Play 모드 레벨5 AI 정답 — 시작하기 1.37초, 함수 사용 2.36·함수 정의 2.37, 태양광 3.36·풍력 4.37·수력 5.39·스마트 도시 6.39, 완성하기 7.39, 화면 캡처로 정의 블록 자리 확인.
+- 교차 검증 (agy gemini-4-argon-high + 서브에이전트, 1묶음):
+  - 정의 묶음 자리·한 번만 붙음 → 둘 다 통과. 서브에이전트 낮음(기존): 측정용 블록 생성이 실패하면 _rootPositions가 당겨짐
+  - 동시 진행(취소·한 번만 await·끝 대기·정의 안쪽/여러 함수 사용 블록) → 둘 다 통과. 서브에이전트 낮음: 메인 체인이 길면 정의 블록 자동 스크롤이 함수 사용 블록을 가릴 수 있음, 정의가 여러 개면 이름 대신 순서로 짝지음(레벨당 정의 하나라 영향 없음)
+
+### [2026-10-25] Claude → Antigravity + 서브에이전트 · 결과 칸 스크롤바 (feat/result-block-speed-zone4)
+- 요청: 블록 오른쪽에 스크롤바, 리소스는 게임 씬 것 그대로.
+- 변경: 4_Result 두 ProgramScroll 폭 723→693(왼쪽 끝 유지), 3_Game의 Scrollbar Vertical을 복제해 칸 오른쪽 4 간격·폭 22·높이 칸-8로 두고 ScrollRect에 연결(Permanent, 원본과 같음). ContainsScreenPoint에 스크롤바 영역 포함. 스크롤바는 칸의 형제라 Awake에서 EventTrigger(BeginDrag/EndDrag)로 _isDragging을 같이 켜고 끔. 씬 재저장으로 ResultProgramView 새 필드(riseHeight 등, 코드 기본값과 같음) 직렬화가 함께 들어감.
+- Claude 확인: 컴파일·콘솔 에러 0, PlayMode 228/228(뒤에 EditorSettings·TMP 폰트·Prefab_WaterDam 재직렬화 되돌림). Play 모드에서 레벨4 정답을 채워 화면 캡처 — 두 칸 오른쪽 상자 안에 스크롤바, 손잡이 아래쪽. 앞 작업(칸 안 터치는 넘기지 않음·AI 칸 끌기)은 사용자가 직접 확인.
+- 교차 검증 (agy gemini-4-argon-high + 서브에이전트, 1묶음):
+  - 복제본이 원본과 같음(스프라이트·타입·방향·HandleRect·ScrollRect 연결) → 둘 다 통과
+  - 위치(상자 안, 칸과 안 겹침)·칸 폭 축소 영향 → 둘 다 통과. 서브에이전트 낮음 1건(스크롤바를 끄는 동안 자동 스크롤과 다툼) → EventTrigger로 반영
+  - ContainsScreenPoint 스크롤바 포함·없을 때 안전 → 둘 다 통과
+
+### [2026-10-25] Claude → Antigravity + 서브에이전트 · 코딩 결과 칸 터치는 넘기지 않기 (feat/result-block-speed-zone4)
+- 요청: 코딩 결과를 보려고 칸을 터치하면 완료 화면으로 넘어가니, 그 칸은 터치해도 스크롤만 되게.
+- 변경: 터치 안내 뒤 대기를 IsPointerPressedThisFrame에서 IsCompletePress로 — 눌린 프레임의 Pointer.current 위치가 playerProgram·aiProgram 칸(ProgramScroll RectTransform, Overlay 캔버스라 카메라 없이 판정) 안이면 넘기지 않음.
+- Claude 확인: 컴파일·콘솔 에러 0, PlayMode 228/228(뒤에 EditorSettings·TMP 폰트 에셋 되돌림). 사용자가 에디터 사용 중이라 Play 모드 확인은 하지 않음.
+- 교차 검증 (agy gemini-4-argon-high + 서브에이전트, 1묶음):
+  - 칸 안 판정(Overlay·판정 영역=뷰포트·눌린 프레임 위치) → 둘 다 통과
+  - 흐름 부작용(비활동 타이머 복귀, 칸 안에서 끌다 밖에서 떼기, 칸 밖 터치) → 둘 다 통과. 서브에이전트 불확실: Windows 터치의 마우스 승격 좌표가 터치와 같다는 전제, 기기 확인 필요
+
+### [2026-10-25] Claude → Antigravity + 서브에이전트 · AI 결과 칸 끌기 스크롤 (feat/result-block-speed-zone4)
+- 요청: AI 코딩 결과 칸이 왜 스크롤이 안 되는지 → 페이드인 뒤 입력을 켜서 고치기.
+- 원인: ResultSequence가 시작 때 InitializePanelState(aiResultGroup,false)로 blocksRaycasts를 끄고, FadeCanvasGroupAsync는 알파만 바꿔 Result_AI/ProgramScroll이 터치를 받지 못함(Result_Player에는 CanvasGroup이 없어 끌림).
+- 변경: AI 결과 그룹 페이드인 직후 SceneFader.SetGroupInteractable(aiResultGroup,true).
+- Claude 확인: 컴파일·콘솔 에러 0, PlayMode 228/228(뒤에 EditorSettings·TMP 폰트 에셋 되돌림). 3_Game.unity에 사용자 저장 변경(testLevel 등)이 생겨 에디터 사용 중으로 보고 Play 모드 확인은 하지 않음.
+- 교차 검증 (agy gemini-4-argon-high + 서브에이전트, 1묶음):
+  - 끌기를 받게 되는가(부모 CanvasGroup, 덮는 레이캐스트 대상, 플레이어 칸과 구성 비교) → 둘 다 통과
+  - 다른 입력·터치 안내 뒤 아무 곳 누르기·비활동 타이머·완료 화면 전환 부작용 → 둘 다 통과. 참고: 터치 안내가 뜬 뒤에는 칸을 누르면 완료 화면으로 넘어감(플레이어 칸과 같은 기존 동작)
+
+### [2026-10-25] Claude → Antigravity + 서브에이전트 · 결과 값·조건 블록 4존처럼 겹치기 (feat/result-block-speed-zone4)
+- 요청: 값·조건 블록이 부모 블록이 올라온 바로 뒤에 미끄러져 오고, 다음 블록은 부모 시작 1초 뒤에 시작하게 4존과 똑같이.
+- 변경: ResultProgramView.RevealTreeAsync가 블록 시작 시각을 재 두고, 올라온 뒤 값·조건 연출(RevealSideAsync)을 기다리지 않고 _sideReveals에 모은 뒤 시작 revealInterval초 뒤에 안쪽·아래 블록으로 넘어감. 값·조건 체인 안에서는 쉬지 않고 바로 이어 붙음. PlayAsync 끝에서 목록이 빌 때까지 WhenAll로 기다림. programBlockInterval(JSON·코드·씬 revealInterval)을 시작 간격 1.0으로.
+- Claude 확인: 컴파일·콘솔 에러 0, PlayMode 228/228 두 번(뒤에 EditorSettings·TMP 폰트 에셋 되돌림). Play 모드에서 AI 결과 칸에 정답 모양을 직접 넣어 블록이 보이기 시작한 시각 측정 — 레벨2: 블록 간격 0.99~1.02초, 값 블록은 부모 0.67초 뒤, 다음 블록은 부모 1.02초 뒤. 레벨4: 만약 1.0초 뒤 안쪽 블록이 조건 체인(그리고·밤)이 아직 미끄러지는 중에 붙고, 스크롤은 아래로만 움직임.
+- 교차 검증 (agy gemini-4-argon-high + 서브에이전트, 1묶음):
+  - 모아 둔 UniTask를 끝에서 기다리는 구조(취소·한 번만 await·조건 체인 순서) → 둘 다 통과. 서브에이전트 불확실 1건(값·조건 쪽에서 나중에 목록에 들어온 연출을 WhenAll이 놓칠 수 있음) → 빌 때까지 기다리게 반영
+  - 미끄러지는 중 다음 블록이 붙을 때 레이아웃 → 둘 다 통과. 서브에이전트 낮음 1건(긴 조건 체인과 안쪽 블록의 자동 스크롤이 서로 덮어쓸 수 있음) → 레벨4 Play 모드 측정에서 스크롤 역행 없음, 수정 안 함
+  - JSON·코드·주석·씬 값 1 일치 → 둘 다 통과
+
+### [2026-10-25] Claude → Antigravity + 서브에이전트 · 결과 블록 붙는 속도 4존과 맞춤 (feat/result-block-speed-zone4)
+- 요청: 결과 씬 블록이 붙는 속도를 4존과 똑같이.
+- 변경: 4존 4_Result.unity의 DesignPanel 값(riseDuration 0.7·valueSlideDuration 0.4, 거리 40/120, 블록 시작 간격 designBlockInterval 1.0)에 맞춰 1존 4_Result.json·코드 기본값을 0.7/0.4/0.3으로. 1존은 연출을 기다린 뒤 쉬므로 0.7+0.3=1.0초.
+- Claude 확인: 4존 씬·코드에서 값과 이징(올라오기 InOutSine, 미끄러지기 OutCubic) 대조. 값만 바꿔 PlayMode·Play 모드 확인은 하지 않음.
+- 교차 검증 (agy gemini-4-argon-high + 서브에이전트, 1묶음):
+  - 시간·거리·이징이 4존과 같음 → 둘 다 통과
+  - 블록 시작 간격 1.0초, 씬 직렬화 값이 JSON을 덮어쓰지 않음 → 둘 다 통과. 값·조건 블록이 붙은 블록은 1존이 따로 붙여(0.7+0.3+0.4+0.3) 다음 블록이 1.7초에 시작, 4존은 1.0초(낮음, 구조 차이) → 사용자에게 보고
+  - JSON·코드 기본값·Tooltip 일치 → 둘 다 통과
+- 남은 일: 값·조건 블록 뒤 시작 간격까지 4존과 같게 할지 사용자 결정.
+
 ### [2026-10-23 06:45] Claude → Antigravity + 서브에이전트 · 머지 전 최종 리뷰 PR #104 (feat/result-program-blocks)
 - 요청: PR 리뷰하고 고칠 점이 없으면 머지.
 - agy (gemini-3.8-flash-high, 2묶음):

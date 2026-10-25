@@ -9,6 +9,7 @@ using DG.Tweening;
 using Microsoft.Extensions.Logging;
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using VContainer;
 using HuliacDev.Core;
@@ -542,8 +543,12 @@ namespace Scenes
             await PlayAiStartAsync(ct);
 
             // AI 시작 안내가 사라진 뒤 AI 결과 패널 페이드인 → 연출 시작
+            // 시작할 때 막아 둔 입력을 페이드인 뒤에 풀어야 AI 코딩 결과 칸을 손가락으로 끌어 볼 수 있다
             if (aiResultGroup)
+            {
                 await SceneFader.FadeCanvasGroupAsync(aiResultGroup, 0f, 1f, _fadeDuration, ct);
+                SceneFader.SetGroupInteractable(aiResultGroup, true);
+            }
 
             if (aiProgram) await aiProgram.PlayAsync(ct);
             await SceneFader.FadeCanvasGroupAsync(aiImageGroup, 0f, 1f, _fadeDuration, ct);
@@ -558,8 +563,8 @@ namespace Scenes
             // 안내가 떴으니 이제부터는 사용자 입력을 기다리는 구간 — 타이머 재개
             if (_inactivityTimer) _inactivityTimer.Resume();
 
-            // 화면 아무 곳이나 새로 누르면 완료 화면으로 넘어간다
-            await UniTask.WaitUntil(StoryLineAnimator.IsPointerPressedThisFrame, cancellationToken: ct);
+            // 코딩 결과 칸 밖을 새로 누르면 완료 화면으로 넘어간다
+            await UniTask.WaitUntil(IsCompletePress, cancellationToken: ct);
             HideTouchGuide();
 
             // 순차 페이드 — resultPanel이 완전히 꺼진 뒤 completePanel이 켜짐
@@ -849,6 +854,18 @@ namespace Scenes
                 .SetLoops(-1, LoopType.Yoyo)
                 .SetEase(Ease.InOutSine)
                 .SetLink(touchGuideGroup.gameObject);
+        }
+
+        /// <summary>
+        /// 이번 프레임에 완료 화면으로 넘길 눌림이 있었는지 돌려준다 — 코딩 결과 칸 안을 누른 것은 칸을 끌어 보려는 것이라 넘기지 않는다.
+        /// </summary>
+        private bool IsCompletePress()
+        {
+            if (!StoryLineAnimator.IsPointerPressedThisFrame()) return false;
+
+            Vector2 position = Pointer.current.position.ReadValue();
+            if (playerProgram && playerProgram.ContainsScreenPoint(position)) return false;
+            return !(aiProgram && aiProgram.ContainsScreenPoint(position));
         }
 
         /// <summary>

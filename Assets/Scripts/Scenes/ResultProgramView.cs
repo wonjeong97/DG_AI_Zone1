@@ -32,13 +32,13 @@ namespace Scenes
         [Tooltip("블록이 올라오기 시작하는 깊이(블록 배율 적용 전 단위)")]
         [SerializeField] private float riseHeight = 40f;
         [Tooltip("블록이 아래에서 올라와 맞물리는 시간(초) — 4_Result.json의 programBlockRiseDuration")]
-        [SerializeField] private float riseDuration = 0.4f;
+        [SerializeField] private float riseDuration = 0.7f;
         [Tooltip("값·조건 블록이 미끄러지기 시작하는 오른쪽 거리(블록 배율 적용 전 단위)")]
         [SerializeField] private float slideDistance = 120f;
         [Tooltip("값·조건 블록이 오른쪽에서 미끄러져 와 붙는 시간(초) — 4_Result.json의 programValueSlideDuration")]
-        [SerializeField] private float slideDuration = 0.25f;
-        [Tooltip("블록 하나가 붙은 뒤 다음 블록까지 쉬는 시간(초) — 4_Result.json의 programBlockInterval")]
-        [SerializeField] private float revealInterval = 0.15f;
+        [SerializeField] private float slideDuration = 0.4f;
+        [Tooltip("블록이 붙기 시작해 다음 블록이 붙기 시작할 때까지 간격(초) — 4_Result.json의 programBlockInterval")]
+        [SerializeField] private float revealInterval = 1f;
         [SerializeField] private float scrollDuration = 0.3f;
 
         // 4_Result.json 값 — ResultSequence가 빌드 전에 넣는다
@@ -69,6 +69,10 @@ namespace Scenes
         // 미리 재기용으로 만든 블록(스냅 트윈을 끝내는 데만 쓴다)과 연출로 붙인 묶음의 맨 위 블록
         private readonly List<CodingBlock> _measureBlocks = new();
         private readonly List<CodingBlock> _playRoots = new();
+        // 값·조건 블록 연출 — 다음 블록이 이것을 기다리지 않고 시작하므로 PlayAsync가 끝에서 모아 기다린다
+        private readonly List<UniTask> _sideReveals = new();
+        // 이미 붙이기 시작한 함수 정의 블록 묶음 — 함수 사용 블록과 함께 붙였으면 시작하기 묶음 뒤에 다시 붙이지 않는다
+        private readonly HashSet<ProgramBlock> _revealedDefinitions = new();
         private bool _isDragging;
         private Tween _scrollTween;
 
@@ -84,12 +88,29 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 스크롤뷰의 content를 캐싱한다.
+        /// 스크롤뷰의 content를 캐싱하고, 칸 오른쪽 스크롤바를 끄는 동안에도 자동 스크롤을 멈추게 한다.
         /// </summary>
         private void Awake()
         {
             TryGetComponent(out _scrollRect);
             _content = _scrollRect ? _scrollRect.content : null;
+
+            // 스크롤바는 칸의 형제라 칸의 끌기 콜백이 오지 않으므로, 스크롤바에 같은 콜백을 걸어 둔다
+            Scrollbar scrollbar = _scrollRect ? _scrollRect.verticalScrollbar : null;
+            if (!scrollbar) return;
+            EventTrigger trigger = scrollbar.gameObject.AddComponent<EventTrigger>();
+            AddTrigger(trigger, EventTriggerType.BeginDrag, data => OnBeginDrag((PointerEventData)data));
+            AddTrigger(trigger, EventTriggerType.EndDrag, data => OnEndDrag((PointerEventData)data));
+        }
+
+        /// <summary>
+        /// EventTrigger에 이벤트 종류별 콜백을 하나 붙인다.
+        /// </summary>
+        private static void AddTrigger(EventTrigger trigger, EventTriggerType type, UnityEngine.Events.UnityAction<BaseEventData> callback)
+        {
+            EventTrigger.Entry entry = new EventTrigger.Entry { eventID = type };
+            entry.callback.AddListener(callback);
+            trigger.triggers.Add(entry);
         }
 
         /// <summary>
@@ -113,6 +134,16 @@ namespace Scenes
         /// 손을 떼면 다음 블록부터 다시 자동 스크롤한다.
         /// </summary>
         public void OnEndDrag(PointerEventData eventData) => _isDragging = false;
+
+        /// <summary>
+        /// 화면 좌표가 이 칸(스크롤뷰)이나 칸 오른쪽 스크롤바 안인지 돌려준다 — 결과 캔버스가 Screen Space Overlay라 카메라 없이 잰다.
+        /// </summary>
+        public bool ContainsScreenPoint(Vector2 screenPosition)
+        {
+            if (RectTransformUtility.RectangleContainsScreenPoint((RectTransform)transform, screenPosition)) return true;
+            Scrollbar scrollbar = _scrollRect ? _scrollRect.verticalScrollbar : null;
+            return scrollbar && RectTransformUtility.RectangleContainsScreenPoint((RectTransform)scrollbar.transform, screenPosition);
+        }
 
         /// <summary>
         /// 블록 조립 모양을 한 번 투명하게 다 조립해 묶음 위치·배율·폭을 재 두고 지운다 — 블록은 PlayAsync가 하나씩 다시 붙인다.
@@ -160,28 +191,64 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 재 둔 모양대로 블록을 하나씩 만들어 붙인다 — 블록 → 값 → 조건 → 안쪽 → 아래 순서로, 붙을 때마다 장착 효과음을 내고 보이게 스크롤한다.
+        /// 재 둔 모양대로 블록을 하나씩 만들어 붙인다 — 블록 → 값 → 조건 → 안쪽 → 아래 순서로 붙을 때마다 장착 효과음을 내고 보이게 스크롤하며, 함수 정의 블록은 함수 사용 블록과 함께(쓰이지 않았으면 시작하기 묶음 뒤에) 붙인다.
         /// </summary>
         public async UniTask PlayAsync(CancellationToken ct)
         {
             if (_shape is null) return;
 
             _playRoots.Clear();
-            int rootIndex = 0;
+            _sideReveals.Clear();
+            _revealedDefinitions.Clear();
             if (_shape.Start is not null)
-                await RevealTreeAsync(_shape.Start, null, Entrance.Rise, NextRootPosition(ref rootIndex), ct);
-            foreach (ProgramBlock definition in _shape.FunctionDefs)
-                await RevealTreeAsync(definition, null, Entrance.Rise, NextRootPosition(ref rootIndex), ct);
+                await RevealTreeAsync(_shape.Start, null, Entrance.Rise, RootPosition(0), ct);
+            for (int i = 0; i < _shape.FunctionDefs.Count; i++)
+            {
+                ProgramBlock definition = _shape.FunctionDefs[i];
+                if (_revealedDefinitions.Add(definition))
+                    await RevealTreeAsync(definition, null, Entrance.Rise, DefinitionRootPosition(i), ct);
+            }
+
+            // 기다리는 동안 값·조건 쪽에서 새로 붙는 연출이 생길 수 있어 빌 때까지 기다린다
+            while (_sideReveals.Count > 0)
+            {
+                UniTask[] pending = _sideReveals.ToArray();
+                _sideReveals.Clear();
+                await UniTask.WhenAll(pending);
+            }
         }
 
         /// <summary>
-        /// 다음 묶음의 맨 위 블록 자리(BuildAsync가 잰 위치)를 돌려준다 — 재지 못했으면 칸 왼쪽 위.
+        /// index번째 묶음의 맨 위 블록 자리(BuildAsync가 잰 위치, 시작하기 → 함수 정의 순서)를 돌려준다 — 재지 못했으면 칸 왼쪽 위.
         /// </summary>
-        private Vector2 NextRootPosition(ref int index)
+        private Vector2 RootPosition(int index) =>
+            index < _rootPositions.Count ? _rootPositions[index] : new Vector2(padding, -padding);
+
+        /// <summary>
+        /// definitionIndex번째 함수 정의 묶음의 맨 위 블록 자리를 돌려준다(시작하기 묶음이 있으면 그 다음 자리부터).
+        /// </summary>
+        private Vector2 DefinitionRootPosition(int definitionIndex) =>
+            RootPosition(definitionIndex + (_shape.Start is not null ? 1 : 0));
+
+        /// <summary>
+        /// 함수 사용 블록이면 아직 붙이지 않은 함수 정의 블록 묶음(같은 이름이 있으면 그것, 없으면 첫 번째)을 붙이기 시작한다(4존처럼 함수 사용 블록과 함께 올라옴) — 아니면 바로 끝난 작업.
+        /// </summary>
+        private UniTask RevealDefinitionAsync(ProgramBlock node, CancellationToken ct)
         {
-            Vector2 position = index < _rootPositions.Count ? _rootPositions[index] : new Vector2(padding, -padding);
-            index++;
-            return position;
+            if (node.Category != BlockCategory.Function) return UniTask.CompletedTask;
+
+            int index = -1;
+            for (int i = 0; i < _shape.FunctionDefs.Count; i++)
+            {
+                ProgramBlock definition = _shape.FunctionDefs[i];
+                if (_revealedDefinitions.Contains(definition)) continue;
+                if (definition.Label == node.Label) { index = i; break; }
+                if (index < 0) index = i;
+            }
+            if (index < 0) return UniTask.CompletedTask;
+
+            _revealedDefinitions.Add(_shape.FunctionDefs[index]);
+            return RevealTreeAsync(_shape.FunctionDefs[index], null, Entrance.Rise, DefinitionRootPosition(index), ct);
         }
 
         /// <summary>
@@ -189,6 +256,7 @@ namespace Scenes
         /// </summary>
         private async UniTask RevealTreeAsync(ProgramBlock node, BlockSocket socket, Entrance entrance, Vector2 rootPosition, CancellationToken ct)
         {
+            float startTime = Time.time;
             CodingBlock block = await CreateBlockAsync(node, ct);
             if (!block) return;
 
@@ -210,20 +278,42 @@ namespace Scenes
             UpdateContentHeight();
             ScrollToShow(rt);
             if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.BlockAssembled);
+            // 함수 정의 블록은 함수 사용 블록과 함께 올라오고, 그 안쪽 블록까지 다 붙은 뒤에 아래 블록(완성하기)을 붙인다
+            UniTask definition = RevealDefinitionAsync(node, ct);
             await PlayEntranceAsync(block, entrance, ct);
             // 겹친 ㄷ자는 안쪽이 늘어난 뒤 몇 프레임 늦게 바깥이 늘어나므로, 연출이 끝난 뒤 다시 재야 마지막 블록 뒤의 아래 막대까지 스크롤 범위에 든다
             UpdateContentHeight();
-            await UniTask.Delay(TimeSpan.FromSeconds(Mathf.Max(0f, revealInterval)), cancellationToken: ct);
 
-            await RevealChildAsync(block.GetSocket<ValueOutSocket>(), node.Value, node, Entrance.Slide, ct);
-            await RevealChildAsync(block.GetSocket<ConditionOutSocket>(), node.Condition, node, Entrance.Slide, ct);
+            // 4존처럼 값·조건 블록은 블록이 붙자마자 미끄러져 오고, 다음 블록은 그것을 기다리지 않고 이 블록이 붙기 시작한 지 revealInterval초 뒤에 붙는다
+            UniTask side = RevealSideAsync(block, node, ct);
+            if (entrance == Entrance.Slide)
+            {
+                // 값·조건 블록에 이어 붙은 블록은 쉬지 않고 바로 뒤이어 미끄러져 온다
+                await side;
+            }
+            else
+            {
+                _sideReveals.Add(side);
+                float remaining = revealInterval - (Time.time - startTime);
+                if (remaining > 0f) await UniTask.Delay(TimeSpan.FromSeconds(remaining), cancellationToken: ct);
+            }
 
             List<InnerSocket> inners = new List<InnerSocket>();
             block.GetSockets(inners);
             for (int i = 0; i < node.Inners.Count; i++)
                 await RevealChildAsync(i < inners.Count ? inners[i] : null, node.Inners[i], node, Entrance.Rise, ct);
 
+            await definition;
             await RevealChildAsync(block.GetSocket<ChainOutSocket>(), node.Next, node, Entrance.Rise, ct);
+        }
+
+        /// <summary>
+        /// 블록의 값 소켓 → 조건 소켓 순서로 붙을 블록을 미끄러져 오게 붙인다.
+        /// </summary>
+        private async UniTask RevealSideAsync(CodingBlock block, ProgramBlock node, CancellationToken ct)
+        {
+            await RevealChildAsync(block.GetSocket<ValueOutSocket>(), node.Value, node, Entrance.Slide, ct);
+            await RevealChildAsync(block.GetSocket<ConditionOutSocket>(), node.Condition, node, Entrance.Slide, ct);
         }
 
         /// <summary>
