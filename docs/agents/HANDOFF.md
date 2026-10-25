@@ -4,6 +4,14 @@ Claude가 Antigravity(agy)와 리뷰 서브에이전트에 맡긴 검증 기록.
 
 ---
 
+### [2026-10-25] Claude → Antigravity + 서브에이전트 · 코딩 결과 칸 터치는 넘기지 않기 (feat/result-block-speed-zone4)
+- 요청: 코딩 결과를 보려고 칸을 터치하면 완료 화면으로 넘어가니, 그 칸은 터치해도 스크롤만 되게.
+- 변경: 터치 안내 뒤 대기를 IsPointerPressedThisFrame에서 IsCompletePress로 — 눌린 프레임의 Pointer.current 위치가 playerProgram·aiProgram 칸(ProgramScroll RectTransform, Overlay 캔버스라 카메라 없이 판정) 안이면 넘기지 않음.
+- Claude 확인: 컴파일·콘솔 에러 0, PlayMode 228/228(뒤에 EditorSettings·TMP 폰트 에셋 되돌림). 사용자가 에디터 사용 중이라 Play 모드 확인은 하지 않음.
+- 교차 검증 (agy gemini-4-argon-high + 서브에이전트, 1묶음):
+  - 칸 안 판정(Overlay·판정 영역=뷰포트·눌린 프레임 위치) → 둘 다 통과
+  - 흐름 부작용(비활동 타이머 복귀, 칸 안에서 끌다 밖에서 떼기, 칸 밖 터치) → 둘 다 통과. 서브에이전트 불확실: Windows 터치의 마우스 승격 좌표가 터치와 같다는 전제, 기기 확인 필요
+
 ### [2026-10-25] Claude → Antigravity + 서브에이전트 · AI 결과 칸 끌기 스크롤 (feat/result-block-speed-zone4)
 - 요청: AI 코딩 결과 칸이 왜 스크롤이 안 되는지 → 페이드인 뒤 입력을 켜서 고치기.
 - 원인: ResultSequence가 시작 때 InitializePanelState(aiResultGroup,false)로 blocksRaycasts를 끄고, FadeCanvasGroupAsync는 알파만 바꿔 Result_AI/ProgramScroll이 터치를 받지 못함(Result_Player에는 CanvasGroup이 없어 끌림).

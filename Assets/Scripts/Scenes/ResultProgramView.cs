@@ -117,6 +117,12 @@ namespace Scenes
         public void OnEndDrag(PointerEventData eventData) => _isDragging = false;
 
         /// <summary>
+        /// 화면 좌표가 이 칸(스크롤뷰) 안인지 돌려준다 — 결과 캔버스가 Screen Space Overlay라 카메라 없이 잰다.
+        /// </summary>
+        public bool ContainsScreenPoint(Vector2 screenPosition) =>
+            RectTransformUtility.RectangleContainsScreenPoint((RectTransform)transform, screenPosition);
+
+        /// <summary>
         /// 블록 조립 모양을 한 번 투명하게 다 조립해 묶음 위치·배율·폭을 재 두고 지운다 — 블록은 PlayAsync가 하나씩 다시 붙인다.
         /// </summary>
         public async UniTask BuildAsync(ProgramShape shape, CancellationToken ct)
