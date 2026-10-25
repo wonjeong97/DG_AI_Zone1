@@ -4,6 +4,16 @@ Claude가 Antigravity(agy)와 리뷰 서브에이전트에 맡긴 검증 기록.
 
 ---
 
+### [2026-10-25] Claude → Antigravity + 서브에이전트 · 결과 블록 붙는 속도 4존과 맞춤 (feat/result-block-speed-zone4)
+- 요청: 결과 씬 블록이 붙는 속도를 4존과 똑같이.
+- 변경: 4존 4_Result.unity의 DesignPanel 값(riseDuration 0.7·valueSlideDuration 0.4, 거리 40/120, 블록 시작 간격 designBlockInterval 1.0)에 맞춰 1존 4_Result.json·코드 기본값을 0.7/0.4/0.3으로. 1존은 연출을 기다린 뒤 쉬므로 0.7+0.3=1.0초.
+- Claude 확인: 4존 씬·코드에서 값과 이징(올라오기 InOutSine, 미끄러지기 OutCubic) 대조. 값만 바꿔 PlayMode·Play 모드 확인은 하지 않음.
+- 교차 검증 (agy gemini-4-argon-high + 서브에이전트, 1묶음):
+  - 시간·거리·이징이 4존과 같음 → 둘 다 통과
+  - 블록 시작 간격 1.0초, 씬 직렬화 값이 JSON을 덮어쓰지 않음 → 둘 다 통과. 값·조건 블록이 붙은 블록은 1존이 따로 붙여(0.7+0.3+0.4+0.3) 다음 블록이 1.7초에 시작, 4존은 1.0초(낮음, 구조 차이) → 사용자에게 보고
+  - JSON·코드 기본값·Tooltip 일치 → 둘 다 통과
+- 남은 일: 값·조건 블록 뒤 시작 간격까지 4존과 같게 할지 사용자 결정.
+
 ### [2026-10-23 06:45] Claude → Antigravity + 서브에이전트 · 머지 전 최종 리뷰 PR #104 (feat/result-program-blocks)
 - 요청: PR 리뷰하고 고칠 점이 없으면 머지.
 - agy (gemini-3.8-flash-high, 2묶음):

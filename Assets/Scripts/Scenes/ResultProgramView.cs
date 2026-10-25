@@ -32,13 +32,13 @@ namespace Scenes
         [Tooltip("블록이 올라오기 시작하는 깊이(블록 배율 적용 전 단위)")]
         [SerializeField] private float riseHeight = 40f;
         [Tooltip("블록이 아래에서 올라와 맞물리는 시간(초) — 4_Result.json의 programBlockRiseDuration")]
-        [SerializeField] private float riseDuration = 0.4f;
+        [SerializeField] private float riseDuration = 0.7f;
         [Tooltip("값·조건 블록이 미끄러지기 시작하는 오른쪽 거리(블록 배율 적용 전 단위)")]
         [SerializeField] private float slideDistance = 120f;
         [Tooltip("값·조건 블록이 오른쪽에서 미끄러져 와 붙는 시간(초) — 4_Result.json의 programValueSlideDuration")]
-        [SerializeField] private float slideDuration = 0.25f;
+        [SerializeField] private float slideDuration = 0.4f;
         [Tooltip("블록 하나가 붙은 뒤 다음 블록까지 쉬는 시간(초) — 4_Result.json의 programBlockInterval")]
-        [SerializeField] private float revealInterval = 0.15f;
+        [SerializeField] private float revealInterval = 0.3f;
         [SerializeField] private float scrollDuration = 0.3f;
 
         // 4_Result.json 값 — ResultSequence가 빌드 전에 넣는다
