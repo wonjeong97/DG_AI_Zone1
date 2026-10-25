@@ -542,8 +542,12 @@ namespace Scenes
             await PlayAiStartAsync(ct);
 
             // AI 시작 안내가 사라진 뒤 AI 결과 패널 페이드인 → 연출 시작
+            // 시작할 때 막아 둔 입력을 페이드인 뒤에 풀어야 AI 코딩 결과 칸을 손가락으로 끌어 볼 수 있다
             if (aiResultGroup)
+            {
                 await SceneFader.FadeCanvasGroupAsync(aiResultGroup, 0f, 1f, _fadeDuration, ct);
+                SceneFader.SetGroupInteractable(aiResultGroup, true);
+            }
 
             if (aiProgram) await aiProgram.PlayAsync(ct);
             await SceneFader.FadeCanvasGroupAsync(aiImageGroup, 0f, 1f, _fadeDuration, ct);

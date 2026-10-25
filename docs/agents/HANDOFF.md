@@ -4,6 +4,15 @@ Claude가 Antigravity(agy)와 리뷰 서브에이전트에 맡긴 검증 기록.
 
 ---
 
+### [2026-10-25] Claude → Antigravity + 서브에이전트 · AI 결과 칸 끌기 스크롤 (feat/result-block-speed-zone4)
+- 요청: AI 코딩 결과 칸이 왜 스크롤이 안 되는지 → 페이드인 뒤 입력을 켜서 고치기.
+- 원인: ResultSequence가 시작 때 InitializePanelState(aiResultGroup,false)로 blocksRaycasts를 끄고, FadeCanvasGroupAsync는 알파만 바꿔 Result_AI/ProgramScroll이 터치를 받지 못함(Result_Player에는 CanvasGroup이 없어 끌림).
+- 변경: AI 결과 그룹 페이드인 직후 SceneFader.SetGroupInteractable(aiResultGroup,true).
+- Claude 확인: 컴파일·콘솔 에러 0, PlayMode 228/228(뒤에 EditorSettings·TMP 폰트 에셋 되돌림). 3_Game.unity에 사용자 저장 변경(testLevel 등)이 생겨 에디터 사용 중으로 보고 Play 모드 확인은 하지 않음.
+- 교차 검증 (agy gemini-4-argon-high + 서브에이전트, 1묶음):
+  - 끌기를 받게 되는가(부모 CanvasGroup, 덮는 레이캐스트 대상, 플레이어 칸과 구성 비교) → 둘 다 통과
+  - 다른 입력·터치 안내 뒤 아무 곳 누르기·비활동 타이머·완료 화면 전환 부작용 → 둘 다 통과. 참고: 터치 안내가 뜬 뒤에는 칸을 누르면 완료 화면으로 넘어감(플레이어 칸과 같은 기존 동작)
+
 ### [2026-10-25] Claude → Antigravity + 서브에이전트 · 결과 값·조건 블록 4존처럼 겹치기 (feat/result-block-speed-zone4)
 - 요청: 값·조건 블록이 부모 블록이 올라온 바로 뒤에 미끄러져 오고, 다음 블록은 부모 시작 1초 뒤에 시작하게 4존과 똑같이.
 - 변경: ResultProgramView.RevealTreeAsync가 블록 시작 시각을 재 두고, 올라온 뒤 값·조건 연출(RevealSideAsync)을 기다리지 않고 _sideReveals에 모은 뒤 시작 revealInterval초 뒤에 안쪽·아래 블록으로 넘어감. 값·조건 체인 안에서는 쉬지 않고 바로 이어 붙음. PlayAsync 끝에서 목록이 빌 때까지 WhenAll로 기다림. programBlockInterval(JSON·코드·씬 revealInterval)을 시작 간격 1.0으로.
