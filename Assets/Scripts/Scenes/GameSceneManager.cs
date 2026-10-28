@@ -519,7 +519,7 @@ namespace Scenes
         {
             _sceneSettings = await JsonLoader.LoadAsync<GameSceneSettings>(Constants.SettingsFiles.Game, destroyCancellationToken, _logger);
             if (_sceneSettings.ClampToValid() && _logger != null)
-                _logger.ZLogWarning($"[GameSceneManager] 3_Game.json에 범위를 벗어난 값이 있어 바로잡아 씁니다(음수는 0, 0 이하 스냅 반경은 기본값).");
+                _logger.ZLogWarning($"[GameSceneManager] 3_Game.json에 범위를 벗어난 값이 있어 바로잡아 씁니다(음수는 0, 0 이하 스냅 반경·각도는 기본값, 360도를 넘는 각도는 360도).");
             CodingBlock.Settings = _sceneSettings;
         }
     }

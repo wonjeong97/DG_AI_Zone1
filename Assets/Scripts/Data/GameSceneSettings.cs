@@ -19,16 +19,22 @@ namespace Data
         public int errorBlinkCount = Constants.HighlightSettings.ErrorBlinkCount;
         public float errorBlinkHalfDuration = Constants.HighlightSettings.ErrorBlinkHalfDuration;
 
-        // 블록 스냅 판정 반경(px) — 터치 스크린 감도에 맞춰 조정
+        // 블록 스냅 판정 반경(px) — 터치 스크린 감도에 맞춰 조정. snapRadius는 값·조건(가로), chainSnapRadius는 체인·안쪽(세로) 연결
         public const float DefaultSnapRadius = 120f;
+        public const float DefaultChainSnapRadius = 180f;
         public float snapRadius = DefaultSnapRadius;
-        public float chainSnapRadius = DefaultSnapRadius;
+        public float chainSnapRadius = DefaultChainSnapRadius;
+
+        // 체인·안쪽 연결을 받는 각도(도) — 소켓 바로 아래를 가운데로 양옆에 반씩 연다. 180이면 아래 반원, 200이면 수평선보다 양쪽 10도씩 위까지
+        public const float DefaultChainSnapAngle = 200f;
+        public const float MaxChainSnapAngle = 360f;
+        public float chainSnapAngle = DefaultChainSnapAngle;
 
         // 블록이 스냅 위치로 붙는 데 걸리는 시간(초)
         public float blockSnapDuration = 0.15f;
 
         /// <summary>
-        /// 음수 시간·간격·횟수는 0으로, 0 이하 스냅 반경은 기본값으로 바꾸고, 바꾼 값이 있으면 true를 돌려준다.
+        /// 음수 시간·간격·횟수는 0으로, 0 이하 스냅 반경·각도는 기본값으로, 360도를 넘는 각도는 360도로 바꾸고, 바꾼 값이 있으면 true를 돌려준다.
         /// </summary>
         public bool ClampToValid()
         {
@@ -40,7 +46,13 @@ namespace Data
             errorBlinkHalfDuration = SettingsClamp.NonNegative(errorBlinkHalfDuration, ref changed);
             // 반경이 0이면 블록이 어떤 소켓에도 붙지 않아 코딩을 완성할 수 없다
             snapRadius = SettingsClamp.Positive(snapRadius, DefaultSnapRadius, ref changed);
-            chainSnapRadius = SettingsClamp.Positive(chainSnapRadius, DefaultSnapRadius, ref changed);
+            chainSnapRadius = SettingsClamp.Positive(chainSnapRadius, DefaultChainSnapRadius, ref changed);
+            chainSnapAngle = SettingsClamp.Positive(chainSnapAngle, DefaultChainSnapAngle, ref changed);
+            if (chainSnapAngle > MaxChainSnapAngle)
+            {
+                chainSnapAngle = MaxChainSnapAngle;
+                changed = true;
+            }
             blockSnapDuration = SettingsClamp.NonNegative(blockSnapDuration, ref changed);
             return changed;
         }

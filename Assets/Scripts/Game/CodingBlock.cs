@@ -51,6 +51,8 @@ namespace Game
         // 스냅 반경은 배율 1 기준 튜닝 값이라, 코딩 패널을 확대/축소하면 소켓 간격과 함께 반경도 같은 비율로 맞춘다
         private float SnapRadius      => (Settings?.snapRadius        ?? _snapRadius) * ZoneZoom;
         private float ChainSnapRadius => (Settings?.chainSnapRadius   ?? _chainSnapRadius) * ZoneZoom;
+        // 체인·안쪽 연결을 받는 각도 — 소켓 바로 아래를 가운데로 양옆에 반씩 연다
+        private static float ChainSnapAngle => Settings?.chainSnapAngle ?? Data.GameSceneSettings.DefaultChainSnapAngle;
         private float ZoneZoom        => _codingZone ? _codingZone.transform.localScale.x : 1f;
         private float SnapSeconds     => Settings?.blockSnapDuration ?? _snapSeconds;
 
@@ -582,6 +584,10 @@ namespace Game
         /// </summary>
         public void OnBeginDrag(PointerEventData e)
         {
+            // 시작하기는 코딩 패널 좌상단에 고정한다 — 주인 손가락을 정하지 않아 이 드래그의 OnDrag·OnEndDrag·OnDrop도 모두 무시된다.
+            // 아래에 붙은 블록은 그 블록을 직접 끌어 뗄 수 있다
+            if (ControlRole == Data.ControlRole.Start) return;
+
             // 다른 손가락이 지금 이 블록을 끌고 있으면(두 손가락으로 같은 블록을 누름) 이 손가락의 드래그는 따르지 않는다.
             // 끌고 있지 않으면 새 손가락이 주인이 된다 — 입력 모듈은 포인터를 지울 때 OnEndDrag를 보내지 않아, 주인 기록만 보고 막으면 다시 집을 수 없게 된다
             if (_isDragging) return;
@@ -1210,7 +1216,17 @@ namespace Game
         }
 
         /// <summary>
-        /// 이 블록의 체인 진입 소켓 아래쪽 반경 안에서 가장 가까운 ChainOutSocket을 찾는다.
+        /// 체인 진입 소켓이 대상 소켓의 받는 각도 안(바로 아래를 가운데로 양옆 반씩)에 있는지 확인한다 — 200도면 수평선보다 양쪽 10도씩 위까지 받는다.
+        /// </summary>
+        public static bool IsWithinChainSnapAngle(Vector2 delta, float snapAngle) => Vector2.Angle(Vector2.down, delta) <= snapAngle * 0.5f;
+
+        /// <summary>
+        /// 3_Game.json의 받는 각도로 체인 진입 소켓이 대상 소켓의 받는 범위 안에 있는지 확인한다.
+        /// </summary>
+        private static bool IsWithinChainSnapAngle(Vector2 delta) => IsWithinChainSnapAngle(delta, ChainSnapAngle);
+
+        /// <summary>
+        /// 이 블록의 체인 진입 소켓 아래쪽 반경·각도 안에서 가장 가까운 ChainOutSocket을 찾는다.
         /// </summary>
         private ChainOutSocket FindSnapOutSocket(out float bestSqr)
         {
@@ -1230,7 +1246,7 @@ namespace Game
                 if (!candidate.CanAccept(this)) continue;
 
                 Vector2 delta = myPos - (Vector2)candidate.transform.position;
-                if (delta.y >= 0f) continue;
+                if (!IsWithinChainSnapAngle(delta)) continue;
 
                 float sqr = delta.sqrMagnitude;
                 if (sqr < minSqr)
@@ -1245,7 +1261,7 @@ namespace Game
         }
 
         /// <summary>
-        /// 방향 제한 없이 반경 안에서 가장 가까운 InnerSocket(FlowControl 내부 진입)을 찾는다.
+        /// 체인 연결과 같은 반경·각도 안에서 가장 가까운 InnerSocket(FlowControl 내부 진입)을 찾는다.
         /// </summary>
         private InnerSocket FindSnapInnerSocket(out float bestSqr)
         {
@@ -1265,7 +1281,7 @@ namespace Game
                 if (!candidate.CanAccept(this)) continue;
 
                 Vector2 delta = myPos - (Vector2)candidate.transform.position;
-                if (delta.y >= 0f) continue; // 3·4사분면(하단)만 허용
+                if (!IsWithinChainSnapAngle(delta)) continue;
 
                 float sqr = delta.sqrMagnitude;
                 if (sqr < minSqr)

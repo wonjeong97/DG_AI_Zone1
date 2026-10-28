@@ -37,6 +37,23 @@ namespace DG.Zone1.Tests
         }
 
         /// <summary>
+        /// 체인 연결은 소켓 바로 아래를 가운데로 받는 각도 안에서만 붙는다 — 200도면 수평선보다 양쪽 10도씩 위까지, 180도면 아래 반원만.
+        /// delta는 붙으려는 블록의 체인 진입 소켓 위치 − 대상 소켓 위치다.
+        /// </summary>
+        [TestCase(0f, -100f, 200f, true)]     // 바로 아래
+        [TestCase(-100f, 0f, 200f, true)]     // 왼쪽 수평
+        [TestCase(-100f, 15f, 200f, true)]    // 수평선보다 약 8.5도 위(왼쪽)
+        [TestCase(100f, 15f, 200f, true)]     // 수평선보다 약 8.5도 위(오른쪽)
+        [TestCase(100f, 20f, 200f, false)]    // 수평선보다 약 11.3도 위
+        [TestCase(0f, 100f, 200f, false)]     // 바로 위
+        [TestCase(-100f, 15f, 180f, false)]   // 180도면 수평선 위는 받지 않는다
+        [TestCase(-100f, -1f, 180f, true)]
+        public void 체인_연결은_받는_각도_안에서만_붙는다(float dx, float dy, float snapAngle, bool expected)
+        {
+            Assert.AreEqual(expected, CodingBlock.IsWithinChainSnapAngle(new Vector2(dx, dy), snapAngle));
+        }
+
+        /// <summary>
         /// 코딩 패널에 따로 둔 체인(A→B)의 머리를 다른 체인(X→Y) 사이에 끼우면 체인째 들어가 X→A→B→Y가 된다.
         /// 회귀: 밀려난 Y를 들어온 체인의 꼬리가 아니라 머리 바로 아래에 붙여 X→A→Y→B로 순서가 섞였다.
         /// </summary>

@@ -86,20 +86,46 @@ namespace DG.Zone1.Tests
         }
 
         /// <summary>
-        /// 게임 씬 스냅 반경이 0 이하면 기본값으로 바꾼다 — 0이면 블록이 어떤 소켓에도 붙지 않아 코딩을 완성할 수 없다.
+        /// 게임 씬 스냅 반경·체인 각도가 0 이하면 기본값으로 바꾼다 — 0이면 블록이 어떤 소켓에도 붙지 않아 코딩을 완성할 수 없다.
         /// </summary>
         [Test]
         public void 게임_스냅_반경이_0_이하면_기본값으로_바꾼다()
         {
-            GameSceneSettings invalid = new GameSceneSettings { snapRadius = 0f, chainSnapRadius = -10f };
+            GameSceneSettings invalid = new GameSceneSettings { snapRadius = 0f, chainSnapRadius = -10f, chainSnapAngle = 0f };
 
             Assert.IsTrue(invalid.ClampToValid());
             Assert.AreEqual(GameSceneSettings.DefaultSnapRadius, invalid.snapRadius);
-            Assert.AreEqual(GameSceneSettings.DefaultSnapRadius, invalid.chainSnapRadius);
+            Assert.AreEqual(GameSceneSettings.DefaultChainSnapRadius, invalid.chainSnapRadius);
+            Assert.AreEqual(GameSceneSettings.DefaultChainSnapAngle, invalid.chainSnapAngle);
 
-            GameSceneSettings valid = new GameSceneSettings { snapRadius = 80f, chainSnapRadius = 90f };
-            Assert.IsFalse(valid.ClampToValid(), "0보다 큰 반경은 그대로 둔다");
+            GameSceneSettings valid = new GameSceneSettings { snapRadius = 80f, chainSnapRadius = 90f, chainSnapAngle = 180f };
+            Assert.IsFalse(valid.ClampToValid(), "0보다 큰 반경·각도는 그대로 둔다");
             Assert.AreEqual(80f, valid.snapRadius);
+            Assert.AreEqual(180f, valid.chainSnapAngle);
+        }
+
+        /// <summary>
+        /// 체인 받는 각도가 한 바퀴(360도)를 넘으면 360도로 줄인다.
+        /// </summary>
+        [Test]
+        public void 체인_받는_각도가_360도를_넘으면_360도로_줄인다()
+        {
+            GameSceneSettings settings = new GameSceneSettings { chainSnapAngle = 400f };
+
+            Assert.IsTrue(settings.ClampToValid());
+            Assert.AreEqual(GameSceneSettings.MaxChainSnapAngle, settings.chainSnapAngle);
+        }
+
+        /// <summary>
+        /// 3_Game.json의 체인 연결 범위가 코드 기본값과 같다 — 키가 빠진 예전 JSON을 읽어도 같은 범위(200도·180px)로 붙는다.
+        /// </summary>
+        [Test]
+        public void 체인_연결_범위는_코드_기본값과_같다()
+        {
+            GameSceneSettings settings = JsonUtility.FromJson<GameSceneSettings>(ReadSettingsJson(Constants.SettingsFiles.Game));
+
+            Assert.AreEqual(GameSceneSettings.DefaultChainSnapRadius, settings.chainSnapRadius, "JSON과 코드 기본 반경이 다름");
+            Assert.AreEqual(GameSceneSettings.DefaultChainSnapAngle, settings.chainSnapAngle, "JSON과 코드 기본 각도가 다름");
         }
 
         /// <summary>

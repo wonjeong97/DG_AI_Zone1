@@ -5,6 +5,7 @@
   "errorBlinkCount": 2,
   "errorBlinkHalfDuration": 0.22,
   "snapRadius": 120.0,
-  "chainSnapRadius": 120.0,
+  "chainSnapRadius": 180.0,
+  "chainSnapAngle": 200.0,
   "blockSnapDuration": 0.15
 }

@@ -209,6 +209,33 @@ namespace DG.Zone1.Tests
         }
 
         /// <summary>
+        /// 시작하기 블록은 코딩 패널 좌상단에 고정돼 손가락으로 끌어도 집히지 않고 제자리에 남는다.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator 시작하기_블록은_끌어도_움직이지_않는다()
+        {
+            _block.Init(BlockCategory.Control, _stage.Canvas, ValueKind.None, ControlRole.Start);
+            InputSystem.AddDevice<Touchscreen>();
+            Vector2 start = BlockScreenPoint();
+            Vector2 end = start + new Vector2(DragDistance, DragDistance);
+
+            BeginTouch(1, start);
+            yield return null;
+            MoveTouch(1, end);
+            yield return null;
+            yield return null;
+
+            Assert.AreSame(_zone.transform, _block.transform.parent, "끄는 동안 시작하기 블록이 코딩 영역에서 떨어짐");
+            Assert.AreEqual(start, BlockScreenPoint(), "끄는 동안 시작하기 블록이 움직임");
+
+            EndTouch(1, end);
+            yield return null;
+
+            Assert.AreSame(_zone.transform, _block.transform.parent, "손가락을 뗀 뒤 시작하기 블록이 코딩 영역에 있지 않음");
+            Assert.AreEqual(start, BlockScreenPoint(), "손가락을 뗀 자리로 시작하기 블록이 옮겨짐");
+        }
+
+        /// <summary>
         /// 블록 가운데의 화면 좌표(오버레이 캔버스라 카메라 없음).
         /// </summary>
         private Vector2 BlockScreenPoint() => RectTransformUtility.WorldToScreenPoint(null, _block.transform.position);
