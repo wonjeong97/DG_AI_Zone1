@@ -6,6 +6,6 @@
   "errorBlinkHalfDuration": 0.22,
   "snapRadius": 180.0,
   "chainSnapRadius": 180.0,
-  "snapAngle": 200.0,
+  "snapAngle": 180.0,
   "blockSnapDuration": 0.15
 }

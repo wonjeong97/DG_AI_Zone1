@@ -62,7 +62,7 @@ namespace Game
             Color rangeColor  = IsEmpty ? new Color(0f, 1f, 0.4f, 0.08f) : new Color(1f, 0.3f, 0.3f, 0.08f);
 
             SocketGizmos.DrawCross(rt, markerColor, arm: 12f, dotRadius: 5f);
-            // 스냅 감지 범위 — 아래 반원보다 양쪽으로 조금 더 넓은 부채꼴
+            // 스냅 감지 범위 — 아래쪽 부채꼴(기본 180도 반원)
             SocketGizmos.DrawSnapRange(rt, Vector3.down, SnapRadius, SnapAngle, markerColor, rangeColor);
             SocketGizmos.DrawLabel(rt, $"OutSocket  r={SnapRadius}", new Color(0f, 1f, 0.4f), yOffset: 18f);
         }

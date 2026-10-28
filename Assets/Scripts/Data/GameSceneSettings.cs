@@ -25,8 +25,8 @@ namespace Data
         public float chainSnapRadius = DefaultSnapRadius;
 
         // 모든 연결을 받는 각도(도) — 소켓이 받는 쪽(체인·안쪽은 바로 아래, 값·조건은 바로 오른쪽)을 가운데로 양옆에 반씩 연다.
-        // 180이면 반원, 200이면 반원보다 양쪽으로 10도씩 더 넓다
-        public const float DefaultSnapAngle = 200f;
+        // 180이면 반원(체인·안쪽은 아래 반원, 값·조건은 오른쪽 반원), 200이면 반원보다 양쪽으로 10도씩 더 넓다
+        public const float DefaultSnapAngle = 180f;
         public const float MaxSnapAngle = 360f;
         public float snapAngle = DefaultSnapAngle;
 
