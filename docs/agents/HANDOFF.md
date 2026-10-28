@@ -4,6 +4,16 @@ Claude가 Antigravity(agy)와 리뷰 서브에이전트에 맡긴 검증 기록.
 
 ---
 
+### [2026-10-28 14:10] Claude → Antigravity + 서브에이전트 · 힌트 창 레벨3·4·5 레퍼런스 맞추기 (feat/hint-level3-5-ref)
+- 요청: Ref3·4·5와 같은 화면으로(레벨3은 문구 위치·테두리 상자·물 위 파란 줄), 레벨4는 새 밤 건물 그림, 넣은 리소스는 영어 이름으로. 작업 중 요청: 없는 리소스는 달라고 할 것 → 전구·파란 줄·레벨5 새 연구소 그림을 사용자가 추가.
+- 변경: 3_Game HintPanel의 Level3·4·5Panel에 Image_TextBox(Hint_TextBox 9-slice) 추가 후 Text_Rule을 그 아래로(레벨5는 새 Text_Rule), 레벨3 Image_WaterLine 2개·Image_Dam 74.5px 아래로·'수위'·Text_Meter 위치와 글자, 레벨4 합성 Image_PowerPlant를 지우고 전선 2·밤 건물 3·전구 이미지와 TMP 라벨 3개로, 레벨5 Image_Lab 1039×579. 03_HydroData hintRuleFormat의 [{0}] → {0}. 리소스는 Assets/UI/3_Game/Hint_* 로 옮겨 이름 변경, Hint_Level5_Lab.png는 내용만 덮어써 GUID 유지, 옛 Hint_Level4_PowerPlant.png 삭제, Ref 이미지는 드라이브 references로.
+- Claude 확인: 캔버스를 임시 카메라로 1920×1080 렌더해 Ref와 비교 — 글자 크기·자간·위치 1px 안(규칙 문구 32·자간 5·줄 간격 25, 라벨 34·자간 4), 상자·줄·그림은 템플릿 매칭으로 위치·크기 맞춤(레벨4는 Ref가 옛 합성 그림을 원래 크기로 (332,215)에 둔 것이라 밤 그림을 낮 건물 외곽에 맞춤). 콘솔 에러 0, PlayMode 252/252(뒤에 EditorSettings·TMP 폰트 되돌림).
+- agy (gemini-4-argon-high, 1묶음):
+  - 씬 참조(스프라이트 guid·Raycast, HintPanel 참조·부모 자식 연결, 지운 그림 참조·고아 컴포넌트) → 통과
+- 서브에이전트 (1묶음):
+  - hintRuleFormat·텍스처 import·9-slice 크기·Ref 렌더 비교 → 통과. 참고: 레벨4 발전소 왼쪽 끝이 Ref보다 약 5px 오른쪽 → 기록만(밤·낮 그림 폭 차이, 외곽 겹침이 가장 큰 자리)
+- 남은 것: Ref의 판 테두리·'힌트' 제목·닫기 버튼 위치는 지금 씬과 몇 px~25px 다르지만 레벨1·2와 함께 쓰는 부분이라 그대로 둠. 레벨4 새 전선이 옛 전선보다 세로로 13px 길어 병원 쪽 끝을 맞추고 가로 부분은 8px 위에 둠.
+
 ### [2026-10-28 11:55] Claude → Antigravity + 서브에이전트 · 레벨 선택 화면 수정 7건 (feat/level-select-home-function-link)
 - 요청: 모든 레벨 처음부터 해금, 완료 레벨 V, 인트로 홈·레벨 선택 홈과 < 버튼(홈은 move_idle), 시작하기 블록 고정, 체인 범위 200도·180px(뒤에 모든 연결 180도·180px로 바뀜), 레벨5 함수 탭 분리, 두 함수 블록 연결 연출. V 기준·< 목적지·연출 모양은 질문으로 사용자 결정(결과 화면+서버 기록, 레벨 선택 <는 인트로, 흐르는 점선).
 - 변경: GameSession.completedLevelIndices·GetUserResult.IsRecorded로 해금을 V 표시로 바꿈, HomeButton 컴포넌트와 2_Story < 버튼 하나로 분기, CodingBlock 시작하기 조기 반환·체인 각도 판정(3_Game.json chainSnapAngle, 뒤에 snapAngle로 바뀜), 함수 탭 분리, FunctionLinkLine(Content 첫 자식 RawImage, 머티리얼 오프셋으로 흐름).

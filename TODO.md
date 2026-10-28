@@ -21,6 +21,8 @@
 
 ## 완료
 
+- [x] 게임 화면 힌트 창 레벨3·4·5를 레퍼런스(Ref3·4·5)와 같게 — 규칙 문구 테두리 상자(Hint_TextBox 9-slice, 글자 32·자간 5), 레벨3 수위 파란 줄 2개·댐 그림 74px 아래로·'수위'·높이 글자 위치, 03_HydroData hintRuleFormat 대괄호 삭제, 레벨4 합성 그림을 밤 건물·전선·전구 이미지와 TMP 라벨로 나눔(옛 Hint_Level4_PowerPlant.png 삭제, Ref4의 '흑백에 불' 메모는 뺌), 레벨5 연구소 그림을 사용자가 준 새 그림으로 덮어씀(GUID 유지), 넣은 리소스는 Assets/UI/3_Game/Hint_* 영어 이름으로, 레퍼런스 이미지는 드라이브 ProjectFiles/DG_AI_Zone1/references로 — PlayMode 252/252, 씬 렌더를 레퍼런스와 겹쳐 비교(글자 1px 안) — 담당: Claude / 검증: Antigravity + 서브에이전트 (2026-10-28)
+
 - [x] 블록 연결 받는 각도를 다시 180도(반원)로 — 반경 180px와 조건 블록 '더 가까운 자리'는 유지, 3_Game.json snapAngle 200 → 180 — PlayMode 252/252 — 담당: Claude / 검증: Antigravity + 서브에이전트 (2026-10-28)
 - [x] 값·조건(ValueOut·ConditionOut) 연결도 체인과 같은 200도·180px로 — 가로 판정을 오른쪽 반원에서 오른쪽을 가운데로 받는 각도로, 각도 설정 chainSnapAngle → 모든 연결이 함께 쓰는 snapAngle, 3_Game.json snapRadius 120 → 180, 리뷰 반영으로 조건 블록은 만약 헤더 자리·그리고 자리 중 더 가까운 쪽에 붙음 — PlayMode 252/252, Play 모드 레벨1 값 블록·레벨4 조건 블록으로 확인 — 담당: Claude / 검증: Antigravity + 서브에이전트 (2026-10-28)
 - [x] 레벨 선택 화면 수정 7건 — 모든 레벨 처음부터 해금, 결과 화면까지 간 레벨(서버 기록 포함)에 V(임시 그림), 인트로 홈·2_Story 홈과 < 버튼(레벨 선택 <는 인트로로, 홈은 move_idle·exit 후 타이틀), 시작하기 블록 고정, 체인 연결 200도·180px(3_Game.json 각도 설정 추가, 뒤에 모든 연결 180도·180px로 바뀜), 레벨5 '함수 만들기'·'함수 실행하기' 탭 분리, 두 함수 블록을 잇는 흐르는 점선, 레퍼런스 이미지는 드라이브 ProjectFiles/DG_AI_Zone1/references로, Player Settings Version 26.10.28 — PlayMode 244/244, Play 모드 화면 캡처로 확인 — 담당: Claude / 검증: Antigravity + 서브에이전트 (2026-10-28)
