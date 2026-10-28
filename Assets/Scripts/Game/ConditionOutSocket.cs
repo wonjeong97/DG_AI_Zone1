@@ -16,8 +16,9 @@ namespace Game
         }
 
 #if UNITY_EDITOR
-        // 기즈모로 그리는 기준 반경 — 실제 스냅 반경은 3_Game.json(snapRadius·chainSnapRadius) × 코딩 패널 배율이라 다를 수 있다
-        private const float SnapRadius = 120f;
+        // 기즈모로 그리는 기준 반경·각도 — 실제 값은 3_Game.json(snapRadius·snapAngle)이고 반경은 코딩 패널 배율도 곱해져 다를 수 있다
+        private const float SnapRadius = Data.GameSceneSettings.DefaultSnapRadius;
+        private const float SnapAngle = Data.GameSceneSettings.DefaultSnapAngle;
 
         /// <summary>
         /// 씬 뷰에 소켓 위치와 스냅 범위를 표시한다.
@@ -29,8 +30,8 @@ namespace Game
             Color markerColor = IsEmpty ? new Color(0.6f, 0.3f, 1f, 0.9f) : new Color(1f, 0.4f, 0.1f, 0.9f);
 
             SocketGizmos.DrawCross(rt, markerColor, arm: 10f, dotRadius: 4f);
-            // 스냅 감지 범위 — 1·4사분면(우측 반원). 범위 색은 점유 여부와 무관하게 고정
-            SocketGizmos.DrawSnapRange(rt, Vector3.down, SnapRadius, markerColor, new Color(0.6f, 0.3f, 1f, 0.08f));
+            // 스냅 감지 범위 — 오른쪽 반원보다 위아래로 조금 더 넓은 부채꼴. 범위 색은 점유 여부와 무관하게 고정
+            SocketGizmos.DrawSnapRange(rt, Vector3.right, SnapRadius, SnapAngle, markerColor, new Color(0.6f, 0.3f, 1f, 0.08f));
             SocketGizmos.DrawLabel(rt, $"CondOut  r={SnapRadius}", new Color(0.6f, 0.3f, 1f), yOffset: 16f);
         }
 #endif

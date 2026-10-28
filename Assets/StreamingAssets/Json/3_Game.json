@@ -4,8 +4,8 @@
   "successWaveFadeInDuration": 0.18,
   "errorBlinkCount": 2,
   "errorBlinkHalfDuration": 0.22,
-  "snapRadius": 120.0,
+  "snapRadius": 180.0,
   "chainSnapRadius": 180.0,
-  "chainSnapAngle": 200.0,
+  "snapAngle": 200.0,
   "blockSnapDuration": 0.15
 }

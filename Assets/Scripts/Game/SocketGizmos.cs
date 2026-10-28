@@ -41,24 +41,16 @@ namespace Game
         }
 
         /// <summary>
-        /// 스냅 감지 범위를 from 방향에서 반시계 방향으로 angle도(기본 180도 반원) 그린다.
+        /// 스냅 감지 범위를 소켓이 받는 방향(direction)을 가운데로 angle도 부채꼴로 그린다.
         /// </summary>
-        public static void DrawSnapRange(RectTransform rt, Vector3 from, float radius, Color marker, Color range, float angle = 180f)
+        public static void DrawSnapRange(RectTransform rt, Vector3 direction, float radius, float angle, Color marker, Color range)
         {
+            // 가운데에서 시계 방향으로 반만큼 돌린 곳에서 시작해 반시계로 angle도 그린다
+            Vector3 from = Quaternion.Euler(0f, 0f, -angle * 0.5f) * direction;
             Handles.color = range;
             Handles.DrawSolidArc(rt.position, Vector3.forward, from, angle, radius);
             Handles.color = marker;
             Handles.DrawWireArc(rt.position, Vector3.forward, from, angle, radius);
-        }
-
-        /// <summary>
-        /// 체인·안쪽 소켓의 스냅 감지 범위를 소켓 바로 아래를 가운데로 angle도 그린다 — 180도보다 넓으면 수평선 위까지 벌어진다.
-        /// </summary>
-        public static void DrawChainSnapRange(RectTransform rt, float radius, float angle, Color marker, Color range)
-        {
-            // 왼쪽에서 반시계로 돌면 아래를 지나 오른쪽에 닿으므로, 180도를 넘는 만큼의 반을 왼쪽 위로 당겨 시작한다
-            Vector3 from = Quaternion.Euler(0f, 0f, -(angle - 180f) * 0.5f) * Vector3.left;
-            DrawSnapRange(rt, from, radius, marker, range, angle);
         }
 
         /// <summary>

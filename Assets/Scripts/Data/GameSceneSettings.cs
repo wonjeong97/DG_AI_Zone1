@@ -20,15 +20,15 @@ namespace Data
         public float errorBlinkHalfDuration = Constants.HighlightSettings.ErrorBlinkHalfDuration;
 
         // 블록 스냅 판정 반경(px) — 터치 스크린 감도에 맞춰 조정. snapRadius는 값·조건(가로), chainSnapRadius는 체인·안쪽(세로) 연결
-        public const float DefaultSnapRadius = 120f;
-        public const float DefaultChainSnapRadius = 180f;
+        public const float DefaultSnapRadius = 180f;
         public float snapRadius = DefaultSnapRadius;
-        public float chainSnapRadius = DefaultChainSnapRadius;
+        public float chainSnapRadius = DefaultSnapRadius;
 
-        // 체인·안쪽 연결을 받는 각도(도) — 소켓 바로 아래를 가운데로 양옆에 반씩 연다. 180이면 아래 반원, 200이면 수평선보다 양쪽 10도씩 위까지
-        public const float DefaultChainSnapAngle = 200f;
-        public const float MaxChainSnapAngle = 360f;
-        public float chainSnapAngle = DefaultChainSnapAngle;
+        // 모든 연결을 받는 각도(도) — 소켓이 받는 쪽(체인·안쪽은 바로 아래, 값·조건은 바로 오른쪽)을 가운데로 양옆에 반씩 연다.
+        // 180이면 반원, 200이면 반원보다 양쪽으로 10도씩 더 넓다
+        public const float DefaultSnapAngle = 200f;
+        public const float MaxSnapAngle = 360f;
+        public float snapAngle = DefaultSnapAngle;
 
         // 블록이 스냅 위치로 붙는 데 걸리는 시간(초)
         public float blockSnapDuration = 0.15f;
@@ -46,11 +46,11 @@ namespace Data
             errorBlinkHalfDuration = SettingsClamp.NonNegative(errorBlinkHalfDuration, ref changed);
             // 반경이 0이면 블록이 어떤 소켓에도 붙지 않아 코딩을 완성할 수 없다
             snapRadius = SettingsClamp.Positive(snapRadius, DefaultSnapRadius, ref changed);
-            chainSnapRadius = SettingsClamp.Positive(chainSnapRadius, DefaultChainSnapRadius, ref changed);
-            chainSnapAngle = SettingsClamp.Positive(chainSnapAngle, DefaultChainSnapAngle, ref changed);
-            if (chainSnapAngle > MaxChainSnapAngle)
+            chainSnapRadius = SettingsClamp.Positive(chainSnapRadius, DefaultSnapRadius, ref changed);
+            snapAngle = SettingsClamp.Positive(snapAngle, DefaultSnapAngle, ref changed);
+            if (snapAngle > MaxSnapAngle)
             {
-                chainSnapAngle = MaxChainSnapAngle;
+                snapAngle = MaxSnapAngle;
                 changed = true;
             }
             blockSnapDuration = SettingsClamp.NonNegative(blockSnapDuration, ref changed);

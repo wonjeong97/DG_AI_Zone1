@@ -37,7 +37,7 @@ namespace DG.Zone1.Tests
         }
 
         /// <summary>
-        /// 체인 연결은 소켓 바로 아래를 가운데로 받는 각도 안에서만 붙는다 — 200도면 수평선보다 양쪽 10도씩 위까지, 180도면 아래 반원만.
+        /// 체인·안쪽 연결은 소켓 바로 아래를 가운데로 받는 각도 안에서만 붙는다 — 200도면 수평선보다 양쪽 10도씩 위까지, 180도면 아래 반원만.
         /// delta는 붙으려는 블록의 체인 진입 소켓 위치 − 대상 소켓 위치다.
         /// </summary>
         [TestCase(0f, -100f, 200f, true)]     // 바로 아래
@@ -50,7 +50,24 @@ namespace DG.Zone1.Tests
         [TestCase(-100f, -1f, 180f, true)]
         public void 체인_연결은_받는_각도_안에서만_붙는다(float dx, float dy, float snapAngle, bool expected)
         {
-            Assert.AreEqual(expected, CodingBlock.IsWithinChainSnapAngle(new Vector2(dx, dy), snapAngle));
+            Assert.AreEqual(expected, CodingBlock.IsWithinSnapAngle(new Vector2(dx, dy), Vector2.down, snapAngle));
+        }
+
+        /// <summary>
+        /// 값·조건 연결은 소켓 바로 오른쪽을 가운데로 받는 각도 안에서만 붙는다 — 200도면 세로선보다 위아래로 10도씩 왼쪽까지, 180도면 오른쪽 반원만.
+        /// delta는 붙으려는 블록의 값·조건 진입 소켓 위치 − 대상 소켓 위치다.
+        /// </summary>
+        [TestCase(100f, 0f, 200f, true)]      // 바로 오른쪽
+        [TestCase(0f, 100f, 200f, true)]      // 바로 위
+        [TestCase(-15f, 100f, 200f, true)]    // 세로선보다 약 8.5도 왼쪽(위)
+        [TestCase(-15f, -100f, 200f, true)]   // 세로선보다 약 8.5도 왼쪽(아래)
+        [TestCase(-20f, -100f, 200f, false)]  // 세로선보다 약 11.3도 왼쪽
+        [TestCase(-100f, 0f, 200f, false)]    // 바로 왼쪽
+        [TestCase(-15f, 100f, 180f, false)]   // 180도면 세로선 왼쪽은 받지 않는다
+        [TestCase(1f, -100f, 180f, true)]
+        public void 값_조건_연결은_받는_각도_안에서만_붙는다(float dx, float dy, float snapAngle, bool expected)
+        {
+            Assert.AreEqual(expected, CodingBlock.IsWithinSnapAngle(new Vector2(dx, dy), Vector2.right, snapAngle));
         }
 
         /// <summary>
