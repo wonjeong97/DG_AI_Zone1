@@ -4,7 +4,7 @@ using NUnit.Framework;
 namespace DG.Zone1.Tests
 {
     /// <summary>
-    /// 디버그 단축키 입력 액션이 Space 키에 묶여 있는지 검증한다 — 레벨 선택(모든 레벨 해금)·게임(컴파일 검증)이 같은 액션을 쓴다.
+    /// 디버그 단축키 입력 액션이 Space 키에 묶여 있는지 검증한다 — 게임 씬(컴파일 검증)이 쓴다.
     /// </summary>
     public class GameInputActionsTests
     {

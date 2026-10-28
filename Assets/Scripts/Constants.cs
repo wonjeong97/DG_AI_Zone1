@@ -140,8 +140,8 @@ public static class Constants
         public const string Action          = "동작";
         public const string Logic           = "논리";
         public const string Condition       = "숫자·정보";
-        public const string Function        = "함수";
-        public const string FunctionDef     = "함수 정의";
+        public const string Function        = "함수 실행하기";
+        public const string FunctionDef     = "함수 만들기";
         public const string Else            = "아니면";
     }
 
@@ -154,7 +154,7 @@ public static class Constants
         public const string MissingConnectedAfterStart = "'시작하기'에 연결된 블록이 없습니다";
         public const string EmptyBetweenStartEnd       = "'시작하기'와 '완성하기' 사이에 블록이 없습니다";
         public const string MissingEndBlock            = "'완성하기' 블록으로 끝나지 않았습니다";
-        public const string FunctionDefNotPlaced       = "'함수' 블록을 쓰려면 '함수 정의' 블록을 코딩 영역에 놓아야 합니다";
+        public const string FunctionDefNotPlaced       = "'함수 실행하기' 블록을 쓰려면 '함수 만들기' 블록을 코딩 영역에 놓아야 합니다";
         public const string CommandWithoutValueFormat  = "'{0}' 블록에 값 블록이 없습니다";
         public const string IfWithoutConditionFormat   = "'{0}' 블록에 조건이 없습니다";
         public const string LogicMissingRightFormat    = "'{0}' 블록의 오른쪽 조건이 비어 있습니다";
@@ -163,7 +163,7 @@ public static class Constants
         public const string UnusedBlocksFormat         = "사용되지 않은 블록이 있습니다 ({0}개)";
         public const string ElseOutsideIfFormat        = "'아니면' 블록은 '만약' 블록 안에 있어야 합니다 ({0}개)";
         public const string DuplicateElse              = "'만약' 블록 하나에는 '아니면' 블록을 하나만 넣을 수 있습니다";
-        public const string FunctionCallInsideDef      = "'함수' 블록은 '함수 정의' 블록 안에 넣을 수 없습니다";
+        public const string FunctionCallInsideDef      = "'함수 실행하기' 블록은 '함수 만들기' 블록 안에 넣을 수 없습니다";
     }
 
     // ── 8. 결과 씬 연출 메시지 및 평가 ─────────────────────────
@@ -552,7 +552,7 @@ public static class Constants
         public const string EnterFormat   = "{0}_enter";   // 레벨을 골라 스토리 화면이 나올 때
         public const string SuccessFormat = "{0}_success"; // 결과 화면 입장 — 전력 수급 상태 '양호'(레벨1 태양광은 SolarSuccessFormat)
         public const string FailFormat    = "{0}_fail";    // 결과 화면 입장 — '보통'·'부족'
-        public const string ExitFormat    = "{0}_exit";    // enter 뒤 결과 화면 다음 버튼·스토리 화면 < 버튼·비활동 타임아웃(move_idle_timeout)·앱 종료 중 먼저 오는 쪽에서 한 번
+        public const string ExitFormat    = "{0}_exit";    // enter 뒤 결과 화면 다음 버튼·스토리 화면 < 버튼·홈 버튼·비활동 타임아웃(move_idle_timeout)·앱 종료 중 먼저 오는 쪽에서 한 번
 
         // 레벨1(태양광) 결과 화면 입장 — '양호'면 {1}에 문제의 정답 방향 번호를 넣는다(동쪽 1_success_1, 서쪽 1_success_2, 남쪽 1_success_3)
         public const string SolarSuccessFormat = "{0}_success_{1}";

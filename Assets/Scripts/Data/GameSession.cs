@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Game.Runtime;
 
 namespace Data
@@ -8,8 +9,9 @@ namespace Data
     {
         public LevelData currentLevel;
 
-        // 해금된 마지막 레벨(0부터) — 타이틀로 돌아오면 ResetProgress가 0으로 되돌린다
-        public int unlockedLevelIndex;
+        // 결과 화면까지 간 레벨(0부터, 넘어가기 포함) — 레벨 선택 화면이 V를 붙인다.
+        // QR로 확인한 체험자는 서버에 기록이 있는 레벨도 들어가고, 타이틀로 돌아오면 ResetProgress가 비운다
+        public readonly HashSet<int> completedLevelIndices = new();
 
         // 마지막 실행 결과 — 결과 씬 표시용
         public int lastScore;
@@ -39,7 +41,7 @@ namespace Data
         /// </summary>
         public void ResetProgress()
         {
-            unlockedLevelIndex = 0;
+            completedLevelIndices.Clear();
             currentLevel = null;
             lastQuestionTime = null;
             pendingStoryLevelIndex = -1;

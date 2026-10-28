@@ -3,6 +3,7 @@ using Cysharp.Threading.Tasks;
 using Data;
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using Microsoft.Extensions.Logging;
 using UnityEngine.Video;
 using VContainer;
@@ -20,6 +21,8 @@ namespace Scenes
         [SerializeField] private TutorialImageSlider tutorialSlider;
         [SerializeField] private VideoPlayer robotVideoPlayer;
         [SerializeField] private TMP_Text visitorNameText;
+        [Tooltip("화면 우상단 홈 버튼 — 이 버튼을 누른 터치는 튜토리얼로 넘기는 화면 터치로 받지 않는다")]
+        [SerializeField] private HomeButton homeButton;
 
         private ILogger<IntroSceneManager> _logger;
         private VisitorInfoProvider _visitorInfoProvider;
@@ -114,6 +117,9 @@ namespace Scenes
         {
             if (!_introTapEnabled || Time.frameCount == _introTapEnabledFrame) return;
             if (!StoryLineAnimator.IsPointerPressedThisFrame()) return;
+
+            // 홈 버튼을 누른 터치는 버튼이 타이틀로 보낸다 — 튜토리얼로 넘기기 시작하지 않는다
+            if (homeButton && homeButton.ContainsScreenPoint(Pointer.current.position.ReadValue())) return;
 
             _introTapEnabled = false;
             // 연출을 스킵해 나레이션이 아직 나오는 중이면 튜토리얼 화면에 겹치지 않게 끊는다(클릭음보다 먼저 — 효과음 소스를 함께 쓴다)

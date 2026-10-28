@@ -6,7 +6,6 @@ using Data;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using Microsoft.Extensions.Logging;
 using UnityEngine.Video;
@@ -29,7 +28,9 @@ namespace Scenes
         [Tooltip("levelPanels와 같은 순서로, 각 레벨 패널 안에서 LevelData.storyText를 표시할 텍스트")]
         [SerializeField] private TMP_Text[] levelStoryTexts;
         [SerializeField] private Button startButton;
-        [Tooltip("스토리 화면 좌상단 < 버튼 — 레벨 선택 화면으로(관리자 레벨 이동이면 타이틀의 관리자 화면으로) 돌아간다")]
+        [Tooltip("levelButtons와 같은 순서로, 결과 화면까지 간 레벨 버튼에 켤 V 표시")]
+        [SerializeField] private GameObject[] levelCompleteMarks;
+        [Tooltip("화면 좌상단 < 버튼 — 레벨 선택 화면이면 인트로로, 스토리 화면이면 레벨 선택 화면으로(관리자 레벨 이동이면 타이틀의 관리자 화면으로) 돌아간다")]
         [SerializeField] private Button backButton;
         [SerializeField] private VideoPlayer robotVideoPlayer;
         [Tooltip("선택한 레벨 버튼이 스토리 화면으로 옮겨가 고정되는 위치 — 스토리 패널과 함께 보이도록 둔다")]
@@ -37,7 +38,6 @@ namespace Scenes
 
         private GameSession _session;
         private ILogger<StoryManager> _logger;
-        private GameInputActions _input; // 디버그 단축키(Space) — 모든 레벨 해금
         private InactivityTimer _inactivityTimer;
         private SoundManager _soundManager;
         private VisitorInfoProvider _visitorInfoProvider; // 행동 로그 주어
@@ -61,7 +61,7 @@ namespace Scenes
         private LevelData _currentLevel;
 
         /// <summary>
-        /// 레벨 선택 화면을 초기화하고 해금 상태에 맞춰 레벨 버튼을 활성화한다.
+        /// 레벨 선택 화면을 초기화하고 결과 화면까지 간 레벨 버튼에 V를 켠다.
         /// </summary>
         private void Start()
         {
@@ -89,7 +89,7 @@ namespace Scenes
                 levelButtons[i].onClick.AddListener(() => OnLevelButtonClicked(btnIndex));
             }
 
-            ApplyUnlockedLevels(Mathf.Clamp(_session != null ? _session.unlockedLevelIndex : 0, 0, levelDataList.Length - 1));
+            ApplyCompleteMarks();
 
             if (startButton) startButton.onClick.AddListener(OnStartClicked);
             if (backButton) backButton.onClick.AddListener(OnBackClicked);
@@ -107,65 +107,30 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 해금된 레벨(unlockedIndex까지)의 버튼만 누를 수 있게 하고, 잠긴 레벨은 흑백으로 표시한다.
+        /// 모든 레벨 버튼은 처음부터 누를 수 있고, 결과 화면까지 간 레벨(서버에 기록이 있는 레벨 포함)의 버튼에만 V를 켠다.
         /// </summary>
-        private void ApplyUnlockedLevels(int unlockedIndex)
+        private void ApplyCompleteMarks()
         {
-            for (int i = 0; i < levelButtons.Length; i++)
+            if (levelCompleteMarks == null || levelCompleteMarks.Length < levelButtons.Length)
             {
-                if (!levelButtons[i]) continue;
+                if (_logger != null) _logger.ZLogWarning($"[StoryManager] levelCompleteMarks가 레벨 버튼 수({levelButtons.Length}개)만큼 할당되지 않아 일부 레벨의 V 표시를 켜지 못합니다.");
+                if (levelCompleteMarks == null) return;
+            }
 
-                bool unlocked = i <= unlockedIndex;
-                levelButtons[i].interactable = unlocked;
-                if (levelButtons[i].image)
-                    levelButtons[i].image.material = unlocked ? null : UiEffects.GrayscaleMaterial;
+            for (int i = 0; i < levelCompleteMarks.Length; i++)
+            {
+                if (!levelCompleteMarks[i]) continue;
+                levelCompleteMarks[i].SetActive(_session != null && _session.completedLevelIndices.Contains(i));
             }
         }
 
         /// <summary>
-        /// 디버그 단축키(Space) 입력을 받기 시작한다 — 현장 빌드에서 관람객이 누르지 않도록 에디터·개발 빌드에서만.
-        /// </summary>
-        private void OnEnable()
-        {
-            if (!Debug.isDebugBuild) return;
-
-            _input ??= new GameInputActions();
-            _input.Debug.Shortcut.performed += OnDebugShortcut;
-            _input.Debug.Enable();
-        }
-
-        /// <summary>
-        /// 디버그 단축키 입력을 멈춘다.
-        /// </summary>
-        private void OnDisable()
-        {
-            if (_input == null) return;
-            _input.Debug.Shortcut.performed -= OnDebugShortcut;
-            _input.Debug.Disable();
-        }
-
-        /// <summary>
-        /// 입력 액션을 해제한다.
+        /// 버튼 리스너를 해제한다.
         /// </summary>
         private void OnDestroy()
         {
-            _input?.Dispose();
             if (startButton) startButton.onClick.RemoveListener(OnStartClicked);
             if (backButton) backButton.onClick.RemoveListener(OnBackClicked);
-        }
-
-        /// <summary>
-        /// 디버그 단축키(Space) — 모든 레벨을 해금하고 버튼을 바로 갱신한다.
-        /// </summary>
-        private void OnDebugShortcut(InputAction.CallbackContext _)
-        {
-            // 레벨을 고른 뒤(스토리 화면)에는 선택된 버튼이 다시 눌리지 않도록 무시한다.
-            if (_currentLevel) return;
-
-            int lastIndex = levelDataList.Length - 1;
-            if (_session != null) _session.unlockedLevelIndex = lastIndex;
-            ApplyUnlockedLevels(lastIndex);
-            if (_logger != null) _logger.ZLogInformation($"[StoryManager] 디버그 단축키로 모든 레벨을 해금했습니다.");
         }
 
         /// <summary>
@@ -288,12 +253,22 @@ namespace Scenes
         }
 
         /// <summary>
-        /// &lt; 버튼 — 관리자 레벨 이동으로 들어온 판이면 타이틀의 관리자 화면으로, 아니면 레벨 선택 화면으로 돌아간다.
+        /// &lt; 버튼 — 레벨 선택 화면이면 인트로로, 스토리 화면이면 관리자 레벨 이동으로 들어온 판은 타이틀의 관리자 화면으로, 아니면 레벨 선택 화면으로 돌아간다.
         /// </summary>
         private void OnBackClicked()
         {
             // 레벨 선택 화면은 이 씬을 다시 불러 되돌린다(고른 레벨 버튼을 옮기고 별을 숨긴 연출을 하나씩 되돌리지 않기 위해).
+            // 씬 전환 중에는 받지 않는다 — 홈 버튼과 함께 눌려 다른 씬으로 가는 중이면 여기서 보낼 로그·명령이 없다
+            if (SceneFader.IsLoading) return;
             if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
+
+            // 레벨을 고르기 전이면 아두이노에 enter를 보내지 않았으므로 exit 없이 인트로로 간다
+            if (!_currentLevel)
+            {
+                if (_logger != null) _logger.ZLogInformation($"[StoryManager] {VisitorInfoProvider.LogSubjectOf(_visitorInfoProvider)} 레벨 선택 화면에서 뒤로를 누름 — 인트로로 돌아감.");
+                SceneFader.FadeAndLoad(Constants.Scenes.Intro, logger: _logger).Forget();
+                return;
+            }
 
             bool toAdmin = _session != null && _session.isAdminLevelJump;
             if (_logger != null) _logger.ZLogInformation($"[StoryManager] {VisitorInfoProvider.LogSubjectOf(_visitorInfoProvider)} 뒤로를 누름 — {(toAdmin ? "관리자 화면" : "레벨 선택")}으로 돌아감.");

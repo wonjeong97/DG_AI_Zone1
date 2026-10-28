@@ -316,7 +316,7 @@ namespace Admin
         }
 
         /// <summary>
-        /// 고른 레벨까지 해금하고, 그 레벨을 고른 상태로 스토리 화면에 들어가도록 2_Story로 이동한다.
+        /// 고른 레벨을 고른 상태로 스토리 화면에 들어가도록 2_Story로 이동한다.
         /// </summary>
         private void OnLevelClicked(int index)
         {
@@ -330,11 +330,12 @@ namespace Admin
                 return;
             }
 
-            _session.unlockedLevelIndex = Mathf.Max(_session.unlockedLevelIndex, index);
             _session.pendingStoryLevelIndex = index;
             _session.isAdminLevelJump = true;
 
-            // 관리자 시험 판이 타이틀에서 QR로 확인해 둔 체험자의 이름으로 행동 로그에 남지 않게 비운다
+            // 관리자 시험 판이 타이틀에서 QR로 확인해 둔 체험자의 이름으로 행동 로그에 남지 않게 비우고,
+            // 그 체험자의 서버 기록으로 채운 V도 레벨 선택 화면에 잠깐 비치지 않게 비운다
+            _session.completedLevelIndices.Clear();
             if (_visitorInfoProvider != null) _visitorInfoProvider.ClearServerVisitor();
             else if (_logger != null) _logger.ZLogWarning($"[AdminPanel] VisitorInfoProvider가 주입되지 않아 QR로 확인한 체험자를 비우지 못했습니다.");
 

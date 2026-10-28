@@ -112,13 +112,12 @@ namespace Game
         };
 
         // 기능적으로 다른 카테고리를 하나의 탭으로 묶는다.
-        // (함수 사용/구현은 별도 카테고리지만 '함수' 탭 하나로 표시)
+        // (아니면은 만약과 같은 '조건' 탭에 표시. 함수 사용/구현은 '함수 실행하기'·'함수 만들기' 탭으로 나눈다)
         /// <summary>
         /// 인벤토리 선택 탭 그룹을 반환한다.
         /// </summary>
         public static BlockCategory GetTabCategory(BlockCategory cat) => cat switch
         {
-            BlockCategory.FunctionDef => BlockCategory.Function,
             BlockCategory.Else        => BlockCategory.FlowControl,
             _ => cat
         };

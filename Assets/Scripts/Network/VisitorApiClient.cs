@@ -80,7 +80,15 @@ namespace Network
             }
             else if (_logger != null)
             {
-                _logger.ZLogInformation($"[VisitorApiClient] getUser 결과: 기록 있는 마지막 레벨 순번 {result.LastRecordedLevelIndex}");
+                // 기록이 있는 레벨을 코드로 적는다(예: A1, A3) — 레벨 선택 화면에서 이 레벨들에 V가 붙는다
+                using Utf16ValueStringBuilder levels = ZString.CreateStringBuilder();
+                for (int i = 0; i < Constants.VisitorApi.LevelCount; i++)
+                {
+                    if (!result.IsRecorded(i)) continue;
+                    if (levels.Length > 0) levels.Append(", ");
+                    levels.Append(GetLevelCode(i));
+                }
+                _logger.ZLogInformation($"[VisitorApiClient] getUser 결과: 기록 있는 레벨 {(levels.Length > 0 ? levels.ToString() : "없음")}");
             }
 
             return result;

@@ -99,7 +99,7 @@ namespace Game
         /// </summary>
         public void Select(BlockCategory cat)
         {
-            // 탭으로 묶인 카테고리(함수 정의, 아니면)가 들어와도 그 탭을 고른다.
+            // 탭으로 묶인 카테고리(아니면)가 들어와도 그 탭을 고른다.
             cat = BlockFactory.GetTabCategory(cat);
             CurrentCategory = cat;
             if (inventoryContent)

@@ -51,6 +51,8 @@ namespace Game
         // 스냅 반경은 배율 1 기준 튜닝 값이라, 코딩 패널을 확대/축소하면 소켓 간격과 함께 반경도 같은 비율로 맞춘다
         private float SnapRadius      => (Settings?.snapRadius        ?? _snapRadius) * ZoneZoom;
         private float ChainSnapRadius => (Settings?.chainSnapRadius   ?? _chainSnapRadius) * ZoneZoom;
+        // 모든 연결을 받는 각도 — 소켓이 받는 쪽(체인·안쪽은 아래, 값·조건은 오른쪽)을 가운데로 양옆에 반씩 연다
+        private static float SnapAngle => Settings?.snapAngle ?? Data.GameSceneSettings.DefaultSnapAngle;
         private float ZoneZoom        => _codingZone ? _codingZone.transform.localScale.x : 1f;
         private float SnapSeconds     => Settings?.blockSnapDuration ?? _snapSeconds;
 
@@ -582,6 +584,10 @@ namespace Game
         /// </summary>
         public void OnBeginDrag(PointerEventData e)
         {
+            // 시작하기는 코딩 패널 좌상단에 고정한다 — 주인 손가락을 정하지 않아 이 드래그의 OnDrag·OnEndDrag·OnDrop도 모두 무시된다.
+            // 아래에 붙은 블록은 그 블록을 직접 끌어 뗄 수 있다
+            if (ControlRole == Data.ControlRole.Start) return;
+
             // 다른 손가락이 지금 이 블록을 끌고 있으면(두 손가락으로 같은 블록을 누름) 이 손가락의 드래그는 따르지 않는다.
             // 끌고 있지 않으면 새 손가락이 주인이 된다 — 입력 모듈은 포인터를 지울 때 OnEndDrag를 보내지 않아, 주인 기록만 보고 막으면 다시 집을 수 없게 된다
             if (_isDragging) return;
@@ -793,7 +799,7 @@ namespace Game
         private bool SnapsHorizontally =>
             Category is BlockCategory.Value or BlockCategory.Logic or BlockCategory.Condition;
 
-        // Logic/Condition은 조건 체인(ConditionOut)에 먼저 붙어보고, 실패하면 값 슬롯(ValueOut)으로 넘어간다
+        // Logic/Condition은 조건 체인(ConditionOut)도 후보로 보고, 값 슬롯(ValueOut)과 함께 범위 안이면 더 가까운 쪽(같으면 조건 체인)에 붙는다
         private bool PrefersConditionSocket =>
             Category is BlockCategory.Condition or BlockCategory.Logic;
 
@@ -1107,15 +1113,17 @@ namespace Game
         /// </summary>
         private BlockSocket FindBestSnapSocket()
         {
-            // 가로 연결 블록은 조건 연결(ConditionOut)을 먼저, 없으면 값 슬롯(ValueOut)을, 세로 연결 블록은 체인·내부 소켓 중 더 가까운 쪽을 고른다.
+            // 가로 연결 블록은 조건 연결(ConditionOut)·값 슬롯(ValueOut) 중, 세로 연결 블록은 체인·내부 소켓 중 더 가까운 쪽을 고른다.
             if (SnapsHorizontally)
             {
-                if (PrefersConditionSocket)
-                {
-                    ConditionOutSocket conditionSocket = FindSnapConditionOutSocket();
-                    if (conditionSocket) return conditionSocket;
-                }
-                return FindSnapValueOutSocket();
+                ValueOutSocket valueSocket = FindSnapValueOutSocket(out float valueSqr);
+                if (!PrefersConditionSocket) return valueSocket;
+
+                // 두 후보가 모두 범위 안이면 더 가까운 쪽 우선(같으면 조건 연결) — 연결 범위가 넓어,
+                // 코딩 패널에 따로 둔 그리고 블록이 더 가까운 만약 헤더 자리를 가로채지 않게 한다
+                ConditionOutSocket conditionSocket = FindSnapConditionOutSocket(out float conditionSqr);
+                if (conditionSocket && (!valueSocket || conditionSqr <= valueSqr)) return conditionSocket;
+                return valueSocket;
             }
 
             ChainOutSocket chainSocket = FindSnapOutSocket(out float chainSqr);
@@ -1210,7 +1218,22 @@ namespace Game
         }
 
         /// <summary>
-        /// 이 블록의 체인 진입 소켓 아래쪽 반경 안에서 가장 가까운 ChainOutSocket을 찾는다.
+        /// 진입 소켓이 대상 소켓의 받는 각도 안(받는 방향을 가운데로 양옆 반씩)에 있는지 확인한다 — 아래를 받는 소켓이 200도면 수평선보다 양쪽 10도씩 위까지 받는다.
+        /// </summary>
+        public static bool IsWithinSnapAngle(Vector2 delta, Vector2 direction, float snapAngle) => Vector2.Angle(direction, delta) <= snapAngle * 0.5f;
+
+        /// <summary>
+        /// 3_Game.json의 받는 각도로 체인 진입 소켓이 대상 소켓 아래 받는 범위 안에 있는지 확인한다.
+        /// </summary>
+        private static bool IsWithinChainSnapAngle(Vector2 delta) => IsWithinSnapAngle(delta, Vector2.down, SnapAngle);
+
+        /// <summary>
+        /// 3_Game.json의 받는 각도로 값·조건 진입 소켓이 대상 소켓 오른쪽 받는 범위 안에 있는지 확인한다.
+        /// </summary>
+        private static bool IsWithinHorizontalSnapAngle(Vector2 delta) => IsWithinSnapAngle(delta, Vector2.right, SnapAngle);
+
+        /// <summary>
+        /// 이 블록의 체인 진입 소켓 아래쪽 반경·각도 안에서 가장 가까운 ChainOutSocket을 찾는다.
         /// </summary>
         private ChainOutSocket FindSnapOutSocket(out float bestSqr)
         {
@@ -1230,7 +1253,7 @@ namespace Game
                 if (!candidate.CanAccept(this)) continue;
 
                 Vector2 delta = myPos - (Vector2)candidate.transform.position;
-                if (delta.y >= 0f) continue;
+                if (!IsWithinChainSnapAngle(delta)) continue;
 
                 float sqr = delta.sqrMagnitude;
                 if (sqr < minSqr)
@@ -1245,7 +1268,7 @@ namespace Game
         }
 
         /// <summary>
-        /// 방향 제한 없이 반경 안에서 가장 가까운 InnerSocket(FlowControl 내부 진입)을 찾는다.
+        /// 체인 연결과 같은 반경·각도 안에서 가장 가까운 InnerSocket(FlowControl 내부 진입)을 찾는다.
         /// </summary>
         private InnerSocket FindSnapInnerSocket(out float bestSqr)
         {
@@ -1265,7 +1288,7 @@ namespace Game
                 if (!candidate.CanAccept(this)) continue;
 
                 Vector2 delta = myPos - (Vector2)candidate.transform.position;
-                if (delta.y >= 0f) continue; // 3·4사분면(하단)만 허용
+                if (!IsWithinChainSnapAngle(delta)) continue;
 
                 float sqr = delta.sqrMagnitude;
                 if (sqr < minSqr)
@@ -1280,11 +1303,12 @@ namespace Game
         }
 
         /// <summary>
-        /// 허용된 블록 조합 규칙에 맞는 우측 값 연결부(ValueOutSocket)를 찾는다.
+        /// 허용된 블록 조합 규칙에 맞는 우측 값 연결부(ValueOutSocket)를 반경·각도 안에서 찾는다.
         /// </summary>
-        private ValueOutSocket FindSnapValueOutSocket()
+        private ValueOutSocket FindSnapValueOutSocket(out float bestSqr)
         {
             // Logic(그리고)은 조건 블록의 ConditionOut에만 연결 — 만약 헤더 슬롯 직접 스냅 금지
+            bestSqr = float.MaxValue;
             if (Category == BlockCategory.Logic) return null;
 
             EnsureDragCache();
@@ -1317,7 +1341,7 @@ namespace Game
                 }
 
                 Vector2 delta = myPos - (Vector2)candidate.transform.position;
-                if (delta.x <= 0f) continue;
+                if (!IsWithinHorizontalSnapAngle(delta)) continue;
 
                 float sqr = delta.sqrMagnitude;
                 if (sqr < minSqr)
@@ -1327,14 +1351,16 @@ namespace Game
                 }
             }
 
+            if (best) bestSqr = minSqr;
             return best;
         }
 
         /// <summary>
-        /// ConditionInSocket 기준으로 가장 가까운 ConditionOutSocket을 찾는다.
+        /// ConditionInSocket 기준으로 반경·각도 안에서 가장 가까운 ConditionOutSocket을 찾는다.
         /// </summary>
-        private ConditionOutSocket FindSnapConditionOutSocket()
+        private ConditionOutSocket FindSnapConditionOutSocket(out float bestSqr)
         {
+            bestSqr = float.MaxValue;
             EnsureDragCache();
             if (!TryGetHorizontalSnapOrigin(_conditionInSocket, out Vector2 myPos)) return null;
 
@@ -1356,7 +1382,7 @@ namespace Game
                 }
 
                 Vector2 delta = myPos - (Vector2)candidate.transform.position;
-                if (delta.x <= 0f) continue;
+                if (!IsWithinHorizontalSnapAngle(delta)) continue;
 
                 float sqr = delta.sqrMagnitude;
                 if (sqr < minSqr)
@@ -1366,6 +1392,7 @@ namespace Game
                 }
             }
 
+            if (best) bestSqr = minSqr;
             return best;
         }
 

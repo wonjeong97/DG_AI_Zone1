@@ -271,14 +271,6 @@ namespace Scenes
                 nextScene = Constants.Scenes.Title;
             }
 
-            // 미션 성공·실패와 상관없이 다음 레벨을 연다(기획 확인, 2026-10-02).
-            // 이미 해금된 이전 레벨을 다시 플레이한 경우엔 진행도를 건드리지 않는다.
-            // 무조건 +1 하면 재플레이만으로 아직 깨지 않은 레벨까지 해금돼버린다.
-            if (_session != null && _session.currentLevel)
-                _session.unlockedLevelIndex = Mathf.Max(_session.unlockedLevelIndex, _session.currentLevel.levelIndex + 1);
-            else if (_logger != null)
-                _logger.ZLogWarning($"[ResultSequence] 현재 레벨 정보가 없어 진행도를 갱신하지 않고 {nextScene}(으)로 이동합니다.");
-
             if (_logger != null) _logger.ZLogInformation($"[ResultSequence] {VisitorInfoProvider.LogSubjectOf(_visitorInfoProvider)} 결과 화면에서 다음을 누름 — {nextScene}(으)로 이동함.");
 
             // 연타해도 enter 한 번에 exit는 한 번만 나간다
@@ -335,6 +327,9 @@ namespace Scenes
 
             UploadLevelResult(isSuccess);
             SendArduinoResult(percent);
+
+            // 서버에 결과를 올리는 순간과 같이 이 레벨을 완료로 본다 — 레벨 선택 화면이 V를 붙인다(넘어가기도 실패로 올라가므로 포함)
+            _session.completedLevelIndices.Add(_session.currentLevel.levelIndex);
 
             _missionResultSound = isSuccess ? Constants.Sounds.MissionSuccess : Constants.Sounds.MissionFailed;
 
