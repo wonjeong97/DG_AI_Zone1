@@ -257,13 +257,13 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 다음 레벨로 진행한다 — 방금 플레이한 레벨의 AfterResultScene을 따라간다 (마지막 레벨은 5_Outro).
+        /// 어느 레벨이든 레벨 선택 화면으로 돌아간다 — 아웃트로는 다섯 레벨을 모두 마친 뒤 레벨 선택 화면의 종료하기 버튼으로만 간다.
         /// </summary>
         private void OnNextClicked()
         {
             // 관리자 레벨 이동으로 시작한 판이면 타이틀의 관리자 화면으로 돌아간다.
             if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
-            string nextScene = _session != null && _session.currentLevel ? _session.currentLevel.AfterResultScene : Constants.Scenes.Story;
+            string nextScene = Constants.Scenes.Story;
 
             if (_session != null && _session.isAdminLevelJump)
             {

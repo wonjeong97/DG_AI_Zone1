@@ -4,6 +4,21 @@ Claude가 Antigravity(agy)와 리뷰 서브에이전트에 맡긴 검증 기록.
 
 ---
 
+### [2026-10-28 14:17] Claude → Antigravity + 서브에이전트 · V 표시 자리·종료하기 버튼·효율 표시 (chore/level-complete-icon, PR #108)
+- 요청: 임시 V 그림 위쪽 연두색 타원 빼기, V를 레벨 그림 아래 가운데로 — 그림과 겹치지 않게.
+- 변경: Icon_LevelComplete.png를 같은 파일로 다시 그림(GUID 유지), 2_Story Image_Complete 5개를 앵커 (0.5,0)·피벗 (0.5,1)·위치 (0,0)으로(윗변 = 버튼 영역 아래 끝, 레벨 그림 아래 투명 여백 8~25px라 어느 레벨도 안 겹침).
+- Claude 확인: GUID·스프라이트 연결 5/5, Play 모드에서 모든 레벨 V를 켜고 화면 캡처 — 다섯 개 모두 그림 아래 가운데, 아래 줄 별과 약 11px 떨어짐.
+- agy (gemini-4-argon-high, 1묶음): 씬 값(5개 동일·다른 값 그대로)·meta GUID·콘솔 → 통과.
+- 추가 요청(같은 브랜치): 결과 화면 다음 버튼은 어느 레벨이든 레벨 선택으로, V 5개일 때만 레벨 선택 우하단(시작하기 자리)에 종료하기 버튼 → 누르면 아웃트로. LevelData.goToOutroAfterResult·AfterResultScene 삭제(데이터 5개 직렬화 줄도), StoryManager endButton·AreAllLevelsCompleted·OnEndClicked(_currentLevel·IsLoading이면 무시), 버튼은 Button_Action 그림 + 아웃트로 '처음으로'와 같은 TMP.
+  - Claude 확인: 컴파일 에러 0, PlayMode 252/252, Play 모드 — 시작 때 숨김, 레벨1~4 완료로 레벨5 결과 다음 → 2_Story(V 5개, 종료하기 보임, 화면 캡처) → 누르면 5_Outro.
+  - agy (1묶음): 씬(위치·크기·그림·버튼 색·TMP·연결)·콘솔 → 통과.
+  - 교차 검증 (agy gemini-4-argon-high + 서브에이전트, 1묶음): 표시 조건·경합(레벨 고른 직후·전환 중·관리자 판) → 둘 다 통과. 결과 다음 흐름·삭제한 필드 사용처 → 둘 다 통과. 서브에이전트만 확인 필요(낮음): 같은 프레임에 종료하기와 레벨 버튼을 두 손가락으로 함께 떼면 enter 뒤 exit 없이 아웃트로로 갈 수 있음 → 기록만(한 사람·터치 전제, 레벨 선택 < 버튼도 같은 구조).
+- 추가 요청(PR #108을 연 뒤 같은 PR에 추가): 결과 화면 에너지 효율 한 자리 수를 2%로 — EfficiencyFormat '{0:D2}%' → '{0}%', 4_Result 미리 적힌 글자 00% → 0%, 테스트 4건. Claude 확인: 컴파일 에러 0, PlayMode 256/256. agy (1묶음): 효율 표시 경로·형식·씬 글자 대상·콘솔 → 통과.
+- 머지 전 최종 리뷰:
+  - 교차 검증 (agy gemini-4-argon-high + 서브에이전트, 1묶음): 세 변경을 합친 흐름(레벨 선택 → 결과 → 레벨 선택 → 종료하기 → 아웃트로, enter·exit 짝, 관리자 판)·삭제한 필드 사용처 → 둘 다 통과. 서브에이전트만 확인 필요: 서버 기록으로 V 5개인 체험자는 첫 레벨 선택 화면부터 종료하기가 보임(요청한 V 기준대로), 다섯 레벨을 마치고 종료하기 없이 떠나면 move_idle_timeout으로 집계 → CHANGELOG에 적음.
+  - 서브에이전트 (1묶음): 문서 → 중간 1건(같은 날짜 섹션에 'V 별 오른쪽 추가'와 'V를 별 오른쪽에서 옮김'이 함께 남음 → V 항목을 최종 자리로 고치고 옮김 문장 삭제), 낮음 1건(HANDOFF 제목 검토자) → 반영. CHANGELOG를 [2026-10-28] 섹션으로 합침.
+  - Claude 확인: Unity 콘솔 컴파일·실행 에러 0(MCP 재연결 뒤).
+
 ### [2026-10-28 14:10] Claude → Antigravity + 서브에이전트 · 힌트 창 레벨3·4·5 레퍼런스 맞추기 (feat/hint-level3-5-ref)
 - 요청: Ref3·4·5와 같은 화면으로(레벨3은 문구 위치·테두리 상자·물 위 파란 줄), 레벨4는 새 밤 건물 그림, 넣은 리소스는 영어 이름으로. 작업 중 요청: 없는 리소스는 달라고 할 것 → 전구·파란 줄·레벨5 새 연구소 그림을 사용자가 추가.
 - 변경: 3_Game HintPanel의 Level3·4·5Panel에 Image_TextBox(Hint_TextBox 9-slice) 추가 후 Text_Rule을 그 아래로(레벨5는 새 Text_Rule), 레벨3 Image_WaterLine 2개·Image_Dam 74.5px 아래로·'수위'·Text_Meter 위치와 글자, 레벨4 합성 Image_PowerPlant를 지우고 전선 2·밤 건물 3·전구 이미지와 TMP 라벨 3개로, 레벨5 Image_Lab 1039×579. 03_HydroData hintRuleFormat의 [{0}] → {0}. 리소스는 Assets/UI/3_Game/Hint_* 로 옮겨 이름 변경, Hint_Level5_Lab.png는 내용만 덮어써 GUID 유지, 옛 Hint_Level4_PowerPlant.png 삭제, Ref 이미지는 드라이브 references로.

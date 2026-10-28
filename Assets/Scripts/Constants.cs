@@ -182,8 +182,8 @@ public static class Constants
         public const float NormalThresholdPercent = 50f;
         public const float GoodThresholdPercent   = 75f;
 
-        // 효율 숫자 — '에너지 효율' 이름표는 배지 이미지 위 고정 텍스트
-        public const string EfficiencyFormat = "{0:D2}%";
+        // 효율 숫자 — '에너지 효율' 이름표는 배지 이미지 위 고정 텍스트. 한 자리 수도 앞에 0을 붙이지 않는다(2%, 02% 아님)
+        public const string EfficiencyFormat = "{0}%";
 
         // 결과 텍스트는 폭이 좁아 조건식의 '그리고'를 가운뎃점으로 줄여 쓴다
         public const string ConditionAndSeparator = "·";

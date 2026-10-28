@@ -35,4 +35,3 @@ MonoBehaviour:
     correctAnswer: 
     hintObjectName: 
   hintRuleFormat: 
-  goToOutroAfterResult: 1
