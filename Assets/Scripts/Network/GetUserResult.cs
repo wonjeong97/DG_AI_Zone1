@@ -13,7 +13,7 @@ namespace Network
     /// </summary>
     public readonly struct GetUserResult
     {
-        private const int NoRecord = -1;
+        private const int NoRecord = 0;
         private const string NullValue = "null";
 
         // JsonUtility는 int 칸의 null과 0을 구분하지 못해 이 존의 레벨 값("A1": 1 등)은 정규식으로 직접 읽는다
@@ -22,21 +22,27 @@ namespace Network
 
         public bool IsFound { get; }
 
-        // 기록(성공·실패)이 있는 이 존의 마지막 레벨 순번(0부터) — 기록이 없으면 -1
-        public int LastRecordedLevelIndex { get; }
+        // 기록(성공·실패)이 있는 이 존의 레벨 — 레벨 순번(0부터)번째 비트가 켜져 있다
+        private readonly int _recordedLevelMask;
 
         // 진행도를 읽지 못한 이유 — 응답에 uid·이름이 있어 원문 대신 이것만 로그에 남긴다
         public string FailReason { get; }
 
         /// <summary>
-        /// 찾음 여부, 마지막 기록 레벨 순번, 실패 사유로 결과를 만든다.
+        /// 찾음 여부, 기록이 있는 레벨, 실패 사유로 결과를 만든다.
         /// </summary>
-        private GetUserResult(bool isFound, int lastRecordedLevelIndex, string failReason)
+        private GetUserResult(bool isFound, int recordedLevelMask, string failReason)
         {
             IsFound = isFound;
-            LastRecordedLevelIndex = lastRecordedLevelIndex;
+            _recordedLevelMask = recordedLevelMask;
             FailReason = failReason;
         }
+
+        /// <summary>
+        /// 이 존의 레벨(순번 0부터)에 성공·실패 기록이 있는지 돌려준다.
+        /// </summary>
+        public bool IsRecorded(int levelIndex) =>
+            levelIndex >= 0 && levelIndex < Constants.VisitorApi.LevelCount && (_recordedLevelMask & (1 << levelIndex)) != 0;
 
         /// <summary>
         /// 진행도를 읽지 못한 결과를 만든다.
@@ -49,7 +55,7 @@ namespace Network
         public static GetUserResult Parse(string body)
         {
             // JSON 앞뒤에 붙은 글자는 무시하고, result가 true일 때만 찾은 것으로 보며,
-            // 이 존의 레벨(A1~A5) 값 중 null이 아닌 마지막 레벨을 찾는다.
+            // 이 존의 레벨(A1~A5) 값 중 null이 아닌 레벨을 모은다.
             if (string.IsNullOrWhiteSpace(body)) return Failed("빈 응답");
 
             string json = ApiJson.ExtractObject(body);
@@ -68,18 +74,18 @@ namespace Network
             if (response == null) return Failed("빈 응답");
             if (!response.result) return Failed(string.IsNullOrEmpty(response.message) ? "result false" : response.message);
 
-            int lastRecordedLevelIndex = NoRecord;
+            int recordedLevelMask = NoRecord;
             foreach (Match match in ZoneLevelPattern.Matches(json))
             {
                 if (match.Groups[2].Value == NullValue) continue;
 
-                // 이 존의 레벨(A1~A5)만 본다 — 서버에 A6처럼 없는 레벨 키가 생겨도 마지막 레벨까지 열지 않게 한다
+                // 이 존의 레벨(A1~A5)만 본다 — 서버에 A6처럼 없는 레벨 키가 생겨도 없는 레벨을 기록으로 세지 않는다
                 if (int.TryParse(match.Groups[1].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int levelNumber)
                     && levelNumber >= 1 && levelNumber <= Constants.VisitorApi.LevelCount)
-                    lastRecordedLevelIndex = Math.Max(lastRecordedLevelIndex, levelNumber - 1);
+                    recordedLevelMask |= 1 << (levelNumber - 1);
             }
 
-            return new GetUserResult(true, lastRecordedLevelIndex, null);
+            return new GetUserResult(true, recordedLevelMask, null);
         }
 
         // 응답 최상위의 성공 여부와 실패 메시지만 JsonUtility로 읽는다 — 필드 이름은 서버 JSON 키와 같아야 한다

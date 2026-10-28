@@ -377,7 +377,7 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 서버에 체험 가능 여부(checkActive)와 진행도(getUser)를 물어 체험자와 해금 레벨을 기록하고,
+        /// 서버에 체험 가능 여부(checkActive)와 진행도(getUser)를 물어 체험자와 완료 레벨을 기록하고,
         /// 체험할 수 없으면 하단에 보여 줄 안내 문구를, 확인되면 null을, 그사이 관리자 화면이 열려 버렸으면 discarded를 돌려준다.
         /// </summary>
         private async UniTask<(bool discarded, string failMessage)> ConfirmVisitorAsync(string uid, CancellationToken ct)
@@ -401,9 +401,12 @@ namespace Scenes
             else if (_logger != null)
                 _logger.ZLogWarning($"[TitleSceneManager] VisitorInfoProvider가 주입되지 않아 확인한 체험자를 기록하지 못했습니다.");
 
-            // 성공·실패와 상관없이 기록이 있는 마지막 레벨의 다음 레벨까지 연다 — 로컬 진행 규칙(ResultSequence.OnNextClicked)과 같다
+            // 성공·실패와 상관없이 기록이 있는 레벨은 레벨 선택 화면에 V를 붙인다 — 결과 화면까지 간 레벨(ResultSequence)과 같다
             if (_session != null)
-                _session.unlockedLevelIndex = progress.LastRecordedLevelIndex + 1;
+            {
+                for (int i = 0; i < Constants.VisitorApi.LevelCount; i++)
+                    if (progress.IsRecorded(i)) _session.completedLevelIndices.Add(i);
+            }
             else if (_logger != null)
                 _logger.ZLogWarning($"[TitleSceneManager] GameSession이 주입되지 않아 서버 진행도를 반영하지 못했습니다.");
 
@@ -449,12 +452,12 @@ namespace Scenes
         }
 
         /// <summary>
-        /// 확인했던 체험자와 서버 진행도로 연 해금 레벨을 비운다 — 다음 사람의 QR로 다시 확인하거나 대기 시간이 지났을 때.
+        /// 확인했던 체험자와 서버 진행도로 채운 완료 레벨을 비운다 — 다음 사람의 QR로 다시 확인하거나 대기 시간이 지났을 때.
         /// </summary>
         private void ClearConfirmedVisitor()
         {
             if (_visitorInfoProvider != null) _visitorInfoProvider.ClearServerVisitor();
-            if (_session != null) _session.unlockedLevelIndex = 0;
+            if (_session != null) _session.completedLevelIndices.Clear();
         }
 
         /// <summary>
@@ -512,7 +515,7 @@ namespace Scenes
 
                 await UniTask.Delay(TimeSpan.FromSeconds(settings.resetTime), DelayType.UnscaledDeltaTime, cancellationToken: ct);
 
-                // 관리자 레벨 이동으로 타이틀을 떠나는 중이면 체험자 대기가 아니므로 시간 초과 로그와 해금 초기화를 하지 않는다
+                // 관리자 레벨 이동으로 타이틀을 떠나는 중이면 체험자 대기가 아니므로 시간 초과 로그와 완료 레벨 초기화를 하지 않는다
                 if (_session != null && _session.isAdminLevelJump) return;
 
                 if (_logger != null) _logger.ZLogInformation($"[TitleSceneManager] {VisitorInfoProvider.LogSubjectOf(_visitorInfoProvider)} {settings.resetTime}초 동안 시작하기를 누르지 않아 QR 대기로 돌아감.");

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Network;
 using NUnit.Framework;
 
@@ -55,30 +56,56 @@ namespace DG.Zone1.Tests
                 .Replace(@"""A5"": null", @"""A5"": " + a5);
 
         /// <summary>
-        /// 기록이 하나도 없으면 찾았지만 마지막 기록 레벨은 -1이다(레벨1만 열림).
+        /// 기록이 있는 이 존의 레벨 순번(0부터)을 차례로 모은다.
+        /// </summary>
+        private static List<int> RecordedLevels(GetUserResult result)
+        {
+            List<int> levels = new List<int>();
+            for (int i = 0; i < Constants.VisitorApi.LevelCount; i++)
+                if (result.IsRecorded(i)) levels.Add(i);
+            return levels;
+        }
+
+        /// <summary>
+        /// 기록이 하나도 없으면 찾았지만 기록이 있는 레벨은 없다(레벨 선택 화면에 V 없음).
         /// </summary>
         [Test]
-        public void 기록이_없으면_마지막_기록_레벨은_없다()
+        public void 기록이_없으면_기록이_있는_레벨이_없다()
         {
             GetUserResult result = GetUserResult.Parse(AllNullBody);
 
             Assert.IsTrue(result.IsFound);
-            Assert.AreEqual(-1, result.LastRecordedLevelIndex);
+            CollectionAssert.IsEmpty(RecordedLevels(result));
         }
 
         /// <summary>
-        /// 성공(1)·실패(0) 모두 기록으로 보고, 값이 있는 마지막 레벨의 순번을 돌려준다.
+        /// 성공(1)·실패(0) 모두 기록으로 보고 값이 있는 레벨만 기록이 있다 — 사이에 빈 레벨이 있으면 그 레벨은 기록이 없다.
         /// </summary>
-        [TestCase("1", "null", "null", "null", "null", 0)]
-        [TestCase("1", "0", "null", "null", "null", 1)]
-        [TestCase("0", "null", "0", "null", "null", 2)]
-        [TestCase("1", "1", "1", "1", "1", 4)]
-        public void 값이_있는_마지막_레벨을_찾는다(string a1, string a2, string a3, string a4, string a5, int expected)
+        [TestCase("1", "null", "null", "null", "null", new[] { 0 })]
+        [TestCase("1", "0", "null", "null", "null", new[] { 0, 1 })]
+        [TestCase("0", "null", "0", "null", "null", new[] { 0, 2 })]
+        [TestCase("null", "null", "null", "null", "1", new[] { 4 })]
+        [TestCase("1", "1", "1", "1", "1", new[] { 0, 1, 2, 3, 4 })]
+        public void 값이_있는_레벨만_기록이_있다(string a1, string a2, string a3, string a4, string a5, int[] expected)
         {
             GetUserResult result = GetUserResult.Parse(WithValues(a1, a2, a3, a4, a5));
 
             Assert.IsTrue(result.IsFound);
-            Assert.AreEqual(expected, result.LastRecordedLevelIndex);
+            CollectionAssert.AreEqual(expected, RecordedLevels(result));
+        }
+
+        /// <summary>
+        /// 이 존에 없는 레벨 순번을 물으면 기록이 없다고 답한다 — C# 시프트는 32로 나눈 나머지만 써서(1 &lt;&lt; 32 == 1) 범위 검사가 없으면 32·-32가 레벨1 기록으로 읽힌다.
+        /// </summary>
+        [TestCase(-1)]
+        [TestCase(Constants.VisitorApi.LevelCount)]
+        [TestCase(32)]
+        [TestCase(-32)]
+        public void 범위_밖_레벨은_기록이_없다(int levelIndex)
+        {
+            GetUserResult result = GetUserResult.Parse(WithValues("1", "1", "1", "1", "1"));
+
+            Assert.IsFalse(result.IsRecorded(levelIndex));
         }
 
         /// <summary>
@@ -89,7 +116,7 @@ namespace DG.Zone1.Tests
         {
             string body = AllNullBody.Replace(@"""B1"": null", @"""B1"": 1").Replace(@"""D5"": null", @"""D5"": 0");
 
-            Assert.AreEqual(-1, GetUserResult.Parse(body).LastRecordedLevelIndex);
+            CollectionAssert.IsEmpty(RecordedLevels(GetUserResult.Parse(body)));
         }
 
         /// <summary>
@@ -101,11 +128,11 @@ namespace DG.Zone1.Tests
             GetUserResult result = GetUserResult.Parse(WithValues("\"1\"", "\"0\"", "null", "null", "null"));
 
             Assert.IsTrue(result.IsFound);
-            Assert.AreEqual(1, result.LastRecordedLevelIndex);
+            CollectionAssert.AreEqual(new[] { 0, 1 }, RecordedLevels(result));
         }
 
         /// <summary>
-        /// 이 존에 없는 레벨 키(A0·A6·A10)는 무시해, 없는 레벨 기록 때문에 마지막 레벨까지 열리지 않는다.
+        /// 이 존에 없는 레벨 키(A0·A6·A10)는 무시해, 없는 레벨 기록을 이 존의 레벨 기록으로 세지 않는다.
         /// </summary>
         [Test]
         public void 이_존에_없는_레벨_키는_무시한다()
@@ -116,7 +143,7 @@ namespace DG.Zone1.Tests
             GetUserResult result = GetUserResult.Parse(body);
 
             Assert.IsTrue(result.IsFound);
-            Assert.AreEqual(0, result.LastRecordedLevelIndex);
+            CollectionAssert.AreEqual(new[] { 0 }, RecordedLevels(result));
         }
 
         /// <summary>
@@ -130,7 +157,7 @@ namespace DG.Zone1.Tests
             GetUserResult result = GetUserResult.Parse(prefix + WithValues("1", "0", "null", "null", "null") + suffix);
 
             Assert.IsTrue(result.IsFound);
-            Assert.AreEqual(1, result.LastRecordedLevelIndex);
+            CollectionAssert.AreEqual(new[] { 0, 1 }, RecordedLevels(result));
         }
 
         /// <summary>
@@ -171,7 +198,7 @@ namespace DG.Zone1.Tests
             GetUserResult result = GetUserResult.Parse(body);
 
             Assert.IsFalse(result.IsFound);
-            Assert.AreEqual(-1, result.LastRecordedLevelIndex);
+            CollectionAssert.IsEmpty(RecordedLevels(result));
         }
     }
 }
