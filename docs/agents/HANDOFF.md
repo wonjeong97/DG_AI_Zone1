@@ -12,6 +12,8 @@ Claude가 Antigravity(agy)와 리뷰 서브에이전트에 맡긴 검증 기록.
   - 씬 참조(스프라이트 guid·Raycast, HintPanel 참조·부모 자식 연결, 지운 그림 참조·고아 컴포넌트) → 통과
 - 서브에이전트 (1묶음):
   - hintRuleFormat·텍스처 import·9-slice 크기·Ref 렌더 비교 → 통과. 참고: 레벨4 발전소 왼쪽 끝이 Ref보다 약 5px 오른쪽 → 기록만(밤·낮 그림 폭 차이, 외곽 겹침이 가장 큰 자리)
+- 추가 요청: 레벨3 높이가 '10m'이면 문구 상자 오른쪽 여백이 없음, 레벨5 '함수 사용하기 힌트' → '함수 실행하기 힌트'. 레벨3 Image_TextBox를 pivot 왼쪽(x -683 고정)으로 바꾸고 HorizontalLayoutGroup(여백 24·23)·ContentSizeFitter(가로 PreferredSize)를 붙임. Claude 확인: 1m 렌더는 상자 277~825(Ref 277~826)·글자 1px 안, 10m은 상자 277~848·글자 끝 822(오른쪽 여백 26), PlayMode 252/252(뒤에 EditorSettings·TMP 폰트 되돌림). 씬 저장에 사용자가 에디터에서 바꾼 GameSceneManager.testLevel(레벨1 → 레벨5)이 함께 들어가 따로 etc 커밋.
+  - agy (gemini-4-argon-high, 1묶음): 레이아웃·실행 중 폭 재계산 흐름, 레벨5 문구 한 단어 변경, 콘솔 → 통과
 - 남은 것: Ref의 판 테두리·'힌트' 제목·닫기 버튼 위치는 지금 씬과 몇 px~25px 다르지만 레벨1·2와 함께 쓰는 부분이라 그대로 둠. 레벨4 새 전선이 옛 전선보다 세로로 13px 길어 병원 쪽 끝을 맞추고 가로 부분은 8px 위에 둠.
 
 ### [2026-10-28 11:55] Claude → Antigravity + 서브에이전트 · 레벨 선택 화면 수정 7건 (feat/level-select-home-function-link)
