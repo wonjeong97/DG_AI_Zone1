@@ -4,6 +4,20 @@ Claude가 Antigravity(agy)와 리뷰 서브에이전트에 맡긴 검증 기록.
 
 ---
 
+### [2026-10-28 11:55] Claude → Antigravity + 서브에이전트 · 레벨 선택 화면 수정 7건 (feat/level-select-home-function-link)
+- 요청: 모든 레벨 처음부터 해금, 완료 레벨 V, 인트로 홈·레벨 선택 홈과 < 버튼(홈은 move_idle), 시작하기 블록 고정, 체인 범위 200도·180px, 레벨5 함수 탭 분리, 두 함수 블록 연결 연출. V 기준·< 목적지·연출 모양은 질문으로 사용자 결정(결과 화면+서버 기록, 레벨 선택 <는 인트로, 흐르는 점선).
+- 변경: GameSession.completedLevelIndices·GetUserResult.IsRecorded로 해금을 V 표시로 바꿈, HomeButton 컴포넌트와 2_Story < 버튼 하나로 분기, CodingBlock 시작하기 조기 반환·체인 각도 판정(3_Game.json chainSnapAngle), 함수 탭 분리, FunctionLinkLine(Content 첫 자식 RawImage, 머티리얼 오프셋으로 흐름).
+- Claude 확인: Rider·컴파일 에러 0, PlayMode 241/241 → 리뷰 반영 뒤 244/244(뒤에 EditorSettings 되돌림). Play 모드 화면 캡처 — 레벨 선택 <·홈 위치가 레퍼런스와 같음, 레벨 1·3에만 V, 레벨 버튼 모두 눌림(씬에 2~5가 비활성으로 저장돼 있어 고침), 스토리 화면 <·홈, 함수 탭 3개, 점선 표시·흐름(두 캡처 비교)·블록 목록으로 되돌리면 숨김, 홈 → 타이틀·move_idle 로그, 레벨 선택 < → 인트로.
+- agy (gemini-4-argon-high, 1묶음):
+  - 씬 참조·배치·콘솔 → 통과
+- 서브에이전트 (1묶음):
+  - 함수 탭·연결 점선 → 통과, 낮음 1건(dotSpacing 0이면 NaN) → [Min(1)]로 반영
+- 교차 검증 (agy gemini-4-argon-high + 서브에이전트, 3묶음):
+  - 완료 레벨 채우기·비우기, GetUserResult → 둘 다 통과. 서브에이전트만 낮음 3건(관리자 레벨 이동 때 앞 체험자 V가 잠깐 보임 → 비우게 반영, 범위 테스트가 범위 검사를 못 잡음 → 32·-32 추가, 해금 시절 주석 3곳 → 고침)
+  - 홈·뒤로 연타·exit·인트로 터치 제외 → 둘 다 통과. agy 확인 필요(캔버스가 Camera 모드면 좌표 판정) → 오탐: 두 씬 모두 Overlay. 서브에이전트만 낮음(CLAUDE.md exit 시점에 홈 없음 → 반영)
+  - 시작하기 고정·체인 각도·기즈모·설정 보정 → 둘 다 통과. 서브에이전트만 낮음(보정 경고 문구에 각도 없음 → 반영, JSON을 숫자로 고정한 테스트 → 코드 기본값 비교로 바꿈)
+- 남은 것: 홈을 이름·스토리 연출 중에 누르면 연출이 먼저 건너뛰어짐(곧 씬을 떠나 그대로 둠), 관리자 레벨 이동 판에서도 홈이 move_idle을 보냄(게임 중 타임아웃과 같은 동작), V 그림은 임시, 함수 두 탭 색이 같음.
+
 ### [2026-10-25] Claude → Antigravity + 서브에이전트 · 머지 전 최종 리뷰 PR #105 (feat/result-block-speed-zone4)
 - 요청: PR 리뷰 후 고칠 점이 없으면 머지, 사용자 변경(3_Game.unity testLevel 등)은 되돌리기. 리뷰 중 추가 요청: 게임 화면 코딩 완료 뒤 비활성 버튼이 연해지지 않게.
 - agy (gemini-4-argon-high, 3묶음):
