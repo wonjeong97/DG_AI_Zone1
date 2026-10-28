@@ -4,6 +4,12 @@ Claude가 Antigravity(agy)와 리뷰 서브에이전트에 맡긴 검증 기록.
 
 ---
 
+### [2026-10-28 14:17] Claude → Antigravity · V 표시 그림·자리 조정 (chore/level-complete-icon)
+- 요청: 임시 V 그림 위쪽 연두색 타원 빼기, V를 레벨 그림 아래 가운데로 — 그림과 겹치지 않게.
+- 변경: Icon_LevelComplete.png를 같은 파일로 다시 그림(GUID 유지), 2_Story Image_Complete 5개를 앵커 (0.5,0)·피벗 (0.5,1)·위치 (0,0)으로(윗변 = 버튼 영역 아래 끝, 레벨 그림 아래 투명 여백 8~25px라 어느 레벨도 안 겹침).
+- Claude 확인: GUID·스프라이트 연결 5/5, Play 모드에서 모든 레벨 V를 켜고 화면 캡처 — 다섯 개 모두 그림 아래 가운데, 아래 줄 별과 약 11px 떨어짐.
+- agy (gemini-4-argon-high, 1묶음): 씬 값(5개 동일·다른 값 그대로)·meta GUID·콘솔 → 통과.
+
 ### [2026-10-28 14:10] Claude → Antigravity + 서브에이전트 · 힌트 창 레벨3·4·5 레퍼런스 맞추기 (feat/hint-level3-5-ref)
 - 요청: Ref3·4·5와 같은 화면으로(레벨3은 문구 위치·테두리 상자·물 위 파란 줄), 레벨4는 새 밤 건물 그림, 넣은 리소스는 영어 이름으로. 작업 중 요청: 없는 리소스는 달라고 할 것 → 전구·파란 줄·레벨5 새 연구소 그림을 사용자가 추가.
 - 변경: 3_Game HintPanel의 Level3·4·5Panel에 Image_TextBox(Hint_TextBox 9-slice) 추가 후 Text_Rule을 그 아래로(레벨5는 새 Text_Rule), 레벨3 Image_WaterLine 2개·Image_Dam 74.5px 아래로·'수위'·Text_Meter 위치와 글자, 레벨4 합성 Image_PowerPlant를 지우고 전선 2·밤 건물 3·전구 이미지와 TMP 라벨 3개로, 레벨5 Image_Lab 1039×579. 03_HydroData hintRuleFormat의 [{0}] → {0}. 리소스는 Assets/UI/3_Game/Hint_* 로 옮겨 이름 변경, Hint_Level5_Lab.png는 내용만 덮어써 GUID 유지, 옛 Hint_Level4_PowerPlant.png 삭제, Ref 이미지는 드라이브 references로.
