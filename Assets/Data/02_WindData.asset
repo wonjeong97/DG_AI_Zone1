@@ -38,4 +38,3 @@ MonoBehaviour:
     correctAnswer: "\uBD81\uCABD"
     hintObjectName: Image_Wind_North
   hintRuleFormat: 
-  goToOutroAfterResult: 0

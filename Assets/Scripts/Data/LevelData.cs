@@ -42,12 +42,6 @@ namespace Data
         [TextArea(2, 4)]
         public string hintRuleFormat;
 
-        // 씬 이름을 에셋에 직렬화하면 씬 리네임 시 낡은 값이 남으므로, 여부만 저장하고 씬 이름은 Constants에서 고른다
-        [Tooltip("체크하면 4_Result에서 '다음' 클릭 시 5_Outro로, 아니면 2_Story로 이동 (마지막 레벨에서 체크)")]
-        public bool goToOutroAfterResult;
-
-        public string AfterResultScene => goToOutroAfterResult ? Constants.Scenes.Outro : Constants.Scenes.Story;
-
         /// <summary>
         /// 문제 값 후보 중 하나를 무작위로 고른다 (후보가 없으면 null).
         /// </summary>

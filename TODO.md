@@ -21,6 +21,7 @@
 
 ## 완료
 
+- [x] 결과 화면 다음 버튼은 어느 레벨이든 레벨 선택으로, V 5개일 때만 레벨 선택 우하단(시작하기 자리)에 '종료하기' 버튼(Button_Action 그림 + TMP, 누르면 아웃트로) — LevelData.goToOutroAfterResult 삭제 — PlayMode 252/252, Play 모드로 레벨5 결과 → 레벨 선택 → 종료하기 → 아웃트로 확인 — 담당: Claude / 검증: Antigravity + 서브에이전트 (2026-10-28)
 - [x] 레벨 선택 화면 V 표시 — 임시 그림 위쪽 연두색 타원 빼기(같은 파일로 다시 그려 GUID 유지), 자리를 별 오른쪽에서 레벨 그림 아래 가운데(그림과 겹치지 않게)로 — Play 모드 화면 캡처로 확인 — 담당: Claude / 검증: Antigravity (2026-10-28)
 
 - [x] 힌트 창 레벨3 문구 상자가 높이 '10m'일 때 오른쪽 여백이 없던 것 수정 — 상자 왼쪽 끝을 고정하고 HorizontalLayoutGroup(여백 24·23)·ContentSizeFitter로 글자 폭에 맞춰 늘어나게(1m는 Ref와 같은 550px, 10m는 573px), 레벨5 문구 '함수 사용하기 힌트' → '함수 실행하기 힌트' — PlayMode 252/252, 1m·10m 렌더 확인 — 담당: Claude / 검증: Antigravity (2026-10-28)

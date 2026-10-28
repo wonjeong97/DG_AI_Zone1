@@ -43,4 +43,3 @@ MonoBehaviour:
     correctAnswer: "\uC11C\uCABD"
     hintObjectName: 4PM
   hintRuleFormat: 
-  goToOutroAfterResult: 0

@@ -32,6 +32,8 @@ namespace Scenes
         [SerializeField] private GameObject[] levelCompleteMarks;
         [Tooltip("화면 좌상단 < 버튼 — 레벨 선택 화면이면 인트로로, 스토리 화면이면 레벨 선택 화면으로(관리자 레벨 이동이면 타이틀의 관리자 화면으로) 돌아간다")]
         [SerializeField] private Button backButton;
+        [Tooltip("레벨 선택 화면 우하단(스토리 화면 시작하기 자리) 종료하기 버튼 — 다섯 레벨에 모두 V가 붙었을 때만 보이고, 누르면 아웃트로로 간다")]
+        [SerializeField] private Button endButton;
         [SerializeField] private VideoPlayer robotVideoPlayer;
         [Tooltip("선택한 레벨 버튼이 스토리 화면으로 옮겨가 고정되는 위치 — 스토리 패널과 함께 보이도록 둔다")]
         [SerializeField] private Vector2 selectedLevelButtonPosition = new(-513f, -75f);
@@ -61,7 +63,7 @@ namespace Scenes
         private LevelData _currentLevel;
 
         /// <summary>
-        /// 레벨 선택 화면을 초기화하고 결과 화면까지 간 레벨 버튼에 V를 켠다.
+        /// 레벨 선택 화면을 초기화하고 결과 화면까지 간 레벨 버튼에 V를 켜며, 다섯 레벨을 모두 마쳤으면 종료하기 버튼을 보인다.
         /// </summary>
         private void Start()
         {
@@ -72,6 +74,7 @@ namespace Scenes
             if (!storyPanel && _logger != null) _logger.ZLogWarning($"[StoryManager] storyPanel이 할당되지 않았습니다.");
             if (!startButton && _logger != null) _logger.ZLogWarning($"[StoryManager] startButton이 할당되지 않았습니다.");
             if (!backButton && _logger != null) _logger.ZLogWarning($"[StoryManager] backButton이 할당되지 않았습니다.");
+            if (!endButton && _logger != null) _logger.ZLogWarning($"[StoryManager] endButton이 할당되지 않아 다섯 레벨을 마쳐도 아웃트로로 갈 수 없습니다.");
 
             // UI 작업 중 에디터에서 패널을 꺼둔 채 플레이해도 항상 levelSelectPanel만 보이는 상태로 시작하도록 정규화
             SceneFader.InitializePanelState(levelSelectPanel, true);
@@ -93,6 +96,11 @@ namespace Scenes
 
             if (startButton) startButton.onClick.AddListener(OnStartClicked);
             if (backButton) backButton.onClick.AddListener(OnBackClicked);
+            if (endButton)
+            {
+                endButton.onClick.AddListener(OnEndClicked);
+                endButton.gameObject.SetActive(AreAllLevelsCompleted());
+            }
 
             // 로봇 영상 — 진입과 동시에 루프 재생 (isLooping은 컴포넌트에 설정됨)
             SceneFader.PlayRobotVideo(robotVideoPlayer, destroyCancellationToken, _logger);
@@ -125,12 +133,38 @@ namespace Scenes
         }
 
         /// <summary>
+        /// 레벨 버튼마다 V가 붙을 조건(결과 화면까지 감, 서버 기록 포함)을 모두 채웠는지 돌려준다 — 종료하기 버튼을 보일지 정한다.
+        /// </summary>
+        private bool AreAllLevelsCompleted()
+        {
+            if (_session == null || levelButtons.Length == 0) return false;
+
+            for (int i = 0; i < levelButtons.Length; i++)
+                if (!_session.completedLevelIndices.Contains(i)) return false;
+            return true;
+        }
+
+        /// <summary>
         /// 버튼 리스너를 해제한다.
         /// </summary>
         private void OnDestroy()
         {
             if (startButton) startButton.onClick.RemoveListener(OnStartClicked);
             if (backButton) backButton.onClick.RemoveListener(OnBackClicked);
+            if (endButton) endButton.onClick.RemoveListener(OnEndClicked);
+        }
+
+        /// <summary>
+        /// 종료하기 버튼 — 다섯 레벨을 모두 마친 체험자를 아웃트로로 보낸다(아웃트로의 처음으로 버튼이 move_idle로 집계한다).
+        /// </summary>
+        private void OnEndClicked()
+        {
+            // 레벨을 막 골라 스토리 화면으로 넘어가는 중이면(아두이노에 enter를 보냄) 받지 않는다 — 씬 전환 중에도 받지 않는다
+            if (_currentLevel || SceneFader.IsLoading) return;
+
+            if (_soundManager) _soundManager.PlaySFX(Constants.Sounds.ButtonClick);
+            if (_logger != null) _logger.ZLogInformation($"[StoryManager] {VisitorInfoProvider.LogSubjectOf(_visitorInfoProvider)} 다섯 레벨을 마치고 종료하기를 누름 — 아웃트로로 감.");
+            SceneFader.FadeAndLoad(Constants.Scenes.Outro, logger: _logger).Forget();
         }
 
         /// <summary>
