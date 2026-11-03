@@ -15,7 +15,7 @@
         "com.unity.nuget.newtonsoft-json": "3.0.2",
         "com.unity.test-framework": "1.1.31"
       },
-      "hash": "aa5fc638d623f56178d50329d9ad8c541a57fe66"
+      "hash": "81542a7e86292b5c4c21b1782c5af23b567f45ce"
     },
     "com.cysharp.messagepipe": {
       "version": "1.8.2",
@@ -48,7 +48,7 @@
       "url": "https://package.openupm.com"
     },
     "com.cysharp.zlogger": {
-      "version": "2.5.10",
+      "version": "2.6.0",
       "depth": 0,
       "source": "registry",
       "dependencies": {},
@@ -66,7 +66,7 @@
       "depth": 0,
       "source": "git",
       "dependencies": {},
-      "hash": "acc1c7bc9ea34c33b830e40316fca52553878d29"
+      "hash": "4a2d9c8e6a4f0fa50ecb24ec2d14ae588b1951da"
     },
     "com.huliacdev.template": {
       "version": "https://github.com/wonjeong97/Template.git",
@@ -86,7 +86,7 @@
         "com.unity.test-framework": "1.4.6",
         "com.unity.textmeshpro": "3.0.9"
       },
-      "hash": "7fbccfe95e5e9192f6ee5d976a72e62053cd70ca"
+      "hash": "e78563a1e89e6e8a191b19e6eeab972e847a72c6"
     },
     "com.unity.2d.sprite": {
       "version": "1.0.0",
