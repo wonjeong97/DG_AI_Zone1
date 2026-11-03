@@ -4,6 +4,13 @@ Claude가 Antigravity(agy)와 리뷰 서브에이전트에 맡긴 검증 기록.
 
 ---
 
+### [2026-11-03 15:00] Claude → Antigravity · Template 26.11.3-2 업데이트 (chore/template-26.11.3-2)
+- 요청: 오늘 바뀐 Template(비정상 종료 자동 재시작, Build 메뉴, ZLogger 2.6.0)을 이 프로젝트에도 반영.
+- 변경: Template 7fbccfe(26.10.19-1) → e78563a(26.11.3-2), UPM·NuGet ZLogger 2.6.0, NuGet `Microsoft.*`·`System.*` 10.0.14, MCP for Unity·NuGetForUnity 최신 커밋. Settings.json `autoRestart` 켬, Version 26.11.3, README 새로 만들고 Unity 버전 적음.
+- Claude 확인: 메뉴를 다시 실행해 UPM·NuGet 남은 업데이트 없음, 콘솔 오류 0, Windows 빌드 성공(오류 0, 경고 2건은 빌드 중 MCP 연결이 끊긴 로그). 같은 버전으로 다시 깔린 Utf8StringInterpolation 파일은 되돌림. 서버 요청은 자체 `VisitorApiClient`라 26.10.30-1 Breaking에 걸리지 않음.
+- agy (gemini-4-argon-high, 1묶음): 설정 JSON·Version·README → 통과. 패키지 버전 짝(manifest·packages.config·NuGet 폴더·lock) → 통과. CHANGELOG·TODO → 통과.
+- 남은 것: 자동 재시작 동작은 이 프로젝트 빌드로 따로 시험하지 않음(Template 검증 프로젝트에서 시험함).
+
 ### [2026-10-28 14:17] Claude → Antigravity + 서브에이전트 · V 표시 자리·종료하기 버튼·효율 표시 (chore/level-complete-icon, PR #108)
 - 요청: 임시 V 그림 위쪽 연두색 타원 빼기, V를 레벨 그림 아래 가운데로 — 그림과 겹치지 않게.
 - 변경: Icon_LevelComplete.png를 같은 파일로 다시 그림(GUID 유지), 2_Story Image_Complete 5개를 앵커 (0.5,0)·피벗 (0.5,1)·위치 (0,0)으로(윗변 = 버튼 영역 아래 끝, 레벨 그림 아래 투명 여백 8~25px라 어느 레벨도 안 겹침).
